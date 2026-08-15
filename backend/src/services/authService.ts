@@ -44,3 +44,41 @@ export async function signupUser(
         role,
     };
 }
+
+export async function signinUser(email: string, password: string) {
+    const pool = getPool();
+
+    const [users] = await pool.query<RowDataPacket[]>(
+        `SELECT
+            user_id,
+            name,
+            email,
+            password_hash,
+            role,
+            is_active
+        FROM users
+        WHERE email = ?
+        LIMIT 1`
+        , [email] 
+    );
+
+    if (users.length === 0) 
+        throw new Error("INVALID_CREDENTIALS");
+
+    const user = users[0]!;
+
+    if (!user.is_active)
+        throw new Error("USER_INACTIVE");
+
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordMatch)
+        throw new Error("INVALID_CREDENTIALS");
+
+    return {
+        user_id: user.user_id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+    };
+}

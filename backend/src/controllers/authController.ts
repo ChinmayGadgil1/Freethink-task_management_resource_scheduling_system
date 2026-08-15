@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Request, Response } from "express";
-import { signupUser } from "../services/authService.js";
+import { signupUser, signinUser } from "../services/authService.js";
+import { PassThrough } from "node:stream";
 
 const signupSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -9,6 +10,11 @@ const signupSchema = z.object({
     role: z.enum(["PROJECT_MANAGER", "RESOURCE"], {
         message: "Invalid role"
     }),
+});
+
+const signinSchema = z.object({
+    email: z.email("Invalid email format"),
+    password: z.string().min(6, "Password must contain at least 6 characters")
 });
 
 export async function signup(
@@ -47,6 +53,48 @@ export async function signup(
 
         return res.status(500).json({
             message: "Internal server error",
+        });
+    }
+}
+
+export async function signin(req: Request, res: Response) {
+    try {
+        const parsedData = signinSchema.parse(req.body);
+
+        const user = await signinUser(
+            parsedData.email,
+            parsedData.password
+        );
+
+        return res.status(200).json({
+            message: "Sign in successful",
+            user
+        });
+    }
+    catch (error: any) {
+        console.error("SignIn error", error);
+
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({
+                message: "Validation error", 
+                errors: error.issues
+            });
+        }
+
+        if (error.message === "INVALID_CREDENTIALS") {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        if (error.message === "USER_INACTIVE") {
+            return res.status(402).json({
+                message: "User account is inactive"
+            });
+        }
+
+        return res.status(500).json({
+            message: "Internal server error"
         });
     }
 }
