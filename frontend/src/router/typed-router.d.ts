@@ -60,6 +60,20 @@ declare module 'vue-router/auto-routes' {
       { path: ParamValue<false> },
       | never
     >,
+    '/forgot-password': RouteRecordInfo<
+      '/forgot-password',
+      '/forgot-password',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/reset-password': RouteRecordInfo<
+      '/reset-password',
+      '/reset-password',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/signup': RouteRecordInfo<
       '/signup',
       '/signup',
@@ -113,6 +127,22 @@ declare module 'vue-router/auto-routes' {
         | never
       pathParamNames:
         | 'path'
+    }
+    'src/pages/forgot-password.vue': {
+      routes:
+        | '/forgot-password'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/reset-password.vue': {
+      routes:
+        | '/reset-password'
+      views:
+        | never
+      pathParamNames:
+        | never
     }
     'src/pages/signup.vue': {
       routes:

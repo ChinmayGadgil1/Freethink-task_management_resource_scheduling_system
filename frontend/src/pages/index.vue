@@ -47,7 +47,7 @@
               </q-card-section>
 
 
-              
+
               <q-card-section>
 
                 <q-form
@@ -55,7 +55,7 @@
                   class="q-gutter-md"
                 >
 
-                  
+
                   <q-input
                     v-model="form.email"
                     outlined
@@ -77,7 +77,7 @@
                   </q-input>
 
 
-                  
+
                   <q-input
                     v-model="form.password"
                     outlined
@@ -121,8 +121,21 @@
 
                   </q-input>
 
+                  <!-- Forgot Password -->
+                  <div class="row justify-end q-mb-sm">
+                    <q-btn
+                      flat
+                      dense
+                      no-caps
+                      size="sm"
+                      label="Forgot password?"
+                      color="grey-7"
+                      class="text-weight-medium"
+                      @click="goToForgotPassword"
+                    />
+                  </div>
 
-                  
+
                   <q-btn
                     type="submit"
                     unelevated
@@ -140,7 +153,7 @@
               </q-card-section>
 
 
-              
+
               <q-card-section
                 class="text-center"
               >
@@ -246,6 +259,10 @@ const handleLogin = async () => {
 
 const goToRegister = () => {
   router.push('/signup')
+}
+
+const goToForgotPassword = () => {
+  router.push('/forgot-password')
 }
 
 </script>$

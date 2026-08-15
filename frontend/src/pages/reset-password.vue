@@ -1,6 +1,8 @@
 <template>
   <q-layout view="hHh lpR fFf">
+
     <q-page-container>
+
       <q-page class="relative-position window-height">
 
         <!-- Background -->
@@ -10,7 +12,7 @@
           class="absolute-full"
         />
 
-        <!-- Signup Card -->
+        <!-- Reset Password Card -->
         <div class="absolute-full flex flex-center">
 
           <div
@@ -31,97 +33,54 @@
               <q-card-section class="text-center">
 
                 <div class="text-h5 text-weight-bold">
-                  Create Account
+                  Reset Password
                 </div>
 
                 <div class="text-body2 text-grey-7 q-mt-sm">
-                  Create your account to get started
+                  Enter the reset token and your new password below.
                 </div>
 
               </q-card-section>
 
 
-              <!-- Signup Form -->
+              <!-- Reset Password Form -->
               <q-card-section>
 
                 <q-form
-                  @submit.prevent="handleSignup"
+                  @submit.prevent="handleResetPassword"
                   class="q-gutter-md"
                 >
 
-                  <!-- Full Name -->
+                  <!-- Reset Token -->
                   <q-input
-                    v-model="form.name"
+                    v-model="form.token"
                     outlined
                     dense
-                    label="Full Name"
+                    label="Reset Token"
                     :rules="[
                       val =>
                         !!val ||
-                        'Name is required'
+                        'Reset token is required'
                     ]"
                   >
                     <template #prepend>
-                      <q-icon name="person_outline" />
+                      <q-icon name="key" />
                     </template>
                   </q-input>
 
 
-                  <!-- Email -->
-                  <q-input
-                    v-model="form.email"
-                    outlined
-                    dense
-                    label="Enter Email-id"
-                    type="email"
-                    :rules="[
-                      val =>
-                        !!val ||
-                        'Email is required',
-
-                      val =>
-                        /.+@.+\..+/.test(val) ||
-                        'Enter a valid email'
-                    ]"
-                  >
-                    <template #prepend>
-                      <q-icon name="mail_outline" />
-                    </template>
-                  </q-input>
-
-
-                  <!-- Password -->
+                  <!-- New Password -->
                   <q-input
                     v-model="form.password"
                     outlined
                     dense
-                    label="Password"
+                    label="New Password"
                     :type="
                       showPassword
                         ? 'text'
                         : 'password'
                     "
-                    :rules="[
-                      val =>
-                        !!val ||
-                        'Password is required',
-
-                      val =>
-                        val.length >= 6 ||
-                        'Password must be at least 6 characters',
-
-                      val =>
-                        /^[A-Z]/.test(val) ||
-                        'First character must be uppercase',
-
-                      val =>
-                        /[0-9]/.test(val) ||
-                        'Password must contain at least one number',
-
-                      val =>
-                        /[^A-Za-z0-9]/.test(val) ||
-                        'Password must contain at least one special character'
-                    ]"
+                    :rules="passwordRules"
                   >
 
                     <template #prepend>
@@ -156,7 +115,7 @@
                     v-model="form.confirmPassword"
                     outlined
                     dense
-                    label="Confirm Password"
+                    label="Confirm New Password"
                     :type="
                       showConfirmPassword
                         ? 'text'
@@ -200,12 +159,12 @@
                   </q-input>
 
 
-                  <!-- Create Account -->
+                  <!-- Update Password -->
                   <q-btn
                     type="submit"
                     unelevated
                     no-caps
-                    label="Create Account"
+                    label="Update Password"
                     color="orange-3"
                     text-color="dark"
                     class="full-width rounded-borders"
@@ -218,12 +177,12 @@
               </q-card-section>
 
 
-              <!-- Login Link -->
+              <!-- Back to Login -->
               <q-card-section class="text-center">
 
                 <div class="text-caption text-grey-7">
 
-                  Already have an account?
+                  Remembered your password?
 
                   <q-btn
                     flat
@@ -246,7 +205,9 @@
         </div>
 
       </q-page>
+
     </q-page-container>
+
   </q-layout>
 </template>
 
@@ -261,27 +222,58 @@ import backgroundImage from '../assets/image.png'
 const $q = useQuasar()
 const router = useRouter()
 
+
 const form = reactive({
-  name: '',
-  email: '',
+  token: '',
   password: '',
   confirmPassword: ''
 })
-
 
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const loading = ref(false)
 
+/* Password rules: */
+const passwordRules = [
+  val =>
+    !!val ||
+    'Password is required',
 
-const handleSignup = async () => {
+  val =>
+    val.length >= 6 ||
+    'Password must be at least 6 characters',
+
+  val =>
+    /^[A-Z]/.test(val) ||
+    'First character must be uppercase',
+
+  val =>
+    /[0-9]/.test(val) ||
+    'Password must contain at least one number',
+
+  val =>
+    /[^A-Za-z0-9]/.test(val) ||
+    'Password must contain at least one special character'
+]
+
+
+const handleResetPassword = async () => {
 
   loading.value = true
 
   try {
+    /* Backend :
+     * POST /api/auth/reset-password
+     * Data:
+     * {
+     *   token: form.token,
+     *   newPassword: form.password
+     * } */
 
-
-    console.log('Signup:', form)
+    console.log('Reset Password:', {
+      token: form.token,
+      newPassword: form.password
+    })
 
     await new Promise(
       resolve => setTimeout(resolve, 800)
@@ -289,8 +281,10 @@ const handleSignup = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Account created successfully'
+      message: 'Password reset successful!'
     })
+
+    router.push('/')
 
   } catch (error) {
 
@@ -298,15 +292,12 @@ const handleSignup = async () => {
 
     $q.notify({
       type: 'negative',
-      message: 'Signup failed'
+      message: 'Password reset failed'
     })
 
   } finally {
-
     loading.value = false
-
   }
-
 }
 
 const goToLogin = () => {
