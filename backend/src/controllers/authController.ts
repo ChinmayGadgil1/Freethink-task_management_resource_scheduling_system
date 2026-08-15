@@ -6,7 +6,12 @@ import { PassThrough } from "node:stream";
 const signupSchema = z.object({
     name: z.string().min(1, "Name is required"),
     email: z.email("Invalid email format"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z
+        .string()
+        .min(6, "Password must be at least 6 characters")
+        .regex(/^[A-Z]/, "Password must start with a capital letter")
+        .regex(/[0-9]/, "Password must contain at least one number")
+        .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     role: z.enum(["PROJECT_MANAGER", "RESOURCE"], {
         message: "Invalid role"
     }),
