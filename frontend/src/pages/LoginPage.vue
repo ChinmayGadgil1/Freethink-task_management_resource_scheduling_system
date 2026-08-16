@@ -190,13 +190,13 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 
 import { reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 
-import backgroundImage from '../assets/image.png'
+import backgroundImage from '@/assets/image.png'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -258,11 +258,11 @@ const handleLogin = async () => {
 }
 
 const goToRegister = () => {
-  router.push('/signup')
+  void router.push('/signup')
 }
 
 const goToForgotPassword = () => {
-  router.push('/forgot-password')
+  void router.push('/forgot-password')
 }
 
 </script>$

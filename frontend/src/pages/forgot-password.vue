@@ -128,7 +128,7 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
@@ -180,7 +180,7 @@ const handleForgotPassword = async () => {
 
 
 const goToLogin = () => {
-  router.push('/')
+  void router.push('/')
 }
 
 </script>

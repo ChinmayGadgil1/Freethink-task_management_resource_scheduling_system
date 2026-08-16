@@ -251,7 +251,7 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
@@ -310,7 +310,7 @@ const handleSignup = async () => {
 }
 
 const goToLogin = () => {
-  router.push('/')
+  void router.push('/')
 }
 
 </script>

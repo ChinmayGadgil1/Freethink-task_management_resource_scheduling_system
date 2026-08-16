@@ -212,7 +212,7 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
@@ -235,23 +235,23 @@ const loading = ref(false)
 
 /* Password rules: */
 const passwordRules = [
-  val =>
+  (val: string) =>
     !!val ||
     'Password is required',
 
-  val =>
+  (val: string) =>
     val.length >= 6 ||
     'Password must be at least 6 characters',
 
-  val =>
+  (val: string) =>
     /^[A-Z]/.test(val) ||
     'First character must be uppercase',
 
-  val =>
+  (val: string) =>
     /[0-9]/.test(val) ||
     'Password must contain at least one number',
 
-  val =>
+  (val: string) =>
     /[^A-Za-z0-9]/.test(val) ||
     'Password must contain at least one special character'
 ]
@@ -284,7 +284,7 @@ const handleResetPassword = async () => {
       message: 'Password reset successful!'
     })
 
-    router.push('/')
+    void router.push('/')
 
   } catch (error) {
 
@@ -301,7 +301,7 @@ const handleResetPassword = async () => {
 }
 
 const goToLogin = () => {
-  router.push('/')
+  void router.push('/')
 }
 
 </script>

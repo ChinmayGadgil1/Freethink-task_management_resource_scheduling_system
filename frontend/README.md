@@ -1,4 +1,4 @@
-# freethink-project (freethink-project)
+# freethink-project (frontend)
 
 ## Install the dependencies
 
