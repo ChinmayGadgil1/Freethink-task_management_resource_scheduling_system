@@ -10,7 +10,7 @@ extends Request<P, ResBody, ReqBody, ReqQuery> {
     };
 }
 
-const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
