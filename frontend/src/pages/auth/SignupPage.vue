@@ -177,6 +177,7 @@
 import { reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { signupApi } from '@/services/api'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -184,7 +185,7 @@ const router = useRouter()
 const form = reactive({
   name: '',
   email: '',
-  role: 'RESOURCE',
+  role: 'RESOURCE' as 'RESOURCE' | 'PROJECT_MANAGER',
   password: '',
   confirmPassword: ''
 })
@@ -199,19 +200,34 @@ const showConfirmPassword = ref(false)
 const loading = ref(false)
 
 const handleSignup = async () => {
-  loading.value = true
-  try {
-    console.log('Signup:', form)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    $q.notify({
-      type: 'positive',
-      message: 'Account created successfully'
-    })
-  } catch (error) {
-    console.error(error)
+  if (form.password !== form.confirmPassword) {
     $q.notify({
       type: 'negative',
-      message: 'Signup failed'
+      message: 'Passwords do not match'
+    })
+    return
+  }
+
+  loading.value = true
+  try {
+    const data = await signupApi({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      role: form.role
+    })
+
+    $q.notify({
+      type: 'positive',
+      message: data.message || 'Account created successfully!'
+    })
+
+    void router.push('/')
+  } catch (error: any) {
+    console.error('Signup error:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.message || 'Signup failed'
     })
   } finally {
     loading.value = false

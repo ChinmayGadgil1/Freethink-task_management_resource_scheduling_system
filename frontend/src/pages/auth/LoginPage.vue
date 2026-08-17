@@ -124,6 +124,7 @@
 import { reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { signinApi } from '@/services/api'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -139,17 +140,48 @@ const loading = ref(false)
 const handleLogin = async () => {
   loading.value = true
   try {
-    console.log('Login:', form)
-    await new Promise(resolve => setTimeout(resolve, 800))
+    const data = await signinApi({
+      email: form.email,
+      password: form.password
+    })
+
+    console.log('Sign in response:', data)
+
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user))
+    }
+
+    const messageText = data.user?.name
+      ? `Signed in successfully! Welcome ${data.user.name}`
+      : (data.message || 'Sign in successful!')
+
+    sessionStorage.setItem('flashMessage', messageText)
+
     $q.notify({
       type: 'positive',
-      message: 'Login successful'
+      message: messageText,
+      position: 'top',
+      timeout: 3000
     })
-  } catch (error) {
-    console.error(error)
+
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    // Redirect based on user role
+    const role = data.user?.role
+    if (role === 'PROJECT_MANAGER') {
+      void router.push('/app/pm-dashboard')
+    } else if (role === 'RESOURCE') {
+      void router.push('/app/resource-dashboard')
+    } else {
+      void router.push('/app')
+    }
+  } catch (error: any) {
+    console.error('Login error:', error)
     $q.notify({
       type: 'negative',
-      message: 'Login failed'
+      message: error.message || 'Login failed',
+      position: 'top',
+      timeout: 3000
     })
   } finally {
     loading.value = false
