@@ -53,5 +53,39 @@ export async function initializeDatabase() {
 
     console.log("Projects table created successfully.");
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS tasks (
+            task_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            project_id BIGINT NOT NULL,
+            title VARCHAR(150) NOT NULL,
+            description TEXT,
+            priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+            status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD') NOT NULL DEFAULT 'PENDING',
+            start_date DATE,
+            deadline DATE,
+            expected_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
+            actual_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
+            progress DECIMAL(5,2) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (project_id) REFERENCES projects(project_id)
+        )
+    `);
+
+    console.log("Tasks table created successfully.");
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS task_assignments (
+            task_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (task_id, user_id),
+            FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    `);
+
+    console.log("Task assignments table created successfully.");
+
     return pool;
 }

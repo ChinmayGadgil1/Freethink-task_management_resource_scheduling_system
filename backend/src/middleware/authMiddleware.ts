@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 
-export interface AuthRequest<P = {}, ResBody = any, ReqBody = any, ReqQuery = {}> 
+export interface AuthRequest<P = {}, ResBody = any, ReqBody = any, ReqQuery = any> 
 extends Request<P, ResBody, ReqBody, ReqQuery> {
     user?: {
         user_id: number,
