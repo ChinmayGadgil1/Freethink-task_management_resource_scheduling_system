@@ -1,20 +1,59 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+    <q-header elevated class="bg-primary text-white">
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-toolbar-title class="text-weight-bold">
+          Task & Resource Manager
+        </q-toolbar-title>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <div v-if="user" class="row items-center q-gutter-x-sm">
+          <span class="text-subtitle2 q-mr-xs">{{ user.name }}</span>
+          <q-chip color="orange-3" text-color="dark" dense size="sm" class="text-weight-bold">
+            {{ user.role }}
+          </q-chip>
+          <q-btn flat round icon="logout" size="sm" @click="handleLogout" title="Logout" />
+        </div>
       </q-toolbar>
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
       <q-list>
-        <q-item-label header> Essential Links </q-item-label>
+        <q-item-label header class="text-weight-bold text-uppercase">
+          Navigation Menu
+        </q-item-label>
 
-        <EssentialLink v-for="link in linksList" :key="link.label" v-bind="link" />
+        <q-item v-if="user?.role === 'PROJECT_MANAGER'" clickable v-ripple to="/app/pm-dashboard">
+          <q-item-section avatar>
+            <q-icon name="dashboard" color="primary" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-weight-bold">PM Dashboard</q-item-label>
+            <q-item-label caption>Projects & Allocations</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="user?.role === 'RESOURCE'" clickable v-ripple to="/app/resource-dashboard">
+          <q-item-section avatar>
+            <q-icon name="assignment" color="teal" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label class="text-weight-bold">Resource Dashboard</q-item-label>
+            <q-item-label caption>My Tasks & Schedule</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-separator class="q-my-sm" />
+
+        <q-item clickable v-ripple @click="handleLogout">
+          <q-item-section avatar>
+            <q-icon name="logout" color="negative" />
+          </q-item-section>
+          <q-item-section class="text-negative text-weight-bold">
+            Logout
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
@@ -25,57 +64,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import EssentialLink, { type EssentialLinkProps } from '@/components/EssentialLink.vue';
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 
-const linksList: EssentialLinkProps[] = [
-  {
-    label: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    label: 'GitHub',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    label: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    label: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    label: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    label: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    label: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
-];
+const $q = useQuasar()
+const router = useRouter()
 
-const leftDrawerOpen = ref(false);
+interface User {
+  user_id: number
+  name: string
+  email: string
+  role: string
+}
+
+const user = ref<User | null>(null)
+const leftDrawerOpen = ref(false)
+
+onMounted(() => {
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    try {
+      user.value = JSON.parse(storedUser)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+})
 
 function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
+  leftDrawerOpen.value = !leftDrawerOpen.value
+}
+
+function handleLogout() {
+  localStorage.removeItem('user')
+  $q.notify({
+    type: 'info',
+    message: 'You have been logged out'
+  })
+  void router.push('/')
 }
 </script>

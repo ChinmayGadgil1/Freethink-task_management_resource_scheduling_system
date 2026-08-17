@@ -92,7 +92,13 @@ export async function signinUser(email: string, password: string) {
         token
     };
 }
- 
+  return {
+    user_id: user.user_id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+}
 
 export async function resetPassword(
   email: string,

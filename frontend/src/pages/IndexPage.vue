@@ -1,17 +1,41 @@
 <template>
   <q-page class="flex flex-center">
-    <div class="column items-center">
+    <div class="column items-center text-center q-pa-md" style="max-width: 600px; width: 100%;">
       <img
         alt="Quasar logo"
         src="~@/assets/quasar-logo-vertical.svg"
-        style="width: 200px; height: 200px"
+        style="width: 140px; height: 140px"
       />
-
-      <q-btn class="q-mt-md" color="primary" to="/app/second" label="Go to Second Page" no-caps />
+      <q-spinner color="primary" size="2em" class="q-mt-md" />
+      <div class="text-body1 text-grey-7 q-mt-sm">
+        Redirecting to your dashboard...
+      </div>
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-//
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+onMounted(() => {
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    try {
+      const user = JSON.parse(storedUser)
+      if (user.role === 'PROJECT_MANAGER') {
+        void router.replace('/app/pm-dashboard')
+        return
+      } else if (user.role === 'RESOURCE') {
+        void router.replace('/app/resource-dashboard')
+        return
+      }
+    } catch (e) {
+      console.error('Error parsing user:', e)
+    }
+  }
+  void router.replace('/')
+})
 </script>

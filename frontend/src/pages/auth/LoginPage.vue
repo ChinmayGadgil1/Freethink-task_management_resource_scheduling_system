@@ -1,15 +1,15 @@
 <template>
   <div
     class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md"
-    style="width: 100%; max-width: 480px;"
+    style="width: 100%; max-width: 540px;"
   >
     <q-card
       flat
-      class="bg-white q-pa-lg"
+      class="bg-white q-pa-xl"
       style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);"
     >
       <!-- Card Header -->
-      <q-card-section class="text-center">
+      <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold">
           Login
         </div>
@@ -24,13 +24,14 @@
       <q-card-section>
         <q-form
           @submit.prevent="handleLogin"
-          class="q-gutter-y-sm"
+          style="display: flex; flex-direction: column; gap: 18px;"
         >
           <!-- Email -->
           <q-input
             v-model="form.email"
             outlined
             dense
+            hide-bottom-space
             label="Enter Email-id"
             type="email"
             :rules="[
@@ -72,7 +73,7 @@
           </q-input>
 
           <!-- Forgot Password -->
-          <div class="row justify-end q-mt-xs">
+          <div class="row justify-end" style="margin-top: -8px;">
             <q-btn
               flat
               dense
@@ -101,7 +102,7 @@
       </q-card-section>
 
       <!-- Register Link -->
-      <q-card-section class="text-center">
+      <q-card-section class="text-center q-pt-sm">
         <div class="text-caption text-grey-7">
           Don't have an account?
           <q-btn
@@ -123,6 +124,7 @@
 import { reactive, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
+import { signinApi } from '@/services/api'
 
 const $q = useQuasar()
 const router = useRouter()
@@ -138,17 +140,48 @@ const loading = ref(false)
 const handleLogin = async () => {
   loading.value = true
   try {
-    console.log('Login:', form)
-    await new Promise(resolve => setTimeout(resolve, 800))
+    const data = await signinApi({
+      email: form.email,
+      password: form.password
+    })
+
+    console.log('Sign in response:', data)
+
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user))
+    }
+
+    const messageText = data.user?.name
+      ? `Signed in successfully! Welcome ${data.user.name}`
+      : (data.message || 'Sign in successful!')
+
+    sessionStorage.setItem('flashMessage', messageText)
+
     $q.notify({
       type: 'positive',
-      message: 'Login successful'
+      message: messageText,
+      position: 'top',
+      timeout: 3000
     })
-  } catch (error) {
-    console.error(error)
+
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    // Redirect based on user role
+    const role = data.user?.role
+    if (role === 'PROJECT_MANAGER') {
+      void router.push('/app/pm-dashboard')
+    } else if (role === 'RESOURCE') {
+      void router.push('/app/resource-dashboard')
+    } else {
+      void router.push('/app')
+    }
+  } catch (error: any) {
+    console.error('Login error:', error)
     $q.notify({
       type: 'negative',
-      message: 'Login failed'
+      message: error.message || 'Login failed',
+      position: 'top',
+      timeout: 3000
     })
   } finally {
     loading.value = false
