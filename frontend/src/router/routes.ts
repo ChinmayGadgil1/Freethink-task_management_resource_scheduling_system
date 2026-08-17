@@ -23,12 +23,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('@/pages/IndexPage.vue') },
-            {
+      {
         path: 'pm-dashboard',
         component: () => import('@/pages/pm/DashboardPage.vue'),
       },
-      
-          
+
+
       { path: 'second', component: () => import('@/pages/SecondPage.vue') },
     ],
   },
@@ -46,8 +46,25 @@ const routes: RouteRecordRaw[] = [
         path: 'projects',
         component: () => import('@/pages/pm/ProjectsPage.vue'),
       },
-          
 
+
+    ],
+  },
+
+  //resource routes
+  {
+    path: '/app/resource-dashboard',
+    component: () => import('@/layouts/ResourceLayout.vue'),
+
+    children: [
+      {
+        path: '',
+        component: () => import('@/pages/resource/DashboardPage.vue'),
+      },
+      {
+        path: 'tasks',
+        component: () => import('@/pages/resource/MyTasksPage.vue'),
+      },
     ],
   },
 
