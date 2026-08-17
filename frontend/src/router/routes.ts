@@ -1,12 +1,23 @@
 import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
+  // Auth routes (sharing AuthLayout for layout and background reuse)
   {
     path: '/',
-    component: () => import('@/pages/LoginPage.vue'),
+    component: () => import('@/layouts/AuthLayout.vue'),
+    children: [
+      { path: '', component: () => import('@/pages/auth/LoginPage.vue') },
+      { path: 'signup', component: () => import('@/pages/auth/SignupPage.vue') },
+      { path: 'forgot-password', component: () => import('@/pages/auth/forgot-password.vue') },
+      { path: 'reset-password', component: () => import('@/pages/auth/reset-password.vue') },
+    ],
+  },
+  {
+    path: '/login',
+    redirect: '/',
   },
 
-  // Main app routes
+  // Main app routes (sharing MainLayout)
   {
     path: '/app',
     component: () => import('@/layouts/MainLayout.vue'),
@@ -16,26 +27,7 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // Auth routes (standalone, no MainLayout)
-  {
-    path: '/login',
-    redirect: '/',
-  },
-  {
-    path: '/signup',
-    component: () => import('@/pages/SignupPage.vue'),
-  },
-  {
-    path: '/forgot-password',
-    component: () => import('@/pages/forgot-password.vue'),
-  },
-  {
-    path: '/reset-password',
-    component: () => import('@/pages/reset-password.vue'),
-  },
-
-  // Always leave this as last one,
-  // but you can also remove it
+  // Catch-all 404 route
   {
     path: '/:catchAll(.*)*',
     component: () => import('@/pages/ErrorNotFound.vue'),
