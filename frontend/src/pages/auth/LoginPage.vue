@@ -4,7 +4,7 @@
     style="width: 100%; max-width: 540px;"
   >
     <q-card
-      flat
+      elevated
       class="bg-white q-pa-xl"
       style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);"
     >
