@@ -1,6 +1,7 @@
 import { z } from "zod";
-import type { Request, Response } from "express";
-import { createProject } from "../services/projectService.js";
+import type { Response } from "express";
+import type { AuthRequest } from "../middleware/authMiddleware.js";
+import { createProject, getProjectsByManager } from "../services/projectService.js";
 
 const createProjectSchema = z.object({
     project_manager_id: z.number().int().positive(),
@@ -24,10 +25,7 @@ const createProjectSchema = z.object({
     deadline: z.string().nullable().optional()
 });
 
-export async function create(
-    req: Request,
-    res: Response
-) {
+export async function create(req: AuthRequest, res: Response) {
     try {
         const parsedData = createProjectSchema.parse(req.body);
 
@@ -71,6 +69,29 @@ export async function create(
                 message: "Project manager does not exist"
             });
         }
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+}
+
+export async function getProjects(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({
+                message: "Only project managers can view their projects"
+            });
+        }
+
+        const projects = await getProjectsByManager(req.user.user_id);
+
+        return res.status(200).json({
+            projects
+        });
+    }
+    catch (error) {
+        console.error("Fetch projects error:", error);
 
         return res.status(500).json({
             message: "Internal server error"

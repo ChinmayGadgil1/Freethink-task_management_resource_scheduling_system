@@ -1,4 +1,4 @@
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { getPool } from "../config/database.js";
 import type { ProjectPriority, ProjectStatus } from "../models/projectModel.js";
 
@@ -50,4 +50,31 @@ export async function createProject(
         deadline,
         progress: 0
     };
+}
+
+export async function getProjectsByManager(projectManagerId: number) {
+    const pool = getPool();
+
+    const [projects] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT
+            project_id,
+            project_manager_id,
+            name,
+            description,
+            status,
+            priority,
+            start_date,
+            deadline,
+            progress,
+            created_at,
+            updated_at
+        FROM projects
+        WHERE project_manager_id = ?
+        ORDER BY created_at DESC
+        `,
+        [projectManagerId]
+    );
+
+    return projects;
 }
