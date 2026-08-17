@@ -1,15 +1,15 @@
 <template>
   <div
     class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md"
-    style="width: 100%; max-width: 480px;"
+    style="width: 100%; max-width: 540px;"
   >
     <q-card
       flat
-      class="bg-white q-pa-lg"
+      class="bg-white q-pa-xl"
       style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);"
     >
       <!-- Card Header -->
-      <q-card-section class="text-center">
+      <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold">
           Login
         </div>
@@ -24,13 +24,14 @@
       <q-card-section>
         <q-form
           @submit.prevent="handleLogin"
-          class="q-gutter-y-sm"
+          style="display: flex; flex-direction: column; gap: 18px;"
         >
           <!-- Email -->
           <q-input
             v-model="form.email"
             outlined
             dense
+            hide-bottom-space
             label="Enter Email-id"
             type="email"
             :rules="[
@@ -72,7 +73,7 @@
           </q-input>
 
           <!-- Forgot Password -->
-          <div class="row justify-end q-mt-xs">
+          <div class="row justify-end" style="margin-top: -8px;">
             <q-btn
               flat
               dense
@@ -101,7 +102,7 @@
       </q-card-section>
 
       <!-- Register Link -->
-      <q-card-section class="text-center">
+      <q-card-section class="text-center q-pt-sm">
         <div class="text-caption text-grey-7">
           Don't have an account?
           <q-btn

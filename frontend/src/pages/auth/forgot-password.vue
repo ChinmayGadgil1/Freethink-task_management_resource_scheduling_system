@@ -1,18 +1,18 @@
 <template>
   <div
     class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md"
-    style="width: 100%; max-width: 480px;"
+    style="width: 100%; max-width: 540px;"
   >
     <q-card
       flat
-      class="bg-white q-pa-lg"
+      class="bg-white q-pa-xl"
       style="
         border-radius: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       "
     >
       <!-- Card Header -->
-      <q-card-section class="text-center">
+      <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold">
           Forgot Password?
         </div>
@@ -26,13 +26,14 @@
       <q-card-section>
         <q-form
           @submit.prevent="handleForgotPassword"
-          class="q-gutter-y-md"
+          style="display: flex; flex-direction: column; gap: 18px;"
         >
           <!-- Email -->
           <q-input
             v-model="email"
             outlined
             dense
+            hide-bottom-space
             label="Enter Email-id"
             type="email"
             :rules="[
@@ -53,7 +54,7 @@
             label="Send Reset Link"
             color="orange-3"
             text-color="dark"
-            class="full-width rounded-borders"
+            class="full-width rounded-borders q-mt-sm"
             size="md"
             :loading="loading"
           />
@@ -61,7 +62,7 @@
       </q-card-section>
 
       <!-- Back to Login -->
-      <q-card-section class="text-center">
+      <q-card-section class="text-center q-pt-sm">
         <div class="text-caption text-grey-7">
           Remembered your password?
           <q-btn
