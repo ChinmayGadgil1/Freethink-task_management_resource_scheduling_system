@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import { getPool } from "../config/database.js";
 import type { UserRole } from "../models/userModel.js";
+import jwt from "jsonwebtoken";
 
 export async function signupUser(
     name: string,
@@ -75,10 +76,22 @@ export async function signinUser(email: string, password: string) {
     if (!passwordMatch)
         throw new Error("INVALID_CREDENTIALS");
 
+    const token = jwt.sign(
+        {
+            user_id: user.user_id,
+            role: user.role,
+        },
+        process.env.JWT_SECRET!,
+        {
+            expiresIn: '1d',
+        }
+    );
+
     return {
         user_id: user.user_id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        token
     };
 }
