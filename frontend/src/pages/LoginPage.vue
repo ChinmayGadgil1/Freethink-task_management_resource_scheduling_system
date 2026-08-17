@@ -11,8 +11,6 @@
           class="absolute-full"
         />
 
-        <!-- ================= LOGIN CARD ================= -->
-
         <div
           class="absolute-full flex flex-center"
         >
@@ -30,7 +28,7 @@
 
               <!-- Card Header -->
 
-              <q-card-section class="text-center">
+              <q-card-section class="text-center" >
 
                 <div class="text-h5 text-weight-bold">
                   Login
@@ -52,7 +50,7 @@
 
                 <q-form
                   @submit.prevent="handleLogin"
-                  class="q-gutter-md"
+                  class="q-gutter-y-md"
                 >
 
 
@@ -138,7 +136,7 @@
 
                   <q-btn
                     type="submit"
-                    unelevated
+                    elevated
                     no-caps
                     label="Sign in"
                     color="orange-3"

@@ -46,7 +46,7 @@
 
                 <q-form
                   @submit.prevent="handleSignup"
-                  class="q-gutter-md"
+                  class="q-gutter-y-md"
                 >
 
                   <!-- Full Name -->
@@ -203,7 +203,7 @@
                   <!-- Create Account -->
                   <q-btn
                     type="submit"
-                    unelevated
+                    elevated
                     no-caps
                     label="Create Account"
                     color="orange-3"

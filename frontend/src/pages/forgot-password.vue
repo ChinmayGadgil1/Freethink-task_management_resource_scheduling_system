@@ -49,7 +49,7 @@
 
                 <q-form
                   @submit.prevent="handleForgotPassword"
-                  class="q-gutter-md"
+                  class="q-gutter-y-md"
                 >
 
                   <!-- Email -->
@@ -78,7 +78,7 @@
                   <!-- Send Reset Link -->
                   <q-btn
                     type="submit"
-                    unelevated
+                    elevated
                     no-caps
                     label="Send Reset Link"
                     color="orange-3"
