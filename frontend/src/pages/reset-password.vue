@@ -48,7 +48,7 @@
 
                 <q-form
                   @submit.prevent="handleResetPassword"
-                  class="q-gutter-md"
+                  class="q-gutter-y-md"
                 >
 
                   <!-- Reset Token -->
@@ -162,7 +162,7 @@
                   <!-- Update Password -->
                   <q-btn
                     type="submit"
-                    unelevated
+                    elevated
                     no-caps
                     label="Update Password"
                     color="orange-3"
