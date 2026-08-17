@@ -23,9 +23,31 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('@/pages/IndexPage.vue') },
-      { path: 'pm-dashboard', component: () => import('@/pages/ProjectManagerDashboard.vue') },
-      { path: 'resource-dashboard', component: () => import('@/pages/ResourceDashboard.vue') },
+            {
+        path: 'pm-dashboard',
+        component: () => import('@/pages/pm/DashboardPage.vue'),
+      },
+      
+          
       { path: 'second', component: () => import('@/pages/SecondPage.vue') },
+    ],
+  },
+
+  {
+    path: '/pm',
+    component: () => import('@/layouts/MainLayout.vue'),
+
+    children: [
+      {
+        path: 'dashboard',
+        component: () => import('@/pages/pm/DashboardPage.vue'),
+      },
+      {
+        path: 'projects',
+        component: () => import('@/pages/pm/ProjectsPage.vue'),
+      },
+          
+
     ],
   },
 

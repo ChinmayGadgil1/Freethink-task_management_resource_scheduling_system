@@ -1,1 +1,70 @@
-// app global css
+:root {
+  --wo-primary: #8b6fd8;
+  --wo-primary-dark: #7554cc;
+  --wo-primary-light: #eee9fb;
+  --wo-text-main: #1d2433;
+  --wo-text-muted: #667085;
+  --wo-text-subtle: #98a2b3;
+  --wo-border: #e6e8ed;
+  --wo-border-subtle: #f0f2f5;
+  --wo-bg-page: #f8f9fa;
+  --wo-bg-card: #ffffff;
+}
+
+body {
+  margin: 0;
+  background: var(--wo-bg-page);
+  color: var(--wo-text-main);
+  font-family:
+    'Plus Jakarta Sans',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.q-layout,
+.q-page-container,
+.q-page {
+  background: var(--wo-bg-page);
+}
+
+.q-btn {
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-family: inherit;
+}
+
+.dashboard-card {
+  background: #ffffff;
+  border: 1px solid #e6e8ed;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d0d5dd;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #98a2b3;
+}

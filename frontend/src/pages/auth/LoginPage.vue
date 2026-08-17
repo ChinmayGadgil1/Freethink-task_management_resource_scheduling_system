@@ -1,21 +1,16 @@
 <template>
-  <div
-    class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md"
-    style="width: 100%; max-width: 540px;"
-  >
+  <div class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md" style="width: 100%; max-width: 540px">
     <q-card
       elevated
       class="bg-white q-pa-xl"
-      style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);"
+      style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08)"
     >
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
-        <div class="text-h5 text-weight-bold">
-          Login
-        </div>
+        <div class="text-h5 text-weight-bold">Login</div>
         <div class="text-body2 text-grey-7 q-mt-sm">
           Hey, Enter your details to get sign in
-          <br>
+          <br />
           to your account
         </div>
       </q-card-section>
@@ -24,7 +19,7 @@
       <q-card-section>
         <q-form
           @submit.prevent="handleLogin"
-          style="display: flex; flex-direction: column; gap: 18px;"
+          style="display: flex; flex-direction: column; gap: 18px"
         >
           <!-- Email -->
           <q-input
@@ -35,8 +30,8 @@
             label="Enter Email-id"
             type="email"
             :rules="[
-              val => !!val || 'Email is required',
-              val => /.+@.+\..+/.test(val) || 'Enter a valid email'
+              (val) => !!val || 'Email is required',
+              (val) => /.+@.+\..+/.test(val) || 'Enter a valid email',
             ]"
           >
             <template #prepend>
@@ -52,9 +47,7 @@
             hide-bottom-space
             label="Password"
             :type="showPassword ? 'text' : 'password'"
-            :rules="[
-              val => !!val || 'Password is required'
-            ]"
+            :rules="[(val) => !!val || 'Password is required']"
           >
             <template #prepend>
               <q-icon name="lock_outline" />
@@ -73,7 +66,7 @@
           </q-input>
 
           <!-- Forgot Password -->
-          <div class="row justify-end" style="margin-top: -8px;">
+          <div class="row justify-end" style="margin-top: -8px">
             <q-btn
               flat
               dense
@@ -121,78 +114,78 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useQuasar } from 'quasar'
-import { useRouter } from 'vue-router'
-import { signinApi } from '@/services/api'
+import { reactive, ref } from 'vue';
+import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
+import { signinApi } from '@/services/api';
 
-const $q = useQuasar()
-const router = useRouter()
+const $q = useQuasar();
+const router = useRouter();
 
 const form = reactive({
   email: '',
-  password: ''
-})
+  password: '',
+});
 
-const showPassword = ref(false)
-const loading = ref(false)
+const showPassword = ref(false);
+const loading = ref(false);
 
 const handleLogin = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     const data = await signinApi({
       email: form.email,
-      password: form.password
-    })
+      password: form.password,
+    });
 
-    console.log('Sign in response:', data)
+    console.log('Sign in response:', data);
 
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user))
+      localStorage.setItem('user', JSON.stringify(data.user));
     }
 
     const messageText = data.user?.name
       ? `Signed in successfully! Welcome ${data.user.name}`
-      : (data.message || 'Sign in successful!')
+      : data.message || 'Sign in successful!';
 
-    sessionStorage.setItem('flashMessage', messageText)
+    sessionStorage.setItem('flashMessage', messageText);
 
     $q.notify({
       type: 'positive',
       message: messageText,
       position: 'top',
-      timeout: 3000
-    })
+      timeout: 3000,
+    });
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Redirect based on user role
-    const role = data.user?.role
+    const role = data.user?.role;
     if (role === 'PROJECT_MANAGER') {
-      void router.push('/app/pm-dashboard')
+      void router.push('/app/pm-dashboard');
     } else if (role === 'RESOURCE') {
-      void router.push('/app/resource-dashboard')
+      void router.push('/app/resource-dashboard');
     } else {
-      void router.push('/app')
+      void router.push('/app');
     }
-  } catch (error: any) {
-    console.error('Login error:', error)
+  } catch (error: unknown) {
+    console.error('Login error:', error);
     $q.notify({
       type: 'negative',
-      message: error.message || 'Login failed',
+      message: error instanceof Error ? error.message : 'Login failed',
       position: 'top',
-      timeout: 3000
-    })
+      timeout: 3000,
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const goToRegister = () => {
-  void router.push('/signup')
-}
+  void router.push('/signup');
+};
 
 const goToForgotPassword = () => {
-  void router.push('/forgot-password')
-}
+  void router.push('/forgot-password');
+};
 </script>

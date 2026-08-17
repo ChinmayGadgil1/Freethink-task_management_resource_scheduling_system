@@ -1,31 +1,21 @@
 <template>
-  <div
-    class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md"
-    style="width: 100%; max-width: 540px;"
-  >
+  <div class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md" style="width: 100%; max-width: 540px">
     <q-card
       elavted
       class="bg-white q-pa-xl"
-      style="
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      "
+      style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08)"
     >
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
-        <div class="text-h5 text-weight-bold">
-          Create Account
-        </div>
-        <div class="text-body2 text-grey-7 q-mt-sm">
-          Create your account to get started
-        </div>
+        <div class="text-h5 text-weight-bold">Create Account</div>
+        <div class="text-body2 text-grey-7 q-mt-sm">Create your account to get started</div>
       </q-card-section>
 
       <!-- Signup Form -->
       <q-card-section>
         <q-form
           @submit.prevent="handleSignup"
-          style="display: flex; flex-direction: column; gap: 18px;"
+          style="display: flex; flex-direction: column; gap: 18px"
         >
           <!-- Full Name -->
           <q-input
@@ -34,9 +24,7 @@
             dense
             hide-bottom-space
             label="Full Name"
-            :rules="[
-              val => !!val || 'Name is required'
-            ]"
+            :rules="[(val) => !!val || 'Name is required']"
           >
             <template #prepend>
               <q-icon name="person_outline" />
@@ -52,8 +40,8 @@
             label="Enter Email-id"
             type="email"
             :rules="[
-              val => !!val || 'Email is required',
-              val => /.+@.+\..+/.test(val) || 'Enter a valid email'
+              (val) => !!val || 'Email is required',
+              (val) => /.+@.+\..+/.test(val) || 'Enter a valid email',
             ]"
           >
             <template #prepend>
@@ -71,9 +59,7 @@
             :options="roleOptions"
             emit-value
             map-options
-            :rules="[
-              val => !!val || 'Role is required'
-            ]"
+            :rules="[(val) => !!val || 'Role is required']"
           >
             <template #prepend>
               <q-icon name="badge" />
@@ -89,11 +75,12 @@
             label="Password"
             :type="showPassword ? 'text' : 'password'"
             :rules="[
-              val => !!val || 'Password is required',
-              val => val.length >= 6 || 'Password must be at least 6 characters',
-              val => /^[A-Z]/.test(val) || 'First character must be uppercase',
-              val => /[0-9]/.test(val) || 'Password must contain at least one number',
-              val => /[^A-Za-z0-9]/.test(val) || 'Password must contain at least one special character'
+              (val) => !!val || 'Password is required',
+              (val) => val.length >= 6 || 'Password must be at least 6 characters',
+              (val) => /^[A-Z]/.test(val) || 'First character must be uppercase',
+              (val) => /[0-9]/.test(val) || 'Password must contain at least one number',
+              (val) =>
+                /[^A-Za-z0-9]/.test(val) || 'Password must contain at least one special character',
             ]"
           >
             <template #prepend>
@@ -120,8 +107,8 @@
             label="Confirm Password"
             :type="showConfirmPassword ? 'text' : 'password'"
             :rules="[
-              val => !!val || 'Please confirm your password',
-              val => val === form.password || 'Passwords do not match'
+              (val) => !!val || 'Please confirm your password',
+              (val) => val === form.password || 'Passwords do not match',
             ]"
           >
             <template #prepend>
@@ -182,10 +169,18 @@ import { signupApi } from '@/services/api'
 const $q = useQuasar()
 const router = useRouter()
 
-const form = reactive({
+type SignupForm = {
+  name: string
+  email: string
+  role: 'RESOURCE' | 'PROJECT_MANAGER'
+  password: string
+  confirmPassword: string
+}
+
+const form = reactive<SignupForm>({
   name: '',
   email: '',
-  role: 'RESOURCE' as 'RESOURCE' | 'PROJECT_MANAGER',
+  role: 'RESOURCE',
   password: '',
   confirmPassword: ''
 })
@@ -223,11 +218,11 @@ const handleSignup = async () => {
     })
 
     void router.push('/')
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup error:', error)
     $q.notify({
       type: 'negative',
-      message: error.message || 'Signup failed'
+      message: error instanceof Error ? error.message : 'Signup failed'
     })
   } finally {
     loading.value = false

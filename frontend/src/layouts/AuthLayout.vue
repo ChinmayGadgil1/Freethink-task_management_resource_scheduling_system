@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import backgroundImage from '@/assets/image.png'
+import backgroundImage from '@/assets/image.png';
 </script>
 
 <style scoped>

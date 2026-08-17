@@ -1,25 +1,37 @@
-// Quasar Sass (& SCSS) Variables
 // --------------------------------------------------
-// To customize the look and feel of this app, you can override
-// the Sass/SCSS variables found in Quasar's source Sass/SCSS files.
+// TaskFlow — WorkOrbit-inspired product palette
+// --------------------------------------------------
 
-// Check documentation for full list of Quasar variables
+$primary: #8b6fd8;
+$secondary: #63c7c1;
+$accent: #f3a55b;
 
-// Your own variables (that are declared here) and Quasar's own
-// ones will be available out of the box in your .vue/.scss/.sass files
+$dark: #1d2433;
+$dark-page: #f7f7fa;
 
-// It's highly recommended to change the default colors
-// to match your app's branding.
-// Tip: Use the "Theme Builder" on Quasar's documentation website.
+$positive: #65b98a;
+$negative: #e9868d;
+$info: #6c9bd2;
+$warning: #eab76b;
 
-$primary: #1976d2;
-$secondary: #26a69a;
-$accent: #9c27b0;
+// Product palette
+$nav-dark: #1d2433;
+$active-purple: #8b6fd8;
 
-$dark: #1d1d1d;
-$dark-page: #121212;
+$pastel-purple: #b9a6e8;
+$pastel-purple-bg: #f0ecfa;
+$project-blue: #7e8fd8;
+$project-teal: #63c7c1;
+$project-orange: #f3a55b;
+$project-green: #65b98a;
+$project-pink: #e986b1;
 
-$positive: #21ba45;
-$negative: #c10015;
-$info: #31ccec;
-$warning: #f2c037;
+$background: #f7f7fa;
+$card-background: #ffffff;
+
+$text-primary: #1d2433;
+$text-secondary: #697386;
+$text-muted: #9aa3b2;
+
+$border: #e6e8ed;
+$border-soft: #eef0f3;

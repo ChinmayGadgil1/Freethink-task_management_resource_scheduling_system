@@ -1,41 +1,39 @@
 <template>
   <q-page class="flex flex-center">
-    <div class="column items-center text-center q-pa-md" style="max-width: 600px; width: 100%;">
+    <div class="column items-center text-center q-pa-md" style="max-width: 600px; width: 100%">
       <img
         alt="Quasar logo"
         src="~@/assets/quasar-logo-vertical.svg"
         style="width: 140px; height: 140px"
       />
       <q-spinner color="primary" size="2em" class="q-mt-md" />
-      <div class="text-body1 text-grey-7 q-mt-sm">
-        Redirecting to your dashboard...
-      </div>
+      <div class="text-body1 text-grey-7 q-mt-sm">Redirecting to your dashboard...</div>
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
+const router = useRouter();
 
 onMounted(() => {
-  const storedUser = localStorage.getItem('user')
+  const storedUser = localStorage.getItem('user');
   if (storedUser) {
     try {
-      const user = JSON.parse(storedUser)
+      const user = JSON.parse(storedUser);
       if (user.role === 'PROJECT_MANAGER') {
-        void router.replace('/app/pm-dashboard')
-        return
+        void router.replace('/app/pm-dashboard');
+        return;
       } else if (user.role === 'RESOURCE') {
-        void router.replace('/app/resource-dashboard')
-        return
+        void router.replace('/app/resource-dashboard');
+        return;
       }
     } catch (e) {
-      console.error('Error parsing user:', e)
+      console.error('Error parsing user:', e);
     }
   }
-  void router.replace('/')
-})
+  void router.replace('/');
+});
 </script>
