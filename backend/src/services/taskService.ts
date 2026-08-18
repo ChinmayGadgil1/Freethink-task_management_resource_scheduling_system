@@ -155,6 +155,90 @@ export async function getTaskById(taskId: number) {
     } as any;
 }
 
+export async function assignResourceToTask(
+    taskId: number,
+    projectManagerId: number,
+    resourceId: number
+) {
+    const pool = getPool();
+
+    const [tasks] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT t.task_id, t.project_id
+        FROM tasks t
+        JOIN projects p
+            ON t.project_id = p.project_id
+        WHERE t.task_id = ?
+          AND p.project_manager_id = ?
+        LIMIT 1
+        `,
+        [taskId, projectManagerId]
+    );
+
+    if (tasks.length === 0)
+        throw new Error("TASK_NOT_FOUND");
+
+    const task = tasks[0]!;
+
+    const [users] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT user_id
+        FROM users
+        WHERE user_id = ?
+          AND role = 'RESOURCE'
+          AND is_active = TRUE
+        LIMIT 1
+        `,
+        [resourceId]
+    );
+
+    if (users.length === 0)
+        throw new Error("RESOURCE_NOT_FOUND");
+
+    const [members] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT user_id
+        FROM project_members
+        WHERE project_id = ?
+          AND user_id = ?
+        LIMIT 1
+        `,
+        [task.project_id, resourceId]
+    );
+
+    if (members.length === 0)
+        throw new Error("RESOURCE_NOT_PROJECT_MEMBER");
+
+    const [existingAssignments] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT task_id
+        FROM task_assignments
+        WHERE task_id = ?
+          AND user_id = ?
+        LIMIT 1
+        `,
+        [taskId, resourceId]
+    );
+
+    if (existingAssignments.length > 0)
+        throw new Error("RESOURCE_ALREADY_ASSIGNED");
+
+    await pool.query(
+        `
+        INSERT INTO task_assignments
+            (task_id, user_id)
+        VALUES
+            (?, ?)
+        `,
+        [taskId, resourceId]
+    );
+
+    return {
+        task_id: taskId,
+        user_id: resourceId
+    };
+}
+
 export async function addTaskDependency(taskId: number, predecessorTaskId: number) {
     const pool = getPool();
     

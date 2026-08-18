@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createTask, getTasksList, getTaskById, addTaskDependency, updateTask } from "../services/taskService.js";
+import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact } from "../services/schedulingService.js";
 
@@ -275,5 +275,74 @@ export async function checkImpactController(req: AuthRequest<{ resourceId?: stri
             return res.status(400).json({ message: "Validation error", errors: error.issues });
         }
         return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function assignResource(
+    req: AuthRequest<{ id: string }>,
+    res: Response
+) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({
+                message: "Only project managers can assign resources"
+            });
+        }
+
+        const taskId = Number(req.params.id);
+        const resourceId = Number(req.body.user_id);
+
+        if (!Number.isInteger(taskId) || taskId <= 0) {
+            return res.status(400).json({
+                message: "Invalid task ID"
+            });
+        }
+
+        if (!Number.isInteger(resourceId) || resourceId <= 0) {
+            return res.status(400).json({
+                message: "Invalid resource ID"
+            });
+        }
+
+        const assignment = await assignResourceToTask(
+            taskId,
+            req.user.user_id,
+            resourceId
+        );
+
+        return res.status(201).json({
+            message: "Resource assigned to task successfully",
+            assignment
+        });
+    } catch (error: any) {
+        if (error.message === "TASK_NOT_FOUND") {
+            return res.status(404).json({
+                message: "Task not found"
+            });
+        }
+
+        if (error.message === "RESOURCE_NOT_FOUND") {
+            return res.status(404).json({
+                message: "Resource not found"
+            });
+        }
+
+        if (error.message === "RESOURCE_NOT_PROJECT_MEMBER") {
+            return res.status(400).json({
+                message: "Resource is not assigned to this project"
+            });
+        }
+
+        if (error.message === "RESOURCE_ALREADY_ASSIGNED") {
+            return res.status(409).json({
+                message: "Resource is already assigned to this task"
+            });
+        }
+
+        console.error("Assign resource to task error:", error);
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
     }
 }
