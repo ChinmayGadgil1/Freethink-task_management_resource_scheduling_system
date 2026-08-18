@@ -94,13 +94,13 @@ export type StatusFilter =
   | 'DELAYED'
   | null
 
-const props = defineProps<{
+defineProps<{
   search: string
   status: StatusFilter
   project: string | null
-  priority: TaskPriority | null
   projectOptions: string[]
-  priorityOptions: TaskPriority[]
+  priority: string | null
+  priorityOptions: string[]
 }>()
 
 const emit = defineEmits<{

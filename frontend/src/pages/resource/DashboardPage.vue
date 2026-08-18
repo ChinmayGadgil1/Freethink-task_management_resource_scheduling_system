@@ -176,7 +176,7 @@ const ganttTasks = [
 ]
 
 function goToTasks() {
-  router.push('/app/resource-dashboard/tasks')
+  void router.push('/app/resource-dashboard/tasks')
 }
 </script>
 

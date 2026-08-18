@@ -92,7 +92,7 @@ const days = computed<Date[]>(() => {
   const starts = props.tasks.map(t => stripTime(new Date(t.start)))
   const ends = props.tasks.map(t => stripTime(new Date(t.end)))
 
-  let rangeStart = starts.length ? new Date(Math.min(today.getTime(), ...starts.map(d => d.getTime()))) : today
+  const rangeStart = starts.length ? new Date(Math.min(today.getTime(), ...starts.map(d => d.getTime()))) : today
   let rangeEnd = ends.length ? new Date(Math.max(today.getTime(), ...ends.map(d => d.getTime()))) : new Date(today.getTime() + 6 * 86400000)
 
   const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1

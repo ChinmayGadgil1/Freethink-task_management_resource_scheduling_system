@@ -109,9 +109,6 @@ const priorityOptions: TaskPriority[] = [
   'Critical'
 ]
 
-function updatePriority(value: TaskPriority | null) {
-  priorityFilter.value = value
-}
 
 function clearFilters() {
   search.value = ''
