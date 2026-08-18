@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
-import { create, list } from "../controllers/taskController.js";
+import { create, list, update, addDependency, getResourceWorkloadController, checkImpactController } from "../controllers/taskController.js";
 
 const taskRoutes = Router();
 
@@ -9,5 +9,9 @@ taskRoutes.use(authenticate);
 
 taskRoutes.post("/", create);
 taskRoutes.get("/", list);
+taskRoutes.put("/:id", update);
+taskRoutes.post("/:id/dependencies", addDependency);
+taskRoutes.get("/resources/:resourceId/workload", getResourceWorkloadController);
+taskRoutes.post("/resources/:resourceId/check-impact", checkImpactController);
 
 export default taskRoutes;
