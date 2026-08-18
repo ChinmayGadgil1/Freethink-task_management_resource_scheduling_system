@@ -4,6 +4,7 @@ import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact } from "../services/schedulingService.js";
+import { createWorkLog, getWorkLogsByTask } from "../services/workLogService.js";
 
 const createTaskSchema = z.object({
     project_id: z.number().int().positive(),
@@ -66,47 +67,49 @@ export async function create(req: AuthRequest, res: Response) {
     }
 }
 
-export async function list(req: AuthRequest, res: Response) {
-    try {
-        const userRole = req.user!.role;
-        const userId = req.user!.user_id;
-
-        const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
-        const resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
-
-        let projectIds: number[] | undefined;
-
-        if (userRole === "PROJECT_MANAGER") {
-            if (projectId !== undefined) {
-                const project = await getProjectById(projectId);
-                if (!project) {
-                    return res.status(404).json({ message: "Project not found" });
+    export async function list(req: AuthRequest, res: Response) {
+        try {
+            const userRole = req.user!.role;
+            const userId = req.user!.user_id;
+    
+            const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+            const resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
+    
+            let projectIds: number[] | undefined;
+            let actualResourceId = resourceId;
+    
+            if (userRole === "PROJECT_MANAGER") {
+                if (projectId !== undefined) {
+                    const project = await getProjectById(projectId);
+                    if (!project) {
+                        return res.status(404).json({ message: "Project not found" });
+                    }
+                    if (project.project_manager_id !== userId) {
+                        return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
+                    }
+                    projectIds = [projectId];
+                } else {
+                    const projects = await getProjectsByManager(userId);
+                    projectIds = projects.map(p => Number(p.project_id));
                 }
-                if (project.project_manager_id !== userId) {
-                    return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
+            } else if (userRole === "RESOURCE") {
+                actualResourceId = userId; // Resources only see their own assigned tasks
+                if (projectId !== undefined) {
+                    const project = await getProjectById(projectId);
+                    if (!project) {
+                        return res.status(404).json({ message: "Project not found" });
+                    }
+                    const isMember = await isProjectMember(projectId, userId);
+                    if (!isMember) {
+                        return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
+                    }
+                    projectIds = [projectId];
+                } else {
+                    projectIds = await getProjectIdsByMember(userId);
                 }
-                projectIds = [projectId];
-            } else {
-                const projects = await getProjectsByManager(userId);
-                projectIds = projects.map(p => Number(p.project_id));
             }
-        } else if (userRole === "RESOURCE") {
-            if (projectId !== undefined) {
-                const project = await getProjectById(projectId);
-                if (!project) {
-                    return res.status(404).json({ message: "Project not found" });
-                }
-                const isMember = await isProjectMember(projectId, userId);
-                if (!isMember) {
-                    return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
-                }
-                projectIds = [projectId];
-            } else {
-                projectIds = await getProjectIdsByMember(userId);
-            }
-        }
-
-        const tasks = await getTasksList({ resourceId, projectIds });
+    
+            const tasks = await getTasksList({ resourceId: actualResourceId, projectIds });
 
         return res.status(200).json({ tasks });
     } catch (error: any) {
@@ -344,5 +347,49 @@ export async function assignResource(
         return res.status(500).json({
             message: "Internal server error"
         });
+    }
+}
+
+const workLogSchema = z.object({
+    hours_logged: z.number().positive(),
+    progress_logged: z.number().min(0).max(100),
+    notes: z.string().min(1),
+    log_date: z.string()
+});
+
+export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        const taskId = Number(req.params.id);
+        const parsed = workLogSchema.parse(req.body);
+        
+        if (req.user?.role !== "RESOURCE") {
+            return res.status(403).json({ message: "Only resources can log work" });
+        }
+
+        const log = await createWorkLog(
+            taskId,
+            req.user.user_id,
+            parsed.hours_logged,
+            parsed.progress_logged,
+            parsed.notes,
+            parsed.log_date
+        );
+
+        return res.status(201).json({ message: "Work log created successfully", log });
+    } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ message: "Validation error", errors: error.issues });
+        }
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function getWorkLogs(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        const taskId = Number(req.params.id);
+        const logs = await getWorkLogsByTask(taskId);
+        return res.status(200).json({ logs });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
