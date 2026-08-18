@@ -1,5 +1,14 @@
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'PARTIALLY_COMPLETED' | 'COMPLETED'
-export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Critical'
+export type TaskStatus =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'ON_HOLD'
+
+export type TaskPriority =
+  | 'LOW'
+  | 'MEDIUM'
+  | 'HIGH'
+  | 'CRITICAL'
 
 export interface ResourceTask {
   id: number
@@ -8,7 +17,8 @@ export interface ResourceTask {
   priority: TaskPriority
   status: TaskStatus
   progress: number
-  deadline: string // ISO date
+  deadline: string | null
+  startDate: string | null
   hoursWorked: number
   estimatedHours: number
   workUpdate: string

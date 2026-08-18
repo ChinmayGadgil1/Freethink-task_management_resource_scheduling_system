@@ -30,6 +30,7 @@ export interface Project {
 export interface Task {
   task_id: number;
   project_id: number;
+  project_name?: string;  //for displaying project name in task list
   title: string;
   description: string | null;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -178,6 +179,58 @@ export async function getTasksApi(projectId?: number): Promise<Task[]> {
   }
 
   return data.tasks ?? [];
+}
+
+/* RESOURCE TASK APIs
+ * Update a task assigned to the logged-in Resource.
+ * The backend allows updating: status, progress, actual_effort */
+
+export interface UpdateResourceTaskPayload {
+  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  progress?: number;
+  actual_effort?: number;
+}
+
+/**
+ * Resource workload response.
+ */
+export interface ResourceWorkloadTask {
+  task_id: number;
+  project_id: number;
+  project_name?: string;
+  title: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  start_date: string | null;
+  deadline: string | null;
+  expected_effort: number | string;
+  actual_effort: number | string;
+  progress: number | string;
+}
+
+export interface ResourceWorkload {
+  resource_id: number;
+  active_tasks_count: number;
+  total_expected_effort: number | string;
+  total_actual_effort: number | string;
+  tasks: ResourceWorkloadTask[];
+}
+
+// Get workload for the logged-in Resource
+export async function getResourceWorkloadApi(
+  resourceId: number
+): Promise<ResourceWorkload> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/tasks/resources/${resourceId}/workload`
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch resource workload');
+  }
+
+  return data;
 }
 
 export interface CreateTaskPayload {

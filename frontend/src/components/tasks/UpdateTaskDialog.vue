@@ -1,29 +1,19 @@
 <template>
   <q-dialog
     :model-value="modelValue"
-    @update:model-value="updateDialog"
+    @update:model-value="value => emit('update:modelValue', value)"
   >
-    <q-card
-      style="width: 520px; max-width: 95vw"
-      class="dashboard-card"
-    >
+    <q-card style="width: 520px; max-width: 95vw">
 
-      <!-- Header -->
       <q-card-section class="row items-center justify-between">
-
         <div>
-
           <div class="text-subtitle1 text-weight-bold">
             Update Task
           </div>
 
-          <div
-            v-if="task"
-            class="text-caption text-grey-6 q-mt-xs"
-          >
+          <div v-if="task" class="text-caption text-grey-6">
             {{ task.name }} · {{ task.project }}
           </div>
-
         </div>
 
         <q-btn
@@ -34,54 +24,33 @@
           icon="close"
           color="grey-7"
         />
-
       </q-card-section>
 
       <q-separator />
 
-
-      <!-- Form -->
       <q-card-section v-if="task">
 
-        <!-- Status -->
-        <div class="field-label">
-          Status
-        </div>
+        <div class="field-label">Status</div>
 
         <div class="status-choice">
-
           <q-btn
-            v-for="opt in statusOptions"
-            :key="opt.value"
+            v-for="option in statusOptions"
+            :key="option.value"
             no-caps
             unelevated
-            :color="
-              form.status === opt.value
-                ? 'primary'
-                : 'grey-2'
-            "
-            :text-color="
-              form.status === opt.value
-                ? 'white'
-                : 'grey-8'
-            "
-            :label="opt.label"
+            :color="form.status === option.value ? 'primary' : 'grey-2'"
+            :text-color="form.status === option.value ? 'white' : 'grey-8'"
+            :label="option.label"
             class="status-choice-btn"
-            @click="form.status = opt.value"
+            @click="form.status = option.value"
           />
-
         </div>
 
-
-        <!-- Progress -->
         <div class="field-label q-mt-lg">
-
           Progress
-
-          <span class="text-weight-bold text-primary">
+          <span class="text-primary text-weight-bold">
             {{ form.progress }}%
           </span>
-
         </div>
 
         <q-slider
@@ -93,10 +62,8 @@
           label
         />
 
-
-        <!-- Hours -->
         <div class="field-label q-mt-md">
-          Hours worked today
+          Total Hours Worked
         </div>
 
         <q-input
@@ -108,10 +75,8 @@
           step="0.5"
         />
 
-
-        <!-- Work update -->
         <div class="field-label q-mt-md">
-          Work update
+          Work Update
         </div>
 
         <q-input
@@ -120,20 +85,14 @@
           type="textarea"
           autogrow
           rows="3"
-          placeholder="What did you work on today?"
+          placeholder="What did you work on?"
         />
 
       </q-card-section>
 
-
       <q-separator />
 
-
-      <!-- Actions -->
-      <q-card-actions
-        align="right"
-        class="q-pa-md"
-      >
+      <q-card-actions align="right" class="q-pa-md">
 
         <q-btn
           v-close-popup
@@ -157,7 +116,6 @@
   </q-dialog>
 </template>
 
-
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import type {
@@ -165,19 +123,13 @@ import type {
   TaskStatus
 } from '@/components/tasks/task-types'
 
-
 const props = defineProps<{
   modelValue: boolean
   task: ResourceTask | null
 }>()
 
-
 const emit = defineEmits<{
-  (
-    e: 'update:modelValue',
-    value: boolean
-  ): void
-
+  (e: 'update:modelValue', value: boolean): void
   (
     e: 'save',
     payload: {
@@ -190,137 +142,68 @@ const emit = defineEmits<{
   ): void
 }>()
 
-
 const statusOptions: {
   label: string
   value: TaskStatus
 }[] = [
-  {
-    label: 'To Do',
-    value: 'TODO'
-  },
-  {
-    label: 'In Progress',
-    value: 'IN_PROGRESS'
-  },
-  {
-    label: 'Partially Completed',
-    value: 'PARTIALLY_COMPLETED'
-  },
-  {
-    label: 'Completed',
-    value: 'COMPLETED'
-  }
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'On Hold', value: 'ON_HOLD' }
 ]
 
-
-const form = reactive<{
-  status: TaskStatus
-  progress: number
-  hoursWorked: number
-  workUpdate: string
-}>({
-  status: 'TODO',
+const form = reactive({
+  status: 'PENDING' as TaskStatus,
   progress: 0,
   hoursWorked: 0,
   workUpdate: ''
 })
 
-
 watch(
   () => props.task,
-
   task => {
-
-    if (!task) {
-      return
-    }
+    if (!task) return
 
     form.status = task.status
     form.progress = task.progress
-
-    /*
-     * Keep the existing total hours as the current
-     * static value for now.
-     *
-     * Backend can later provide today's hours separately.
-     */
     form.hoursWorked = task.hoursWorked
-
     form.workUpdate = ''
-
   },
-
-  {
-    immediate: true
-  }
+  { immediate: true }
 )
 
-
-function updateDialog(value: boolean) {
-  emit('update:modelValue', value)
-}
-
-
 function save() {
-
-  if (!props.task) {
-    return
-  }
+  if (!props.task) return
 
   emit('save', {
     id: props.task.id,
-
     status: form.status,
-
-    progress: Math.min(
-      Math.max(form.progress, 0),
-      100
-    ),
-
-    hoursWorked: Math.max(
-      form.hoursWorked,
-      0
-    ),
-
-    workUpdate:
-      form.workUpdate.trim()
+    progress: Math.min(Math.max(Number(form.progress), 0), 100),
+    hoursWorked: Math.max(Number(form.hoursWorked), 0),
+    workUpdate: form.workUpdate.trim()
   })
 
-  emit(
-    'update:modelValue',
-    false
-  )
+  emit('update:modelValue', false)
 }
 </script>
 
-
 <style scoped lang="scss">
-
 .field-label {
   margin-bottom: 8px;
-
-  color:
-    var(--wo-text-muted, #667085);
-
+  color: #667085;
   font-size: 12px;
   font-weight: 600;
 }
 
 .status-choice {
   display: flex;
-
   flex-wrap: wrap;
-
   gap: 8px;
 }
 
 .status-choice-btn {
   border-radius: 8px;
-
   padding: 6px 12px;
-
   font-size: 12px;
 }
-
 </style>

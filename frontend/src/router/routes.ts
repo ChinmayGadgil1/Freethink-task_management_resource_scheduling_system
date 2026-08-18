@@ -87,11 +87,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/resource/MyTasksPage.vue'),
       },
       {
-        path: 'tasks/:id',
+        path: 'task-details',
         component: () => import('@/pages/resource/TaskDetailsPage.vue'),
       },
       {
-        path: 'task-details',
+        path: 'task-details/:id',
         component: () => import('@/pages/resource/TaskDetailsPage.vue'),
       },
     ],
