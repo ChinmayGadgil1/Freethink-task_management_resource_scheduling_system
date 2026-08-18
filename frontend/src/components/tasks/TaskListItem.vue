@@ -32,7 +32,7 @@
 
       </div>
 
-      <div class="task-name q-mt-xs">
+      <div class="task-name q-mt-xs cursor-pointer text-primary-hover" @click="goToSpecs">
         {{ task.name }}
       </div>
 
@@ -89,7 +89,17 @@
 
 
     <!-- Actions -->
-    <div class="task-actions">
+    <div class="task-actions q-gutter-x-xs">
+
+      <q-btn
+        outline
+        no-caps
+        dense
+        color="primary"
+        label="Specs"
+        icon="article"
+        @click="goToSpecs"
+      />
 
       <q-btn
         unelevated
@@ -107,7 +117,10 @@
 
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import type { ResourceTask } from '@/components/tasks/task-types'
+
+const router = useRouter()
 
 const props = defineProps<{
   task: ResourceTask
@@ -116,6 +129,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update', task: ResourceTask): void
 }>()
+
+function goToSpecs() {
+  void router.push(`/app/resource-dashboard/task-details?id=${props.task.id}`)
+}
 
 const overdue =
   props.task.status !== 'COMPLETED' &&

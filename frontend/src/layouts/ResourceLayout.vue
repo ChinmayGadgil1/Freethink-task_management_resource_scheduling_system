@@ -120,8 +120,8 @@ const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCa
 const navLinks = [
   { label: 'Dashboard', to: '/app/resource-dashboard', disabled: false },
   { label: 'My Tasks', to: '/app/resource-dashboard/tasks', disabled: false },
+  { label: 'Task Specs', to: '/app/resource-dashboard/task-details', disabled: false },
   { label: 'Progress', to: '/app/resource-dashboard/progress', disabled: true },
-  { label: 'Calendar', to: '/app/resource-dashboard/calendar', disabled: true },
 ]
 
 function logout() {
