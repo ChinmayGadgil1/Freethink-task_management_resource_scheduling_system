@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { createTask, getTasksList, getTaskById, addTaskDependency, updateTask } from "../services/taskService.js";
-import { getProjectById } from "../services/projectService.js";
+import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact } from "../services/schedulingService.js";
 
 const createTaskSchema = z.object({
@@ -72,14 +72,41 @@ export async function list(req: AuthRequest, res: Response) {
         const userId = req.user!.user_id;
 
         const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
-        let resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
+        const resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
 
-        // Security rule: Resource can view only their own assigned tasks
-        if (userRole === "RESOURCE") {
-            resourceId = userId;
+        let projectIds: number[] | undefined;
+
+        if (userRole === "PROJECT_MANAGER") {
+            if (projectId !== undefined) {
+                const project = await getProjectById(projectId);
+                if (!project) {
+                    return res.status(404).json({ message: "Project not found" });
+                }
+                if (project.project_manager_id !== userId) {
+                    return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
+                }
+                projectIds = [projectId];
+            } else {
+                const projects = await getProjectsByManager(userId);
+                projectIds = projects.map(p => Number(p.project_id));
+            }
+        } else if (userRole === "RESOURCE") {
+            if (projectId !== undefined) {
+                const project = await getProjectById(projectId);
+                if (!project) {
+                    return res.status(404).json({ message: "Project not found" });
+                }
+                const isMember = await isProjectMember(projectId, userId);
+                if (!isMember) {
+                    return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
+                }
+                projectIds = [projectId];
+            } else {
+                projectIds = await getProjectIdsByMember(userId);
+            }
         }
 
-        const tasks = await getTasksList({ projectId, resourceId });
+        const tasks = await getTasksList({ resourceId, projectIds });
 
         return res.status(200).json({ tasks });
     } catch (error: any) {
@@ -121,8 +148,19 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
         }
 
         const project = await getProjectById(task.project_id);
-        if (req.user?.role === "PROJECT_MANAGER" && project?.project_manager_id !== req.user.user_id) {
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (req.user?.role === "PROJECT_MANAGER" && project.project_manager_id !== req.user.user_id) {
             return res.status(403).json({ message: "Not authorized to modify tasks for this project" });
+        }
+
+        if (req.user?.role === "RESOURCE") {
+            const isMember = await isProjectMember(task.project_id, req.user.user_id);
+            if (!isMember) {
+                return res.status(403).json({ message: "Not authorized to modify tasks for this project" });
+            }
         }
 
         let shiftDays = 0;
@@ -166,6 +204,22 @@ export async function addDependency(req: AuthRequest<{ id: string }>, res: Respo
 
         if (task.project_id !== predecessor.project_id) {
             return res.status(400).json({ message: "Tasks must belong to the same project" });
+        }
+
+        const project = await getProjectById(task.project_id);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (req.user?.role === "PROJECT_MANAGER" && project.project_manager_id !== req.user.user_id) {
+            return res.status(403).json({ message: "Not authorized to manage tasks for this project" });
+        }
+
+        if (req.user?.role === "RESOURCE") {
+            const isMember = await isProjectMember(task.project_id, req.user.user_id);
+            if (!isMember) {
+                return res.status(403).json({ message: "Not authorized to manage tasks for this project" });
+            }
         }
 
         await addTaskDependency(taskId, predecessor_task_id);

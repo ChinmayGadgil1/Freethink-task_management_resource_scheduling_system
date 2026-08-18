@@ -77,13 +77,15 @@ export async function createTask(
 export async function getTasksList(filters: {
     projectId?: number | undefined;
     resourceId?: number | undefined;
+    projectIds?: number[] | undefined;
 }) {
     const pool = getPool();
 
     let query = `
-        SELECT t.*, 
+        SELECT t.*, p.name as project_name,
                GROUP_CONCAT(ta.user_id) as assigned_resource_ids
         FROM tasks t
+        LEFT JOIN projects p ON t.project_id = p.project_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
     `;
     const params: any[] = [];
@@ -92,6 +94,15 @@ export async function getTasksList(filters: {
     if (filters.projectId) {
         whereClauses.push("t.project_id = ?");
         params.push(filters.projectId);
+    }
+
+    if (filters.projectIds) {
+        if (filters.projectIds.length > 0) {
+            whereClauses.push("t.project_id IN (?)");
+            params.push(filters.projectIds);
+        } else {
+            whereClauses.push("1 = 0");
+        }
     }
 
     if (filters.resourceId) {

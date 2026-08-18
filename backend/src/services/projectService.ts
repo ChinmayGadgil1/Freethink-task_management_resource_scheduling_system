@@ -174,3 +174,31 @@ export async function assignResourceToProject(
         user_id: resourceId
     };
 }
+
+export async function getProjectIdsByMember(userId: number): Promise<number[]> {
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT project_id
+        FROM project_members
+        WHERE user_id = ?
+        `,
+        [userId]
+    );
+    return rows.map(r => Number(r.project_id));
+}
+
+export async function isProjectMember(projectId: number, userId: number): Promise<boolean> {
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT 1
+        FROM project_members
+        WHERE project_id = ?
+          AND user_id = ?
+        LIMIT 1
+        `,
+        [projectId, userId]
+    );
+    return rows.length > 0;
+}
