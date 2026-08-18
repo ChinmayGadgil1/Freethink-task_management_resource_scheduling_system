@@ -48,6 +48,13 @@ export async function createTask(
                 "INSERT INTO task_assignments (task_id, user_id) VALUES ?",
                 [values]
             );
+
+            // Ensure assigned resources are also members of the project
+            const memberValues = assignedResourceIds.map(userId => [projectId, userId]);
+            await connection.query(
+                "INSERT IGNORE INTO project_members (project_id, user_id) VALUES ?",
+                [memberValues]
+            );
         }
 
         await connection.commit();

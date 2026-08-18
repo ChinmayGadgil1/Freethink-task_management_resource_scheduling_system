@@ -1,31 +1,19 @@
 <template>
   <div class="task-item" :class="{ 'is-overdue': overdue }">
-
     <div class="task-main">
       <div class="row items-center q-gutter-xs">
-        <span
-          class="priority-pill"
-          :class="`priority-${task.priority.toLowerCase()}`"
-        >
+        <span class="priority-pill" :class="`priority-${task.priority.toLowerCase()}`">
           {{ task.priority }}
         </span>
 
-        <span
-          class="status-pill"
-          :class="`status-${task.status.toLowerCase()}`"
-        >
+        <span class="status-pill" :class="`status-${task.status.toLowerCase()}`">
           {{ formatStatus(task.status) }}
         </span>
 
-        <span v-if="overdue" class="status-pill status-overdue">
-          Overdue
-        </span>
+        <span v-if="overdue" class="status-pill status-overdue"> Overdue </span>
       </div>
 
-      <div
-        class="task-name q-mt-xs cursor-pointer"
-        @click="goToSpecs"
-      >
+      <div class="task-name q-mt-xs cursor-pointer" @click="goToSpecs">
         {{ task.name }}
       </div>
 
@@ -45,26 +33,18 @@
           track-color="grey-3"
         />
 
-        <span class="text-caption text-weight-medium q-ml-sm">
-          {{ task.progress }}%
-        </span>
+        <span class="text-caption text-weight-medium q-ml-sm"> {{ task.progress }}% </span>
       </div>
 
       <div class="text-caption text-grey-6 q-mt-xs">
-        {{ task.hoursWorked }}h logged of
-        {{ task.estimatedHours }}h estimated
+        {{ task.hoursWorked }}h logged of {{ task.estimatedHours }}h estimated
       </div>
     </div>
 
     <div class="task-deadline">
-      <div class="text-caption text-grey-6">
-        Deadline
-      </div>
+      <div class="text-caption text-grey-6">Deadline</div>
 
-      <div
-        class="text-weight-medium"
-        :class="{ 'text-negative': overdue }"
-      >
+      <div class="text-weight-medium" :class="{ 'text-negative': overdue }">
         {{ formatDate(task.deadline) }}
       </div>
     </div>
@@ -89,44 +69,41 @@
         @click="emit('update', task)"
       />
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import type { ResourceTask } from '@/components/tasks/task-types'
-import { computed } from 'vue'
+import { useRouter } from 'vue-router';
+import type { ResourceTask } from '@/components/tasks/task-types';
+import { computed } from 'vue';
 
-const router = useRouter()
+const router = useRouter();
 
 const props = defineProps<{
-  task: ResourceTask
-}>()
+  task: ResourceTask;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update', task: ResourceTask): void
-}>()
+  (e: 'update', task: ResourceTask): void;
+}>();
 
 function goToSpecs() {
-  void router.push(
-    `/app/resource-dashboard/task-details/${props.task.id}`
-  )
+  void router.push(`/app/resource-dashboard/task-details/${props.task.id}`);
 }
 
 const overdue = computed(() => {
   if (props.task.status === 'COMPLETED' || !props.task.deadline) {
-    return false
+    return false;
   }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const deadline = new Date(props.task.deadline)
-  deadline.setHours(0, 0, 0, 0)
+  const deadline = new Date(props.task.deadline);
+  deadline.setHours(0, 0, 0, 0);
 
-  return deadline < today
-})
+  return deadline < today;
+});
 
 function formatStatus(status: ResourceTask['status']) {
   const labels: Record<ResourceTask['status'], string> = {
@@ -134,19 +111,19 @@ function formatStatus(status: ResourceTask['status']) {
     IN_PROGRESS: 'In Progress',
     COMPLETED: 'Completed',
     ON_HOLD: 'On Hold',
-  }
+  };
 
-  return labels[status]
+  return labels[status];
 }
 
 function formatDate(date: string | null) {
-  if (!date) return 'No deadline'
+  if (!date) return 'No deadline';
 
   return new Date(date).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  })
+  });
 }
 </script>
 

@@ -32,14 +32,7 @@
             unelevated
             @click="showAssignDialog = true"
           />
-          <q-btn
-            outline
-            color="grey-8"
-            icon="refresh"
-            label="Refresh"
-            no-caps
-            @click="loadData"
-          />
+          <q-btn outline color="grey-8" icon="refresh" label="Refresh" no-caps @click="loadData" />
         </div>
       </div>
 
@@ -57,11 +50,19 @@
                 <q-chip
                   dense
                   square
-                  :color="utilization > 100 ? 'negative' : utilization >= 75 ? 'warning' : 'positive'"
+                  :color="
+                    utilization > 100 ? 'negative' : utilization >= 75 ? 'warning' : 'positive'
+                  "
                   text-color="white"
                   class="text-caption text-weight-bold"
                 >
-                  {{ utilization > 100 ? 'Overallocated' : utilization >= 75 ? 'High Load' : 'Available' }}
+                  {{
+                    utilization > 100
+                      ? 'Overallocated'
+                      : utilization >= 75
+                        ? 'High Load'
+                        : 'Available'
+                  }}
                 </q-chip>
               </div>
               <div class="text-caption text-grey-7 q-mt-xs">
@@ -187,11 +188,7 @@
             </div>
 
             <div v-else class="row q-col-gutter-md">
-              <div
-                v-for="proj in resourceProjects"
-                :key="proj.project_id"
-                class="col-12 col-sm-6"
-              >
+              <div v-for="proj in resourceProjects" :key="proj.project_id" class="col-12 col-sm-6">
                 <q-card
                   flat
                   bordered
@@ -207,7 +204,9 @@
                       {{ proj.description || 'No description' }}
                     </div>
                     <div class="row justify-between text-caption text-grey-8">
-                      <span>Progress: <strong>{{ proj.progress }}%</strong></span>
+                      <span
+                        >Progress: <strong>{{ proj.progress }}%</strong></span
+                      >
                       <span>Deadline: {{ proj.deadline || 'TBD' }}</span>
                     </div>
                     <q-linear-progress
@@ -226,7 +225,9 @@
 
           <!-- TAB 3: WORKLOAD -->
           <q-tab-panel name="workload" class="q-pa-md">
-            <div class="text-h6 text-weight-bold text-grey-9 q-mb-md">Weekly Capacity Breakdown</div>
+            <div class="text-h6 text-weight-bold text-grey-9 q-mb-md">
+              Weekly Capacity Breakdown
+            </div>
 
             <div class="row q-col-gutter-md">
               <div class="col-12 col-md-6">
@@ -253,7 +254,13 @@
                         rounded
                         size="10px"
                         :value="Math.min(100, utilization) / 100"
-                        :color="utilization > 100 ? 'negative' : utilization >= 75 ? 'warning' : 'positive'"
+                        :color="
+                          utilization > 100
+                            ? 'negative'
+                            : utilization >= 75
+                              ? 'warning'
+                              : 'positive'
+                        "
                         track-color="grey-3"
                       />
                     </div>
@@ -264,7 +271,9 @@
               <div class="col-12 col-md-6">
                 <q-card flat bordered class="bg-grey-1">
                   <q-card-section class="q-gutter-xs">
-                    <div class="text-subtitle2 text-weight-bold text-grey-9">Task Distribution Summary</div>
+                    <div class="text-subtitle2 text-weight-bold text-grey-9">
+                      Task Distribution Summary
+                    </div>
                     <div class="text-caption text-grey-7">
                       Completed: {{ completedTasksCount }} / {{ resourceTasks.length }} tasks
                     </div>
@@ -365,9 +374,11 @@ import type { QTableColumn } from 'quasar';
 import {
   createTaskApi,
   getProjectsApi,
+  getResourceByIdApi,
   getResourceWorkloadApi,
   getTasksApi,
   type Project,
+  type ResourceUser,
   type Task,
   type ResourceWorkload,
 } from '@/services/api';
@@ -379,15 +390,11 @@ const router = useRouter();
 const resourceId = computed(() => Number(route.params.id) || 1);
 const loading = ref(true);
 const activeTab = ref('tasks');
+const resourceInfo = ref<ResourceUser | null>(null);
 
-const resourceNamesMap: Record<number, string> = {
-  3: 'Resource Developer',
-  4: 'Jane Smith',
-  5: 'Michael Johnson',
-  6: 'shikhaa',
-};
-
-const resourceName = computed(() => resourceNamesMap[resourceId.value] || `Resource Developer`);
+const resourceName = computed(
+  () => resourceInfo.value?.name || `Resource #${resourceId.value}`,
+);
 
 function getInitials(name: string): string {
   return name
@@ -404,11 +411,17 @@ const backendWorkload = ref<ResourceWorkload | null>(null);
 const showAssignDialog = ref(false);
 const submitting = ref(false);
 
-const assignForm = reactive({
-  project_id: null as number | null,
+const assignForm = reactive<{
+  project_id: number | null;
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  expected_effort: number;
+}>({
+  project_id: null,
   title: '',
   description: '',
-  priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+  priority: 'MEDIUM',
   expected_effort: 8,
 });
 
@@ -417,7 +430,12 @@ const taskColumns: QTableColumn<Task>[] = [
   { name: 'project', label: 'Project ID', field: (t) => t.project_id, align: 'center' },
   { name: 'priority', label: 'Priority', field: (t) => t.priority, align: 'center' },
   { name: 'status', label: 'Status', field: (t) => t.status, align: 'center' },
-  { name: 'effort', label: 'Effort (Hrs)', field: (t) => Number(t.expected_effort) || 0, align: 'center' },
+  {
+    name: 'effort',
+    label: 'Effort (Hrs)',
+    field: (t) => Number(t.expected_effort) || 0,
+    align: 'center',
+  },
   { name: 'progress', label: 'Progress', field: (t) => Number(t.progress) || 0, align: 'left' },
   { name: 'deadline', label: 'Deadline', field: (t) => t.deadline || 'TBD', align: 'left' },
 ];
@@ -425,15 +443,19 @@ const taskColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tasks, projects, workload] = await Promise.all([
+    const [tasks, projects, workload, resUser] = await Promise.all([
       getTasksApi(),
       getProjectsApi(),
       getResourceWorkloadApi(resourceId.value).catch(() => null),
+      getResourceByIdApi(resourceId.value).catch(() => null),
     ]);
     allTasks.value = tasks;
     allProjects.value = projects;
     if (workload) {
       backendWorkload.value = workload;
+    }
+    if (resUser) {
+      resourceInfo.value = resUser;
     }
     if (projects.length > 0) {
       assignForm.project_id = projects[0]!.project_id;
@@ -461,8 +483,8 @@ const resourceProjects = computed(() => {
   return allProjects.value.filter((p) => pIds.has(p.project_id));
 });
 
-const completedTasksCount = computed(() =>
-  resourceTasks.value.filter((t) => t.status === 'COMPLETED').length,
+const completedTasksCount = computed(
+  () => resourceTasks.value.filter((t) => t.status === 'COMPLETED').length,
 );
 
 const totalEffort = computed(() => {
@@ -529,10 +551,11 @@ async function handleAssignTask() {
 
     showAssignDialog.value = false;
     void loadData();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to assign task';
     $q.notify({
       type: 'negative',
-      message: error.message || 'Failed to assign task',
+      message: msg,
     });
   } finally {
     submitting.value = false;

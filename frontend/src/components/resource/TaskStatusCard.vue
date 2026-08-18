@@ -4,7 +4,8 @@
       <!-- Segmented bar: one glance at the full distribution -->
       <div class="segmented-bar">
         <div
-          v-for="item in items" :key="item.label"
+          v-for="item in items"
+          :key="item.label"
           class="segment"
           :style="{ width: `${(item.value / total) * 100}%`, background: item.color }"
         />
@@ -18,7 +19,9 @@
           </div>
           <div class="row items-center no-wrap">
             <span class="text-weight-bold q-mr-xs">{{ item.value }}</span>
-            <span class="text-caption text-grey-6">({{ Math.round((item.value / total) * 100) }}%)</span>
+            <span class="text-caption text-grey-6"
+              >({{ Math.round((item.value / total) * 100) }}%)</span
+            >
           </div>
         </div>
       </div>
@@ -27,16 +30,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 export interface TaskStatusItem {
-  label: string
-  value: number
-  color: string
+  label: string;
+  value: number;
+  color: string;
 }
 
-const props = defineProps<{ items: TaskStatusItem[] }>()
-const total = computed(() => props.items.reduce((sum, item) => sum + item.value, 0) || 1)
+const props = defineProps<{ items: TaskStatusItem[] }>();
+const total = computed(() => props.items.reduce((sum, item) => sum + item.value, 0) || 1);
 </script>
 
 <style scoped lang="scss">
@@ -52,10 +55,16 @@ const total = computed(() => props.items.reduce((sum, item) => sum + item.value,
   height: 100%;
   transition: width 0.3s ease;
 
-  &:not(:last-child) { border-right: 2px solid var(--wo-bg-card, #fff); }
+  &:not(:last-child) {
+    border-right: 2px solid var(--wo-bg-card, #fff);
+  }
 }
 
-.status-list { display: flex; flex-direction: column; gap: 10px; }
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .status-row {
   display: flex;

@@ -63,7 +63,9 @@
           <q-card-section class="q-pa-sm q-px-md row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">In Progress</div>
-              <div class="text-h6 text-weight-bold text-grey-9 q-my-none">{{ inProgressCount }}</div>
+              <div class="text-h6 text-weight-bold text-grey-9 q-my-none">
+                {{ inProgressCount }}
+              </div>
               <div class="text-caption text-info">Active work</div>
             </div>
             <q-avatar color="blue-1" text-color="blue" icon="autorenew" size="36px" />
@@ -79,7 +81,12 @@
               <div class="text-h6 text-weight-bold text-grey-9 q-my-none">{{ completedCount }}</div>
               <div class="text-caption text-positive">Done</div>
             </div>
-            <q-avatar color="green-1" text-color="positive" icon="check_circle_outline" size="36px" />
+            <q-avatar
+              color="green-1"
+              text-color="positive"
+              icon="check_circle_outline"
+              size="36px"
+            />
           </q-card-section>
         </q-card>
       </div>
@@ -168,7 +175,10 @@
         :pagination="{ rowsPerPage: 6 }"
       >
         <template #body-cell-title="props">
-          <q-td :props="props" style="max-width: 300px; overflow: hidden; padding-top: 14px; padding-bottom: 14px;">
+          <q-td
+            :props="props"
+            style="max-width: 300px; overflow: hidden; padding-top: 14px; padding-bottom: 14px"
+          >
             <div class="text-weight-bold text-grey-9 ellipsis">{{ props.row.title }}</div>
             <div v-if="props.row.description" class="text-caption text-grey-6 ellipsis">
               {{ props.row.description }}
@@ -177,7 +187,7 @@
         </template>
 
         <template #body-cell-project="props">
-          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px;">
+          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px">
             <q-badge color="deep-purple-1" text-color="primary" class="q-pa-xs">
               {{ getProjectName(props.row.project_id) }}
             </q-badge>
@@ -185,8 +195,10 @@
         </template>
 
         <template #body-cell-resources="props">
-          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px;">
-            <div v-if="props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0">
+          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px">
+            <div
+              v-if="props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0"
+            >
               <q-chip
                 v-for="rId in props.row.assigned_resource_ids"
                 :key="rId"
@@ -203,7 +215,7 @@
         </template>
 
         <template #body-cell-status="props">
-          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px;">
+          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px">
             <q-chip
               dense
               square
@@ -217,7 +229,7 @@
         </template>
 
         <template #body-cell-priority="props">
-          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px;">
+          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px">
             <q-chip
               dense
               square
@@ -231,7 +243,7 @@
         </template>
 
         <template #body-cell-progress="props">
-          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px;">
+          <q-td :props="props" style="padding-top: 14px; padding-bottom: 14px">
             <div style="min-width: 110px">
               <div class="row justify-between text-caption">
                 <span>{{ props.row.progress || 0 }}%</span>
@@ -249,7 +261,11 @@
         </template>
 
         <template #body-cell-actions="props">
-          <q-td :props="props" auto-width style="white-space: nowrap; padding-top: 14px; padding-bottom: 14px;">
+          <q-td
+            :props="props"
+            auto-width
+            style="white-space: nowrap; padding-top: 14px; padding-bottom: 14px"
+          >
             <div class="row items-center justify-center q-gutter-xs no-wrap">
               <q-btn
                 flat
@@ -261,14 +277,7 @@
               >
                 <q-tooltip>Assign Member to Task</q-tooltip>
               </q-btn>
-              <q-btn
-                flat
-                round
-                dense
-                icon="edit"
-                color="primary"
-                @click="openEditModal(props.row)"
-              >
+              <q-btn flat round dense icon="edit" color="primary" @click="openEditModal(props.row)">
                 <q-tooltip>Edit Task Details</q-tooltip>
               </q-btn>
             </div>
@@ -386,10 +395,24 @@
 
             <div class="row q-col-gutter-sm">
               <div class="col-6">
-                <q-input v-model="createForm.start_date" outlined dense type="date" label="Start Date" stack-label />
+                <q-input
+                  v-model="createForm.start_date"
+                  outlined
+                  dense
+                  type="date"
+                  label="Start Date"
+                  stack-label
+                />
               </div>
               <div class="col-6">
-                <q-input v-model="createForm.deadline" outlined dense type="date" label="Deadline" stack-label />
+                <q-input
+                  v-model="createForm.deadline"
+                  outlined
+                  dense
+                  type="date"
+                  label="Deadline"
+                  stack-label
+                />
               </div>
             </div>
           </q-card-section>
@@ -495,9 +518,11 @@ import {
   assignTaskResourceApi,
   createTaskApi,
   getProjectsApi,
+  getResourcesApi,
   getTasksApi,
   updateTaskApi,
   type Project,
+  type ResourceUser,
   type Task,
 } from '@/services/api';
 
@@ -506,6 +531,7 @@ const $q = useQuasar();
 const loading = ref(true);
 const tasks = ref<Task[]>([]);
 const projects = ref<Project[]>([]);
+const resources = ref<ResourceUser[]>([]);
 
 const searchQuery = ref('');
 const projectFilter = ref<number | 'ALL'>('ALL');
@@ -525,38 +551,54 @@ const assignTaskMemberForm = reactive({
   user_id: null as number | null,
 });
 
-const resourceNamesMap: Record<number, string> = {
-  3: 'Resource Developer',
-  4: 'Jane Smith',
-  5: 'Michael Johnson',
-  6: 'shikhaa',
-};
+const resourceNamesMap = computed<Record<number, string>>(() => {
+  const map: Record<number, string> = {};
+  for (const r of resources.value) {
+    map[r.user_id] = r.name;
+  }
+  return map;
+});
 
 function getResourceName(id: number): string {
-  return resourceNamesMap[id] || `Resource Developer`;
+  return resourceNamesMap.value[id] || `Resource #${id}`;
 }
 
-const resourceMemberSelectOptions = [
-  { label: 'Resource Developer', value: 3 },
-  { label: 'Jane Smith', value: 4 },
-  { label: 'Michael Johnson', value: 5 },
-  { label: 'shikhaa', value: 6 },
-];
+const resourceMemberSelectOptions = computed(() =>
+  resources.value.map((r) => ({
+    label: r.name,
+    value: r.user_id,
+  })),
+);
 
-const createForm = reactive({
-  project_id: null as number | null,
+const createForm = reactive<{
+  project_id: number | null;
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  expected_effort: number;
+  start_date: string;
+  deadline: string;
+}>({
+  project_id: null,
   title: '',
   description: '',
-  priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+  priority: 'MEDIUM',
+  status: 'PENDING',
   expected_effort: 8,
   start_date: '',
   deadline: '',
 });
-
-const editForm = reactive({
+const editForm = reactive<{
+  title: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  progress: number;
+  expected_effort: number;
+}>({
   title: '',
-  status: 'PENDING' as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD',
-  priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+  status: 'PENDING',
+  priority: 'MEDIUM',
   progress: 0,
   expected_effort: 8,
 });
@@ -591,27 +633,43 @@ const taskSelectOptions = computed(() =>
 );
 
 const tableColumns: QTableColumn<Task>[] = [
-  { name: 'title', label: 'Task Title', field: (t) => t.title, align: 'left', style: 'max-width: 300px; overflow: hidden;' },
+  {
+    name: 'title',
+    label: 'Task Title',
+    field: (t) => t.title,
+    align: 'left',
+    style: 'max-width: 300px; overflow: hidden;',
+  },
   { name: 'project', label: 'Project', field: (t) => t.project_id, align: 'center' },
   { name: 'resources', label: 'Assigned Resources', field: () => '', align: 'left' },
   { name: 'priority', label: 'Priority', field: (t) => t.priority, align: 'center' },
   { name: 'status', label: 'Status', field: (t) => t.status, align: 'center' },
   { name: 'progress', label: 'Progress', field: (t) => Number(t.progress) || 0, align: 'left' },
-  { name: 'deadline', label: 'Deadline', field: (t) => (t.deadline ? t.deadline.split('T')[0] : 'TBD'), align: 'left' },
+  {
+    name: 'deadline',
+    label: 'Deadline',
+    field: (t) => (t.deadline ? t.deadline.split('T')[0] : 'TBD'),
+    align: 'left',
+  },
   { name: 'actions', label: 'Actions', field: () => '', align: 'center' },
 ];
 
 async function loadData() {
   loading.value = true;
   try {
-    const [tList, pList] = await Promise.all([getTasksApi(), getProjectsApi()]);
+    const [tList, pList, rList] = await Promise.all([
+      getTasksApi(),
+      getProjectsApi(),
+      getResourcesApi(),
+    ]);
     tasks.value = tList;
     projects.value = pList;
+    resources.value = rList;
     if (pList.length > 0) {
       createForm.project_id = pList[0]!.project_id;
     }
   } catch (error) {
-    console.error('Failed to fetch tasks/projects from backend:', error);
+    console.error('Failed to fetch tasks/projects/resources from backend:', error);
   } finally {
     loading.value = false;
   }
@@ -621,16 +679,14 @@ onMounted(() => {
   void loadData();
 });
 
-const inProgressCount = computed(() =>
-  tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
+const inProgressCount = computed(
+  () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
 );
 
-const completedCount = computed(() =>
-  tasks.value.filter((t) => t.status === 'COMPLETED').length,
-);
+const completedCount = computed(() => tasks.value.filter((t) => t.status === 'COMPLETED').length);
 
-const pendingCount = computed(() =>
-  tasks.value.filter((t) => t.status === 'PENDING' || t.status === 'ON_HOLD').length,
+const pendingCount = computed(
+  () => tasks.value.filter((t) => t.status === 'PENDING' || t.status === 'ON_HOLD').length,
 );
 
 const filteredTasks = computed(() => {
@@ -641,14 +697,11 @@ const filteredTasks = computed(() => {
       t.title.toLowerCase().includes(q) ||
       (t.description && t.description.toLowerCase().includes(q));
 
-    const matchesProject =
-      projectFilter.value === 'ALL' || t.project_id === projectFilter.value;
+    const matchesProject = projectFilter.value === 'ALL' || t.project_id === projectFilter.value;
 
-    const matchesStatus =
-      statusFilter.value === 'ALL' || t.status === statusFilter.value;
+    const matchesStatus = statusFilter.value === 'ALL' || t.status === statusFilter.value;
 
-    const matchesPriority =
-      priorityFilter.value === 'ALL' || t.priority === priorityFilter.value;
+    const matchesPriority = priorityFilter.value === 'ALL' || t.priority === priorityFilter.value;
 
     return matchesSearch && matchesProject && matchesStatus && matchesPriority;
   });
@@ -692,10 +745,11 @@ async function handleAssignTaskMember() {
     showAssignTaskMemberDialog.value = false;
     assignTaskMemberForm.user_id = null;
     void loadData();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to assign member to task';
     $q.notify({
       type: 'negative',
-      message: error.message || 'Failed to assign member to task',
+      message: msg,
     });
   } finally {
     submittingTaskMember.value = false;
@@ -727,10 +781,11 @@ async function handleCreateTask() {
     createForm.title = '';
     createForm.description = '';
     void loadData();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to create task';
     $q.notify({
       type: 'negative',
-      message: error.message || 'Failed to create task',
+      message: msg,
     });
   } finally {
     submitting.value = false;
@@ -767,10 +822,11 @@ async function handleUpdateTask() {
 
     showEditDialog.value = false;
     void loadData();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to update task';
     $q.notify({
       type: 'negative',
-      message: error.message || 'Failed to update task',
+      message: msg,
     });
   } finally {
     submitting.value = false;

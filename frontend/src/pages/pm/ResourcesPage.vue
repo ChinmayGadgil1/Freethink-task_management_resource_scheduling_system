@@ -38,7 +38,9 @@
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Assigned Resources</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">{{ resourceMap.length }}</div>
+              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">
+                {{ resourceMap.length }}
+              </div>
               <div class="text-caption text-positive">Active in backend</div>
             </div>
             <q-avatar color="deep-purple-1" text-color="primary" icon="groups" size="44px" />
@@ -64,7 +66,9 @@
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Total Effort Allocated</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">{{ totalEffortHours }}h</div>
+              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">
+                {{ totalEffortHours }}h
+              </div>
               <div class="text-caption text-primary">Expected effort hours</div>
             </div>
             <q-avatar color="blue-1" text-color="blue" icon="schedule" size="44px" />
@@ -77,7 +81,9 @@
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Managed Projects</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">{{ projectList.length }}</div>
+              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">
+                {{ projectList.length }}
+              </div>
               <div class="text-caption text-amber-9">Projects</div>
             </div>
             <q-avatar color="amber-1" text-color="amber-9" icon="folder_open" size="44px" />
@@ -153,12 +159,16 @@
             <q-spinner color="primary" size="40px" />
           </div>
 
-          <div v-else-if="filteredResources.length === 0" class="row justify-center q-pa-xl text-center">
+          <div
+            v-else-if="filteredResources.length === 0"
+            class="row justify-center q-pa-xl text-center"
+          >
             <q-card flat bordered class="bg-white q-pa-lg">
               <q-icon name="person_off" size="48px" color="grey-5" />
               <div class="text-h6 text-grey-8 q-mt-sm">No Resource Allocations Found</div>
               <div class="text-caption text-grey-6 q-mt-xs">
-                Assign a resource to a project or assign tasks to populate resource allocation metrics.
+                Assign a resource to a project or assign tasks to populate resource allocation
+                metrics.
               </div>
               <q-btn
                 color="primary"
@@ -179,11 +189,7 @@
               :key="res.resource_id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <q-card
-                flat
-                bordered
-                class="bg-white full-height column justify-between"
-              >
+              <q-card flat bordered class="bg-white full-height column justify-between">
                 <q-card-section class="q-pa-md">
                   <!-- CARD TOP: AVATAR, NAME, CHIP -->
                   <div class="row items-center justify-between no-wrap q-mb-md">
@@ -192,7 +198,10 @@
                         {{ getInitials(res.name) }}
                       </q-avatar>
                       <div>
-                        <div class="text-subtitle1 text-weight-bold text-grey-9 ellipsis" style="max-width: 140px">
+                        <div
+                          class="text-subtitle1 text-weight-bold text-grey-9 ellipsis"
+                          style="max-width: 140px"
+                        >
                           {{ res.name }}
                         </div>
                         <div class="text-caption text-grey-6">Team Resource</div>
@@ -395,7 +404,11 @@
 
             <template #body-cell-resources="props">
               <q-td :props="props">
-                <div v-if="props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0">
+                <div
+                  v-if="
+                    props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0
+                  "
+                >
                   <q-chip
                     v-for="rId in props.row.assigned_resource_ids"
                     :key="rId"
@@ -467,7 +480,9 @@
     <q-dialog v-model="showAssignDialog">
       <q-card style="min-width: 420px">
         <q-card-section class="row items-center justify-between">
-          <div class="text-h6 text-weight-bold">Assign Task to Resource #{{ selectedResourceId }}</div>
+          <div class="text-h6 text-weight-bold">
+            Assign Task to Resource #{{ selectedResourceId }}
+          </div>
           <q-btn v-close-popup flat round dense icon="close" />
         </q-card-section>
 
@@ -549,8 +564,10 @@ import {
   assignProjectMemberApi,
   createTaskApi,
   getProjectsApi,
+  getResourcesApi,
   getTasksApi,
   type Project,
+  type ResourceUser,
   type Task,
 } from '@/services/api';
 
@@ -565,6 +582,7 @@ const viewMode = ref<'grid' | 'table'>('grid');
 
 const projectList = ref<Project[]>([]);
 const taskList = ref<Task[]>([]);
+const resourceList = ref<ResourceUser[]>([]);
 
 const showAssignDialog = ref(false);
 const selectedResourceId = ref<number | null>(null);
@@ -578,11 +596,17 @@ const projectMemberForm = reactive({
   user_id: null as number | null,
 });
 
-const assignForm = reactive({
-  project_id: null as number | null,
+const assignForm = reactive<{
+  project_id: number | null;
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  expected_effort: number;
+}>({
+  project_id: null,
   title: '',
   description: '',
-  priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+  priority: 'MEDIUM',
   expected_effort: 8,
 });
 
@@ -619,16 +643,31 @@ const pmTaskColumns: QTableColumn<Task>[] = [
   { name: 'priority', label: 'Priority', field: (t) => t.priority, align: 'center' },
   { name: 'status', label: 'Status', field: (t) => t.status, align: 'center' },
   { name: 'resources', label: 'Assigned Resources', field: () => '', align: 'left' },
-  { name: 'effort', label: 'Effort (Hrs)', field: (t) => Number(t.expected_effort) || 0, align: 'center' },
-  { name: 'deadline', label: 'Deadline', field: (t) => (t.deadline ? t.deadline.split('T')[0] : 'TBD'), align: 'left' },
+  {
+    name: 'effort',
+    label: 'Effort (Hrs)',
+    field: (t) => Number(t.expected_effort) || 0,
+    align: 'center',
+  },
+  {
+    name: 'deadline',
+    label: 'Deadline',
+    field: (t) => (t.deadline ? t.deadline.split('T')[0] : 'TBD'),
+    align: 'left',
+  },
 ];
 
 async function loadData() {
   loading.value = true;
   try {
-    const [projects, tasks] = await Promise.all([getProjectsApi(), getTasksApi()]);
+    const [projects, tasks, resources] = await Promise.all([
+      getProjectsApi(),
+      getTasksApi(),
+      getResourcesApi(),
+    ]);
     projectList.value = projects;
     taskList.value = tasks;
+    resourceList.value = resources;
     if (projects.length > 0) {
       projectMemberForm.project_id = projects[0]!.project_id;
     }
@@ -643,26 +682,39 @@ onMounted(() => {
   void loadData();
 });
 
-const resourceNamesMap: Record<number, string> = {
-  3: 'Resource Developer',
-  4: 'Jane Smith',
-  5: 'Michael Johnson',
-  6: 'shikhaa',
-};
+const resourceNamesMap = computed<Record<number, string>>(() => {
+  const map: Record<number, string> = {};
+  for (const r of resourceList.value) {
+    map[r.user_id] = r.name;
+  }
+  return map;
+});
 
 function getResourceName(id: number): string {
-  return resourceNamesMap[id] || `Resource Developer`;
+  return resourceNamesMap.value[id] || `Resource #${id}`;
 }
 
-const resourceMemberSelectOptions = [
-  { label: 'Resource Developer', value: 3 },
-  { label: 'Jane Smith', value: 4 },
-  { label: 'Michael Johnson', value: 5 },
-  { label: 'shikhaa', value: 6 },
-];
+const resourceMemberSelectOptions = computed(() =>
+  resourceList.value.map((r) => ({
+    label: r.name,
+    value: r.user_id,
+  })),
+);
 
 const resourceMap = computed(() => {
   const map = new Map<number, ResourceAggregate>();
+
+  for (const r of resourceList.value) {
+    map.set(r.user_id, {
+      resource_id: r.user_id,
+      name: r.name,
+      tasks: [],
+      projectsCount: 0,
+      totalEffort: 0,
+      utilization: 0,
+      status: 'AVAILABLE',
+    });
+  }
 
   for (const t of taskList.value) {
     const rIds = t.assigned_resource_ids || [];
@@ -706,10 +758,6 @@ const resourceMap = computed(() => {
   return result;
 });
 
-const totalAssignedTasks = computed(() =>
-  resourceMap.value.reduce((acc, r) => acc + r.tasks.length, 0),
-);
-
 const totalEffortHours = computed(() =>
   resourceMap.value.reduce((acc, r) => acc + r.totalEffort, 0),
 );
@@ -720,8 +768,7 @@ const filteredResources = computed(() => {
     const matchesSearch =
       !q || r.name.toLowerCase().includes(q) || String(r.resource_id).includes(q);
 
-    const matchesStatus =
-      statusFilter.value === 'ALL' || r.status === statusFilter.value;
+    const matchesStatus = statusFilter.value === 'ALL' || r.status === statusFilter.value;
 
     return matchesSearch && matchesStatus;
   });
@@ -795,10 +842,11 @@ async function handleAssignProjectMember() {
     showProjectMemberDialog.value = false;
     projectMemberForm.user_id = null;
     void loadData();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to assign resource to project';
     $q.notify({
       type: 'negative',
-      message: error.message || 'Failed to assign resource to project',
+      message: msg,
     });
   } finally {
     submittingMember.value = false;
@@ -829,10 +877,11 @@ async function handleAssignTask() {
 
     showAssignDialog.value = false;
     void loadData();
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to assign task';
     $q.notify({
       type: 'negative',
-      message: error.message || 'Failed to assign task',
+      message: msg,
     });
   } finally {
     submitting.value = false;

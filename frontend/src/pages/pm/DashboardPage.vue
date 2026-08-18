@@ -805,45 +805,47 @@ function openGenerateReportDialog() {
   showReportModal.value = true;
 }
 
-// Quick Action Submit Handlers
 async function handleCreateProject() {
+  const storedUser = localStorage.getItem('user');
+
+  if (!storedUser) {
+    $q.notify({
+      type: 'negative',
+      message: 'Please sign in again',
+    });
+    return;
+  }
+
+  const user = JSON.parse(storedUser) as {
+    user_id: number;
+  };
+
   projectSubmitting.value = true;
+
   try {
     const payload: CreateProjectPayload = {
-      project_manager_id: 1,
+      project_manager_id: user.user_id,
       name: newProjectForm.name.trim(),
       priority: newProjectForm.priority,
       status: newProjectForm.status,
       start_date: newProjectForm.start_date || null,
       deadline: newProjectForm.deadline || null,
-      ...(newProjectForm.description.trim() ? { description: newProjectForm.description.trim() } : {}),
+      ...(newProjectForm.description.trim()
+        ? { description: newProjectForm.description.trim() }
+        : {}),
     };
 
-    try {
-      const created = await createProjectApi(payload);
-      if (created) {
-        projects.value.unshift(created);
-      }
-    } catch {
-      // Local fallback
-      const localProj: Project = {
-        project_id: Date.now(),
-        project_manager_id: 1,
-        name: payload.name,
-        description: payload.description ?? null,
-        priority: payload.priority || 'MEDIUM',
-        status: payload.status || 'ACTIVE',
-        start_date: payload.start_date ?? null,
-        deadline: payload.deadline ?? null,
-        progress: 0,
-      };
-      projects.value.unshift(localProj);
+    const created = await createProjectApi(payload);
+
+    if (created) {
+      projects.value.unshift(created);
     }
 
     $q.notify({
       type: 'positive',
       message: `Project "${newProjectForm.name}" created successfully`,
     });
+
     showNewProjectModal.value = false;
   } catch (error: unknown) {
     $q.notify({
@@ -854,13 +856,17 @@ async function handleCreateProject() {
     projectSubmitting.value = false;
   }
 }
-
 async function handleCreateTask() {
   if (!newTaskForm.project_id) {
-    $q.notify({ type: 'warning', message: 'Please select a project' });
+    $q.notify({
+      type: 'warning',
+      message: 'Please select a project',
+    });
     return;
   }
+
   taskSubmitting.value = true;
+
   try {
     const payload: CreateTaskPayload = {
       project_id: newTaskForm.project_id,
@@ -873,33 +879,17 @@ async function handleCreateTask() {
       deadline: newTaskForm.deadline || null,
     };
 
-    try {
-      const created = await createTaskApi(payload);
-      if (created) {
-        tasks.value.unshift(created);
-      }
-    } catch {
-      // Local fallback
-      const localTask: Task = {
-        task_id: Date.now(),
-        project_id: payload.project_id,
-        title: payload.title,
-        description: payload.description ?? null,
-        priority: payload.priority || 'MEDIUM',
-        status: payload.status || 'PENDING',
-        start_date: payload.start_date ?? null,
-        deadline: payload.deadline ?? null,
-        expected_effort: payload.expected_effort,
-        actual_effort: 0,
-        progress: payload.status === 'COMPLETED' ? 100 : 0,
-      };
-      tasks.value.unshift(localTask);
+    const created = await createTaskApi(payload);
+
+    if (created) {
+      tasks.value.unshift(created);
     }
 
     $q.notify({
       type: 'positive',
       message: `Task "${newTaskForm.title}" added successfully`,
     });
+
     showAddTaskModal.value = false;
   } catch (error: unknown) {
     $q.notify({
@@ -910,7 +900,6 @@ async function handleCreateTask() {
     taskSubmitting.value = false;
   }
 }
-
 async function handleAllocateResource() {
   if (!allocateForm.project_id || !allocateForm.user_id) {
     $q.notify({ type: 'warning', message: 'Please select project and resource' });
@@ -989,7 +978,8 @@ function handleExportReport() {
     '',
     'Projects List:',
     ...projects.value.map(
-      (p) => `- ${p.name}: ${p.status} | Progress: ${p.progress || 0}% | Due: ${p.deadline || 'N/A'}`,
+      (p) =>
+        `- ${p.name}: ${p.status} | Progress: ${p.progress || 0}% | Due: ${p.deadline || 'N/A'}`,
     ),
   ].join('\n');
 

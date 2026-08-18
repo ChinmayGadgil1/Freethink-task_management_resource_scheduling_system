@@ -5,7 +5,12 @@
       <div class="section-label">{{ label }}</div>
       <h2 class="section-title">{{ title }}</h2>
       <p class="section-description">{{ description }}</p>
-      <a v-if="actionLabel" href="javascript:void(0)" class="section-action" @click="$emit('action')">
+      <a
+        v-if="actionLabel"
+        href="javascript:void(0)"
+        class="section-action"
+        @click="$emit('action')"
+      >
         <span>{{ actionLabel }}</span>
         <q-icon name="arrow_forward" size="14px" />
       </a>
@@ -19,14 +24,14 @@
 
 <script setup lang="ts">
 defineProps<{
-  number: string
-  label: string
-  title: string
-  description: string
-  actionLabel?: string
-}>()
+  number: string;
+  label: string;
+  title: string;
+  description: string;
+  actionLabel?: string;
+}>();
 
-defineEmits<{ (e: 'action'): void }>()
+defineEmits<{ (e: 'action'): void }>();
 </script>
 
 <style scoped lang="scss">
@@ -92,11 +97,18 @@ defineEmits<{ (e: 'action'): void }>()
   text-decoration: none;
   transition: gap 0.2s ease;
 }
-.section-action:hover { gap: 7px; color: var(--wo-primary-dark, #7554cc); }
+.section-action:hover {
+  gap: 7px;
+  color: var(--wo-primary-dark, #7554cc);
+}
 
-.section-content { min-width: 0; }
+.section-content {
+  min-width: 0;
+}
 
 @media (max-width: 960px) {
-  .workspace-section { grid-template-columns: 1fr; }
+  .workspace-section {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

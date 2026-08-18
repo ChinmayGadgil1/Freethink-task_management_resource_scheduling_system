@@ -161,75 +161,75 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useQuasar } from 'quasar'
-import { useRouter } from 'vue-router'
-import { signupApi } from '@/services/api'
+import { reactive, ref } from 'vue';
+import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
+import { signupApi } from '@/services/api';
 
-const $q = useQuasar()
-const router = useRouter()
+const $q = useQuasar();
+const router = useRouter();
 
 type SignupForm = {
-  name: string
-  email: string
-  role: 'RESOURCE' | 'PROJECT_MANAGER'
-  password: string
-  confirmPassword: string
-}
+  name: string;
+  email: string;
+  role: 'RESOURCE' | 'PROJECT_MANAGER';
+  password: string;
+  confirmPassword: string;
+};
 
 const form = reactive<SignupForm>({
   name: '',
   email: '',
   role: 'RESOURCE',
   password: '',
-  confirmPassword: ''
-})
+  confirmPassword: '',
+});
 
 const roleOptions = [
   { label: 'Resource', value: 'RESOURCE' },
-  { label: 'Project Manager', value: 'PROJECT_MANAGER' }
-]
+  { label: 'Project Manager', value: 'PROJECT_MANAGER' },
+];
 
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const loading = ref(false)
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+const loading = ref(false);
 
 const handleSignup = async () => {
   if (form.password !== form.confirmPassword) {
     $q.notify({
       type: 'negative',
-      message: 'Passwords do not match'
-    })
-    return
+      message: 'Passwords do not match',
+    });
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
   try {
     const data = await signupApi({
       name: form.name,
       email: form.email,
       password: form.password,
-      role: form.role
-    })
+      role: form.role,
+    });
 
     $q.notify({
       type: 'positive',
-      message: data.message || 'Account created successfully!'
-    })
+      message: data.message || 'Account created successfully!',
+    });
 
-    void router.push('/')
+    void router.push('/');
   } catch (error: unknown) {
-    console.error('Signup error:', error)
+    console.error('Signup error:', error);
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Signup failed'
-    })
+      message: error instanceof Error ? error.message : 'Signup failed',
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const goToLogin = () => {
-  void router.push('/')
-}
+  void router.push('/');
+};
 </script>

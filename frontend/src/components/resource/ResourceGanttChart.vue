@@ -23,7 +23,8 @@
         <!-- Header row -->
         <div class="gantt-cell header-cell label-col">Task</div>
         <div
-          v-for="(day, i) in days" :key="i"
+          v-for="(day, i) in days"
+          :key="i"
           class="gantt-cell header-cell day-col"
           :class="{ 'is-today': isToday(day), 'is-weekend': isWeekend(day) }"
           :style="{ gridColumn: i + 2 }"
@@ -40,7 +41,8 @@
           </div>
 
           <div
-            v-for="(day, i) in days" :key="`${task.id}-${i}`"
+            v-for="(day, i) in days"
+            :key="`${task.id}-${i}`"
             class="gantt-cell track-cell"
             :class="{ 'is-today': isToday(day), 'is-weekend': isWeekend(day) }"
             :style="{ gridColumn: i + 2, gridRow: rowIdx + 2 }"
@@ -62,91 +64,98 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 export interface GanttTask {
-  id: number
-  name: string
-  project: string
-  start: string // ISO date, e.g. '2026-08-18'
-  end: string // ISO date, inclusive
-  progress: number
-  priority: 'Low' | 'Medium' | 'High' | 'Critical'
+  id: number;
+  name: string;
+  project: string;
+  start: string; // ISO date, e.g. '2026-08-18'
+  end: string; // ISO date, inclusive
+  progress: number;
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
 }
 
-const props = defineProps<{ tasks: GanttTask[] }>()
+const props = defineProps<{ tasks: GanttTask[] }>();
 
-const priorities = ['Low', 'Medium', 'High', 'Critical']
-const MAX_WINDOW_DAYS = 21
+const priorities = ['Low', 'Medium', 'High', 'Critical'];
+const MAX_WINDOW_DAYS = 21;
 
 function stripTime(date: Date) {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  return d
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 // Window spans from the earliest task start (or today, if earlier)
 // to the latest task end, capped so the chart doesn't run away.
 const days = computed<Date[]>(() => {
-  const today = stripTime(new Date())
-  const starts = props.tasks.map(t => stripTime(new Date(t.start)))
-  const ends = props.tasks.map(t => stripTime(new Date(t.end)))
+  const today = stripTime(new Date());
+  const starts = props.tasks.map((t) => stripTime(new Date(t.start)));
+  const ends = props.tasks.map((t) => stripTime(new Date(t.end)));
 
-  const rangeStart = starts.length ? new Date(Math.min(today.getTime(), ...starts.map(d => d.getTime()))) : today
-  let rangeEnd = ends.length ? new Date(Math.max(today.getTime(), ...ends.map(d => d.getTime()))) : new Date(today.getTime() + 6 * 86400000)
+  const rangeStart = starts.length
+    ? new Date(Math.min(today.getTime(), ...starts.map((d) => d.getTime())))
+    : today;
+  let rangeEnd = ends.length
+    ? new Date(Math.max(today.getTime(), ...ends.map((d) => d.getTime())))
+    : new Date(today.getTime() + 6 * 86400000);
 
-  const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1
+  const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1;
   if (totalDays > MAX_WINDOW_DAYS) {
-    rangeEnd = new Date(rangeStart.getTime() + (MAX_WINDOW_DAYS - 1) * 86400000)
+    rangeEnd = new Date(rangeStart.getTime() + (MAX_WINDOW_DAYS - 1) * 86400000);
   }
 
-  const list: Date[] = []
-  const cursor = new Date(rangeStart)
+  const list: Date[] = [];
+  const cursor = new Date(rangeStart);
   while (cursor <= rangeEnd) {
-    list.push(new Date(cursor))
-    cursor.setDate(cursor.getDate() + 1)
+    list.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
   }
-  return list
-})
+  return list;
+});
 
 function dayIndex(dateStr: string) {
-  const target = stripTime(new Date(dateStr)).getTime()
-  const start = days.value[0]?.getTime() ?? target
-  return Math.round((target - start) / 86400000)
+  const target = stripTime(new Date(dateStr)).getTime();
+  const start = days.value[0]?.getTime() ?? target;
+  return Math.round((target - start) / 86400000);
 }
 
 function barStyle(task: GanttTask, rowIdx: number) {
-  const lastIdx = days.value.length - 1
-  const startIdx = Math.min(Math.max(dayIndex(task.start), 0), lastIdx)
-  const endIdx = Math.min(Math.max(dayIndex(task.end), startIdx), lastIdx)
+  const lastIdx = days.value.length - 1;
+  const startIdx = Math.min(Math.max(dayIndex(task.start), 0), lastIdx);
+  const endIdx = Math.min(Math.max(dayIndex(task.end), startIdx), lastIdx);
   return {
     gridRow: rowIdx + 2,
     gridColumn: `${startIdx + 2} / span ${endIdx - startIdx + 1}`,
-  }
+  };
 }
 
 function isToday(date: Date) {
-  return stripTime(date).getTime() === stripTime(new Date()).getTime()
+  return stripTime(date).getTime() === stripTime(new Date()).getTime();
 }
 
 function isWeekend(date: Date) {
-  const day = date.getDay()
-  return day === 0 || day === 6
+  const day = date.getDay();
+  return day === 0 || day === 6;
 }
 
 function formatWeekday(date: Date) {
-  return date.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2)
+  return date.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2);
 }
 function formatDay(date: Date) {
-  return date.getDate()
+  return date.getDate();
 }
 function formatDate(date: Date) {
-  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 }
 </script>
 
 <style scoped lang="scss">
-.legend { display: flex; gap: 14px; }
+.legend {
+  display: flex;
+  gap: 14px;
+}
 .legend-item {
   display: inline-flex;
   align-items: center;
@@ -154,13 +163,28 @@ function formatDate(date: Date) {
   font-size: 11px;
   color: var(--wo-text-muted, #667085);
 }
-.legend-dot { width: 7px; height: 7px; border-radius: 50%; }
-.priority-dot-low { background: #27ae60; }
-.priority-dot-medium { background: #e89532; }
-.priority-dot-high { background: #e56b45; }
-.priority-dot-critical { background: #e15263; }
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.priority-dot-low {
+  background: #27ae60;
+}
+.priority-dot-medium {
+  background: #e89532;
+}
+.priority-dot-high {
+  background: #e56b45;
+}
+.priority-dot-critical {
+  background: #e15263;
+}
 
-.gantt-scroll { overflow-x: auto; padding: 4px 0 16px; }
+.gantt-scroll {
+  overflow-x: auto;
+  padding: 4px 0 16px;
+}
 
 .gantt-grid {
   display: grid;
@@ -170,7 +194,11 @@ function formatDate(date: Date) {
   width: max-content;
 }
 
-.gantt-cell { display: flex; align-items: center; min-width: 0; }
+.gantt-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
 
 .label-col {
   grid-column: 1;
@@ -189,21 +217,48 @@ function formatDate(date: Date) {
   background: var(--wo-bg-page, #f8f9fa);
 }
 
-.day-col { flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
-.day-name { font-size: 9px; color: var(--wo-text-subtle, #98a2b3); text-transform: uppercase; }
-.day-num { font-size: 12px; font-weight: 700; color: var(--wo-text-main, #1d2433); }
+.day-col {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.day-name {
+  font-size: 9px;
+  color: var(--wo-text-subtle, #98a2b3);
+  text-transform: uppercase;
+}
+.day-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wo-text-main, #1d2433);
+}
 
 .track-cell {
   border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
   border-left: 1px solid var(--wo-border-subtle, #f0f2f5);
 }
-.track-cell.is-weekend { background: var(--wo-bg-page, #f8f9fa); }
-.header-cell.is-weekend { background: #f2f2f5; }
+.track-cell.is-weekend {
+  background: var(--wo-bg-page, #f8f9fa);
+}
+.header-cell.is-weekend {
+  background: #f2f2f5;
+}
 .track-cell.is-today,
-.header-cell.is-today { background: var(--wo-primary-light, #f4f0fd); }
+.header-cell.is-today {
+  background: var(--wo-primary-light, #f4f0fd);
+}
 
-.task-name { font-size: 12px; font-weight: 600; color: var(--wo-text-main, #1d2433); }
-.task-project { margin-top: 2px; font-size: 10px; color: var(--wo-text-subtle, #98a2b3); }
+.task-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wo-text-main, #1d2433);
+}
+.task-project {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--wo-text-subtle, #98a2b3);
+}
 
 .gantt-bar {
   position: relative;
@@ -218,7 +273,12 @@ function formatDate(date: Date) {
   z-index: 1;
 }
 
-.gantt-bar-fill { position: absolute; inset: 0; border-radius: 6px; opacity: 0.9; }
+.gantt-bar-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  opacity: 0.9;
+}
 .gantt-bar-label {
   position: relative;
   margin-left: auto;
@@ -229,8 +289,16 @@ function formatDate(date: Date) {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
 }
 
-.priority-bar-low .gantt-bar-fill { background: #27ae60; }
-.priority-bar-medium .gantt-bar-fill { background: #e89532; }
-.priority-bar-high .gantt-bar-fill { background: #e56b45; }
-.priority-bar-critical .gantt-bar-fill { background: #e15263; }
+.priority-bar-low .gantt-bar-fill {
+  background: #27ae60;
+}
+.priority-bar-medium .gantt-bar-fill {
+  background: #e89532;
+}
+.priority-bar-high .gantt-bar-fill {
+  background: #e56b45;
+}
+.priority-bar-critical .gantt-bar-fill {
+  background: #e15263;
+}
 </style>

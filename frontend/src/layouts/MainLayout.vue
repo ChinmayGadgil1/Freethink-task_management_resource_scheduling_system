@@ -118,7 +118,9 @@
                       <q-icon name="folder" color="primary" size="16px" />
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label class="text-weight-medium text-caption">{{ p.name }}</q-item-label>
+                      <q-item-label class="text-weight-medium text-caption">{{
+                        p.name
+                      }}</q-item-label>
                       <q-item-label caption>{{ p.status }} • {{ p.progress || 0 }}%</q-item-label>
                     </q-item-section>
                   </q-item>
@@ -140,7 +142,9 @@
                       <q-icon name="task_alt" color="teal" size="16px" />
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label class="text-weight-medium text-caption">{{ t.title }}</q-item-label>
+                      <q-item-label class="text-weight-medium text-caption">{{
+                        t.title
+                      }}</q-item-label>
                       <q-item-label caption>{{ t.status }} • {{ t.priority }}</q-item-label>
                     </q-item-section>
                   </q-item>
@@ -162,7 +166,9 @@
                       <q-icon name="person" color="orange" size="16px" />
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label class="text-weight-medium text-caption">{{ r.name }}</q-item-label>
+                      <q-item-label class="text-weight-medium text-caption">{{
+                        r.name
+                      }}</q-item-label>
                       <q-item-label caption>{{ r.role }}</q-item-label>
                     </q-item-section>
                   </q-item>
@@ -184,7 +190,9 @@
                       <q-icon :name="l.icon" color="grey-7" size="16px" />
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label class="text-weight-medium text-caption">{{ l.title }}</q-item-label>
+                      <q-item-label class="text-weight-medium text-caption">{{
+                        l.title
+                      }}</q-item-label>
                     </q-item-section>
                   </q-item>
                 </template>
@@ -225,7 +233,9 @@
                     <q-icon name="check_circle" color="positive" size="18px" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-caption text-weight-medium">Website Redesign UI Phase</q-item-label>
+                    <q-item-label class="text-caption text-weight-medium"
+                      >Website Redesign UI Phase</q-item-label
+                    >
                     <q-item-label caption>Milestone completed on track</q-item-label>
                   </q-item-section>
                 </q-item>
@@ -234,7 +244,9 @@
                     <q-icon name="assignment_ind" color="primary" size="18px" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-caption text-weight-medium">New Task Assigned</q-item-label>
+                    <q-item-label class="text-caption text-weight-medium"
+                      >New Task Assigned</q-item-label
+                    >
                     <q-item-label caption>Payment integration assigned to Rohit</q-item-label>
                   </q-item-section>
                 </q-item>
@@ -243,7 +255,9 @@
                     <q-icon name="warning" color="warning" size="18px" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-caption text-weight-medium">Sprint Review Approaching</q-item-label>
+                    <q-item-label class="text-caption text-weight-medium"
+                      >Sprint Review Approaching</q-item-label
+                    >
                     <q-item-label caption>Due in 3 days</q-item-label>
                   </q-item-section>
                 </q-item>

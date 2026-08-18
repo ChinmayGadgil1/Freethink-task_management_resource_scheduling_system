@@ -16,12 +16,19 @@
         <div class="task-title">{{ task.name }}</div>
         <div class="task-project">{{ task.project }}</div>
         <q-linear-progress
-          :value="task.progress / 100" size="5px" rounded class="q-mt-sm"
-          color="primary" track-color="grey-3" style="max-width: 200px"
+          :value="task.progress / 100"
+          size="5px"
+          rounded
+          class="q-mt-sm"
+          color="primary"
+          track-color="grey-3"
+          style="max-width: 200px"
         />
       </div>
       <div class="task-side">
-        <span class="priority-pill" :class="`priority-${task.priority.toLowerCase()}`">{{ task.priority }}</span>
+        <span class="priority-pill" :class="`priority-${task.priority.toLowerCase()}`">{{
+          task.priority
+        }}</span>
         <div class="task-due">{{ task.due }}</div>
       </div>
     </div>
@@ -30,16 +37,16 @@
 
 <script setup lang="ts">
 export interface UpcomingTask {
-  id: number
-  name: string
-  project: string
-  priority: 'Low' | 'Medium' | 'High' | 'Critical'
-  progress: number
-  due: string
+  id: number;
+  name: string;
+  project: string;
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  progress: number;
+  due: string;
 }
 
-defineProps<{ tasks: UpcomingTask[] }>()
-defineEmits<{ (e: 'view-all'): void }>()
+defineProps<{ tasks: UpcomingTask[] }>();
+defineEmits<{ (e: 'view-all'): void }>();
 </script>
 
 <style scoped lang="scss">
@@ -56,14 +63,33 @@ defineEmits<{ (e: 'view-all'): void }>()
   padding: 14px 16px;
   border-top: 1px solid var(--wo-border-subtle, #f0f2f5);
 }
-.task-row:first-of-type { border-top: none; }
+.task-row:first-of-type {
+  border-top: none;
+}
 
-.task-info { min-width: 0; }
-.task-title { font-size: 13px; font-weight: 600; color: var(--wo-text-main, #1d2433); }
-.task-project { margin-top: 2px; font-size: 11px; color: var(--wo-text-subtle, #98a2b3); }
+.task-info {
+  min-width: 0;
+}
+.task-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wo-text-main, #1d2433);
+}
+.task-project {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--wo-text-subtle, #98a2b3);
+}
 
-.task-side { text-align: right; flex-shrink: 0; }
-.task-due { margin-top: 6px; font-size: 11px; color: var(--wo-text-muted, #667085); }
+.task-side {
+  text-align: right;
+  flex-shrink: 0;
+}
+.task-due {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--wo-text-muted, #667085);
+}
 
 .priority-pill {
   display: inline-block;
@@ -72,8 +98,20 @@ defineEmits<{ (e: 'view-all'): void }>()
   font-size: 10px;
   font-weight: 700;
 }
-.priority-low { background: #eaf7f0; color: #27ae60; }
-.priority-medium { background: #fff4e8; color: #e89532; }
-.priority-high { background: #fff0eb; color: #e56b45; }
-.priority-critical { background: #fdeef0; color: #e15263; }
+.priority-low {
+  background: #eaf7f0;
+  color: #27ae60;
+}
+.priority-medium {
+  background: #fff4e8;
+  color: #e89532;
+}
+.priority-high {
+  background: #fff0eb;
+  color: #e56b45;
+}
+.priority-critical {
+  background: #fdeef0;
+  color: #e15263;
+}
 </style>

@@ -69,7 +69,7 @@ const defaultColumns = [
         avatar: avatarRohit,
         initials: 'R',
         projectId: 1,
-        taskId: 101
+        taskId: 101,
       },
       {
         title: 'User Authentication Module',
@@ -78,7 +78,7 @@ const defaultColumns = [
         avatar: avatarSneha,
         initials: 'S',
         projectId: 2,
-        taskId: 102
+        taskId: 102,
       },
       {
         title: 'API Security Audit',
@@ -87,7 +87,7 @@ const defaultColumns = [
         avatar: avatarPriya,
         initials: 'P',
         projectId: 3,
-        taskId: 103
+        taskId: 103,
       },
     ],
   },
@@ -104,7 +104,7 @@ const defaultColumns = [
         avatar: avatarArjun,
         initials: 'A',
         projectId: 1,
-        taskId: 104
+        taskId: 104,
       },
       {
         title: 'Payment Gateway Integration',
@@ -113,7 +113,7 @@ const defaultColumns = [
         avatar: avatarRohit,
         initials: 'R',
         projectId: 2,
-        taskId: 105
+        taskId: 105,
       },
     ],
   },
@@ -130,7 +130,7 @@ const defaultColumns = [
         avatar: avatarArjun,
         initials: 'A',
         projectId: 3,
-        taskId: 106
+        taskId: 106,
       },
       {
         title: 'Content Strategy Review',
@@ -139,7 +139,7 @@ const defaultColumns = [
         avatar: avatarSneha,
         initials: 'S',
         projectId: 4,
-        taskId: 107
+        taskId: 107,
       },
     ],
   },
@@ -156,7 +156,7 @@ const defaultColumns = [
         avatar: avatarRohit,
         initials: 'R',
         projectId: 1,
-        taskId: 108
+        taskId: 108,
       },
       {
         title: 'Requirements Gathering',
@@ -165,7 +165,7 @@ const defaultColumns = [
         avatar: avatarSneha,
         initials: 'S',
         projectId: 2,
-        taskId: 109
+        taskId: 109,
       },
     ],
   },
@@ -178,7 +178,7 @@ const columns = computed(() => {
 
   const projectMap = new Map<number, string>();
   if (props.projects) {
-    props.projects.forEach(p => projectMap.set(p.project_id, p.name));
+    props.projects.forEach((p) => projectMap.set(p.project_id, p.name));
   }
 
   const mapTask = (t: Task): SummaryTask => ({
@@ -188,13 +188,15 @@ const columns = computed(() => {
     avatar: avatarRohit,
     initials: t.title.charAt(0).toUpperCase(),
     projectId: t.project_id,
-    taskId: t.task_id
+    taskId: t.task_id,
   });
 
-  const highPriority = props.tasks.filter(t => t.priority === 'HIGH' || t.priority === 'CRITICAL');
-  const inProgress = props.tasks.filter(t => t.status === 'IN_PROGRESS');
-  const dueTasks = props.tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
-  const completed = props.tasks.filter(t => t.status === 'COMPLETED');
+  const highPriority = props.tasks.filter(
+    (t) => t.priority === 'HIGH' || t.priority === 'CRITICAL',
+  );
+  const inProgress = props.tasks.filter((t) => t.status === 'IN_PROGRESS');
+  const dueTasks = props.tasks.filter((t) => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+  const completed = props.tasks.filter((t) => t.status === 'COMPLETED');
 
   return [
     {
@@ -202,29 +204,29 @@ const columns = computed(() => {
       icon: 'flag',
       count: highPriority.length,
       className: 'priority',
-      tasks: highPriority.slice(0, 3).map(mapTask)
+      tasks: highPriority.slice(0, 3).map(mapTask),
     },
     {
       title: 'In Progress',
       icon: 'radio_button_checked',
       count: inProgress.length,
       className: 'progress',
-      tasks: inProgress.slice(0, 3).map(mapTask)
+      tasks: inProgress.slice(0, 3).map(mapTask),
     },
     {
       title: 'Due This Week',
       icon: 'schedule',
       count: dueTasks.length,
       className: 'due',
-      tasks: dueTasks.slice(0, 3).map(mapTask)
+      tasks: dueTasks.slice(0, 3).map(mapTask),
     },
     {
       title: 'Completed',
       icon: 'check_circle',
       count: completed.length,
       className: 'completed',
-      tasks: completed.slice(0, 3).map(mapTask)
-    }
+      tasks: completed.slice(0, 3).map(mapTask),
+    },
   ];
 });
 </script>

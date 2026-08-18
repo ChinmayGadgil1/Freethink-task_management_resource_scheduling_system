@@ -1,35 +1,24 @@
 <template>
   <q-dialog
     :model-value="modelValue"
-    @update:model-value="value => emit('update:modelValue', value)"
+    @update:model-value="(value) => emit('update:modelValue', value)"
   >
     <q-card style="width: 520px; max-width: 95vw">
-
       <q-card-section class="row items-center justify-between">
         <div>
-          <div class="text-subtitle1 text-weight-bold">
-            Update Task
-          </div>
+          <div class="text-subtitle1 text-weight-bold">Update Task</div>
 
           <div v-if="task" class="text-caption text-grey-6">
             {{ task.name }} · {{ task.project }}
           </div>
         </div>
 
-        <q-btn
-          v-close-popup
-          flat
-          round
-          dense
-          icon="close"
-          color="grey-7"
-        />
+        <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
       </q-card-section>
 
       <q-separator />
 
       <q-card-section v-if="task">
-
         <div class="field-label">Status</div>
 
         <div class="status-choice">
@@ -48,23 +37,12 @@
 
         <div class="field-label q-mt-lg">
           Progress
-          <span class="text-primary text-weight-bold">
-            {{ form.progress }}%
-          </span>
+          <span class="text-primary text-weight-bold"> {{ form.progress }}% </span>
         </div>
 
-        <q-slider
-          v-model="form.progress"
-          :min="0"
-          :max="100"
-          :step="5"
-          color="primary"
-          label
-        />
+        <q-slider v-model="form.progress" :min="0" :max="100" :step="5" color="primary" label />
 
-        <div class="field-label q-mt-md">
-          Total Hours Worked
-        </div>
+        <div class="field-label q-mt-md">Total Hours Worked</div>
 
         <q-input
           v-model.number="form.hoursWorked"
@@ -75,9 +53,7 @@
           step="0.5"
         />
 
-        <div class="field-label q-mt-md">
-          Work Update
-        </div>
+        <div class="field-label q-mt-md">Work Update</div>
 
         <q-input
           v-model="form.workUpdate"
@@ -87,103 +63,89 @@
           rows="3"
           placeholder="What did you work on?"
         />
-
       </q-card-section>
 
       <q-separator />
 
       <q-card-actions align="right" class="q-pa-md">
+        <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
 
-        <q-btn
-          v-close-popup
-          flat
-          no-caps
-          label="Cancel"
-          color="grey-7"
-        />
-
-        <q-btn
-          unelevated
-          no-caps
-          label="Save Update"
-          color="primary"
-          @click="save"
-        />
-
+        <q-btn unelevated no-caps label="Save Update" color="primary" @click="save" />
       </q-card-actions>
-
     </q-card>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import type {
-  ResourceTask,
-  TaskStatus
-} from '@/components/tasks/task-types'
+import { reactive, watch } from 'vue';
+import type { ResourceTask, TaskStatus } from '@/components/tasks/task-types';
 
 const props = defineProps<{
-  modelValue: boolean
-  task: ResourceTask | null
-}>()
+  modelValue: boolean;
+  task: ResourceTask | null;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
+  (e: 'update:modelValue', value: boolean): void;
   (
     e: 'save',
     payload: {
-      id: number
-      status: TaskStatus
-      progress: number
-      hoursWorked: number
-      workUpdate: string
-    }
-  ): void
-}>()
+      id: number;
+      status: TaskStatus;
+      progress: number;
+      hoursWorked: number;
+      workUpdate: string;
+    },
+  ): void;
+}>();
 
 const statusOptions: {
-  label: string
-  value: TaskStatus
+  label: string;
+  value: TaskStatus;
 }[] = [
   { label: 'Pending', value: 'PENDING' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' }
-]
+  { label: 'On Hold', value: 'ON_HOLD' },
+];
 
-const form = reactive({
-  status: 'PENDING' as TaskStatus,
+const form = reactive<{
+  status: TaskStatus;
+  progress: number;
+  hoursWorked: number;
+  workUpdate: string;
+}>({
+  status: 'PENDING',
   progress: 0,
   hoursWorked: 0,
-  workUpdate: ''
-})
+  workUpdate: '',
+});
 
 watch(
   () => props.task,
-  task => {
-    if (!task) return
+  (task) => {
+    if (!task) return;
 
-    form.status = task.status
-    form.progress = task.progress
-    form.hoursWorked = task.hoursWorked
-    form.workUpdate = ''
+    form.status = task.status;
+    form.progress = task.progress;
+    form.hoursWorked = task.hoursWorked;
+    form.workUpdate = '';
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 function save() {
-  if (!props.task) return
+  if (!props.task) return;
 
   emit('save', {
     id: props.task.id,
     status: form.status,
     progress: Math.min(Math.max(Number(form.progress), 0), 100),
     hoursWorked: Math.max(Number(form.hoursWorked), 0),
-    workUpdate: form.workUpdate.trim()
-  })
+    workUpdate: form.workUpdate.trim(),
+  });
 
-  emit('update:modelValue', false)
+  emit('update:modelValue', false);
 }
 </script>
 

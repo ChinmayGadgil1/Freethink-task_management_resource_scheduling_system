@@ -8,8 +8,12 @@
       <div class="text-caption text-grey-6 q-mt-xs">of daily capacity utilized</div>
 
       <q-linear-progress
-        :value="utilization / 100" size="10px" rounded class="q-mt-md"
-        :color="loadColor" track-color="grey-3"
+        :value="utilization / 100"
+        size="10px"
+        rounded
+        class="q-mt-md"
+        :color="loadColor"
+        track-color="grey-3"
       />
 
       <div class="stat-grid q-mt-lg">
@@ -35,27 +39,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps<{
-  utilization: number
-  allocatedHours: number
-  dailyCapacity: number
-  remaining: number
-  assignedTasks: number
-}>()
+  utilization: number;
+  allocatedHours: number;
+  dailyCapacity: number;
+  remaining: number;
+  assignedTasks: number;
+}>();
 
 const loadColor = computed(() => {
-  if (props.utilization >= 90) return 'negative'
-  if (props.utilization >= 70) return 'warning'
-  return 'positive'
-})
+  if (props.utilization >= 90) return 'negative';
+  if (props.utilization >= 70) return 'warning';
+  return 'positive';
+});
 
 const loadLabel = computed(() => {
-  if (props.utilization >= 90) return 'Overloaded'
-  if (props.utilization >= 70) return 'Busy'
-  return 'On track'
-})
+  if (props.utilization >= 90) return 'Overloaded';
+  if (props.utilization >= 70) return 'Busy';
+  return 'On track';
+});
 </script>
 
 <style scoped lang="scss">

@@ -150,40 +150,44 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        const project = await getProjectById(task.project_id);
-        if (!project) {
-            return res.status(404).json({ message: "Project not found" });
-        }
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
-        if (req.user?.role === "PROJECT_MANAGER" && project.project_manager_id !== req.user.user_id) {
-            return res.status(403).json({ message: "Not authorized to modify tasks for this project" });
-        }
-
-        if (req.user?.role === "RESOURCE") {
-            const isMember = await isProjectMember(task.project_id, req.user.user_id);
-            if (!isMember) {
-                return res.status(403).json({ message: "Not authorized to modify tasks for this project" });
+        if (userRole === "PROJECT_MANAGER") {
+            const project = await getProjectById(task.project_id);
+            if (!project || project.project_manager_id !== userId) {
+                return res.status(403).json({ message: "You are not authorized to update tasks for this project" });
             }
+        } else if (userRole === "RESOURCE") {
+            const isAssigned = (task.assigned_resource_ids || []).includes(userId);
+            if (!isAssigned) {
+                return res.status(403).json({ message: "You are not authorized to update this task" });
+            }
+        }
+
+        if (parsed.start_date && parsed.deadline && parsed.start_date > parsed.deadline) {
+            return res.status(400).json({ message: "Deadline cannot be before start date" });
         }
 
         let shiftDays = 0;
         if (parsed.deadline && task.deadline) {
             const oldDeadline = new Date(task.deadline);
             const newDeadline = new Date(parsed.deadline);
-            shiftDays = Math.round((newDeadline.getTime() - oldDeadline.getTime()) / (1000 * 60 * 60 * 24));
+            const diffTime = newDeadline.getTime() - oldDeadline.getTime();
+            shiftDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
         await updateTask(taskId, parsed);
 
-        if (shiftDays !== 0) {
+        if (shiftDays > 0) {
             await propagateScheduleChanges(taskId, shiftDays);
         }
 
         const updatedTask = await getTaskById(taskId);
+
         return res.status(200).json({
             message: "Task updated successfully",
-            task: updatedTask,
-            schedule_shifted_days: shiftDays
+            task: updatedTask
         });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
@@ -195,37 +199,33 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
 
 export async function addDependency(req: AuthRequest<{ id: string }>, res: Response) {
     try {
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
         const taskId = Number(req.params.id);
-        const { predecessor_task_id } = dependencySchema.parse(req.body);
+        const parsed = dependencySchema.parse(req.body);
+
+        if (taskId === parsed.predecessor_task_id) {
+            return res.status(400).json({ message: "A task cannot depend on itself" });
+        }
 
         const task = await getTaskById(taskId) as any;
-        const predecessor = await getTaskById(predecessor_task_id) as any;
-
-        if (!task || !predecessor) {
-            return res.status(404).json({ message: "One or both tasks not found" });
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
         }
 
-        if (task.project_id !== predecessor.project_id) {
-            return res.status(400).json({ message: "Tasks must belong to the same project" });
+        const predTask = await getTaskById(parsed.predecessor_task_id) as any;
+        if (!predTask) {
+            return res.status(404).json({ message: "Predecessor task not found" });
         }
 
-        const project = await getProjectById(task.project_id);
-        if (!project) {
-            return res.status(404).json({ message: "Project not found" });
-        }
-
-        if (req.user?.role === "PROJECT_MANAGER" && project.project_manager_id !== req.user.user_id) {
-            return res.status(403).json({ message: "Not authorized to manage tasks for this project" });
-        }
-
-        if (req.user?.role === "RESOURCE") {
-            const isMember = await isProjectMember(task.project_id, req.user.user_id);
-            if (!isMember) {
-                return res.status(403).json({ message: "Not authorized to manage tasks for this project" });
+        if (userRole === "PROJECT_MANAGER") {
+            const project = await getProjectById(task.project_id);
+            if (!project || project.project_manager_id !== userId) {
+                return res.status(403).json({ message: "You are not authorized to manage dependencies for this project" });
             }
         }
 
-        await addTaskDependency(taskId, predecessor_task_id);
+        await addTaskDependency(taskId, parsed.predecessor_task_id);
 
         return res.status(200).json({ message: "Dependency added successfully" });
     } catch (error: any) {
@@ -240,7 +240,13 @@ export async function getResourceWorkloadController(req: AuthRequest<{ resourceI
     try {
         const userRole = req.user!.role;
         const userId = req.user!.user_id;
-        let resourceId = req.params.resourceId ? Number(req.params.resourceId) : userId;
+        let resourceId = (req.params.resourceId && req.params.resourceId !== "me") 
+            ? Number(req.params.resourceId) 
+            : userId;
+
+        if (isNaN(resourceId)) {
+            resourceId = userId;
+        }
 
         if (userRole === "RESOURCE" && resourceId !== userId) {
             return res.status(403).json({ message: "Resource cannot view other resources' workload" });
@@ -257,7 +263,13 @@ export async function checkImpactController(req: AuthRequest<{ resourceId?: stri
     try {
         const userRole = req.user!.role;
         const userId = req.user!.user_id;
-        let resourceId = req.params.resourceId ? Number(req.params.resourceId) : userId;
+        let resourceId = (req.params.resourceId && req.params.resourceId !== "me") 
+            ? Number(req.params.resourceId) 
+            : userId;
+
+        if (isNaN(resourceId)) {
+            resourceId = userId;
+        }
 
         if (userRole === "RESOURCE" && resourceId !== userId) {
             return res.status(403).json({ message: "Not authorized to check impact for other resource" });

@@ -30,7 +30,7 @@ export interface Project {
 export interface Task {
   task_id: number;
   project_id: number;
-  project_name?: string;  //for displaying project name in task list
+  project_name?: string; //for displaying project name in task list
   title: string;
   description: string | null;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -217,9 +217,7 @@ export interface ResourceWorkload {
 }
 
 // Get workload for a Resource (or logged-in resource if omitted)
-export async function getResourceWorkloadApi(
-  resourceId?: number
-): Promise<ResourceWorkload> {
+export async function getResourceWorkloadApi(resourceId?: number): Promise<ResourceWorkload> {
   const url = resourceId
     ? `${API_BASE_URL}/tasks/resources/${resourceId}/workload`
     : `${API_BASE_URL}/tasks/resources/me/workload`;
@@ -347,4 +345,38 @@ export async function assignTaskResourceApi(taskId: number, userId: number) {
 
   return data;
 }
+
+export interface ResourceUser {
+  user_id: number;
+  name: string;
+  email: string;
+  role: 'RESOURCE';
+  is_active?: boolean | number;
+  created_at?: string;
+}
+
+export async function getResourcesApi(): Promise<ResourceUser[]> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/resources`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch resources');
+  }
+
+  return Array.isArray(data) ? data : data.resources ?? [];
+}
+
+export async function getResourceByIdApi(resourceId: number): Promise<ResourceUser> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/resources/${resourceId}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch resource details');
+  }
+
+  return data;
+}
+
 
