@@ -119,5 +119,22 @@ export async function initializeDatabase() {
 
     console.log("Task dependencies table created successfully.");
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS work_logs (
+            log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            task_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            hours_logged DECIMAL(5,2) NOT NULL DEFAULT 0,
+            progress_logged DECIMAL(5,2) NOT NULL DEFAULT 0,
+            notes TEXT,
+            log_date DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    `);
+
+    console.log("Work logs table created successfully.");
+
     return pool;
 }
