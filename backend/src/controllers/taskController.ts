@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { createTask, getTasksList } from "../services/taskService.js";
+import { getProjectById } from "../services/projectService.js";
 
 const createTaskSchema = z.object({
     project_id: z.number().int().positive(),
@@ -18,10 +19,20 @@ const createTaskSchema = z.object({
 export async function create(req: AuthRequest, res: Response) {
     try {
         const userRole = req.user?.role;
+        const userId = req.user?.user_id;
         const parsed = createTaskSchema.parse(req.body);
 
         if (parsed.start_date && parsed.deadline && parsed.start_date > parsed.deadline) {
             return res.status(400).json({ message: "Deadline cannot be before start date" });
+        }
+
+        const project = await getProjectById(parsed.project_id);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (userRole === "PROJECT_MANAGER" && project.project_manager_id !== userId) {
+            return res.status(403).json({ message: "You are not authorized to manage tasks for this project" });
         }
 
         // If self-assigned by a RESOURCE, assign them automatically

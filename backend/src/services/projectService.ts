@@ -78,3 +78,33 @@ export async function getProjectsByManager(projectManagerId: number) {
 
     return projects;
 }
+
+export async function getProjectById(projectId: number) {
+    const pool = getPool();
+
+    const [projects] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT
+            project_id,
+            project_manager_id,
+            name,
+            description,
+            status,
+            priority,
+            start_date,
+            deadline,
+            progress,
+            created_at,
+            updated_at
+        FROM projects
+        WHERE project_id = ?
+        `,
+        [projectId]
+    );
+
+    if (projects.length === 0) {
+        return null;
+    }
+
+    return projects[0];
+}
