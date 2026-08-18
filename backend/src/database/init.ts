@@ -107,5 +107,17 @@ export async function initializeDatabase() {
 
     console.log("Task assignments table created successfully.");
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS task_dependencies (
+            task_id BIGINT NOT NULL,
+            predecessor_task_id BIGINT NOT NULL,
+            PRIMARY KEY (task_id, predecessor_task_id),
+            FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+            FOREIGN KEY (predecessor_task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
+        )
+    `);
+
+    console.log("Task dependencies table created successfully.");
+
     return pool;
 }

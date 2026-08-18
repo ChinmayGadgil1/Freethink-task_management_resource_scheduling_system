@@ -113,3 +113,70 @@ export async function getTasksList(filters: {
             : []
     }));
 }
+
+export async function getTaskById(taskId: number) {
+    const pool = getPool();
+    const [tasks] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT t.*, 
+               GROUP_CONCAT(ta.user_id) as assigned_resource_ids
+        FROM tasks t
+        LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        WHERE t.task_id = ?
+        GROUP BY t.task_id
+        `,
+        [taskId]
+    );
+
+    if (tasks.length === 0) {
+        return null;
+    }
+
+    const task = tasks[0];
+    if (!task) {
+        return null;
+    }
+    return {
+        ...task,
+        assigned_resource_ids: task.assigned_resource_ids 
+            ? task.assigned_resource_ids.split(",").map(Number)
+            : []
+    } as any;
+}
+
+export async function addTaskDependency(taskId: number, predecessorTaskId: number) {
+    const pool = getPool();
+    
+    // Check if the dependency already exists
+    const [existing] = await pool.query<RowDataPacket[]>(
+        "SELECT * FROM task_dependencies WHERE task_id = ? AND predecessor_task_id = ?",
+        [taskId, predecessorTaskId]
+    );
+    if (existing.length > 0) return;
+
+    await pool.query(
+        "INSERT INTO task_dependencies (task_id, predecessor_task_id) VALUES (?, ?)",
+        [taskId, predecessorTaskId]
+    );
+}
+
+export async function getTaskDependencies(taskId: number): Promise<number[]> {
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+        "SELECT predecessor_task_id FROM task_dependencies WHERE task_id = ?",
+        [taskId]
+    );
+    return rows.map(r => Number(r.predecessor_task_id));
+}
+
+export async function updateTask(taskId: number, updates: Record<string, any>) {
+    const pool = getPool();
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return;
+
+    const setClause = keys.map(k => `${k} = ?`).join(", ");
+    const params = [...Object.values(updates), taskId];
+
+    await pool.query(`UPDATE tasks SET ${setClause} WHERE task_id = ?`, params);
+}
+
