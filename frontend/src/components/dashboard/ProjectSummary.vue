@@ -1,7 +1,12 @@
 <template>
   <div class="projects-wrapper">
     <div class="project-grid">
-      <article v-for="project in projects" :key="project.name" class="project-card">
+      <article
+        v-for="project in projects"
+        :key="project.name"
+        class="project-card cursor-pointer"
+        @click="goToProject(project.project_id)"
+      >
         <!-- Project Cover Image -->
         <div class="project-cover">
           <img :src="project.image" :alt="project.name" class="cover-image" />
@@ -58,7 +63,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import type { Project } from '@/services/api';
+
+const router = useRouter();
+
+function goToProject(projectId: number) {
+  void router.push(`/pm/projects/${projectId}`);
+}
 
 interface ProjectMember {
   name: string;

@@ -5,11 +5,23 @@
         <!-- Brand -->
         <div class="brand" @click="router.push('/app/resource-dashboard')">
           <div class="brand-mark">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <circle cx="12" cy="12" r="6" fill="#8B6FD8" />
               <ellipse
-                cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"
-                stroke="#8B6FD8" stroke-width="2" stroke-dasharray="2 1"
+                cx="12"
+                cy="12"
+                rx="10"
+                ry="4"
+                transform="rotate(-30 12 12)"
+                stroke="#8B6FD8"
+                stroke-width="2"
+                stroke-dasharray="2 1"
               />
             </svg>
           </div>
@@ -20,7 +32,8 @@
         <!-- Resource navigation -->
         <nav class="main-nav">
           <router-link
-            v-for="link in navLinks" :key="link.to"
+            v-for="link in navLinks"
+            :key="link.to"
             :to="link.disabled ? '' : link.to"
             class="nav-link"
             :class="{ 'nav-link-disabled': link.disabled }"
@@ -34,15 +47,31 @@
         <!-- Header actions -->
         <div class="header-actions">
           <q-input
-            v-model="searchQuery" dense outlined placeholder="Search your tasks..."
-            class="header-search" bg-color="white"
+            v-model="searchQuery"
+            dense
+            outlined
+            placeholder="Search your tasks..."
+            class="header-search"
           >
             <template #prepend>
               <q-icon name="search" size="18px" color="grey-6" />
             </template>
           </q-input>
 
-          <q-btn flat round dense icon="light_mode" color="grey-7" class="header-icon-btn" />
+          <q-btn
+            flat
+            round
+            dense
+            :icon="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
+            :color="$q.dark.isActive ? 'amber-5' : 'grey-7'"
+            class="header-icon-btn"
+            @click="toggleDarkMode"
+            :aria-label="$q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <q-tooltip>{{
+              $q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'
+            }}</q-tooltip>
+          </q-btn>
 
           <q-btn flat round dense icon="notifications_none" color="grey-7" class="header-icon-btn">
             <q-badge v-if="notificationCount > 0" floating color="primary" rounded>
@@ -89,30 +118,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
 
-const router = useRouter()
-const searchQuery = ref('')
-const notificationCount = 0
+const $q = useQuasar();
+const router = useRouter();
+const searchQuery = ref('');
+const notificationCount = 0;
 
-interface StoredUser {
-  name?: string
-  email?: string
-  role?: string
+function toggleDarkMode() {
+  $q.dark.toggle();
+  localStorage.setItem('taskflow_theme', $q.dark.isActive ? 'dark' : 'light');
 }
 
-const storedUser = localStorage.getItem('user')
-const user = computed<StoredUser | null>(() => {
-  if (!storedUser) return null
-  try {
-    return JSON.parse(storedUser) as StoredUser
-  } catch {
-    return null
+onMounted(() => {
+  const savedTheme = localStorage.getItem('taskflow_theme');
+  if (savedTheme) {
+    $q.dark.set(savedTheme === 'dark');
   }
-})
+});
 
-const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCase())
+interface StoredUser {
+  name?: string;
+  email?: string;
+  role?: string;
+}
+
+const storedUser = localStorage.getItem('user');
+const user = computed<StoredUser | null>(() => {
+  if (!storedUser) return null;
+  try {
+    return JSON.parse(storedUser) as StoredUser;
+  } catch {
+    return null;
+  }
+});
+
+const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCase());
 
 // Only Dashboard and My Tasks are wired up for now — Progress and
 // Calendar are shown so the nav reads correctly, but stay disabled
@@ -122,12 +165,12 @@ const navLinks = [
   { label: 'My Tasks', to: '/app/resource-dashboard/tasks', disabled: false },
   { label: 'Task Specs', to: '/app/resource-dashboard/task-details', disabled: false },
   { label: 'Progress', to: '/app/resource-dashboard/progress', disabled: true },
-]
+];
 
 function logout() {
-  localStorage.removeItem('user')
-  sessionStorage.removeItem('flashMessage')
-  void router.push('/')
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('flashMessage');
+  void router.push('/');
 }
 </script>
 
@@ -136,7 +179,7 @@ function logout() {
   background: var(--wo-bg-card, #ffffff);
   color: var(--wo-text-main, #1d2433);
   border-bottom: 1px solid var(--wo-border, #eaecef);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  box-shadow: var(--wo-header-shadow, 0 1px 2px rgba(16, 24, 40, 0.03));
 }
 
 .app-toolbar {
@@ -201,7 +244,9 @@ function logout() {
   transition: color 0.15s ease;
 }
 
-.nav-link:hover { color: var(--wo-text-main, #1d2433); }
+.nav-link:hover {
+  color: var(--wo-text-main, #1d2433);
+}
 
 .nav-link-active {
   color: var(--wo-text-main, #1d2433);
@@ -241,15 +286,30 @@ function logout() {
   gap: 12px;
 }
 
-.header-search { width: 220px; }
+.header-search {
+  width: 220px;
+}
 .header-search :deep(.q-field__control) {
   min-height: 34px;
   height: 34px;
   border-radius: 9px;
-  background: var(--wo-bg-page, #f9fafb);
+  background: var(--wo-bg-input, #f9fafb);
+  border-color: var(--wo-border, #e4e7ec);
 }
 
-.header-icon-btn { width: 34px; height: 34px; }
+.header-search :deep(.q-field__control:hover) {
+  background: var(--wo-bg-card, #ffffff);
+  border-color: var(--wo-border, #d0d5dd);
+}
+
+.header-search :deep(.q-field__native) {
+  color: var(--wo-text-main, #344054);
+}
+
+.header-icon-btn {
+  width: 34px;
+  height: 34px;
+}
 
 .profile {
   display: flex;
@@ -260,23 +320,45 @@ function logout() {
 }
 
 .profile-avatar {
-  border: 2px solid var(--wo-border-subtle, #f2f4f7);
+  border: 2px solid var(--wo-border, #f2f4f7);
   background: var(--wo-primary-light, #f4f0fd);
   color: var(--wo-primary, #8b6fd8);
 }
 
-.profile-info { min-width: 90px; }
-.profile-name { font-size: 12px; font-weight: 600; line-height: 1.25; }
-.profile-role { margin-top: 1px; color: var(--wo-text-subtle, #98a2b3); font-size: 10px; }
+.profile-info {
+  min-width: 90px;
+}
+.profile-name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.profile-role {
+  margin-top: 1px;
+  color: var(--wo-text-subtle, #98a2b3);
+  font-size: 10px;
+}
 
 @media (max-width: 1150px) {
-  .app-toolbar { padding: 0 20px; gap: 16px; }
-  .nav-link { padding: 0 10px; font-size: 12px; }
-  .header-search { width: 170px; }
+  .app-toolbar {
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .nav-link {
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .header-search {
+    width: 170px;
+  }
 }
 
 @media (max-width: 900px) {
-  .main-nav { display: none; }
-  .profile-info { display: none; }
+  .main-nav {
+    display: none;
+  }
+  .profile-info {
+    display: none;
+  }
 }
 </style>

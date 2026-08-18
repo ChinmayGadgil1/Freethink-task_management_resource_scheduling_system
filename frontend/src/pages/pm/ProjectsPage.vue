@@ -38,7 +38,8 @@
                 <div class="stat-label">On Track</div>
                 <div class="stat-value">{{ onTrackProjects }}</div>
                 <div class="stat-note stat-green">
-                  {{ totalProjects ? Math.round(onTrackProjects / totalProjects * 100) : 0 }}% of total
+                  {{ totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0 }}% of
+                  total
                 </div>
               </div>
             </q-card-section>
@@ -53,7 +54,8 @@
                 <div class="stat-label">At Risk</div>
                 <div class="stat-value">{{ atRiskProjects }}</div>
                 <div class="stat-note stat-orange">
-                  {{ totalProjects ? Math.round(atRiskProjects / totalProjects * 100) : 0 }}% of total
+                  {{ totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0 }}% of
+                  total
                 </div>
               </div>
             </q-card-section>
@@ -68,7 +70,8 @@
                 <div class="stat-label">Delayed</div>
                 <div class="stat-value">{{ delayedProjects }}</div>
                 <div class="stat-note stat-red">
-                  {{ totalProjects ? Math.round(delayedProjects / totalProjects * 100) : 0 }}% of total
+                  {{ totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0 }}% of
+                  total
                 </div>
               </div>
             </q-card-section>
@@ -153,21 +156,9 @@
               class="filter-select"
             />
 
-            <q-input
-              v-model="startDateFilter"
-              outlined
-              dense
-              label="Start Date"
-              type="date"
-            />
+            <q-input v-model="startDateFilter" outlined dense label="Start Date" type="date" />
 
-            <q-input
-              v-model="endDateFilter"
-              outlined
-              dense
-              label="End Date"
-              type="date"
-            />
+            <q-input v-model="endDateFilter" outlined dense label="End Date" type="date" />
 
             <q-btn
               outline
@@ -177,12 +168,7 @@
               class="more-filter-btn"
             />
 
-            <q-btn
-              flat
-              round
-              icon="tune"
-              class="tune-btn"
-            />
+            <q-btn flat round icon="tune" class="tune-btn" />
           </q-card-section>
         </q-card>
       </div>
@@ -224,7 +210,8 @@
                 :key="project.project_id"
                 flat
                 bordered
-                class="overview-project-card"
+                class="overview-project-card cursor-pointer"
+                @click="goToProject(project.project_id)"
               >
                 <q-img
                   :src="getProjectImage(index)"
@@ -285,9 +272,7 @@
           <div class="section-number">03</div>
           <div class="section-eyebrow">PROJECT INSIGHTS</div>
           <div class="section-title">Track what matters most</div>
-          <div class="section-description">
-            Real-time insights help you take the right action.
-          </div>
+          <div class="section-description">Real-time insights help you take the right action.</div>
           <q-icon name="trending_up" size="34px" class="section-icon green-icon" />
         </q-card-section>
       </q-card>
@@ -314,12 +299,7 @@
               label="View"
               class="toolbar-select view-select"
             />
-            <q-btn
-              flat
-              round
-              icon="view_column"
-              color="grey-7"
-            />
+            <q-btn flat round icon="view_column" color="grey-7" />
           </div>
         </q-card-section>
 
@@ -345,7 +325,7 @@
 
           <template #body-cell-project="props">
             <q-td :props="props">
-              <div class="project-cell">
+              <div class="project-cell cursor-pointer" @click="goToProject(props.row.project_id)">
                 <q-avatar size="30px" class="project-icon">
                   <q-icon name="folder" size="17px" />
                 </q-avatar>
@@ -445,21 +425,24 @@
 
           <template #body-cell-actions="props">
             <q-td :props="props" auto-width>
-              <q-btn
-                flat
-                round
-                dense
-                icon="more_horiz"
-                color="grey-6"
-              />
+              <q-btn flat round dense icon="more_horiz" color="grey-6">
+                <q-menu auto-close>
+                  <q-list style="min-width: 140px">
+                    <q-item clickable @click="goToProject(props.row.project_id)">
+                      <q-item-section avatar>
+                        <q-icon name="visibility" size="18px" color="primary" />
+                      </q-item-section>
+                      <q-item-section>View Details</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
             </q-td>
           </template>
 
           <template #bottom>
             <div class="table-bottom">
-              <span>
-                Showing {{ filteredProjects.length }} of {{ projects.length }} projects
-              </span>
+              <span> Showing {{ filteredProjects.length }} of {{ projects.length }} projects </span>
               <div class="bottom-spacer"></div>
               <span class="rows-label">Rows per page</span>
               <q-select
@@ -492,9 +475,7 @@
           <div class="section-number">04</div>
           <div class="section-eyebrow">PERFORMANCE VIEW</div>
           <div class="section-title">Compare & prioritize</div>
-          <div class="section-description">
-            Sort, compare and prioritize projects effortlessly.
-          </div>
+          <div class="section-description">Sort, compare and prioritize projects effortlessly.</div>
           <q-icon name="format_list_numbered" size="34px" class="section-icon orange-icon" />
         </q-card-section>
       </q-card>
@@ -503,7 +484,7 @@
         <q-card-section class="performance-grid">
           <div class="performance-stat">
             <span>Highest Progress</span>
-            <strong>{{ Math.max(...projects.map(p => Number(p.progress) || 0), 0) }}%</strong>
+            <strong>{{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%</strong>
           </div>
           <q-separator vertical />
           <div class="performance-stat">
@@ -544,34 +525,10 @@
             class="quick-btn primary-action"
             @click="showCreateDialog = true"
           />
-          <q-btn
-            outline
-            no-caps
-            icon="cloud_upload"
-            label="Import Project"
-            class="quick-btn"
-          />
-          <q-btn
-            outline
-            no-caps
-            icon="auto_awesome"
-            label="Project Template"
-            class="quick-btn"
-          />
-          <q-btn
-            outline
-            no-caps
-            icon="edit_note"
-            label="Bulk Update"
-            class="quick-btn"
-          />
-          <q-btn
-            outline
-            no-caps
-            icon="description"
-            label="Export Report"
-            class="quick-btn"
-          />
+          <q-btn outline no-caps icon="cloud_upload" label="Import Project" class="quick-btn" />
+          <q-btn outline no-caps icon="auto_awesome" label="Project Template" class="quick-btn" />
+          <q-btn outline no-caps icon="edit_note" label="Bulk Update" class="quick-btn" />
+          <q-btn outline no-caps icon="description" label="Export Report" class="quick-btn" />
         </q-card-section>
       </q-card>
     </div>
@@ -584,14 +541,7 @@
             <div class="dialog-eyebrow">NEW PROJECT</div>
             <div class="dialog-title">Create a project</div>
           </div>
-          <q-btn
-            v-close-popup
-            flat
-            round
-            dense
-            icon="close"
-            color="grey-7"
-          />
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
         </q-card-section>
 
         <q-form @submit.prevent="handleCreateProject">
@@ -600,7 +550,7 @@
               v-model="form.name"
               outlined
               label="Project name"
-              :rules="[val => !!val.trim() || 'Project name is required']"
+              :rules="[(val) => !!val.trim() || 'Project name is required']"
             />
             <q-input
               v-model="form.description"
@@ -652,13 +602,7 @@
           </q-card-section>
 
           <q-card-actions align="right" class="dialog-actions">
-            <q-btn
-              v-close-popup
-              flat
-              no-caps
-              label="Cancel"
-              color="grey-7"
-            />
+            <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
             <q-btn
               type="submit"
               no-caps
@@ -675,34 +619,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useQuasar } from 'quasar'
-import type { QTableColumn } from 'quasar'
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import type { QTableColumn } from 'quasar';
 import {
   createProjectApi,
   getProjectsApi,
   type CreateProjectPayload,
   type Project,
   type ProjectPriority,
-  type ProjectStatus
-} from '@/services/api'
+  type ProjectStatus,
+} from '@/services/api';
 
-const $q = useQuasar()
+const $q = useQuasar();
+const router = useRouter();
 
-const projects = ref<Project[]>([])
-const loading = ref(false)
-const creating = ref(false)
-const showCreateDialog = ref(false)
-const startDateFilter = ref('')
-const endDateFilter = ref('')
+function goToProject(projectId: number) {
+  void router.push(`/pm/projects/${projectId}`);
+}
+
+const projects = ref<Project[]>([]);
+const loading = ref(false);
+const creating = ref(false);
+const showCreateDialog = ref(false);
+const startDateFilter = ref('');
+const endDateFilter = ref('');
 
 interface ProjectForm {
-  name: string
-  description: string
-  status: ProjectStatus
-  priority: ProjectPriority
-  start_date: string
-  deadline: string
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  start_date: string;
+  deadline: string;
 }
 
 const form = reactive<ProjectForm>({
@@ -711,8 +661,8 @@ const form = reactive<ProjectForm>({
   status: 'DRAFT',
   priority: 'MEDIUM',
   start_date: '',
-  deadline: ''
-})
+  deadline: '',
+});
 
 const statusOptions = [
   { label: 'Draft', value: 'DRAFT' },
@@ -720,30 +670,30 @@ const statusOptions = [
   { label: 'Active', value: 'ACTIVE' },
   { label: 'On Hold', value: 'ON_HOLD' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Cancelled', value: 'CANCELLED' }
-]
+  { label: 'Cancelled', value: 'CANCELLED' },
+];
 
 const priorityOptions = [
   { label: 'Low', value: 'LOW' },
   { label: 'Medium', value: 'MEDIUM' },
   { label: 'High', value: 'HIGH' },
-  { label: 'Critical', value: 'CRITICAL' }
-]
+  { label: 'Critical', value: 'CRITICAL' },
+];
 
-const searchQuery = ref('')
-const statusFilter = ref('ALL')
-const healthFilter = ref('ALL')
-const groupBy = ref('None')
-const tableView = ref('Table')
+const searchQuery = ref('');
+const statusFilter = ref('ALL');
+const healthFilter = ref('ALL');
+const groupBy = ref('None');
+const tableView = ref('Table');
 
-const selectedProjects = ref<Project[]>([])
+const selectedProjects = ref<Project[]>([]);
 
 const pagination = ref({
   page: 1,
   rowsPerPage: 8,
   sortBy: '',
-  descending: false
-})
+  descending: false,
+});
 
 const statusFilterOptions = [
   { label: 'All Status', value: 'ALL' },
@@ -752,213 +702,203 @@ const statusFilterOptions = [
   { label: 'Active', value: 'ACTIVE' },
   { label: 'On Hold', value: 'ON_HOLD' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Cancelled', value: 'CANCELLED' }
-]
+  { label: 'Cancelled', value: 'CANCELLED' },
+];
 
 const healthFilterOptions = [
   { label: 'All', value: 'ALL' },
   { label: 'On Track', value: 'ON_TRACK' },
   { label: 'At Risk', value: 'AT_RISK' },
-  { label: 'Delayed', value: 'DELAYED' }
-]
+  { label: 'Delayed', value: 'DELAYED' },
+];
 
 const projectColumns: QTableColumn<Project>[] = [
   {
     name: 'project',
     label: 'Project',
-    field: row => row.name,
-    align: 'left'
+    field: (row) => row.name,
+    align: 'left',
   },
   {
     name: 'owner',
     label: 'Owner',
     field: () => 'PM User',
-    align: 'left'
+    align: 'left',
   },
   {
     name: 'status',
     label: 'Status',
-    field: row => row.status,
-    align: 'left'
+    field: (row) => row.status,
+    align: 'left',
   },
   {
     name: 'health',
     label: 'Health',
-    field: row => getProjectHealth(row),
-    align: 'left'
+    field: (row) => getProjectHealth(row),
+    align: 'left',
   },
   {
     name: 'progress',
     label: 'Progress',
-    field: row => Number(row.progress) || 0,
-    align: 'left'
+    field: (row) => Number(row.progress) || 0,
+    align: 'left',
   },
   {
     name: 'start_date',
     label: 'Start Date',
-    field: row => row.start_date,
-    align: 'left'
+    field: (row) => row.start_date,
+    align: 'left',
   },
   {
     name: 'deadline',
     label: 'End Date',
-    field: row => row.deadline,
-    align: 'left'
+    field: (row) => row.deadline,
+    align: 'left',
   },
   {
     name: 'team',
     label: 'Team',
     field: () => '',
-    align: 'left'
+    align: 'left',
   },
   {
     name: 'tasks',
     label: 'Tasks',
     field: () => '',
-    align: 'left'
+    align: 'left',
   },
   {
     name: 'overdue',
     label: 'Overdue',
-    field: row => getProjectHealth(row) === 'DELAYED' ? 1 : 0,
-    align: 'left'
+    field: (row) => (getProjectHealth(row) === 'DELAYED' ? 1 : 0),
+    align: 'left',
   },
   {
     name: 'last_update',
     label: 'Last Update',
     field: () => 'Recently',
-    align: 'left'
+    align: 'left',
   },
   {
     name: 'actions',
     label: '',
     field: () => '',
-    align: 'right'
-  }
-]
+    align: 'right',
+  },
+];
 
 const projectImages = [
   '/projects/website.jpg',
   '/projects/mobile.jpg',
   '/projects/marketing.jpg',
   '/projects/tools.jpg',
-  '/projects/portal.jpg'
-]
+  '/projects/portal.jpg',
+];
 
 function getProjectImage(index: number) {
-  return projectImages[index % projectImages.length]
+  return projectImages[index % projectImages.length];
 }
 
 function getProjectHealth(project: Project) {
-  if (project.status === 'COMPLETED') return 'ON_TRACK'
+  if (project.status === 'COMPLETED') return 'ON_TRACK';
 
   if (project.deadline) {
-    const deadline = new Date(project.deadline)
-    const today = new Date()
+    const deadline = new Date(project.deadline);
+    const today = new Date();
 
     if (deadline < today) {
-      return 'DELAYED'
+      return 'DELAYED';
     }
   }
 
-  const progress = Number(project.progress) || 0
+  const progress = Number(project.progress) || 0;
 
-  if (progress < 30) return 'AT_RISK'
+  if (progress < 30) return 'AT_RISK';
 
-  return 'ON_TRACK'
+  return 'ON_TRACK';
 }
 
 function getHealthLabel(project: Project) {
-  const health = getProjectHealth(project)
+  const health = getProjectHealth(project);
 
-  if (health === 'AT_RISK') return 'At Risk'
-  if (health === 'DELAYED') return 'Delayed'
+  if (health === 'AT_RISK') return 'At Risk';
+  if (health === 'DELAYED') return 'Delayed';
 
-  return 'On Track'
+  return 'On Track';
 }
 
 const filteredProjects = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
+  const query = searchQuery.value.trim().toLowerCase();
 
-  return projects.value.filter(project => {
+  return projects.value.filter((project) => {
     const matchesSearch =
       !query ||
       project.name.toLowerCase().includes(query) ||
-      (project.description ?? '').toLowerCase().includes(query)
+      (project.description ?? '').toLowerCase().includes(query);
 
-    const matchesStatus =
-      statusFilter.value === 'ALL' ||
-      project.status === statusFilter.value
+    const matchesStatus = statusFilter.value === 'ALL' || project.status === statusFilter.value;
 
-    const health = getProjectHealth(project)
+    const health = getProjectHealth(project);
 
-    const matchesHealth =
-      healthFilter.value === 'ALL' ||
-      health === healthFilter.value
+    const matchesHealth = healthFilter.value === 'ALL' || health === healthFilter.value;
 
-    return matchesSearch && matchesStatus && matchesHealth
-  })
-})
+    return matchesSearch && matchesStatus && matchesHealth;
+  });
+});
 
-const totalProjects = computed(() => projects.value.length)
+const totalProjects = computed(() => projects.value.length);
 
-const onTrackProjects = computed(() =>
-  projects.value.filter(project => getProjectHealth(project) === 'ON_TRACK').length
-)
+const onTrackProjects = computed(
+  () => projects.value.filter((project) => getProjectHealth(project) === 'ON_TRACK').length,
+);
 
-const atRiskProjects = computed(() =>
-  projects.value.filter(project => getProjectHealth(project) === 'AT_RISK').length
-)
+const atRiskProjects = computed(
+  () => projects.value.filter((project) => getProjectHealth(project) === 'AT_RISK').length,
+);
 
-const delayedProjects = computed(() =>
-  projects.value.filter(project => getProjectHealth(project) === 'DELAYED').length
-)
+const delayedProjects = computed(
+  () => projects.value.filter((project) => getProjectHealth(project) === 'DELAYED').length,
+);
 
 const completionAverage = computed(() => {
-  if (!projects.value.length) return 0
+  if (!projects.value.length) return 0;
 
-  const total = projects.value.reduce(
-    (sum, project) => sum + Number(project.progress || 0),
-    0
-  )
+  const total = projects.value.reduce((sum, project) => sum + Number(project.progress || 0), 0);
 
-  return Math.round(total / projects.value.length)
-})
+  return Math.round(total / projects.value.length);
+});
 
 async function loadProjects() {
-  loading.value = true
+  loading.value = true;
 
   try {
-    projects.value = await getProjectsApi()
+    projects.value = await getProjectsApi();
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
-      message:
-        error instanceof Error
-          ? error.message
-          : 'Failed to load projects'
-    })
+      message: error instanceof Error ? error.message : 'Failed to load projects',
+    });
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function handleCreateProject() {
-  const storedUser = localStorage.getItem('user')
+  const storedUser = localStorage.getItem('user');
 
   if (!storedUser) {
     $q.notify({
       type: 'negative',
-      message: 'Please sign in again'
-    })
-    return
+      message: 'Please sign in again',
+    });
+    return;
   }
 
   const user = JSON.parse(storedUser) as {
-    user_id: number
-  }
+    user_id: number;
+  };
 
-  creating.value = true
+  creating.value = true;
 
   try {
     const payload: CreateProjectPayload = {
@@ -967,73 +907,70 @@ async function handleCreateProject() {
       status: form.status,
       priority: form.priority,
       start_date: form.start_date || null,
-      deadline: form.deadline || null
-    }
+      deadline: form.deadline || null,
+    };
 
     if (form.description.trim()) {
-      payload.description = form.description.trim()
+      payload.description = form.description.trim();
     }
 
-    await createProjectApi(payload)
+    await createProjectApi(payload);
 
     $q.notify({
       type: 'positive',
-      message: 'Project created successfully'
-    })
+      message: 'Project created successfully',
+    });
 
-    showCreateDialog.value = false
-    resetForm()
-    await loadProjects()
+    showCreateDialog.value = false;
+    resetForm();
+    await loadProjects();
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
-      message:
-        error instanceof Error
-          ? error.message
-          : 'Failed to create project'
-    })
+      message: error instanceof Error ? error.message : 'Failed to create project',
+    });
   } finally {
-    creating.value = false
+    creating.value = false;
   }
 }
 
 function resetForm() {
-  form.name = ''
-  form.description = ''
-  form.status = 'DRAFT'
-  form.priority = 'MEDIUM'
-  form.start_date = ''
-  form.deadline = ''
+  form.name = '';
+  form.description = '';
+  form.status = 'DRAFT';
+  form.priority = 'MEDIUM';
+  form.start_date = '';
+  form.deadline = '';
 }
 
 function formatDate(date: string | null) {
-  if (!date) return 'No deadline'
+  if (!date) return 'No deadline';
 
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric'
-  }).format(new Date(date))
+    year: 'numeric',
+  }).format(new Date(date));
 }
 
 function formatStatus(status: string) {
   return status
     .toLowerCase()
     .replaceAll('_', ' ')
-    .replace(/\b\w/g, letter => letter.toUpperCase())
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 onMounted(() => {
-  void loadProjects()
-})
+  void loadProjects();
+});
 </script>
 
 <style scoped>
 .projects-page {
   min-height: 100%;
   padding: 18px 28px 30px;
-  background: #f8f9fb;
-  color: #172033;
+  background: var(--wo-bg-page, #f8f9fb);
+  color: var(--wo-text-main, #172033);
 }
 
 .projects-layout {
@@ -1053,8 +990,8 @@ onMounted(() => {
 
 .section-card {
   border-radius: 14px;
-  background: #fff;
-  border-color: #e7e9ef;
+  background: var(--wo-bg-card, #fff);
+  border-color: var(--wo-border, #e7e9ef);
 }
 
 .section-intro-section {
@@ -1065,7 +1002,7 @@ onMounted(() => {
 
 .section-number {
   margin-bottom: 7px;
-  color: #7c5ed4;
+  color: var(--wo-primary, #7c5ed4);
   font-size: 19px;
   font-weight: 700;
   line-height: 1;
@@ -1073,15 +1010,15 @@ onMounted(() => {
 
 .section-eyebrow {
   margin-bottom: 12px;
-  color: #63708a;
+  color: var(--wo-text-muted, #63708a);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 
 .section-title {
   max-width: 175px;
-  color: #172033;
+  color: var(--wo-text-main, #172033);
   font-size: 17px;
   font-weight: 700;
   line-height: 1.18;
@@ -1089,7 +1026,7 @@ onMounted(() => {
 
 .section-description {
   margin-top: 11px;
-  color: #758097;
+  color: var(--wo-text-muted, #758097);
   font-size: 11px;
   line-height: 1.55;
 }
@@ -1098,11 +1035,11 @@ onMounted(() => {
   position: absolute;
   right: 14px;
   bottom: 16px;
-  color: #8062df;
+  color: var(--wo-primary, #8062df);
 }
 
 .purple-icon {
-  color: #8062df;
+  color: var(--wo-primary, #8062df);
 }
 
 .green-icon {
@@ -1122,8 +1059,8 @@ onMounted(() => {
 .stat-card {
   min-width: 0;
   border-radius: 12px;
-  background: #fff;
-  border-color: #e5e7ec;
+  background: var(--wo-bg-card, #fff);
+  border-color: var(--wo-border, #e5e7ec);
 }
 
 .stat-section {
@@ -1140,22 +1077,22 @@ onMounted(() => {
 }
 
 .stat-purple {
-  background: #f0eafd;
+  background: rgba(124, 94, 212, 0.15);
   color: #7c5ed4;
 }
 
 .stat-green-bg {
-  background: #e7f7f1;
+  background: rgba(19, 174, 118, 0.15);
   color: #13ae76;
 }
 
 .stat-orange-bg {
-  background: #fff1df;
+  background: rgba(242, 138, 23, 0.15);
   color: #f28a17;
 }
 
 .stat-red-bg {
-  background: #fdebed;
+  background: rgba(237, 91, 103, 0.15);
   color: #ed5b67;
 }
 
@@ -1164,14 +1101,14 @@ onMounted(() => {
 }
 
 .stat-label {
-  color: #536079;
+  color: var(--wo-text-muted, #536079);
   font-size: 11px;
   white-space: nowrap;
 }
 
 .stat-value {
   margin-top: 3px;
-  color: #172033;
+  color: var(--wo-text-main, #172033);
   font-size: 22px;
   font-weight: 700;
   line-height: 1.05;
@@ -1210,7 +1147,8 @@ onMounted(() => {
   height: 12px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #98a1b3;
+  border: 1px solid var(--wo-text-subtle, #98a1b3);
+  color: var(--wo-text-subtle, #98a1b3);
   border-radius: 50%;
   font-size: 8px;
 }
@@ -1229,8 +1167,8 @@ onMounted(() => {
 .filter-card {
   margin-top: 12px;
   border-radius: 10px;
-  border-color: #e5e7ec;
-  background: #fff;
+  border-color: var(--wo-border, #e5e7ec);
+  background: var(--wo-bg-card, #fff);
 }
 
 .filter-section {
@@ -1253,20 +1191,20 @@ onMounted(() => {
 }
 
 .filter-search :deep(.q-field__label) {
-  color: #8b94a8;
+  color: var(--wo-text-subtle, #8b94a8);
 }
 
 .more-filter-btn {
   min-height: 38px;
   padding: 0 12px;
-  border-color: #e0e3e9;
+  border-color: var(--wo-border, #e0e3e9);
   border-radius: 8px;
-  color: #3f4a60;
+  color: var(--wo-text-main, #3f4a60);
   font-size: 11px;
 }
 
 .tune-btn {
-  color: #69748b;
+  color: var(--wo-text-muted, #69748b);
 }
 
 .overview-intro,
@@ -1279,8 +1217,8 @@ onMounted(() => {
 .overview-panel {
   min-width: 0;
   border-radius: 14px;
-  border-color: #e7e9ef;
-  background: #fff;
+  border-color: var(--wo-border, #e7e9ef);
+  background: var(--wo-bg-card, #fff);
   overflow: hidden;
 }
 
@@ -1304,13 +1242,13 @@ onMounted(() => {
 .overview-project-card {
   width: 235px;
   border-radius: 10px;
-  border-color: #e5e7ec;
+  border-color: var(--wo-border, #e5e7ec);
   overflow: hidden;
-  background: #fff;
+  background: var(--wo-bg-card, #fff);
 }
 
 .project-image {
-  background: #f1f2f6;
+  background: var(--wo-bg-page, #f1f2f6);
 }
 
 .overview-card-body {
@@ -1328,7 +1266,7 @@ onMounted(() => {
 .project-name {
   min-width: 0;
   overflow: hidden;
-  color: #1b2435;
+  color: var(--wo-text-main, #1b2435);
   font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -1344,22 +1282,22 @@ onMounted(() => {
 }
 
 .health-on_track {
-  background: #eaf8f0;
+  background: rgba(18, 166, 108, 0.15);
   color: #12a66c;
 }
 
 .health-at_risk {
-  background: #fff1e2;
+  background: rgba(239, 133, 24, 0.15);
   color: #ef8518;
 }
 
 .health-delayed {
-  background: #fdebed;
+  background: rgba(235, 89, 100, 0.15);
   color: #eb5964;
 }
 
 .status-chip {
-  background: #eef4ff;
+  background: rgba(77, 121, 223, 0.15);
   color: #4d79df;
 }
 
@@ -1376,7 +1314,7 @@ onMounted(() => {
 
 .progress-value {
   min-width: 25px;
-  color: #263044;
+  color: var(--wo-text-main, #263044);
   font-size: 10px;
   font-weight: 600;
   text-align: right;
@@ -1386,7 +1324,7 @@ onMounted(() => {
   display: flex;
   gap: 5px;
   margin-top: 10px;
-  color: #737e92;
+  color: var(--wo-text-subtle, #737e92);
   font-size: 9px;
   white-space: nowrap;
 }
@@ -1398,7 +1336,7 @@ onMounted(() => {
 }
 
 .team-avatar {
-  border: 2px solid #fff;
+  border: 2px solid var(--wo-bg-card, #fff);
 }
 
 .team-avatar + .team-avatar {
@@ -1406,18 +1344,18 @@ onMounted(() => {
 }
 
 .avatar-purple {
-  background: #e9e2fb;
+  background: rgba(114, 87, 200, 0.15);
   color: #7257c8;
 }
 
 .avatar-dark {
-  background: #dce1e9;
-  color: #475166;
+  background: var(--wo-border-subtle, #dce1e9);
+  color: var(--wo-text-muted, #475166);
 }
 
 .team-count {
   margin-left: 5px;
-  color: #657086;
+  color: var(--wo-text-muted, #657086);
   font-size: 10px;
   font-weight: 600;
 }
@@ -1428,7 +1366,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #748096;
+  color: var(--wo-text-muted, #748096);
   font-size: 12px;
 }
 
@@ -1439,24 +1377,25 @@ onMounted(() => {
 
 .empty-avatar {
   margin-bottom: 4px;
-  background: #f0eafd;
-  color: #8062df;
+  background: rgba(128, 98, 223, 0.15);
+  color: var(--wo-primary, #8062df);
 }
 
 .empty-title {
-  color: #1d2638;
+  color: var(--wo-text-main, #1d2638);
   font-weight: 700;
 }
 
 .empty-copy {
-  color: #7c879a;
+  color: var(--wo-text-muted, #7c879a);
   font-size: 11px;
 }
 
 .table-card {
   min-width: 0;
   border-radius: 14px;
-  border-color: #e7e9ef;
+  border-color: var(--wo-border, #e7e9ef);
+  background: var(--wo-bg-card, #fff);
   overflow: hidden;
 }
 
@@ -1469,7 +1408,7 @@ onMounted(() => {
 }
 
 .toolbar-title {
-  color: #283247;
+  color: var(--wo-text-main, #283247);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1510,23 +1449,23 @@ onMounted(() => {
 .projects-table :deep(th) {
   height: 38px;
   padding: 0 9px;
-  background: #fbfbfc;
-  color: #647087;
+  background: var(--wo-bg-page, #fbfbfc);
+  color: var(--wo-text-muted, #647087);
   font-size: 9px;
   font-weight: 600;
-  border-bottom: 1px solid #e9ebef;
+  border-bottom: 1px solid var(--wo-border, #e9ebef);
 }
 
 .projects-table :deep(td) {
   height: 48px;
   padding: 0 9px;
-  color: #4f5a70;
+  color: var(--wo-text-main, #4f5a70);
   font-size: 9px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--wo-border-subtle, #eef0f3);
 }
 
 .projects-table :deep(tbody tr:hover) {
-  background: #faf9ff;
+  background: var(--wo-bg-card-hover, #faf9ff);
 }
 
 .project-cell {
@@ -1538,14 +1477,14 @@ onMounted(() => {
 
 .project-icon {
   flex: 0 0 auto;
-  background: #eee8fd;
-  color: #765bd0;
+  background: rgba(118, 91, 208, 0.15);
+  color: var(--wo-primary, #765bd0);
 }
 
 .project-cell-name {
   max-width: 145px;
   overflow: hidden;
-  color: #1c2536;
+  color: var(--wo-text-main, #1c2536);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1559,8 +1498,8 @@ onMounted(() => {
 }
 
 .owner-avatar {
-  background: #e7eaf0;
-  color: #59647a;
+  background: var(--wo-border-subtle, #e7eaf0);
+  color: var(--wo-text-muted, #59647a);
 }
 
 .table-progress-cell {
@@ -1575,7 +1514,7 @@ onMounted(() => {
 }
 
 .table-progress-cell span {
-  color: #273146;
+  color: var(--wo-text-main, #273146);
   font-size: 9px;
   font-weight: 600;
 }
@@ -1587,7 +1526,7 @@ onMounted(() => {
 }
 
 .stack-avatar {
-  border: 2px solid #fff;
+  border: 2px solid var(--wo-bg-card, #fff);
 }
 
 .stack-avatar + .stack-avatar {
@@ -1596,12 +1535,12 @@ onMounted(() => {
 
 .team-stack span {
   margin-left: 5px;
-  color: #69748a;
+  color: var(--wo-text-muted, #69748a);
   font-size: 9px;
 }
 
 .muted-cell {
-  color: #8790a1 !important;
+  color: var(--wo-text-subtle, #8790a1) !important;
 }
 
 .overdue-value {
@@ -1620,7 +1559,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 5px 12px;
-  color: #6e788b;
+  color: var(--wo-text-muted, #6e788b);
   font-size: 9px;
 }
 
@@ -1644,7 +1583,8 @@ onMounted(() => {
 .performance-panel {
   min-height: 200px;
   border-radius: 14px;
-  border-color: #e7e9ef;
+  border-color: var(--wo-border, #e7e9ef);
+  background: var(--wo-bg-card, #fff);
 }
 
 .performance-grid {
@@ -1664,19 +1604,20 @@ onMounted(() => {
 }
 
 .performance-stat span {
-  color: #6e788c;
+  color: var(--wo-text-muted, #6e788c);
   font-size: 11px;
 }
 
 .performance-stat strong {
-  color: #1b2537;
+  color: var(--wo-text-main, #1b2537);
   font-size: 25px;
 }
 
 .quick-actions-card {
   min-height: 200px;
   border-radius: 14px;
-  border-color: #e7e9ef;
+  border-color: var(--wo-border, #e7e9ef);
+  background: var(--wo-bg-card, #fff);
 }
 
 .quick-actions {
@@ -1690,14 +1631,14 @@ onMounted(() => {
 
 .quick-btn {
   min-height: 42px;
-  border-color: #e1e3e9;
+  border-color: var(--wo-border, #e1e3e9);
   border-radius: 9px;
-  color: #5b667a;
+  color: var(--wo-text-muted, #5b667a);
   font-size: 11px;
 }
 
 .primary-action {
-  background: #8062df !important;
+  background: var(--wo-primary, #8062df) !important;
   color: #fff !important;
 }
 
@@ -1705,6 +1646,8 @@ onMounted(() => {
   width: 620px;
   max-width: 92vw;
   border-radius: 16px;
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-main, #172033);
 }
 
 .dialog-header {
@@ -1716,14 +1659,14 @@ onMounted(() => {
 
 .dialog-eyebrow {
   margin-bottom: 5px;
-  color: #8062df;
+  color: var(--wo-primary, #8062df);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .dialog-title {
-  color: #172033;
+  color: var(--wo-text-main, #172033);
   font-size: 22px;
   font-weight: 700;
 }

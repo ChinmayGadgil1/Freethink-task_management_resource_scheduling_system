@@ -69,7 +69,6 @@
             outlined
             placeholder="Search anything..."
             class="header-search"
-            bg-color="white"
           >
             <template #prepend>
               <q-icon name="search" size="18px" color="grey-6" />
@@ -80,7 +79,20 @@
             </template>
           </q-input>
 
-          <q-btn flat round dense icon="light_mode" color="grey-7" class="header-icon-btn" />
+          <q-btn
+            flat
+            round
+            dense
+            :icon="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
+            :color="$q.dark.isActive ? 'amber-5' : 'grey-7'"
+            class="header-icon-btn"
+            @click="toggleDarkMode"
+            :aria-label="$q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <q-tooltip>{{
+              $q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'
+            }}</q-tooltip>
+          </q-btn>
 
           <q-btn flat round dense icon="notifications_none" color="grey-7" class="header-icon-btn">
             <q-badge floating color="primary" rounded class="notification-badge"> 6 </q-badge>
@@ -161,7 +173,17 @@ interface User {
 
 const user = ref<User | null>(null);
 
+function toggleDarkMode() {
+  $q.dark.toggle();
+  localStorage.setItem('taskflow_theme', $q.dark.isActive ? 'dark' : 'light');
+}
+
 onMounted(() => {
+  const savedTheme = localStorage.getItem('taskflow_theme');
+  if (savedTheme) {
+    $q.dark.set(savedTheme === 'dark');
+  }
+
   const storedUser = localStorage.getItem('user');
 
   if (storedUser) {
@@ -187,10 +209,10 @@ function handleLogout() {
 
 <style scoped lang="scss">
 .app-header {
-  background: #ffffff;
-  color: #1d2433;
-  border-bottom: 1px solid #eaecef;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-main, #1d2433);
+  border-bottom: 1px solid var(--wo-border, #eaecef);
+  box-shadow: var(--wo-header-shadow, 0 1px 2px rgba(16, 24, 40, 0.03));
 }
 
 .app-toolbar {
@@ -217,7 +239,7 @@ function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f4f0fd;
+  background: var(--wo-primary-light, #f4f0fd);
   border-radius: 9px;
 }
 
@@ -225,11 +247,11 @@ function handleLogout() {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
 }
 
 .brand-spark {
-  color: #8b6fd8;
+  color: var(--wo-primary, #8b6fd8);
   font-size: 12px;
   margin-left: -4px;
 }
@@ -247,7 +269,7 @@ function handleLogout() {
   align-items: center;
   height: 60px;
   padding: 0 16px;
-  color: #475467;
+  color: var(--wo-text-muted, #475467);
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
@@ -256,11 +278,11 @@ function handleLogout() {
 }
 
 .nav-link:hover {
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
 }
 
 .nav-link-active {
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-weight: 600;
 }
 
@@ -272,7 +294,7 @@ function handleLogout() {
   bottom: 0;
   height: 2.5px;
   border-radius: 2px 2px 0 0;
-  background: #8b6fd8;
+  background: var(--wo-primary, #8b6fd8);
 }
 
 .header-actions {
@@ -289,25 +311,25 @@ function handleLogout() {
 .header-search :deep(.q-field__control) {
   min-height: 34px;
   height: 34px;
-  border-color: #e4e7ec;
+  border-color: var(--wo-border, #e4e7ec);
   border-radius: 9px;
   padding: 0 8px 0 10px;
-  background: #f9fafb;
+  background: var(--wo-bg-input, #f9fafb);
   transition: all 0.2s ease;
 }
 
 .header-search :deep(.q-field__control:hover) {
-  border-color: #d0d5dd;
-  background: #ffffff;
+  border-color: var(--wo-border, #d0d5dd);
+  background: var(--wo-bg-card, #ffffff);
 }
 
 .header-search :deep(.q-field__native) {
   font-size: 12px;
-  color: #344054;
+  color: var(--wo-text-main, #344054);
 }
 
 .header-search :deep(.q-field__native::placeholder) {
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
 }
 
 .header-search :deep(.q-field__prepend),
@@ -320,10 +342,10 @@ function handleLogout() {
   align-items: center;
   height: 20px;
   padding: 0 6px;
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--wo-border, #e4e7ec);
   border-radius: 6px;
-  color: #98a2b3;
-  background: #ffffff;
+  color: var(--wo-text-subtle, #98a2b3);
+  background: var(--wo-bg-tag, #ffffff);
   font-size: 10px;
   font-weight: 600;
 }
@@ -334,7 +356,7 @@ function handleLogout() {
 }
 
 .notification-badge {
-  background: #8b6fd8 !important;
+  background: var(--wo-primary, #8b6fd8) !important;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 5px;
@@ -349,7 +371,7 @@ function handleLogout() {
 }
 
 .profile-avatar {
-  border: 2px solid #f2f4f7;
+  border: 2px solid var(--wo-border, #f2f4f7);
   overflow: hidden;
 }
 
@@ -361,12 +383,12 @@ function handleLogout() {
   font-size: 12px;
   line-height: 1.25;
   font-weight: 600;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
 }
 
 .profile-role {
   margin-top: 1px;
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 10px;
 }
 

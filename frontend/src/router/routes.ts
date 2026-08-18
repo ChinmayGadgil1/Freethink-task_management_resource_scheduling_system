@@ -28,7 +28,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/pm/DashboardPage.vue'),
       },
 
-
       { path: 'second', component: () => import('@/pages/SecondPage.vue') },
     ],
   },
@@ -46,8 +45,10 @@ const routes: RouteRecordRaw[] = [
         path: 'projects',
         component: () => import('@/pages/pm/ProjectsPage.vue'),
       },
-
-
+      {
+        path: 'projects/:id',
+        component: () => import('@/pages/pm/ProjectDetailsPage.vue'),
+      },
     ],
   },
 

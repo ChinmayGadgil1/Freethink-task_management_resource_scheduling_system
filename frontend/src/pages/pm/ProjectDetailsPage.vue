@@ -1,0 +1,3061 @@
+<template>
+  <q-page class="project-details-page">
+    <!-- BREADCRUMBS & TOP NAV -->
+    <div class="breadcrumbs-container q-mb-md">
+      <q-breadcrumbs active-color="primary" class="project-breadcrumbs">
+        <template #separator>
+          <q-icon size="14px" name="chevron_right" color="grey-5" />
+        </template>
+        <q-breadcrumbs-el label="Home" icon="home" to="/pm/dashboard" />
+        <q-breadcrumbs-el label="Projects" icon="folder" to="/pm/projects" />
+        <q-breadcrumbs-el
+          :label="project.name || 'Project Details'"
+          icon="folder_open"
+          class="breadcrumb-current"
+        />
+      </q-breadcrumbs>
+    </div>
+
+    <!-- 01 HERO / PROJECT HEADER CARD -->
+    <q-card flat bordered class="hero-card q-mb-lg">
+      <q-card-section class="hero-content">
+        <div class="hero-main">
+          <!-- Top metadata row -->
+          <div class="hero-badges-row">
+            <q-chip
+              dense
+              square
+              :class="['status-badge', `status-${project.status.toLowerCase()}`]"
+            >
+              {{ formatStatus(project.status) }}
+            </q-chip>
+
+            <q-chip dense square :class="['health-badge', `health-${projectHealth.toLowerCase()}`]">
+              <q-icon
+                :name="
+                  projectHealth === 'ON_TRACK'
+                    ? 'check_circle'
+                    : projectHealth === 'AT_RISK'
+                      ? 'warning'
+                      : 'schedule'
+                "
+                size="13px"
+                class="q-mr-xs"
+              />
+              {{ healthLabel }}
+            </q-chip>
+
+            <q-chip
+              dense
+              square
+              :class="[
+                'priority-badge',
+                `priority-${(project.priority || 'MEDIUM').toLowerCase()}`,
+              ]"
+            >
+              {{ project.priority || 'Medium' }} Priority
+            </q-chip>
+
+            <span class="project-id-tag">ID: #{{ project.project_id }}</span>
+          </div>
+
+          <!-- Project Title & Description -->
+          <h1 class="hero-title">{{ project.name }}</h1>
+          <p class="hero-description">
+            {{
+              project.description ||
+              'Comprehensive project plan tracking milestones, resource allocations, and task deliverables across engineering and product teams.'
+            }}
+          </p>
+
+          <!-- Quick Info Strip -->
+          <div class="hero-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Project Manager</span>
+              <div class="meta-value owner-val">
+                <q-avatar size="22px" class="meta-avatar">
+                  {{ (project.name || 'P').charAt(0).toUpperCase() }}
+                </q-avatar>
+                <span>PM User</span>
+              </div>
+            </div>
+
+            <div class="meta-item">
+              <span class="meta-label">Timeline</span>
+              <div class="meta-value">
+                <q-icon name="calendar_today" size="14px" class="q-mr-xs text-grey-6" />
+                <span
+                  >{{ formatDate(project.start_date) }} — {{ formatDate(project.deadline) }}</span
+                >
+              </div>
+            </div>
+
+            <div class="meta-item">
+              <span class="meta-label">Days Remaining</span>
+              <div class="meta-value" :class="{ 'text-negative font-bold': daysRemaining < 0 }">
+                <q-icon
+                  name="timelapse"
+                  size="14px"
+                  class="q-mr-xs"
+                  :color="daysRemaining < 0 ? 'negative' : 'primary'"
+                />
+                <span>{{ daysRemainingText }}</span>
+              </div>
+            </div>
+
+            <div class="meta-item">
+              <span class="meta-label">Team Members</span>
+              <div class="team-avatars-group">
+                <q-avatar
+                  v-for="(member, idx) in teamMembers.slice(0, 4)"
+                  :key="member.id"
+                  size="26px"
+                  :class="['team-stack-avatar', `avatar-color-${idx % 4}`]"
+                >
+                  <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
+                  <span v-else>{{ member.name.charAt(0) }}</span>
+                  <q-tooltip>{{ member.name }} ({{ member.role }})</q-tooltip>
+                </q-avatar>
+                <q-avatar
+                  v-if="teamMembers.length > 4"
+                  size="26px"
+                  class="team-stack-avatar team-stack-extra"
+                >
+                  +{{ teamMembers.length - 4 }}
+                </q-avatar>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Progress Gauge & Actions -->
+        <div class="hero-sidebar">
+          <div class="hero-progress-box">
+            <div class="progress-box-header">
+              <span class="progress-label">Overall Completion</span>
+              <span class="progress-percent-val">{{ overallProgress }}%</span>
+            </div>
+            <q-linear-progress
+              rounded
+              size="10px"
+              :value="overallProgress / 100"
+              color="primary"
+              track-color="purple-1"
+              class="hero-progress-bar"
+            />
+            <div class="progress-sub-details">
+              <span>{{ completedTasksCount }} of {{ totalTasksCount }} tasks done</span>
+              <span>{{ totalEffortLogged }}h / {{ totalEffortExpected }}h effort</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="hero-actions">
+            <q-btn
+              unelevated
+              no-caps
+              color="primary"
+              icon="add_task"
+              label="Add Task"
+              class="hero-btn primary-btn"
+              @click="showCreateTaskDialog = true"
+            />
+            <q-btn
+              outline
+              no-caps
+              icon="edit"
+              label="Edit Project"
+              class="hero-btn edit-btn"
+              @click="openEditDialog"
+            />
+            <q-btn flat round dense icon="more_vert" color="grey-7" class="hero-menu-btn">
+              <q-menu auto-close>
+                <q-list style="min-width: 170px">
+                  <q-item clickable @click="refreshData">
+                    <q-item-section avatar>
+                      <q-icon name="refresh" size="18px" />
+                    </q-item-section>
+                    <q-item-section>Refresh Data</q-item-section>
+                  </q-item>
+                  <q-item clickable @click="exportProjectSummary">
+                    <q-item-section avatar>
+                      <q-icon name="download" size="18px" />
+                    </q-item-section>
+                    <q-item-section>Export Report</q-item-section>
+                  </q-item>
+                  <q-separator />
+                  <q-item clickable @click="markProjectComplete">
+                    <q-item-section avatar>
+                      <q-icon name="task_alt" size="18px" color="positive" />
+                    </q-item-section>
+                    <q-item-section class="text-positive">Mark Complete</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <!-- 02 KPI METRIC CARDS -->
+    <div class="kpi-grid q-mb-lg">
+      <q-card flat bordered class="kpi-card">
+        <q-card-section class="kpi-section">
+          <q-avatar size="46px" class="kpi-icon icon-purple">
+            <q-icon name="donut_large" size="22px" />
+          </q-avatar>
+          <div class="kpi-content">
+            <span class="kpi-label">Overall Progress</span>
+            <div class="kpi-value">{{ overallProgress }}%</div>
+            <span class="kpi-note note-green">
+              <q-icon name="trending_up" size="12px" />
+              {{ completedTasksCount }} completed
+            </span>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="kpi-card">
+        <q-card-section class="kpi-section">
+          <q-avatar size="46px" class="kpi-icon icon-teal">
+            <q-icon name="task_alt" size="22px" />
+          </q-avatar>
+          <div class="kpi-content">
+            <span class="kpi-label">Total Tasks</span>
+            <div class="kpi-value">{{ totalTasksCount }}</div>
+            <span class="kpi-note note-teal"> {{ inProgressTasksCount }} in progress </span>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="kpi-card">
+        <q-card-section class="kpi-section">
+          <q-avatar size="46px" class="kpi-icon icon-green">
+            <q-icon name="check_circle" size="22px" />
+          </q-avatar>
+          <div class="kpi-content">
+            <span class="kpi-label">Completed Tasks</span>
+            <div class="kpi-value">{{ completedTasksCount }}</div>
+            <span class="kpi-note note-green"> {{ taskCompletionRate }}% done </span>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="kpi-card">
+        <q-card-section class="kpi-section">
+          <q-avatar size="46px" class="kpi-icon icon-red">
+            <q-icon name="schedule" size="22px" />
+          </q-avatar>
+          <div class="kpi-content">
+            <span class="kpi-label">Overdue Tasks</span>
+            <div class="kpi-value" :class="{ 'text-negative': overdueTasksCount > 0 }">
+              {{ overdueTasksCount }}
+            </div>
+            <span :class="['kpi-note', overdueTasksCount > 0 ? 'note-red' : 'note-green']">
+              {{ overdueTasksCount > 0 ? 'Requires attention' : 'All on schedule' }}
+            </span>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="kpi-card">
+        <q-card-section class="kpi-section">
+          <q-avatar size="46px" class="kpi-icon icon-orange">
+            <q-icon name="groups" size="22px" />
+          </q-avatar>
+          <div class="kpi-content">
+            <span class="kpi-label">Team Members</span>
+            <div class="kpi-value">{{ teamMembers.length }}</div>
+            <span class="kpi-note note-orange"> {{ activeAssigneesCount }} actively assigned </span>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="kpi-card">
+        <q-card-section class="kpi-section">
+          <q-avatar size="46px" class="kpi-icon icon-blue">
+            <q-icon name="event_available" size="22px" />
+          </q-avatar>
+          <div class="kpi-content">
+            <span class="kpi-label">Days Remaining</span>
+            <div class="kpi-value" :class="{ 'text-negative': daysRemaining < 0 }">
+              {{
+                daysRemaining > 0
+                  ? daysRemaining
+                  : daysRemaining === 0
+                    ? 'Due today'
+                    : Math.abs(daysRemaining) + 'd ago'
+              }}
+            </div>
+            <span class="kpi-note note-blue"> Due {{ formatDate(project.deadline) }} </span>
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+
+    <!-- 03 & 04 TWO-COLUMN SECTION: PROGRESS & MILESTONES -->
+    <div class="details-split-layout q-mb-lg">
+      <!-- LEFT: PROGRESS & HEALTH DEEP-DIVE -->
+      <q-card flat bordered class="detail-card progress-deep-card">
+        <q-card-section class="card-header-bar">
+          <div class="header-title-group">
+            <q-icon name="insights" size="20px" class="text-primary q-mr-xs" />
+            <h2 class="card-header-title">Progress & Effort Breakdown</h2>
+          </div>
+          <q-chip dense square class="status-chip-subtle">
+            {{ formatStatus(project.status) }}
+          </q-chip>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pa-md">
+          <!-- Status distribution pills -->
+          <div class="status-distribution-grid q-mb-md">
+            <div class="dist-stat">
+              <div class="dist-header">
+                <span class="dist-dot dot-pending" />
+                <span class="dist-name">Pending</span>
+              </div>
+              <span class="dist-count">{{ pendingTasksCount }}</span>
+            </div>
+
+            <div class="dist-stat">
+              <div class="dist-header">
+                <span class="dist-dot dot-progress" />
+                <span class="dist-name">In Progress</span>
+              </div>
+              <span class="dist-count">{{ inProgressTasksCount }}</span>
+            </div>
+
+            <div class="dist-stat">
+              <div class="dist-header">
+                <span class="dist-dot dot-completed" />
+                <span class="dist-name">Completed</span>
+              </div>
+              <span class="dist-count">{{ completedTasksCount }}</span>
+            </div>
+
+            <div class="dist-stat">
+              <div class="dist-header">
+                <span class="dist-dot dot-hold" />
+                <span class="dist-name">On Hold</span>
+              </div>
+              <span class="dist-count">{{ onHoldTasksCount }}</span>
+            </div>
+          </div>
+
+          <!-- Multi-segmented Progress Track -->
+          <div class="multi-progress-wrapper q-mb-md">
+            <div class="multi-progress-bar">
+              <div
+                class="seg seg-completed"
+                :style="{
+                  width: `${totalTasksCount ? (completedTasksCount / totalTasksCount) * 100 : 0}%`,
+                }"
+                :title="`Completed: ${completedTasksCount}`"
+              />
+              <div
+                class="seg seg-progress"
+                :style="{
+                  width: `${totalTasksCount ? (inProgressTasksCount / totalTasksCount) * 100 : 0}%`,
+                }"
+                :title="`In Progress: ${inProgressTasksCount}`"
+              />
+              <div
+                class="seg seg-hold"
+                :style="{
+                  width: `${totalTasksCount ? (onHoldTasksCount / totalTasksCount) * 100 : 0}%`,
+                }"
+                :title="`On Hold: ${onHoldTasksCount}`"
+              />
+              <div
+                class="seg seg-pending"
+                :style="{
+                  width: `${totalTasksCount ? (pendingTasksCount / totalTasksCount) * 100 : 0}%`,
+                }"
+                :title="`Pending: ${pendingTasksCount}`"
+              />
+            </div>
+          </div>
+
+          <!-- Effort vs Expected metrics -->
+          <div class="effort-box">
+            <div class="effort-row">
+              <div class="effort-info">
+                <span class="effort-label">Logged Effort</span>
+                <strong class="effort-val">{{ totalEffortLogged }} Hours</strong>
+              </div>
+              <div class="effort-info text-right">
+                <span class="effort-label">Expected Effort</span>
+                <strong class="effort-val">{{ totalEffortExpected }} Hours</strong>
+              </div>
+            </div>
+            <q-linear-progress
+              rounded
+              size="6px"
+              :value="
+                totalEffortExpected ? Math.min(1, totalEffortLogged / totalEffortExpected) : 0
+              "
+              color="primary"
+              track-color="purple-1"
+              class="q-mt-sm"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- RIGHT: MILESTONES -->
+      <q-card flat bordered class="detail-card milestones-card">
+        <q-card-section class="card-header-bar">
+          <div class="header-title-group">
+            <q-icon name="flag" size="20px" class="text-primary q-mr-xs" />
+            <h2 class="card-header-title">Project Milestones</h2>
+          </div>
+          <span class="text-caption text-grey-6"
+            >{{ completedMilestonesCount }}/{{ milestones.length }} Completed</span
+          >
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="milestones-list q-pa-none">
+          <div
+            v-for="(milestone, mIdx) in milestones"
+            :key="milestone.id"
+            class="milestone-item"
+            :class="{ 'milestone-done': milestone.progress === 100 }"
+          >
+            <div class="milestone-indicator">
+              <q-avatar
+                size="26px"
+                :class="[
+                  'milestone-avatar',
+                  milestone.progress === 100
+                    ? 'avatar-completed'
+                    : milestone.progress > 0
+                      ? 'avatar-in-progress'
+                      : 'avatar-upcoming',
+                ]"
+              >
+                <q-icon
+                  :name="
+                    milestone.progress === 100
+                      ? 'check'
+                      : milestone.progress > 0
+                        ? 'sync'
+                        : 'hourglass_empty'
+                  "
+                  size="14px"
+                />
+              </q-avatar>
+              <div v-if="mIdx < milestones.length - 1" class="milestone-line" />
+            </div>
+
+            <div class="milestone-body">
+              <div class="milestone-top">
+                <span class="milestone-name">{{ milestone.name }}</span>
+                <q-chip
+                  dense
+                  square
+                  :class="[
+                    'milestone-chip',
+                    `m-chip-${milestone.status.toLowerCase().replace('_', '-')}`,
+                  ]"
+                >
+                  {{ milestone.status.replace('_', ' ') }}
+                </q-chip>
+              </div>
+
+              <div class="milestone-progress-row q-mt-xs">
+                <q-linear-progress
+                  rounded
+                  size="5px"
+                  :value="milestone.progress / 100"
+                  color="primary"
+                  track-color="purple-1"
+                  class="milestone-progress"
+                />
+                <span class="milestone-pct">{{ milestone.progress }}%</span>
+              </div>
+
+              <div class="milestone-meta q-mt-xs">
+                <span class="meta-date">
+                  <q-icon name="event" size="12px" class="q-mr-xs text-grey-6" />
+                  Due {{ milestone.dueDate }}
+                </span>
+                <span class="meta-tasks">
+                  {{ milestone.completedTasks }}/{{ milestone.totalTasks }} tasks
+                </span>
+              </div>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+
+    <!-- 05 TASK BREAKDOWN TABLE -->
+    <q-card flat bordered class="detail-card task-breakdown-card q-mb-lg">
+      <q-card-section class="task-table-toolbar">
+        <div class="table-title-area">
+          <div class="header-title-group">
+            <q-icon name="format_list_bulleted" size="20px" class="text-primary q-mr-xs" />
+            <h2 class="card-header-title">Task Breakdown</h2>
+            <q-badge
+              color="primary"
+              rounded
+              :label="`${filteredTasks.length} tasks`"
+              class="q-ml-sm"
+            />
+          </div>
+          <span class="text-caption text-grey-6"
+            >Manage deliverables, statuses, assignees, and deadlines</span
+          >
+        </div>
+
+        <div class="table-actions-group">
+          <q-btn
+            unelevated
+            no-caps
+            color="primary"
+            icon="add"
+            label="New Task"
+            class="add-task-btn"
+            @click="showCreateTaskDialog = true"
+          />
+        </div>
+      </q-card-section>
+
+      <q-separator />
+
+      <!-- FILTER BAR -->
+      <q-card-section class="task-filter-bar">
+        <q-input
+          v-model="taskSearch"
+          outlined
+          dense
+          clearable
+          placeholder="Search tasks by title..."
+          class="task-search-input"
+        >
+          <template #prepend>
+            <q-icon name="search" size="18px" />
+          </template>
+        </q-input>
+
+        <q-select
+          v-model="statusFilter"
+          outlined
+          dense
+          emit-value
+          map-options
+          :options="taskStatusOptions"
+          label="Status"
+          class="task-filter-select"
+        />
+
+        <q-select
+          v-model="priorityFilter"
+          outlined
+          dense
+          emit-value
+          map-options
+          :options="taskPriorityOptions"
+          label="Priority"
+          class="task-filter-select"
+        />
+
+        <q-select
+          v-model="assigneeFilter"
+          outlined
+          dense
+          emit-value
+          map-options
+          :options="assigneeOptions"
+          label="Assignee"
+          class="task-filter-select"
+        />
+
+        <q-btn
+          flat
+          dense
+          no-caps
+          icon="refresh"
+          label="Reset"
+          color="grey-7"
+          class="reset-btn"
+          @click="resetTaskFilters"
+        />
+      </q-card-section>
+
+      <!-- TASKS TABLE -->
+      <q-table
+        flat
+        :rows="filteredTasks"
+        :columns="taskColumns"
+        row-key="task_id"
+        :loading="tasksLoading"
+        :pagination="taskPagination"
+        :rows-per-page-options="[5, 10, 20]"
+        class="tasks-table"
+        table-header-class="tasks-table-header"
+        no-data-label="No tasks found for this project"
+      >
+        <template #loading>
+          <q-inner-loading showing color="primary" />
+        </template>
+
+        <!-- Task Title Column -->
+        <template #body-cell-title="props">
+          <q-td :props="props">
+            <div class="task-title-cell">
+              <q-icon
+                :name="getPriorityIcon(props.row.priority)"
+                size="16px"
+                :class="['priority-icon', `icon-${props.row.priority.toLowerCase()}`]"
+              />
+              <div class="task-name-desc">
+                <span class="task-title-text">{{ props.row.title }}</span>
+                <span
+                  v-if="props.row.description"
+                  class="task-desc-text"
+                  :title="props.row.description"
+                >
+                  {{ props.row.description }}
+                </span>
+              </div>
+            </div>
+          </q-td>
+        </template>
+
+        <!-- Status Column -->
+        <template #body-cell-status="props">
+          <q-td :props="props">
+            <q-chip
+              dense
+              square
+              :class="['task-status-chip', `t-status-${props.row.status.toLowerCase()}`]"
+            >
+              {{ formatStatus(props.row.status) }}
+            </q-chip>
+          </q-td>
+        </template>
+
+        <!-- Priority Column -->
+        <template #body-cell-priority="props">
+          <q-td :props="props">
+            <q-chip
+              dense
+              square
+              :class="['task-priority-chip', `t-priority-${props.row.priority.toLowerCase()}`]"
+            >
+              {{ props.row.priority }}
+            </q-chip>
+          </q-td>
+        </template>
+
+        <!-- Assignee Column -->
+        <template #body-cell-assignee="props">
+          <q-td :props="props">
+            <div class="assignee-cell">
+              <q-avatar size="24px" class="assignee-avatar">
+                {{ getAssigneeName(props.row).charAt(0) }}
+              </q-avatar>
+              <span class="assignee-name">{{ getAssigneeName(props.row) }}</span>
+            </div>
+          </q-td>
+        </template>
+
+        <!-- Progress Column -->
+        <template #body-cell-progress="props">
+          <q-td :props="props">
+            <div class="task-progress-cell">
+              <q-linear-progress
+                rounded
+                size="6px"
+                :value="getTaskProgressNumber(props.row.progress) / 100"
+                color="primary"
+                track-color="purple-1"
+                class="task-linear-progress"
+              />
+              <span class="task-progress-pct"
+                >{{ getTaskProgressNumber(props.row.progress) }}%</span
+              >
+            </div>
+          </q-td>
+        </template>
+
+        <!-- Deadline Column -->
+        <template #body-cell-deadline="props">
+          <q-td :props="props">
+            <div class="deadline-cell" :class="{ 'text-negative': isTaskOverdue(props.row) }">
+              <q-icon
+                :name="isTaskOverdue(props.row) ? 'warning' : 'event'"
+                size="14px"
+                class="q-mr-xs"
+              />
+              <span>{{ formatDate(props.row.deadline) }}</span>
+            </div>
+          </q-td>
+        </template>
+
+        <!-- Effort Column -->
+        <template #body-cell-effort="props">
+          <q-td :props="props">
+            <span class="effort-text">
+              {{ Number(props.row.actual_effort) || 0 }}h /
+              {{ Number(props.row.expected_effort) || 0 }}h
+            </span>
+          </q-td>
+        </template>
+
+        <!-- Actions Column -->
+        <template #body-cell-actions="props">
+          <q-td :props="props" auto-width>
+            <q-btn flat round dense icon="more_horiz" color="grey-6">
+              <q-menu auto-close>
+                <q-list style="min-width: 140px">
+                  <q-item clickable @click="openQuickUpdate(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="edit_note" size="18px" color="primary" />
+                    </q-item-section>
+                    <q-item-section>Update Progress</q-item-section>
+                  </q-item>
+                  <q-item clickable @click="toggleTaskComplete(props.row)">
+                    <q-item-section avatar>
+                      <q-icon
+                        :name="props.row.status === 'COMPLETED' ? 'replay' : 'check_circle'"
+                        size="18px"
+                        :color="props.row.status === 'COMPLETED' ? 'orange' : 'positive'"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      {{ props.row.status === 'COMPLETED' ? 'Mark Incomplete' : 'Mark Complete' }}
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+          </q-td>
+        </template>
+      </q-table>
+    </q-card>
+
+    <!-- 06 & 07 TWO-COLUMN SECTION: TEAM & RECENT ACTIVITY -->
+    <div class="details-split-layout">
+      <!-- TEAM / RESOURCES SECTION -->
+      <q-card flat bordered class="detail-card team-card">
+        <q-card-section class="card-header-bar">
+          <div class="header-title-group">
+            <q-icon name="badge" size="20px" class="text-primary q-mr-xs" />
+            <h2 class="card-header-title">Assigned Team & Workload</h2>
+          </div>
+          <q-badge color="primary" rounded :label="`${teamMembers.length} Members`" />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pa-none">
+          <q-list separator class="team-list">
+            <q-item v-for="member in teamMembers" :key="member.id" class="team-member-item">
+              <q-item-section avatar>
+                <q-avatar size="36px" class="member-avatar">
+                  <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
+                  <span v-else>{{ member.name.charAt(0) }}</span>
+                </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label class="member-name">{{ member.name }}</q-item-label>
+                <q-item-label caption class="member-role">{{ member.role }}</q-item-label>
+              </q-item-section>
+
+              <q-item-section side class="member-side">
+                <div class="member-tasks-pill">
+                  <q-icon name="task_alt" size="13px" class="q-mr-xs text-primary" />
+                  <span>{{ member.assignedTasks }} Tasks</span>
+                </div>
+                <div class="member-workload-bar">
+                  <q-linear-progress
+                    rounded
+                    size="4px"
+                    :value="member.capacity / 100"
+                    :color="member.capacity > 80 ? 'orange' : 'primary'"
+                    track-color="purple-1"
+                  />
+                  <span class="member-cap-text">{{ member.capacity }}% capacity</span>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+
+      <!-- RECENT ACTIVITY SECTION -->
+      <q-card flat bordered class="detail-card activity-card">
+        <q-card-section class="card-header-bar">
+          <div class="header-title-group">
+            <q-icon name="history" size="20px" class="text-primary q-mr-xs" />
+            <h2 class="card-header-title">Recent Activity</h2>
+          </div>
+          <span class="text-caption text-grey-6">Live Project Stream</span>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="activity-timeline-section q-pa-md">
+          <div class="activity-timeline">
+            <div v-for="act in activityLogs" :key="act.id" class="activity-item">
+              <div class="activity-icon-col">
+                <q-avatar size="28px" :class="['act-avatar', `act-${act.type}`]">
+                  <q-icon :name="act.icon" size="14px" />
+                </q-avatar>
+                <div class="act-line" />
+              </div>
+
+              <div class="activity-content-col">
+                <div class="act-header">
+                  <span class="act-user">{{ act.user }}</span>
+                  <span class="act-time">{{ act.time }}</span>
+                </div>
+                <div class="act-message">{{ act.message }}</div>
+              </div>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+
+    <!-- DIALOG: CREATE TASK -->
+    <q-dialog v-model="showCreateTaskDialog">
+      <q-card class="modal-dialog">
+        <q-card-section class="modal-header">
+          <div>
+            <div class="modal-eyebrow">NEW TASK</div>
+            <div class="modal-title">Create Task for {{ project.name }}</div>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-form @submit.prevent="handleCreateTask">
+          <q-card-section class="modal-form">
+            <q-input
+              v-model="newTaskForm.title"
+              outlined
+              dense
+              label="Task Title *"
+              placeholder="e.g. Design responsive navbar component"
+              :rules="[(val) => !!val.trim() || 'Task title is required']"
+            />
+
+            <q-input
+              v-model="newTaskForm.description"
+              outlined
+              dense
+              type="textarea"
+              label="Description"
+              placeholder="Task details and acceptance criteria..."
+              autogrow
+            />
+
+            <div class="modal-form-row">
+              <q-select
+                v-model="newTaskForm.priority"
+                outlined
+                dense
+                label="Priority"
+                :options="taskPriorityFormOptions"
+                emit-value
+                map-options
+                class="form-col"
+              />
+              <q-select
+                v-model="newTaskForm.status"
+                outlined
+                dense
+                label="Initial Status"
+                :options="taskStatusFormOptions"
+                emit-value
+                map-options
+                class="form-col"
+              />
+            </div>
+
+            <div class="modal-form-row">
+              <q-input
+                v-model="newTaskForm.start_date"
+                outlined
+                dense
+                type="date"
+                label="Start Date"
+                stack-label
+                class="form-col"
+              />
+              <q-input
+                v-model="newTaskForm.deadline"
+                outlined
+                dense
+                type="date"
+                label="Deadline"
+                stack-label
+                class="form-col"
+              />
+            </div>
+
+            <div class="modal-form-row">
+              <q-input
+                v-model.number="newTaskForm.expected_effort"
+                outlined
+                dense
+                type="number"
+                min="0.5"
+                step="0.5"
+                label="Expected Effort (Hours) *"
+                class="form-col"
+                :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
+              />
+              <q-select
+                v-model="newTaskForm.assigned_resource"
+                outlined
+                dense
+                label="Assign Resource"
+                :options="
+                  teamMembers.map((m) => ({ label: m.name + ' (' + m.role + ')', value: m.id }))
+                "
+                emit-value
+                map-options
+                class="form-col"
+              />
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right" class="modal-actions">
+            <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+            <q-btn
+              type="submit"
+              no-caps
+              unelevated
+              label="Create Task"
+              color="primary"
+              :loading="taskCreating"
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <!-- DIALOG: EDIT PROJECT -->
+    <q-dialog v-model="showEditProjectDialog">
+      <q-card class="modal-dialog">
+        <q-card-section class="modal-header">
+          <div>
+            <div class="modal-eyebrow">EDIT PROJECT</div>
+            <div class="modal-title">Update Project Information</div>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-form @submit.prevent="handleSaveProject">
+          <q-card-section class="modal-form">
+            <q-input
+              v-model="editProjectForm.name"
+              outlined
+              dense
+              label="Project Name *"
+              :rules="[(val) => !!val.trim() || 'Project name is required']"
+            />
+
+            <q-input
+              v-model="editProjectForm.description"
+              outlined
+              dense
+              type="textarea"
+              label="Description"
+              autogrow
+            />
+
+            <div class="modal-form-row">
+              <q-select
+                v-model="editProjectForm.status"
+                outlined
+                dense
+                label="Status"
+                :options="projectStatusOptions"
+                emit-value
+                map-options
+                class="form-col"
+              />
+              <q-select
+                v-model="editProjectForm.priority"
+                outlined
+                dense
+                label="Priority"
+                :options="projectPriorityOptions"
+                emit-value
+                map-options
+                class="form-col"
+              />
+            </div>
+
+            <div class="modal-form-row">
+              <q-input
+                v-model="editProjectForm.start_date"
+                outlined
+                dense
+                type="date"
+                label="Start Date"
+                stack-label
+                class="form-col"
+              />
+              <q-input
+                v-model="editProjectForm.deadline"
+                outlined
+                dense
+                type="date"
+                label="Deadline"
+                stack-label
+                class="form-col"
+              />
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right" class="modal-actions">
+            <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+            <q-btn type="submit" no-caps unelevated label="Save Changes" color="primary" />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <!-- DIALOG: QUICK UPDATE TASK -->
+    <q-dialog v-model="showQuickUpdateDialog">
+      <q-card style="width: 460px; max-width: 95vw" class="modal-dialog">
+        <q-card-section class="modal-header">
+          <div>
+            <div class="modal-eyebrow">TASK PROGRESS</div>
+            <div class="modal-title">{{ selectedTaskForUpdate?.title }}</div>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-card-section v-if="selectedTaskForUpdate" class="modal-form">
+          <div class="q-mb-md">
+            <span class="text-caption text-weight-bold text-grey-7">Status</span>
+            <div class="row q-gutter-xs q-mt-xs">
+              <q-btn
+                v-for="st in taskStatusFormOptions"
+                :key="st.value"
+                dense
+                no-caps
+                unelevated
+                :color="selectedTaskForUpdate.status === st.value ? 'primary' : 'grey-3'"
+                :text-color="selectedTaskForUpdate.status === st.value ? 'white' : 'grey-8'"
+                :label="st.label"
+                class="q-px-sm"
+                @click="selectedTaskForUpdate.status = st.value"
+              />
+            </div>
+          </div>
+
+          <div class="q-mb-md">
+            <div class="row justify-between items-center">
+              <span class="text-caption text-weight-bold text-grey-7">Progress</span>
+              <span class="text-caption text-weight-bold text-primary"
+                >{{ selectedTaskForUpdateProgress }}%</span
+              >
+            </div>
+            <q-slider
+              v-model="selectedTaskForUpdateProgress"
+              :min="0"
+              :max="100"
+              :step="5"
+              color="primary"
+              label
+            />
+          </div>
+
+          <div>
+            <span class="text-caption text-weight-bold text-grey-7">Logged Effort (Hours)</span>
+            <q-input
+              v-model.number="selectedTaskForUpdate.actual_effort"
+              outlined
+              dense
+              type="number"
+              min="0"
+              step="0.5"
+              class="q-mt-xs"
+            />
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="modal-actions">
+          <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+          <q-btn no-caps unelevated label="Save Update" color="primary" @click="saveQuickUpdate" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { useQuasar } from 'quasar';
+import type { QTableColumn } from 'quasar';
+import {
+  createTaskApi,
+  getProjectByIdApi,
+  updateProjectApi,
+  getTasksApi,
+  type CreateTaskPayload,
+  type Project,
+  type ProjectPriority,
+  type ProjectStatus,
+  type Task,
+} from '@/services/api';
+
+const $q = useQuasar();
+const route = useRoute();
+
+const projectIdParam = computed(() => {
+  const param = route.params.id;
+  return typeof param === 'string' ? parseInt(param, 10) : Number(param) || 1;
+});
+
+// ==========================================
+// STATE
+// ==========================================
+const loading = ref(false);
+const tasksLoading = ref(false);
+const taskCreating = ref(false);
+const showCreateTaskDialog = ref(false);
+const showEditProjectDialog = ref(false);
+const showQuickUpdateDialog = ref(false);
+const selectedTaskForUpdate = ref<Task | null>(null);
+const selectedTaskForUpdateProgress = ref(0);
+
+// Default Project Data
+const project = reactive<Project>({
+  project_id: 1,
+  project_manager_id: 1,
+  name: 'TaskFlow Cloud Architecture & Platform Migration',
+  description:
+    'Enterprise resource scheduling platform overhaul with real-time capacity management, task automation, and intelligent workload balancing.',
+  status: 'ACTIVE',
+  priority: 'HIGH',
+  start_date: '2026-08-01',
+  deadline: '2026-09-30',
+  progress: 68,
+});
+
+// Tasks
+const tasks = ref<Task[]>([]);
+
+// Team Members (High-fidelity structure)
+interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  avatar?: string;
+  assignedTasks: number;
+  capacity: number;
+}
+
+const teamMembers = ref<TeamMember[]>([
+  {
+    id: 101,
+    name: 'Sarah Jenkins',
+    role: 'Lead Fullstack Engineer',
+    assignedTasks: 5,
+    capacity: 85,
+  },
+  {
+    id: 102,
+    name: 'Alex Rivera',
+    role: 'Frontend UI/UX Specialist',
+    assignedTasks: 4,
+    capacity: 70,
+  },
+  {
+    id: 103,
+    name: 'David Chen',
+    role: 'Backend & Database Engineer',
+    assignedTasks: 3,
+    capacity: 60,
+  },
+  { id: 104, name: 'Priya Sharma', role: 'QA & Automation Lead', assignedTasks: 2, capacity: 45 },
+  {
+    id: 105,
+    name: 'Marcus Vance',
+    role: 'DevOps & Cloud Architect',
+    assignedTasks: 1,
+    capacity: 30,
+  },
+]);
+
+// Milestones
+interface Milestone {
+  id: number;
+  name: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'UPCOMING';
+  dueDate: string;
+  progress: number;
+  completedTasks: number;
+  totalTasks: number;
+}
+
+const milestones = ref<Milestone[]>([
+  {
+    id: 1,
+    name: 'Requirement & Architecture Finalization',
+    status: 'COMPLETED',
+    dueDate: '10 Aug 2026',
+    progress: 100,
+    completedTasks: 4,
+    totalTasks: 4,
+  },
+  {
+    id: 2,
+    name: 'Core Module Implementation & API Specs',
+    status: 'IN_PROGRESS',
+    dueDate: '28 Aug 2026',
+    progress: 75,
+    completedTasks: 6,
+    totalTasks: 8,
+  },
+  {
+    id: 3,
+    name: 'Integration & QA Acceptance Testing',
+    status: 'UPCOMING',
+    dueDate: '15 Sep 2026',
+    progress: 20,
+    completedTasks: 1,
+    totalTasks: 5,
+  },
+  {
+    id: 4,
+    name: 'Production Deployment & Handover',
+    status: 'UPCOMING',
+    dueDate: '30 Sep 2026',
+    progress: 0,
+    completedTasks: 0,
+    totalTasks: 3,
+  },
+]);
+
+// Activity Feed
+interface ActivityLog {
+  id: number;
+  user: string;
+  message: string;
+  time: string;
+  type: 'complete' | 'update' | 'create' | 'comment';
+  icon: string;
+}
+
+const activityLogs = ref<ActivityLog[]>([
+  {
+    id: 1,
+    user: 'Alex Rivera',
+    message: 'Completed task "Quasar dynamic theme & dark mode integration"',
+    time: '2 hours ago',
+    type: 'complete',
+    icon: 'check_circle',
+  },
+  {
+    id: 2,
+    user: 'Sarah Jenkins',
+    message: 'Updated milestone "Core Module Implementation" progress to 75%',
+    time: '5 hours ago',
+    type: 'update',
+    icon: 'sync',
+  },
+  {
+    id: 3,
+    user: 'David Chen',
+    message: 'Added task "Database query optimization and index benchmarks"',
+    time: '1 day ago',
+    type: 'create',
+    icon: 'add_task',
+  },
+  {
+    id: 4,
+    user: 'PM User',
+    message: 'Updated project deadline to 30 Sep 2026 and adjusted team capacity',
+    time: '3 days ago',
+    type: 'update',
+    icon: 'edit_calendar',
+  },
+]);
+
+// Forms
+const newTaskForm = reactive<{
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  start_date: string;
+  deadline: string;
+  expected_effort: number;
+  assigned_resource: number | null;
+}>({
+  title: '',
+  description: '',
+  priority: 'MEDIUM',
+  status: 'PENDING',
+  start_date: new Date().toISOString().split('T')[0] ?? '',
+  deadline: '',
+  expected_effort: 6,
+  assigned_resource: 101,
+});
+
+const editProjectForm = reactive<{
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  start_date: string;
+  deadline: string;
+}>({
+  name: '',
+  description: '',
+  status: 'ACTIVE',
+  priority: 'MEDIUM',
+  start_date: '',
+  deadline: '',
+});
+
+// Task Filters
+const taskSearch = ref('');
+const statusFilter = ref('ALL');
+const priorityFilter = ref('ALL');
+const assigneeFilter = ref('ALL');
+
+const taskPagination = ref({
+  page: 1,
+  rowsPerPage: 10,
+  sortBy: '',
+  descending: false,
+});
+
+// Options
+const taskStatusOptions = [
+  { label: 'All Status', value: 'ALL' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'On Hold', value: 'ON_HOLD' },
+];
+
+const taskPriorityOptions = [
+  { label: 'All Priorities', value: 'ALL' },
+  { label: 'Low', value: 'LOW' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'High', value: 'HIGH' },
+  { label: 'Critical', value: 'CRITICAL' },
+];
+
+const assigneeOptions = computed(() => [
+  { label: 'All Assignees', value: 'ALL' },
+  ...teamMembers.value.map((m) => ({ label: m.name, value: String(m.id) })),
+]);
+
+const taskPriorityFormOptions = [
+  { label: 'Low', value: 'LOW' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'High', value: 'HIGH' },
+  { label: 'Critical', value: 'CRITICAL' },
+];
+
+const taskStatusFormOptions: {
+  label: string;
+  value: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+}[] = [
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'On Hold', value: 'ON_HOLD' },
+];
+
+const projectStatusOptions = [
+  { label: 'Draft', value: 'DRAFT' },
+  { label: 'Published', value: 'PUBLISHED' },
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'On Hold', value: 'ON_HOLD' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'Cancelled', value: 'CANCELLED' },
+];
+
+const projectPriorityOptions = [
+  { label: 'Low', value: 'LOW' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'High', value: 'HIGH' },
+  { label: 'Critical', value: 'CRITICAL' },
+];
+
+// Table Columns
+const taskColumns: QTableColumn<Task>[] = [
+  {
+    name: 'title',
+    label: 'Task Details',
+    field: (row) => row.title,
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'status',
+    label: 'Status',
+    field: (row) => row.status,
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'priority',
+    label: 'Priority',
+    field: (row) => row.priority,
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'assignee',
+    label: 'Assignee',
+    field: (row) => getAssigneeName(row),
+    align: 'left',
+  },
+  {
+    name: 'progress',
+    label: 'Progress',
+    field: (row) => getTaskProgressNumber(row.progress),
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'deadline',
+    label: 'Deadline',
+    field: (row) => row.deadline ?? '',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'effort',
+    label: 'Effort (Actual/Plan)',
+    field: (row) => Number(row.expected_effort) || 0,
+    align: 'left',
+  },
+  {
+    name: 'actions',
+    label: '',
+    field: () => '',
+    align: 'right',
+  },
+];
+
+// ==========================================
+// COMPUTED VALUES
+// ==========================================
+const projectHealth = computed(() => {
+  if (project.status === 'COMPLETED') return 'ON_TRACK';
+
+  if (project.deadline) {
+    const deadline = new Date(project.deadline);
+    const today = new Date();
+    if (deadline < today) return 'DELAYED';
+  }
+
+  const prog = Number(project.progress) || 0;
+  if (prog < 30) return 'AT_RISK';
+
+  return 'ON_TRACK';
+});
+
+const healthLabel = computed(() => {
+  if (projectHealth.value === 'AT_RISK') return 'At Risk';
+  if (projectHealth.value === 'DELAYED') return 'Delayed';
+  return 'On Track';
+});
+
+const daysRemaining = computed(() => {
+  if (!project.deadline) return 0;
+  const deadline = new Date(project.deadline);
+  const today = new Date();
+  const diffTime = deadline.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+});
+
+const daysRemainingText = computed(() => {
+  if (!project.deadline) return 'No deadline';
+  if (project.status === 'COMPLETED') return 'Completed';
+  if (daysRemaining.value > 0) return `${daysRemaining.value} days left`;
+  if (daysRemaining.value === 0) return 'Due today';
+  return `Overdue by ${Math.abs(daysRemaining.value)} days`;
+});
+
+const totalTasksCount = computed(() => tasks.value.length);
+
+const completedTasksCount = computed(
+  () => tasks.value.filter((t) => t.status === 'COMPLETED').length,
+);
+
+const inProgressTasksCount = computed(
+  () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
+);
+
+const pendingTasksCount = computed(() => tasks.value.filter((t) => t.status === 'PENDING').length);
+
+const onHoldTasksCount = computed(() => tasks.value.filter((t) => t.status === 'ON_HOLD').length);
+
+const overdueTasksCount = computed(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return tasks.value.filter((t) => {
+    if (t.status === 'COMPLETED' || !t.deadline) return false;
+    return new Date(t.deadline) < today;
+  }).length;
+});
+
+const taskCompletionRate = computed(() => {
+  if (!totalTasksCount.value) return 0;
+  return Math.round((completedTasksCount.value / totalTasksCount.value) * 100);
+});
+
+const overallProgress = computed(() => {
+  if (!tasks.value.length) return Number(project.progress) || 0;
+  const total = tasks.value.reduce((sum, t) => sum + getTaskProgressNumber(t.progress), 0);
+  return Math.round(total / tasks.value.length);
+});
+
+const totalEffortExpected = computed(() =>
+  tasks.value.reduce((sum, t) => sum + (Number(t.expected_effort) || 0), 0),
+);
+
+const totalEffortLogged = computed(() =>
+  tasks.value.reduce((sum, t) => sum + (Number(t.actual_effort) || 0), 0),
+);
+
+const completedMilestonesCount = computed(
+  () => milestones.value.filter((m) => m.progress === 100).length,
+);
+
+const activeAssigneesCount = computed(
+  () => teamMembers.value.filter((m) => m.assignedTasks > 0).length,
+);
+
+const filteredTasks = computed(() => {
+  const q = taskSearch.value.trim().toLowerCase();
+
+  return tasks.value.filter((task) => {
+    const matchesSearch =
+      !q ||
+      task.title.toLowerCase().includes(q) ||
+      (task.description ?? '').toLowerCase().includes(q);
+
+    const matchesStatus = statusFilter.value === 'ALL' || task.status === statusFilter.value;
+
+    const matchesPriority =
+      priorityFilter.value === 'ALL' || task.priority === priorityFilter.value;
+
+    const matchesAssignee =
+      assigneeFilter.value === 'ALL' ||
+      (task.assigned_resource_ids &&
+        task.assigned_resource_ids.includes(Number(assigneeFilter.value)));
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
+  });
+});
+
+// ==========================================
+// HELPERS
+// ==========================================
+function formatDate(date: string | null | undefined) {
+  if (!date) return 'No date set';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(date));
+}
+
+function formatStatus(status: string | undefined) {
+  if (!status) return 'Active';
+  return status
+    .toLowerCase()
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getTaskProgressNumber(progress: number | string | undefined): number {
+  return Math.min(100, Math.max(0, Number(progress) || 0));
+}
+
+function isTaskOverdue(task: Task): boolean {
+  if (task.status === 'COMPLETED' || !task.deadline) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(task.deadline) < today;
+}
+
+function getPriorityIcon(priority: string) {
+  switch (priority) {
+    case 'CRITICAL':
+      return 'error';
+    case 'HIGH':
+      return 'priority_high';
+    case 'MEDIUM':
+      return 'remove';
+    case 'LOW':
+      return 'arrow_downward';
+    default:
+      return 'radio_button_unchecked';
+  }
+}
+
+function getAssigneeName(task: Task): string {
+  if (task.assigned_resource_ids && task.assigned_resource_ids.length > 0) {
+    const id = task.assigned_resource_ids[0];
+    const member = teamMembers.value.find((m) => m.id === id);
+    if (member) return member.name;
+  }
+  return 'PM User';
+}
+
+function resetTaskFilters() {
+  taskSearch.value = '';
+  statusFilter.value = 'ALL';
+  priorityFilter.value = 'ALL';
+  assigneeFilter.value = 'ALL';
+}
+
+// ==========================================
+// DATA LOADING
+// ==========================================
+async function loadProjectDetails() {
+  loading.value = true;
+
+  try {
+    const found = await getProjectByIdApi(projectIdParam.value);
+
+    if (found) {
+      Object.assign(project, found);
+    }
+  } catch (error) {
+    console.error('Failed to load project details:', error);
+
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to load project details',
+    });
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadProjectTasks() {
+  tasksLoading.value = true;
+  try {
+    const fetchedTasks = await getTasksApi(projectIdParam.value);
+    if (fetchedTasks && fetchedTasks.length > 0) {
+      tasks.value = fetchedTasks;
+    } else {
+      // Fallback high-fidelity sample tasks for rich UI presentation
+      tasks.value = [
+        {
+          task_id: 101,
+          project_id: project.project_id,
+          title: 'Design high-converting Project Overview UI with Quasar',
+          description:
+            'Implement Vue 3 + TypeScript components adhering to TaskFlow design system and dark theme tokens.',
+          priority: 'HIGH',
+          status: 'COMPLETED',
+          start_date: '2026-08-02',
+          deadline: '2026-08-10',
+          expected_effort: 16,
+          actual_effort: 14,
+          progress: 100,
+          assigned_resource_ids: [102],
+        },
+        {
+          task_id: 102,
+          project_id: project.project_id,
+          title: 'Implement Task Breakdown Table with Sorting & Filters',
+          description:
+            'Add live filtering for status, priority, and assignees with Quasar table slots.',
+          priority: 'CRITICAL',
+          status: 'IN_PROGRESS',
+          start_date: '2026-08-08',
+          deadline: '2026-08-22',
+          expected_effort: 24,
+          actual_effort: 18,
+          progress: 75,
+          assigned_resource_ids: [101],
+        },
+        {
+          task_id: 103,
+          project_id: project.project_id,
+          title: 'Setup Database Connection & Resource Scheduling Schema',
+          description:
+            'Configure PostgreSQL connection pooling and multi-resource allocation constraints.',
+          priority: 'HIGH',
+          status: 'IN_PROGRESS',
+          start_date: '2026-08-12',
+          deadline: '2026-08-25',
+          expected_effort: 20,
+          actual_effort: 10,
+          progress: 50,
+          assigned_resource_ids: [103],
+        },
+        {
+          task_id: 104,
+          project_id: project.project_id,
+          title: 'End-to-End API Integration & Unit Testing Suite',
+          description:
+            'Verify authorization middleware, project creation and task updates against API contracts.',
+          priority: 'MEDIUM',
+          status: 'PENDING',
+          start_date: '2026-08-20',
+          deadline: '2026-09-05',
+          expected_effort: 16,
+          actual_effort: 0,
+          progress: 0,
+          assigned_resource_ids: [104],
+        },
+        {
+          task_id: 105,
+          project_id: project.project_id,
+          title: 'Cloud Infrastructure & Automated CI/CD Pipeline Setup',
+          description:
+            'Configure container builds, environment secrets, and automated preview deployments.',
+          priority: 'MEDIUM',
+          status: 'ON_HOLD',
+          start_date: '2026-08-15',
+          deadline: '2026-09-12',
+          expected_effort: 12,
+          actual_effort: 3,
+          progress: 25,
+          assigned_resource_ids: [105],
+        },
+        {
+          task_id: 106,
+          project_id: project.project_id,
+          title: 'Security Audit & Role-Based Access Control Validation',
+          description: 'Ensure resource users cannot modify project manager permissions.',
+          priority: 'CRITICAL',
+          status: 'COMPLETED',
+          start_date: '2026-08-04',
+          deadline: '2026-08-14',
+          expected_effort: 10,
+          actual_effort: 10,
+          progress: 100,
+          assigned_resource_ids: [101],
+        },
+      ];
+    }
+  } catch (error) {
+    console.warn('Failed to load tasks from API, using fallback task set', error);
+  } finally {
+    tasksLoading.value = false;
+  }
+}
+
+async function refreshData() {
+  await Promise.all([loadProjectDetails(), loadProjectTasks()]);
+  $q.notify({
+    type: 'positive',
+    message: 'Project details refreshed',
+    timeout: 1500,
+  });
+}
+
+// ==========================================
+// ACTIONS
+// ==========================================
+async function handleCreateTask() {
+  taskCreating.value = true;
+  try {
+    const payload: CreateTaskPayload = {
+      project_id: project.project_id,
+      title: newTaskForm.title.trim(),
+      description: newTaskForm.description.trim() || null,
+      priority: newTaskForm.priority,
+      status: newTaskForm.status,
+      start_date: newTaskForm.start_date || null,
+      deadline: newTaskForm.deadline || null,
+      expected_effort: Number(newTaskForm.expected_effort) || 4,
+      assigned_resource_ids: newTaskForm.assigned_resource ? [newTaskForm.assigned_resource] : [],
+    };
+
+    try {
+      const created = await createTaskApi(payload);
+      if (created) {
+        tasks.value.unshift(created);
+      }
+    } catch {
+      // Offline fallback: push directly to local state
+      const localTask: Task = {
+        task_id: Date.now(),
+        project_id: project.project_id,
+        title: payload.title,
+        description: payload.description ?? null,
+        priority: payload.priority || 'MEDIUM',
+        status: payload.status || 'PENDING',
+        start_date: payload.start_date ?? null,
+        deadline: payload.deadline ?? null,
+        expected_effort: payload.expected_effort,
+        actual_effort: 0,
+        progress: payload.status === 'COMPLETED' ? 100 : 0,
+        ...(payload.assigned_resource_ids
+          ? { assigned_resource_ids: payload.assigned_resource_ids }
+          : {}),
+      };
+      tasks.value.unshift(localTask);
+    }
+
+    // Add activity log
+    activityLogs.value.unshift({
+      id: Date.now(),
+      user: 'PM User',
+      message: `Created new task "${payload.title}"`,
+      time: 'Just now',
+      type: 'create',
+      icon: 'add_task',
+    });
+
+    $q.notify({
+      type: 'positive',
+      message: 'Task created successfully',
+    });
+
+    showCreateTaskDialog.value = false;
+    newTaskForm.title = '';
+    newTaskForm.description = '';
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to create task',
+    });
+  } finally {
+    taskCreating.value = false;
+  }
+}
+
+function openEditDialog() {
+  editProjectForm.name = project.name;
+  editProjectForm.description = project.description || '';
+  editProjectForm.status = (project.status as ProjectStatus) || 'ACTIVE';
+  editProjectForm.priority = (project.priority as ProjectPriority) || 'MEDIUM';
+  editProjectForm.start_date = project.start_date || '';
+  editProjectForm.deadline = project.deadline || '';
+  showEditProjectDialog.value = true;
+}
+
+async function handleSaveProject() {
+  try {
+    const updatedProject = await updateProjectApi(project.project_id, {
+      name: editProjectForm.name.trim(),
+      description: editProjectForm.description.trim() || null,
+      status: editProjectForm.status,
+      priority: editProjectForm.priority,
+      start_date: editProjectForm.start_date || null,
+      deadline: editProjectForm.deadline || null,
+    });
+
+    Object.assign(project, updatedProject);
+
+    activityLogs.value.unshift({
+      id: Date.now(),
+      user: 'PM User',
+      message: `Updated project metadata and status to ${formatStatus(project.status)}`,
+      time: 'Just now',
+      type: 'update',
+      icon: 'edit',
+    });
+
+    $q.notify({
+      type: 'positive',
+      message: 'Project details updated successfully',
+    });
+
+    showEditProjectDialog.value = false;
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to update project',
+    });
+  }
+}
+function openQuickUpdate(task: Task) {
+  selectedTaskForUpdate.value = task;
+  selectedTaskForUpdateProgress.value = getTaskProgressNumber(task.progress);
+  showQuickUpdateDialog.value = true;
+}
+
+function saveQuickUpdate() {
+  if (!selectedTaskForUpdate.value) return;
+  selectedTaskForUpdate.value.progress = selectedTaskForUpdateProgress.value;
+  if (selectedTaskForUpdateProgress.value === 100) {
+    selectedTaskForUpdate.value.status = 'COMPLETED';
+  }
+
+  activityLogs.value.unshift({
+    id: Date.now(),
+    user: 'PM User',
+    message: `Updated progress on "${selectedTaskForUpdate.value.title}" to ${selectedTaskForUpdateProgress.value}%`,
+    time: 'Just now',
+    type: 'update',
+    icon: 'sync',
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: 'Task updated successfully',
+  });
+
+  showQuickUpdateDialog.value = false;
+}
+
+function toggleTaskComplete(task: Task) {
+  if (task.status === 'COMPLETED') {
+    task.status = 'IN_PROGRESS';
+    task.progress = 50;
+  } else {
+    task.status = 'COMPLETED';
+    task.progress = 100;
+  }
+
+  activityLogs.value.unshift({
+    id: Date.now(),
+    user: 'PM User',
+    message: `${task.status === 'COMPLETED' ? 'Marked task complete:' : 'Reopened task:'} "${task.title}"`,
+    time: 'Just now',
+    type: task.status === 'COMPLETED' ? 'complete' : 'update',
+    icon: task.status === 'COMPLETED' ? 'check_circle' : 'replay',
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Task ${task.status === 'COMPLETED' ? 'marked as completed' : 'reopened'}`,
+  });
+}
+
+function markProjectComplete() {
+  project.status = 'COMPLETED';
+  project.progress = 100;
+  tasks.value.forEach((t) => {
+    t.status = 'COMPLETED';
+    t.progress = 100;
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: 'Project and all deliverables marked as completed!',
+  });
+}
+
+function exportProjectSummary() {
+  $q.notify({
+    type: 'info',
+    message: 'Exporting project report as PDF/CSV summary...',
+    timeout: 2000,
+  });
+}
+
+onMounted(() => {
+  void loadProjectDetails();
+  void loadProjectTasks();
+});
+</script>
+
+<style scoped lang="scss">
+.project-details-page {
+  width: 100%;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 20px 28px 60px;
+  background: var(--wo-bg-page, #f8f9fb);
+  color: var(--wo-text-main, #172033);
+}
+
+/* BREADCRUMBS */
+.project-breadcrumbs {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--wo-text-muted, #63708a);
+}
+
+.breadcrumb-current {
+  color: var(--wo-text-main, #172033);
+  font-weight: 600;
+}
+
+/* HERO CARD */
+.hero-card {
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+  border-color: var(--wo-border, #e5e7ec);
+  box-shadow: var(--wo-card-shadow, 0 1px 3px rgba(16, 24, 40, 0.02));
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr);
+  gap: 28px;
+  padding: 24px 28px;
+}
+
+.hero-main {
+  min-width: 0;
+}
+
+.hero-badges-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.status-badge,
+.health-badge,
+.priority-badge {
+  min-height: 24px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.status-active,
+.status-published {
+  background: rgba(139, 111, 216, 0.15);
+  color: var(--wo-primary, #8b6fd8);
+}
+
+.status-completed {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.status-on_hold,
+.status-draft {
+  background: rgba(245, 132, 31, 0.15);
+  color: #f5841f;
+}
+
+.health-on_track {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.health-at_risk {
+  background: rgba(245, 132, 31, 0.15);
+  color: #f5841f;
+}
+
+.health-delayed {
+  background: rgba(225, 82, 99, 0.15);
+  color: #e15263;
+}
+
+.priority-critical {
+  background: rgba(225, 82, 99, 0.15);
+  color: #e15263;
+}
+
+.priority-high {
+  background: rgba(245, 132, 31, 0.15);
+  color: #f5841f;
+}
+
+.priority-medium {
+  background: rgba(46, 144, 250, 0.15);
+  color: #2e90fa;
+}
+
+.priority-low {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.project-id-tag {
+  color: var(--wo-text-subtle, #98a2b3);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hero-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--wo-text-main, #172033);
+}
+
+.hero-description {
+  margin: 0 0 20px;
+  color: var(--wo-text-muted, #63708a);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 900px;
+}
+
+.hero-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  color: var(--wo-text-subtle, #98a2b3);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta-value {
+  display: flex;
+  align-items: center;
+  color: var(--wo-text-main, #172033);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.meta-avatar {
+  background: var(--wo-primary-light, #f4f0fd);
+  color: var(--wo-primary, #8b6fd8);
+  font-weight: 700;
+  font-size: 11px;
+  margin-right: 6px;
+}
+
+.team-avatars-group {
+  display: flex;
+  align-items: center;
+}
+
+.team-stack-avatar {
+  border: 2px solid var(--wo-bg-card, #ffffff);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.team-stack-avatar + .team-stack-avatar {
+  margin-left: -7px;
+}
+
+.avatar-color-0 {
+  background: #eaf1fd;
+  color: #2e90fa;
+  font-weight: 700;
+  font-size: 10px;
+}
+.avatar-color-1 {
+  background: #f4f0fd;
+  color: #8b6fd8;
+  font-weight: 700;
+  font-size: 10px;
+}
+.avatar-color-2 {
+  background: #e6f7f5;
+  color: #1abc9c;
+  font-weight: 700;
+  font-size: 10px;
+}
+.avatar-color-3 {
+  background: #fff4eb;
+  color: #f5841f;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.team-stack-extra {
+  background: var(--wo-border-subtle, #f0f2f5);
+  color: var(--wo-text-muted, #63708a);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* HERO SIDEBAR */
+.hero-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--wo-bg-tag, #fafbfe);
+  border: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.hero-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progress-label {
+  color: var(--wo-text-muted, #63708a);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progress-percent-val {
+  color: var(--wo-primary, #8b6fd8);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.hero-progress-bar {
+  border-radius: 6px;
+}
+
+.progress-sub-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--wo-text-subtle, #98a2b3);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hero-btn {
+  height: 38px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.primary-btn {
+  flex: 1;
+}
+
+.edit-btn {
+  border-color: var(--wo-border, #e5e7ec);
+  color: var(--wo-text-main, #172033);
+}
+
+/* KPI GRID */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.kpi-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border-color: var(--wo-border, #e5e7ec);
+  box-shadow: var(--wo-card-shadow, 0 1px 3px rgba(16, 24, 40, 0.02));
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.06);
+}
+
+.kpi-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 14px;
+}
+
+.kpi-icon {
+  flex: 0 0 46px;
+  border-radius: 12px;
+}
+
+.icon-purple {
+  background: rgba(139, 111, 216, 0.15);
+  color: #8b6fd8;
+}
+.icon-teal {
+  background: rgba(26, 188, 156, 0.15);
+  color: #1abc9c;
+}
+.icon-green {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+.icon-red {
+  background: rgba(225, 82, 99, 0.15);
+  color: #e15263;
+}
+.icon-orange {
+  background: rgba(245, 132, 31, 0.15);
+  color: #f5841f;
+}
+.icon-blue {
+  background: rgba(46, 144, 250, 0.15);
+  color: #2e90fa;
+}
+
+.kpi-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-label {
+  color: var(--wo-text-muted, #63708a);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.kpi-value {
+  margin-top: 2px;
+  color: var(--wo-text-main, #172033);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.kpi-note {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.note-green {
+  color: #27ae60;
+}
+.note-teal {
+  color: #1abc9c;
+}
+.note-red {
+  color: #e15263;
+}
+.note-orange {
+  color: #f5841f;
+}
+.note-blue {
+  color: #2e90fa;
+}
+
+/* SPLIT LAYOUTS */
+.details-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr);
+  gap: 16px;
+}
+
+.detail-card {
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+  border-color: var(--wo-border, #e5e7ec);
+  box-shadow: var(--wo-card-shadow, 0 1px 3px rgba(16, 24, 40, 0.02));
+  overflow: hidden;
+}
+
+.card-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+}
+
+.card-header-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--wo-text-main, #172033);
+}
+
+.status-chip-subtle {
+  background: var(--wo-primary-light, #f4f0fd);
+  color: var(--wo-primary, #8b6fd8);
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* PROGRESS DEEP CARD */
+.status-distribution-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.dist-stat {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--wo-bg-tag, #fafbfe);
+  border: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.dist-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dist-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-completed {
+  background: #27ae60;
+}
+.dot-progress {
+  background: #2e90fa;
+}
+.dot-hold {
+  background: #f5841f;
+}
+.dot-pending {
+  background: #98a2b3;
+}
+
+.dist-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--wo-text-muted, #63708a);
+}
+
+.dist-count {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--wo-text-main, #172033);
+}
+
+.multi-progress-wrapper {
+  width: 100%;
+}
+
+.multi-progress-bar {
+  height: 10px;
+  display: flex;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--wo-border-subtle, #f0f2f5);
+}
+
+.seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.seg-completed {
+  background: #27ae60;
+}
+.seg-progress {
+  background: #2e90fa;
+}
+.seg-hold {
+  background: #f5841f;
+}
+.seg-pending {
+  background: #d0d5dd;
+}
+
+.effort-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--wo-bg-tag, #fafbfe);
+  border: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.effort-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.effort-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.effort-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--wo-text-muted, #63708a);
+}
+
+.effort-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+}
+
+/* MILESTONES */
+.milestones-list {
+  padding: 14px 18px;
+}
+
+.milestone-item {
+  display: flex;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.milestone-item:last-child {
+  padding-bottom: 0;
+}
+
+.milestone-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.milestone-avatar {
+  border: 2px solid var(--wo-bg-card, #ffffff);
+}
+
+.avatar-completed {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+.avatar-in-progress {
+  background: rgba(139, 111, 216, 0.15);
+  color: var(--wo-primary, #8b6fd8);
+}
+.avatar-upcoming {
+  background: var(--wo-border-subtle, #f0f2f5);
+  color: #98a2b3;
+}
+
+.milestone-line {
+  width: 2px;
+  flex: 1;
+  background: var(--wo-border-subtle, #f0f2f5);
+  margin-top: 4px;
+}
+
+.milestone-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.milestone-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.milestone-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+}
+
+.milestone-chip {
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.m-chip-completed {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+.m-chip-in-progress {
+  background: rgba(139, 111, 216, 0.15);
+  color: var(--wo-primary, #8b6fd8);
+}
+.m-chip-upcoming {
+  background: var(--wo-border-subtle, #f0f2f5);
+  color: #98a2b3;
+}
+
+.milestone-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.milestone-progress {
+  flex: 1;
+}
+
+.milestone-pct {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+}
+
+.milestone-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--wo-text-muted, #63708a);
+}
+
+/* TASK TABLE & TOOLBAR */
+.task-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.table-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.add-task-btn {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 16px;
+  height: 36px;
+}
+
+.task-filter-bar {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 1fr 1fr auto;
+  gap: 10px;
+  padding: 12px 18px;
+  align-items: center;
+  background: var(--wo-bg-tag, #fafbfe);
+  border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.task-filter-bar :deep(.q-field__control) {
+  min-height: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--wo-bg-card, #ffffff);
+}
+
+.task-filter-bar :deep(.q-field__label),
+.task-filter-bar :deep(.q-field__native),
+.task-filter-bar :deep(.q-field__input) {
+  font-size: 11px;
+}
+
+.reset-btn {
+  font-size: 11px;
+}
+
+.tasks-table :deep(th) {
+  height: 42px;
+  padding: 0 14px;
+  background: var(--wo-bg-page, #fbfbfc);
+  color: var(--wo-text-muted, #647087);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--wo-border, #e9ebef);
+}
+
+.tasks-table :deep(td) {
+  height: 52px;
+  padding: 0 14px;
+  color: var(--wo-text-main, #3f4a60);
+  font-size: 11px;
+  border-bottom: 1px solid var(--wo-border-subtle, #eef0f3);
+}
+
+.tasks-table :deep(tbody tr:hover) {
+  background: var(--wo-bg-card-hover, #faf9ff);
+}
+
+.task-title-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.priority-icon {
+  margin-top: 2px;
+}
+
+.icon-critical {
+  color: #e15263;
+}
+.icon-high {
+  color: #f5841f;
+}
+.icon-medium {
+  color: #2e90fa;
+}
+.icon-low {
+  color: #27ae60;
+}
+
+.task-name-desc {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-title-text {
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+  font-size: 12px;
+}
+
+.task-desc-text {
+  font-size: 10px;
+  color: var(--wo-text-subtle, #98a2b3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+
+.task-status-chip,
+.task-priority-chip {
+  min-height: 22px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.t-status-completed {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+.t-status-in_progress {
+  background: rgba(46, 144, 250, 0.15);
+  color: #2e90fa;
+}
+.t-status-pending {
+  background: rgba(152, 162, 179, 0.15);
+  color: #667085;
+}
+.t-status-on_hold {
+  background: rgba(245, 132, 31, 0.15);
+  color: #f5841f;
+}
+
+.t-priority-critical {
+  background: rgba(225, 82, 99, 0.15);
+  color: #e15263;
+}
+.t-priority-high {
+  background: rgba(245, 132, 31, 0.15);
+  color: #f5841f;
+}
+.t-priority-medium {
+  background: rgba(46, 144, 250, 0.15);
+  color: #2e90fa;
+}
+.t-priority-low {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+
+.assignee-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assignee-avatar {
+  background: var(--wo-primary-light, #f4f0fd);
+  color: var(--wo-primary, #8b6fd8);
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.assignee-name {
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.task-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+}
+
+.task-linear-progress {
+  width: 60px;
+}
+
+.task-progress-pct {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.deadline-cell {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.effort-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wo-text-muted, #63708a);
+}
+
+/* TEAM LIST */
+.team-member-item {
+  padding: 12px 18px;
+}
+
+.member-avatar {
+  background: var(--wo-primary-light, #f4f0fd);
+  color: var(--wo-primary, #8b6fd8);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.member-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+}
+
+.member-role {
+  font-size: 10px;
+  color: var(--wo-text-subtle, #98a2b3);
+}
+
+.member-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.member-tasks-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+}
+
+.member-workload-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+}
+
+.member-cap-text {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--wo-text-muted, #63708a);
+  white-space: nowrap;
+}
+
+/* RECENT ACTIVITY */
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+
+.activity-icon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.act-avatar {
+  border-radius: 50%;
+}
+
+.act-complete {
+  background: rgba(39, 174, 96, 0.15);
+  color: #27ae60;
+}
+.act-update {
+  background: rgba(139, 111, 216, 0.15);
+  color: var(--wo-primary, #8b6fd8);
+}
+.act-create {
+  background: rgba(46, 144, 250, 0.15);
+  color: #2e90fa;
+}
+
+.act-line {
+  width: 1.5px;
+  flex: 1;
+  background: var(--wo-border-subtle, #f0f2f5);
+  margin-top: 4px;
+}
+
+.activity-item:last-child .act-line {
+  display: none;
+}
+
+.activity-content-col {
+  flex: 1;
+}
+
+.act-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.act-user {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--wo-text-main, #172033);
+}
+
+.act-time {
+  font-size: 10px;
+  color: var(--wo-text-subtle, #98a2b3);
+}
+
+.act-message {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--wo-text-muted, #63708a);
+  line-height: 1.4;
+}
+
+/* MODALS */
+.modal-dialog {
+  width: 580px;
+  max-width: 95vw;
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-main, #172033);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 10px;
+}
+
+.modal-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--wo-primary, #8b6fd8);
+  letter-spacing: 0.08em;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--wo-text-main, #172033);
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 24px 16px;
+}
+
+.modal-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-col {
+  flex: 1;
+}
+
+.modal-actions {
+  padding: 12px 24px 20px;
+}
+
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 1250px) {
+  .hero-content {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 950px) {
+  .details-split-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .task-filter-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .task-search-input {
+    grid-column: span 2;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .project-details-page {
+    padding: 14px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .task-search-input {
+    grid-column: auto;
+  }
+
+  .modal-form-row {
+    flex-direction: column;
+  }
+}
+</style>

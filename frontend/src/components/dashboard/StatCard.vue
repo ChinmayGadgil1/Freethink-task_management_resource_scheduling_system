@@ -48,15 +48,15 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border: 1px solid #eaecef;
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--wo-bg-card, #ffffff);
   transition: all 0.2s ease;
 }
 
 .stat-card:hover {
-  border-color: #d0d5dd;
-  box-shadow: 0 4px 8px rgba(16, 24, 40, 0.04);
+  border-color: var(--wo-primary, #d0d5dd);
+  box-shadow: var(--wo-card-shadow, 0 4px 8px rgba(16, 24, 40, 0.04));
 }
 
 .stat-icon-wrapper {
@@ -76,7 +76,7 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 }
 
 .stat-title {
-  color: #667085;
+  color: var(--wo-text-muted, #667085);
   font-size: 11px;
   line-height: 1.2;
   font-weight: 500;
@@ -85,7 +85,7 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 
 .stat-value {
   margin-top: 4px;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 26px;
   line-height: 1;
   font-weight: 700;

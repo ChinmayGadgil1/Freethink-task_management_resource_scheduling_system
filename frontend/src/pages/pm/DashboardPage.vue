@@ -303,7 +303,7 @@ const days = [
   height: 4px;
   margin-top: 12px;
   border-radius: 4px;
-  background: #f0f2f5;
+  background: var(--wo-border-subtle, #f0f2f5);
 }
 
 .strip-scroll-thumb {
@@ -311,7 +311,7 @@ const days = [
   height: 100%;
   margin-left: 15%;
   border-radius: 4px;
-  background: #d0d5dd;
+  background: var(--wo-border, #d0d5dd);
 }
 
 /* Timeline Styling */
@@ -333,10 +333,10 @@ const days = [
   justify-content: center;
   width: fit-content;
   padding: 4px 10px;
-  border: 1px solid #eaecef;
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 6px;
-  background: #ffffff;
-  color: #1d2433;
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-main, #1d2433);
   font-size: 11px;
   font-weight: 700;
 }
@@ -352,7 +352,7 @@ const days = [
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 11px;
   font-weight: 500;
 }
@@ -373,19 +373,19 @@ const days = [
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #8b6fd8;
+  background: var(--wo-primary, #8b6fd8);
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 2px 4px rgba(139, 111, 216, 0.35);
 }
 
 .timeline-date-cell.today .day-name {
-  color: #8b6fd8;
+  color: var(--wo-primary, #8b6fd8);
   font-weight: 700;
 }
 
 .timeline-body {
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--wo-border-subtle, #f0f2f5);
 }
 
 .timeline-project-row {
@@ -393,7 +393,7 @@ const days = [
   grid-template-columns: 140px minmax(0, 1fr);
   min-height: 38px;
   align-items: center;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
 }
 
 .timeline-project-row:last-child {
@@ -401,7 +401,7 @@ const days = [
 }
 
 .project-label {
-  color: #344054;
+  color: var(--wo-text-main, #344054);
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
@@ -426,7 +426,7 @@ const days = [
 }
 
 .grid-line {
-  border-right: 1px dashed #f2f4f7;
+  border-right: 1px dashed var(--wo-border-subtle, #f2f4f7);
 }
 
 .grid-line:last-child {
@@ -448,27 +448,27 @@ const days = [
 }
 
 .bar-purple {
-  background: #f4f0fd;
+  background: rgba(139, 111, 216, 0.15);
   color: #8b6fd8;
-  border: 1px solid #e9e1fb;
+  border: 1px solid rgba(139, 111, 216, 0.3);
 }
 
 .bar-purple-light {
-  background: #f8f5fe;
+  background: rgba(155, 130, 227, 0.15);
   color: #9b82e3;
-  border: 1px solid #efeafd;
+  border: 1px solid rgba(155, 130, 227, 0.3);
 }
 
 .bar-teal {
-  background: #e6f7f5;
+  background: rgba(26, 188, 156, 0.15);
   color: #1abc9c;
-  border: 1px solid #cef1ed;
+  border: 1px solid rgba(26, 188, 156, 0.3);
 }
 
 .bar-orange {
-  background: #fff4eb;
+  background: rgba(245, 132, 31, 0.15);
   color: #f5841f;
-  border: 1px solid #ffe4ce;
+  border: 1px solid rgba(245, 132, 31, 0.3);
 }
 
 .ui-phase {
@@ -543,10 +543,10 @@ const days = [
   justify-content: flex-start;
   gap: 12px;
   padding: 10px 16px;
-  background: #ffffff;
-  border: 1px solid #eaecef;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.03);
+  box-shadow: var(--wo-card-shadow, 0 2px 6px rgba(16, 24, 40, 0.03));
   margin-top: 4px;
 }
 
@@ -554,11 +554,11 @@ const days = [
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 12px;
   font-weight: 700;
   padding-right: 12px;
-  border-right: 1px solid #f0f2f5;
+  border-right: 1px solid var(--wo-border-subtle, #f0f2f5);
   white-space: nowrap;
 }
 
@@ -581,47 +581,47 @@ const days = [
 
 .action-purple {
   color: #8b6fd8;
-  background: #f4f0fd;
-  border-color: #e9e1fb;
+  background: rgba(139, 111, 216, 0.12);
+  border-color: rgba(139, 111, 216, 0.25);
 }
 .action-purple:hover {
-  background: #eae2fa;
+  background: rgba(139, 111, 216, 0.22);
 }
 
 .action-teal {
   color: #1abc9c;
-  background: #e6f7f5;
-  border-color: #cef1ed;
+  background: rgba(26, 188, 156, 0.12);
+  border-color: rgba(26, 188, 156, 0.25);
 }
 .action-teal:hover {
-  background: #d5f3ef;
+  background: rgba(26, 188, 156, 0.22);
 }
 
 .action-orange {
   color: #f5841f;
-  background: #fff4eb;
-  border-color: #ffe4ce;
+  background: rgba(245, 132, 31, 0.12);
+  border-color: rgba(245, 132, 31, 0.25);
 }
 .action-orange:hover {
-  background: #ffebd6;
+  background: rgba(245, 132, 31, 0.22);
 }
 
 .action-blue {
   color: #2e90fa;
-  background: #eff8ff;
-  border-color: #d1e9ff;
+  background: rgba(46, 144, 250, 0.12);
+  border-color: rgba(46, 144, 250, 0.25);
 }
 .action-blue:hover {
-  background: #e0f2fe;
+  background: rgba(46, 144, 250, 0.22);
 }
 
 .action-yellow {
   color: #d97706;
-  background: #fef7e6;
-  border-color: #feedb6;
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.25);
 }
 .action-yellow:hover {
-  background: #fde89c;
+  background: rgba(217, 119, 6, 0.22);
 }
 
 @media (max-width: 1100px) {

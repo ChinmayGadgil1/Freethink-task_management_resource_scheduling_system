@@ -9,6 +9,29 @@
   --wo-border-subtle: #f0f2f5;
   --wo-bg-page: #f8f9fa;
   --wo-bg-card: #ffffff;
+  --wo-bg-card-hover: #f9fafb;
+  --wo-bg-input: #ffffff;
+  --wo-bg-tag: #f2f4f7;
+  --wo-card-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
+  --wo-header-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+}
+
+body.body--dark {
+  --wo-primary: #9e84ec;
+  --wo-primary-dark: #8b6fd8;
+  --wo-primary-light: rgba(139, 111, 216, 0.18);
+  --wo-text-main: #f3f4f6;
+  --wo-text-muted: #94a3b8;
+  --wo-text-subtle: #64748b;
+  --wo-border: #283042;
+  --wo-border-subtle: #1e2433;
+  --wo-bg-page: #0f1219;
+  --wo-bg-card: #181d28;
+  --wo-bg-card-hover: #202636;
+  --wo-bg-input: #121622;
+  --wo-bg-tag: #222938;
+  --wo-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --wo-header-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 body {
@@ -40,10 +63,11 @@ body {
 }
 
 .dashboard-card {
-  background: #ffffff;
-  border: 1px solid #e6e8ed;
+  background: var(--wo-bg-card);
+  border: 1px solid var(--wo-border);
   border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
+  box-shadow: var(--wo-card-shadow);
+  color: var(--wo-text-main);
 }
 
 * {
@@ -67,4 +91,76 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #98a2b3;
+}
+
+/* Quasar Dark mode adaptations */
+body.body--dark {
+  .q-card {
+    background: var(--wo-bg-card);
+    color: var(--wo-text-main);
+  }
+
+  .q-menu {
+    background: var(--wo-bg-card);
+    color: var(--wo-text-main);
+    border: 1px solid var(--wo-border);
+  }
+
+  .q-dialog .q-card {
+    background: var(--wo-bg-card);
+    color: var(--wo-text-main);
+    border: 1px solid var(--wo-border);
+  }
+
+  .q-separator {
+    background: var(--wo-border-subtle);
+  }
+
+  .q-field--outlined .q-field__control {
+    background: var(--wo-bg-input);
+  }
+
+  .q-field--outlined .q-field__control:before {
+    border-color: var(--wo-border);
+  }
+
+  .q-field--outlined:hover .q-field__control:before {
+    border-color: var(--wo-text-subtle);
+  }
+
+  .q-field__native,
+  .q-field__input {
+    color: var(--wo-text-main);
+  }
+
+  .q-field__label {
+    color: var(--wo-text-muted);
+  }
+
+  .q-table__container {
+    background: var(--wo-bg-card);
+    color: var(--wo-text-main);
+  }
+
+  .q-table th {
+    background: var(--wo-bg-page);
+    color: var(--wo-text-muted);
+    border-color: var(--wo-border);
+  }
+
+  .q-table td {
+    border-color: var(--wo-border-subtle);
+  }
+
+  .q-table tbody tr:hover {
+    background: var(--wo-bg-card-hover);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #333d52;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
 }

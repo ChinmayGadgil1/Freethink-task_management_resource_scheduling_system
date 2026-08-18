@@ -108,7 +108,6 @@ export async function getProjectById(projectId: number) {
 
     return projects[0];
 }
-
 export async function assignResourceToProject(
     projectId: number,
     projectManagerId: number,
@@ -177,6 +176,7 @@ export async function assignResourceToProject(
 
 export async function getProjectIdsByMember(userId: number): Promise<number[]> {
     const pool = getPool();
+
     const [rows] = await pool.query<RowDataPacket[]>(
         `
         SELECT project_id
@@ -185,11 +185,16 @@ export async function getProjectIdsByMember(userId: number): Promise<number[]> {
         `,
         [userId]
     );
+
     return rows.map(r => Number(r.project_id));
 }
 
-export async function isProjectMember(projectId: number, userId: number): Promise<boolean> {
+export async function isProjectMember(
+    projectId: number,
+    userId: number
+): Promise<boolean> {
     const pool = getPool();
+
     const [rows] = await pool.query<RowDataPacket[]>(
         `
         SELECT 1
@@ -200,5 +205,50 @@ export async function isProjectMember(projectId: number, userId: number): Promis
         `,
         [projectId, userId]
     );
+
     return rows.length > 0;
+}
+
+export async function updateProject(
+    projectId: number,
+    projectManagerId: number,
+    name: string,
+    description: string | null,
+    status: ProjectStatus,
+    priority: ProjectPriority,
+    startDate: string | null,
+    deadline: string | null
+) {
+    const pool = getPool();
+
+    const [result] = await pool.query<ResultSetHeader>(
+        `
+        UPDATE projects
+        SET
+            name = ?,
+            description = ?,
+            status = ?,
+            priority = ?,
+            start_date = ?,
+            deadline = ?
+        WHERE project_id = ?
+          AND project_manager_id = ?
+        `,
+        [
+            name,
+            description,
+            status,
+            priority,
+            startDate,
+            deadline,
+            projectId,
+            projectManagerId
+        ]
+    );
+
+    if (result.affectedRows === 0) {
+        return null;
+    }
+
+    return getProjectById(projectId);
 }

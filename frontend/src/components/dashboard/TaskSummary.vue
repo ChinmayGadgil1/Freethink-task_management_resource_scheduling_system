@@ -134,21 +134,20 @@ const columns = [
   },
 ];
 </script>
-
 <style scoped lang="scss">
 .task-center {
   display: grid;
   grid-template-columns: repeat(4, minmax(200px, 1fr));
-  border: 1px solid #eaecef;
+  border: 1px solid var(--wo-border);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--wo-bg-card);
   overflow: hidden;
 }
 
 .task-column {
   min-width: 0;
   padding: 0 10px 8px;
-  border-right: 1px solid #f0f2f5;
+  border-right: 1px solid var(--wo-border-subtle);
   display: flex;
   flex-direction: column;
 }
@@ -164,8 +163,8 @@ const columns = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f9fafb;
-  border-bottom: 1px solid #f0f2f5;
+  background: var(--wo-bg-card-hover);
+  border-bottom: 1px solid var(--wo-border-subtle);
   font-size: 11px;
   font-weight: 600;
 }
@@ -174,16 +173,16 @@ const columns = [
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #344054;
+  color: var(--wo-text-main);
 }
 
 .column-count-badge {
-  color: #667085;
+  color: var(--wo-text-muted);
   font-size: 10px;
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 6px;
-  background: #f2f4f7;
+  background: var(--wo-bg-tag);
 }
 
 .column-header.priority .column-title {
@@ -210,6 +209,7 @@ const columns = [
   .task-center {
     overflow-x: auto;
   }
+
   .task-column {
     min-width: 220px;
   }

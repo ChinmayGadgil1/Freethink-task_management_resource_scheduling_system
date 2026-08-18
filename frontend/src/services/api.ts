@@ -124,6 +124,43 @@ export async function getProjectsApi(): Promise<Project[]> {
 
   return data.projects ?? [];
 }
+export async function getProjectByIdApi(projectId: number): Promise<Project> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch project');
+  }
+
+  return data.project;
+}
+export interface UpdateProjectPayload {
+  name: string;
+  description?: string | null;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  start_date?: string | null;
+  deadline?: string | null;
+}
+
+export async function updateProjectApi(
+  projectId: number,
+  payload: UpdateProjectPayload,
+): Promise<Project> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update project');
+  }
+
+  return data.project;
+}
 
 export async function getTasksApi(projectId?: number): Promise<Task[]> {
   const url = new URL(`${API_BASE_URL}/tasks`);
@@ -171,18 +208,9 @@ export async function createTaskApi(payload: CreateTaskPayload): Promise<Task> {
 }
 
 export type ProjectStatus =
-  | 'DRAFT'
-  | 'PUBLISHED'
-  | 'ACTIVE'
-  | 'ON_HOLD'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  'DRAFT' | 'PUBLISHED' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
 
-export type ProjectPriority =
-  | 'LOW'
-  | 'MEDIUM'
-  | 'HIGH'
-  | 'CRITICAL';
+export type ProjectPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export interface CreateProjectPayload {
   project_manager_id: number;
@@ -194,9 +222,7 @@ export interface CreateProjectPayload {
   deadline?: string | null;
 }
 
-export async function createProjectApi(
-  payload: CreateProjectPayload
-): Promise<Project> {
+export async function createProjectApi(payload: CreateProjectPayload): Promise<Project> {
   const response = await authenticatedFetch(`${API_BASE_URL}/projects`, {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -210,5 +236,3 @@ export async function createProjectApi(
 
   return data.project;
 }
-
-

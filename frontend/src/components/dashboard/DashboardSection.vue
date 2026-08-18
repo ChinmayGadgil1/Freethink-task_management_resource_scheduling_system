@@ -74,15 +74,15 @@ defineEmits<{
 .section-intro {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border: 1px solid #eaecef;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 12px;
   padding: 20px 18px 18px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
+  box-shadow: var(--wo-card-shadow, 0 1px 3px rgba(16, 24, 40, 0.02));
 }
 
 .section-number {
-  color: #8b6fd8;
+  color: var(--wo-primary, #8b6fd8);
   font-size: 24px;
   line-height: 1;
   font-weight: 800;
@@ -91,7 +91,7 @@ defineEmits<{
 
 .section-label {
   margin-top: 8px;
-  color: #667085;
+  color: var(--wo-text-muted, #667085);
   font-size: 10px;
   line-height: 1.2;
   font-weight: 700;
@@ -101,7 +101,7 @@ defineEmits<{
 
 .section-title {
   margin: 14px 0 0;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 17px;
   line-height: 1.25;
   font-weight: 700;
@@ -110,7 +110,7 @@ defineEmits<{
 
 .section-description {
   margin: 8px 0 0;
-  color: #667085;
+  color: var(--wo-text-muted, #667085);
   font-size: 11px;
   line-height: 1.45;
   flex-grow: 1;
@@ -121,7 +121,7 @@ defineEmits<{
   align-items: center;
   gap: 4px;
   margin-top: 14px;
-  color: #8b6fd8;
+  color: var(--wo-primary, #8b6fd8);
   font-size: 11px;
   font-weight: 600;
   text-decoration: none;
@@ -130,7 +130,7 @@ defineEmits<{
 
 .section-action:hover {
   gap: 7px;
-  color: #7554cc;
+  color: var(--wo-primary-dark, #7554cc);
 }
 
 .section-content-wrapper {
@@ -143,12 +143,12 @@ defineEmits<{
 .section-content {
   flex: 1;
   min-width: 0;
-  background: #ffffff;
-  border: 1px solid #eaecef;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 12px;
   padding: 16px 18px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
+  box-shadow: var(--wo-card-shadow, 0 1px 3px rgba(16, 24, 40, 0.02));
 }
 
 .carousel-arrow {
@@ -161,20 +161,20 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #eaecef;
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 50%;
-  background: #ffffff;
-  color: #667085;
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-muted, #667085);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(16, 24, 40, 0.06);
+  box-shadow: var(--wo-card-shadow, 0 2px 4px rgba(16, 24, 40, 0.06));
   transition: all 0.15s ease;
   padding: 0;
 }
 
 .carousel-arrow:hover {
-  color: #1d2433;
-  border-color: #d0d5dd;
-  background: #f9fafb;
+  color: var(--wo-text-main, #1d2433);
+  border-color: var(--wo-primary, #d0d5dd);
+  background: var(--wo-bg-card-hover, #f9fafb);
 }
 
 .carousel-arrow.prev {
