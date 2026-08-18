@@ -108,3 +108,69 @@ export async function getProjectById(projectId: number) {
 
     return projects[0];
 }
+
+export async function assignResourceToProject(
+    projectId: number,
+    projectManagerId: number,
+    resourceId: number
+) {
+    const pool = getPool();
+
+    const [projects] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT project_id
+        FROM projects
+        WHERE project_id = ?
+          AND project_manager_id = ?
+        LIMIT 1
+        `,
+        [projectId, projectManagerId]
+    );
+
+    if (projects.length === 0)
+        throw new Error("PROJECT_NOT_FOUND");
+
+    const [users] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT user_id
+        FROM users
+        WHERE user_id = ?
+          AND role = 'RESOURCE'
+          AND is_active = TRUE
+        LIMIT 1
+        `,
+        [resourceId]
+    );
+
+    if (users.length === 0)
+        throw new Error("RESOURCE_NOT_FOUND");
+
+    const [existingAssignments] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT project_id
+        FROM project_members
+        WHERE project_id = ?
+          AND user_id = ?
+        LIMIT 1
+        `,
+        [projectId, resourceId]
+    );
+
+    if (existingAssignments.length > 0)
+        throw new Error("RESOURCE_ALREADY_ASSIGNED");
+
+    await pool.query(
+        `
+        INSERT INTO project_members
+            (project_id, user_id)
+        VALUES
+            (?, ?)
+        `,
+        [projectId, resourceId]
+    );
+
+    return {
+        project_id: projectId,
+        user_id: resourceId
+    };
+}

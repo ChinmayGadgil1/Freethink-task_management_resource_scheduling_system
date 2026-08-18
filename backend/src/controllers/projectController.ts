@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createProject, getProjectsByManager } from "../services/projectService.js";
+import { createProject, getProjectsByManager, assignResourceToProject } from "../services/projectService.js";
 
 const createProjectSchema = z.object({
     project_manager_id: z.number().int().positive(),
@@ -92,6 +92,70 @@ export async function getProjects(req: AuthRequest, res: Response) {
     }
     catch (error) {
         console.error("Fetch projects error:", error);
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+}
+
+export async function assignResource(
+    req: AuthRequest<{ project_id: string }>,
+    res: Response
+) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({
+                message: "Only project managers can assign resources"
+            });
+        }
+
+        const projectId = Number(req.params.project_id);
+        const resourceId = Number(req.body.user_id);
+
+        if (!Number.isInteger(projectId) || projectId <= 0) {
+            return res.status(400).json({
+                message: "Invalid project ID"
+            });
+        }
+
+        if (!Number.isInteger(resourceId) || resourceId <= 0) {
+            return res.status(400).json({
+                message: "Invalid resource ID"
+            });
+        }
+
+        const assignment = await assignResourceToProject(
+            projectId,
+            req.user.user_id,
+            resourceId
+        );
+
+        return res.status(201).json({
+            message: "Resource assigned successfully",
+            assignment
+        });
+    }
+    catch (error: any) {
+        console.error("Assign resource error:", error);
+
+        if (error.message === "PROJECT_NOT_FOUND") {
+            return res.status(404).json({
+                message: "Project not found"
+            });
+        }
+
+        if (error.message === "RESOURCE_NOT_FOUND") {
+            return res.status(404).json({
+                message: "Resource not found"
+            });
+        }
+
+        if (error.message === "RESOURCE_ALREADY_ASSIGNED") {
+            return res.status(409).json({
+                message: "Resource is already assigned to this project"
+            });
+        }
 
         return res.status(500).json({
             message: "Internal server error"

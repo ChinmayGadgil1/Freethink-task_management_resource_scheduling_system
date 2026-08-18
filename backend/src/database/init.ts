@@ -75,6 +75,26 @@ export async function initializeDatabase() {
     console.log("Tasks table created successfully.");
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS project_members (
+            project_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            PRIMARY KEY (project_id, user_id),
+
+            FOREIGN KEY (project_id)
+                REFERENCES projects(project_id)
+                ON DELETE CASCADE,
+
+            FOREIGN KEY (user_id)
+                REFERENCES users(user_id)
+                ON DELETE CASCADE
+        )
+    `);
+
+    console.log("Project members table created successfully.");
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS task_assignments (
             task_id BIGINT NOT NULL,
             user_id BIGINT NOT NULL,
