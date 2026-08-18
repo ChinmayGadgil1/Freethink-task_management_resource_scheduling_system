@@ -98,6 +98,10 @@ const routes: RouteRecordRaw[] = [
         path: 'task-details/:id',
         component: () => import('@/pages/resource/TaskDetailsPage.vue'),
       },
+      {
+        path: 'progress',
+        component: () => import('@/pages/resource/ProgressPage.vue'),
+      },
     ],
   },
 

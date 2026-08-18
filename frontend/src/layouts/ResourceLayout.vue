@@ -164,7 +164,7 @@ const navLinks = [
   { label: 'Dashboard', to: '/app/resource-dashboard', disabled: false },
   { label: 'My Tasks', to: '/app/resource-dashboard/tasks', disabled: false },
   { label: 'Task Specs', to: '/app/resource-dashboard/task-details', disabled: false },
-  { label: 'Progress', to: '/app/resource-dashboard/progress', disabled: true },
+  { label: 'Progress', to: '/app/resource-dashboard/progress', disabled: false },
 ];
 
 function logout() {
