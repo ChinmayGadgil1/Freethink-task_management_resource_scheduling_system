@@ -216,14 +216,15 @@ export interface ResourceWorkload {
   tasks: ResourceWorkloadTask[];
 }
 
-// Get workload for the logged-in Resource
+// Get workload for a Resource (or logged-in resource if omitted)
 export async function getResourceWorkloadApi(
-  resourceId: number
+  resourceId?: number
 ): Promise<ResourceWorkload> {
-  const response = await authenticatedFetch(
-    `${API_BASE_URL}/tasks/resources/${resourceId}/workload`
-  );
+  const url = resourceId
+    ? `${API_BASE_URL}/tasks/resources/${resourceId}/workload`
+    : `${API_BASE_URL}/tasks/resources/me/workload`;
 
+  const response = await authenticatedFetch(url);
   const data = await response.json();
 
   if (!response.ok) {
@@ -331,3 +332,19 @@ export async function assignProjectMemberApi(projectId: number, userId: number) 
 
   return data;
 }
+
+export async function assignTaskResourceApi(taskId: number, userId: number) {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/assign`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to assign resource to task');
+  }
+
+  return data;
+}
+

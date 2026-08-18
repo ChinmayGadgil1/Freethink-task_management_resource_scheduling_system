@@ -731,11 +731,11 @@ function goToProjects() {
 }
 
 function goToMyTasks() {
-  void router.push('/app/resource-dashboard/tasks');
+  void router.push('/pm/tasks');
 }
 
 function goToResources() {
-  void router.push('/app/resource-dashboard');
+  void router.push('/pm/resources');
 }
 
 function scrollToTimeline() {

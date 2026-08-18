@@ -51,11 +51,15 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'tasks',
-        redirect: '/app/resource-dashboard/tasks',
+        component: () => import('@/pages/pm/TasksPage.vue'),
       },
       {
         path: 'resources',
-        redirect: '/app/resource-dashboard',
+        component: () => import('@/pages/pm/ResourcesPage.vue'),
+      },
+      {
+        path: 'resources/:id',
+        component: () => import('@/pages/pm/ResourceDetailsPage.vue'),
       },
       {
         path: 'schedule',

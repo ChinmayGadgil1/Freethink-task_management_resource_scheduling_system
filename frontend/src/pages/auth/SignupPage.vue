@@ -129,11 +129,11 @@
           <!-- Create Account Button -->
           <q-btn
             type="submit"
-            elevated
+            unelevated
             no-caps
             label="Create Account"
-            color="orange-3"
-            text-color="dark"
+            color="deep-purple"
+            text-color="white"
             class="full-width rounded-borders q-mt-sm"
             size="md"
             :loading="loading"

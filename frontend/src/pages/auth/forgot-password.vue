@@ -40,11 +40,11 @@
           <!-- Send Reset Link Button -->
           <q-btn
             type="submit"
-            elevated
+            unelevated
             no-caps
             label="Send Reset Link"
-            color="orange-3"
-            text-color="dark"
+            color="deep-purple"
+            text-color="white"
             class="full-width rounded-borders q-mt-sm"
             size="md"
             :loading="loading"

@@ -82,11 +82,11 @@
           <!-- Sign In Button -->
           <q-btn
             type="submit"
-            elevated
+            unelevated
             no-caps
             label="Sign in"
-            color="orange-3"
-            text-color="dark"
+            color="deep-purple"
+            text-color="white"
             class="full-width rounded-borders"
             size="md"
             :loading="loading"

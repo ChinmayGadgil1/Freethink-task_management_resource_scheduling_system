@@ -40,11 +40,11 @@
             Projects
           </router-link>
 
-          <router-link to="/app/resource-dashboard/tasks" class="nav-link" active-class="nav-link-active">
+          <router-link to="/pm/tasks" class="nav-link" active-class="nav-link-active">
             Tasks
           </router-link>
 
-          <router-link to="/app/resource-dashboard" class="nav-link" active-class="nav-link-active">
+          <router-link to="/pm/resources" class="nav-link" active-class="nav-link-active">
             Resources
           </router-link>
 
@@ -333,8 +333,8 @@ const resources = [
 const quickLinks = [
   { title: 'PM Dashboard', icon: 'dashboard', route: '/pm/dashboard' },
   { title: 'Projects Overview', icon: 'folder', route: '/pm/projects' },
-  { title: 'My Work & Tasks', icon: 'task_alt', route: '/app/resource-dashboard/tasks' },
-  { title: 'Resource Workload', icon: 'groups', route: '/app/resource-dashboard' },
+  { title: 'My Work & Tasks', icon: 'task_alt', route: '/pm/tasks' },
+  { title: 'Resource Workload', icon: 'groups', route: '/pm/resources' },
 ];
 
 async function loadSearchData() {
