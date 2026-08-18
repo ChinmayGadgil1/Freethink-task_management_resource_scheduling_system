@@ -3,7 +3,7 @@
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
         <!-- Brand -->
-        <div class="brand">
+        <div class="brand cursor-pointer" @click="goToHome">
           <div class="brand-mark">
             <svg
               width="20"
@@ -40,11 +40,11 @@
             Projects
           </router-link>
 
-          <router-link to="/pm/tasks" class="nav-link" active-class="nav-link-active">
+          <router-link to="/app/resource-dashboard/tasks" class="nav-link" active-class="nav-link-active">
             Tasks
           </router-link>
 
-          <router-link to="/pm/resources" class="nav-link" active-class="nav-link-active">
+          <router-link to="/app/resource-dashboard" class="nav-link" active-class="nav-link-active">
             Resources
           </router-link>
 
@@ -63,21 +63,142 @@
 
         <!-- Header Actions -->
         <div class="header-actions">
-          <q-input
-            v-model="searchQuery"
-            dense
-            outlined
-            placeholder="Search anything..."
-            class="header-search"
-          >
-            <template #prepend>
-              <q-icon name="search" size="18px" color="grey-6" />
-            </template>
+          <div class="search-container">
+            <q-input
+              ref="searchRef"
+              v-model="searchQuery"
+              dense
+              outlined
+              placeholder="Search anything..."
+              class="header-search"
+              @focus="loadSearchData"
+            >
+              <template #prepend>
+                <q-icon name="search" size="18px" color="grey-6" />
+              </template>
 
-            <template #append>
-              <span class="search-shortcut">⌘K</span>
-            </template>
-          </q-input>
+              <template #append>
+                <q-icon
+                  v-if="searchQuery"
+                  name="close"
+                  size="14px"
+                  class="cursor-pointer"
+                  @click="searchQuery = ''"
+                />
+                <span v-else class="search-shortcut">⌘K</span>
+              </template>
+            </q-input>
+
+            <!-- Search Results Dropdown -->
+            <q-menu
+              v-if="searchQuery.trim().length > 0"
+              :model-value="true"
+              fit
+              no-focus
+              no-parent-event
+              anchor="bottom start"
+              self="top start"
+              :offset="[0, 6]"
+              style="max-height: 400px; min-width: 320px; border-radius: 10px"
+            >
+              <q-list dense separator>
+                <!-- Projects -->
+                <template v-if="filteredResults.projects.length > 0">
+                  <q-item-label header class="text-weight-bold text-caption text-primary q-py-xs">
+                    PROJECTS
+                  </q-item-label>
+                  <q-item
+                    v-for="p in filteredResults.projects"
+                    :key="`proj-${p.project_id}`"
+                    clickable
+                    v-close-popup
+                    @click="goToRoute(`/pm/projects/${p.project_id}`)"
+                  >
+                    <q-item-section avatar style="min-width: 28px">
+                      <q-icon name="folder" color="primary" size="16px" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium text-caption">{{ p.name }}</q-item-label>
+                      <q-item-label caption>{{ p.status }} • {{ p.progress || 0 }}%</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+
+                <!-- Tasks -->
+                <template v-if="filteredResults.tasks.length > 0">
+                  <q-item-label header class="text-weight-bold text-caption text-teal q-py-xs">
+                    TASKS
+                  </q-item-label>
+                  <q-item
+                    v-for="t in filteredResults.tasks"
+                    :key="`task-${t.task_id}`"
+                    clickable
+                    v-close-popup
+                    @click="goToRoute(`/pm/projects/${t.project_id}`)"
+                  >
+                    <q-item-section avatar style="min-width: 28px">
+                      <q-icon name="task_alt" color="teal" size="16px" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium text-caption">{{ t.title }}</q-item-label>
+                      <q-item-label caption>{{ t.status }} • {{ t.priority }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+
+                <!-- Resources -->
+                <template v-if="filteredResults.resources.length > 0">
+                  <q-item-label header class="text-weight-bold text-caption text-orange q-py-xs">
+                    TEAM & RESOURCES
+                  </q-item-label>
+                  <q-item
+                    v-for="r in filteredResults.resources"
+                    :key="r.name"
+                    clickable
+                    v-close-popup
+                    @click="goToRoute(r.route)"
+                  >
+                    <q-item-section avatar style="min-width: 28px">
+                      <q-icon name="person" color="orange" size="16px" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium text-caption">{{ r.name }}</q-item-label>
+                      <q-item-label caption>{{ r.role }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+
+                <!-- Quick Navigation -->
+                <template v-if="filteredResults.links.length > 0">
+                  <q-item-label header class="text-weight-bold text-caption text-grey-7 q-py-xs">
+                    QUICK NAVIGATION
+                  </q-item-label>
+                  <q-item
+                    v-for="l in filteredResults.links"
+                    :key="l.title"
+                    clickable
+                    v-close-popup
+                    @click="goToRoute(l.route)"
+                  >
+                    <q-item-section avatar style="min-width: 28px">
+                      <q-icon :name="l.icon" color="grey-7" size="16px" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium text-caption">{{ l.title }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+
+                <!-- No matches -->
+                <div
+                  v-if="filteredResults.total === 0"
+                  class="text-caption text-grey-6 text-center q-pa-md"
+                >
+                  No matches found for "{{ searchQuery }}"
+                </div>
+              </q-list>
+            </q-menu>
+          </div>
 
           <q-btn
             flat
@@ -95,7 +216,39 @@
           </q-btn>
 
           <q-btn flat round dense icon="notifications_none" color="grey-7" class="header-icon-btn">
-            <q-badge floating color="primary" rounded class="notification-badge"> 6 </q-badge>
+            <q-badge floating color="primary" rounded class="notification-badge"> 3 </q-badge>
+            <q-menu anchor="bottom end" self="top end">
+              <q-list style="min-width: 260px">
+                <q-item-label header class="text-weight-bold">Notifications</q-item-label>
+                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
+                  <q-item-section avatar style="min-width: 28px">
+                    <q-icon name="check_circle" color="positive" size="18px" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-caption text-weight-medium">Website Redesign UI Phase</q-item-label>
+                    <q-item-label caption>Milestone completed on track</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
+                  <q-item-section avatar style="min-width: 28px">
+                    <q-icon name="assignment_ind" color="primary" size="18px" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-caption text-weight-medium">New Task Assigned</q-item-label>
+                    <q-item-label caption>Payment integration assigned to Rohit</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
+                  <q-item-section avatar style="min-width: 28px">
+                    <q-icon name="warning" color="warning" size="18px" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-caption text-weight-medium">Sprint Review Approaching</q-item-label>
+                    <q-item-label caption>Due in 3 days</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
           </q-btn>
 
           <!-- Real authenticated user -->
@@ -155,14 +308,99 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
+import { getProjectsApi, getTasksApi, type Project, type Task } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
 
 const searchQuery = ref('');
+const searchRef = ref<{ focus: () => void } | null>(null);
+
+const projects = ref<Project[]>([]);
+const tasks = ref<Task[]>([]);
+
+const resources = [
+  { name: 'Rohit Verma', role: 'UI/UX Designer', route: '/app/resource-dashboard' },
+  { name: 'Sneha Iyer', role: 'Frontend Developer', route: '/app/resource-dashboard' },
+  { name: 'Arjun Mehta', role: 'Backend Developer', route: '/app/resource-dashboard' },
+  { name: 'Priya Singh', role: 'QA Engineer', route: '/app/resource-dashboard' },
+  { name: 'Vikram Patel', role: 'DevOps Engineer', route: '/app/resource-dashboard' },
+];
+
+const quickLinks = [
+  { title: 'PM Dashboard', icon: 'dashboard', route: '/pm/dashboard' },
+  { title: 'Projects Overview', icon: 'folder', route: '/pm/projects' },
+  { title: 'My Work & Tasks', icon: 'task_alt', route: '/app/resource-dashboard/tasks' },
+  { title: 'Resource Workload', icon: 'groups', route: '/app/resource-dashboard' },
+];
+
+async function loadSearchData() {
+  try {
+    if (projects.value.length === 0) {
+      projects.value = await getProjectsApi();
+    }
+    if (tasks.value.length === 0) {
+      tasks.value = await getTasksApi();
+    }
+  } catch {
+    // Keep local fallback state if offline
+  }
+}
+
+const filteredResults = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) {
+    return { projects: [], tasks: [], resources: [], links: [], total: 0 };
+  }
+
+  const matchedProjects = projects.value.filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      (p.description && p.description.toLowerCase().includes(q)),
+  );
+
+  const matchedTasks = tasks.value.filter(
+    (t) =>
+      t.title.toLowerCase().includes(q) ||
+      (t.description && t.description.toLowerCase().includes(q)),
+  );
+
+  const matchedResources = resources.filter(
+    (r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q),
+  );
+
+  const matchedLinks = quickLinks.filter((l) => l.title.toLowerCase().includes(q));
+
+  const total =
+    matchedProjects.length + matchedTasks.length + matchedResources.length + matchedLinks.length;
+
+  return {
+    projects: matchedProjects.slice(0, 4),
+    tasks: matchedTasks.slice(0, 4),
+    resources: matchedResources.slice(0, 4),
+    links: matchedLinks.slice(0, 4),
+    total,
+  };
+});
+
+function goToRoute(path: string) {
+  searchQuery.value = '';
+  void router.push(path);
+}
+
+function goToHome() {
+  void router.push('/pm/dashboard');
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    searchRef.value?.focus();
+  }
+}
 
 interface User {
   user_id: number;
@@ -179,6 +417,8 @@ function toggleDarkMode() {
 }
 
 onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+
   const savedTheme = localStorage.getItem('taskflow_theme');
   if (savedTheme) {
     $q.dark.set(savedTheme === 'dark');
@@ -193,6 +433,12 @@ onMounted(() => {
       console.error('Failed to parse stored user:', error);
     }
   }
+
+  void loadSearchData();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
 
 function handleLogout() {

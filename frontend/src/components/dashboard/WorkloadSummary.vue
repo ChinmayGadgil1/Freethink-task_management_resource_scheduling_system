@@ -1,12 +1,34 @@
 <template>
   <div class="workload-wrapper">
     <div class="resource-grid">
-      <div v-for="(resource, index) in resources" :key="resource.name" class="resource-card">
+      <div
+        v-for="(resource, index) in resources"
+        :key="resource.name"
+        class="resource-card cursor-pointer"
+        @click="goToResources"
+      >
         <div class="resource-top">
           <q-avatar size="36px" class="resource-avatar">
             <img :src="resource.avatar" :alt="resource.name" />
           </q-avatar>
-          <q-icon name="more_horiz" size="18px" class="resource-menu" />
+          <q-icon name="more_horiz" size="18px" class="resource-menu" @click.stop>
+            <q-menu anchor="bottom end" self="top end">
+              <q-list dense style="min-width: 150px">
+                <q-item clickable v-close-popup @click="goToResources">
+                  <q-item-section avatar style="min-width: 24px">
+                    <q-icon name="person" size="14px" color="primary" />
+                  </q-item-section>
+                  <q-item-section>View Workload</q-item-section>
+                </q-item>
+                <q-item clickable v-close-popup @click="goToProjects">
+                  <q-item-section avatar style="min-width: 24px">
+                    <q-icon name="assignment_ind" size="14px" color="grey-7" />
+                  </q-item-section>
+                  <q-item-section>Assign to Project</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-icon>
         </div>
 
         <div class="resource-name">{{ resource.name }}</div>
@@ -52,6 +74,18 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+function goToResources() {
+  void router.push('/app/resource-dashboard');
+}
+
+function goToProjects() {
+  void router.push('/pm/projects');
+}
+
 const avatarRohit =
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80';
 const avatarSneha =

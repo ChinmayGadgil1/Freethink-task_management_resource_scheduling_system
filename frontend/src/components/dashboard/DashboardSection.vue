@@ -8,7 +8,12 @@
       <h2 class="section-title">{{ title }}</h2>
       <p class="section-description">{{ description }}</p>
 
-      <a v-if="actionLabel" href="javascript:void(0)" class="section-action">
+      <a
+        v-if="actionLabel"
+        href="javascript:void(0)"
+        class="section-action"
+        @click.prevent="$emit('action')"
+      >
         <span>{{ actionLabel }}</span>
         <q-icon name="arrow_forward" size="14px" />
       </a>
@@ -59,6 +64,7 @@ withDefaults(
 defineEmits<{
   (e: 'prev'): void;
   (e: 'next'): void;
+  (e: 'action'): void;
 }>();
 </script>
 

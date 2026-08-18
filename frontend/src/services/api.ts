@@ -236,3 +236,45 @@ export async function createProjectApi(payload: CreateProjectPayload): Promise<P
 
   return data.project;
 }
+
+export interface UpdateTaskPayload {
+  title?: string;
+  description?: string | null;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  start_date?: string | null;
+  deadline?: string | null;
+  expected_effort?: number;
+  actual_effort?: number;
+  progress?: number;
+}
+
+export async function updateTaskApi(taskId: number, payload: UpdateTaskPayload): Promise<Task> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update task');
+  }
+
+  return data.task;
+}
+
+export async function assignProjectMemberApi(projectId: number, userId: number) {
+  const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}/members`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to assign resource to project');
+  }
+
+  return data;
+}

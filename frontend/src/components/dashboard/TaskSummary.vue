@@ -18,6 +18,8 @@
           :date="task.date"
           :avatar="task.avatar"
           :initials="task.initials"
+          :project-id="task.projectId"
+          :task-id="task.taskId"
         />
       </div>
     </div>
@@ -25,7 +27,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import TaskRow from './TaskRow.vue';
+import type { Task, Project } from '@/services/api';
+
+const props = defineProps<{
+  tasks?: Task[];
+  projects?: Project[];
+}>();
 
 const avatarRohit =
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80';
@@ -36,7 +45,17 @@ const avatarArjun =
 const avatarPriya =
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80';
 
-const columns = [
+interface SummaryTask {
+  title: string;
+  project: string;
+  date: string;
+  avatar?: string;
+  initials?: string;
+  projectId?: number;
+  taskId?: number;
+}
+
+const defaultColumns = [
   {
     title: 'High Priority',
     icon: 'flag',
@@ -49,6 +68,8 @@ const columns = [
         date: 'May 23',
         avatar: avatarRohit,
         initials: 'R',
+        projectId: 1,
+        taskId: 101
       },
       {
         title: 'User Authentication Module',
@@ -56,6 +77,8 @@ const columns = [
         date: 'May 25',
         avatar: avatarSneha,
         initials: 'S',
+        projectId: 2,
+        taskId: 102
       },
       {
         title: 'API Security Audit',
@@ -63,6 +86,8 @@ const columns = [
         date: 'May 26',
         avatar: avatarPriya,
         initials: 'P',
+        projectId: 3,
+        taskId: 103
       },
     ],
   },
@@ -78,6 +103,8 @@ const columns = [
         date: 'May 27',
         avatar: avatarArjun,
         initials: 'A',
+        projectId: 1,
+        taskId: 104
       },
       {
         title: 'Payment Gateway Integration',
@@ -85,6 +112,8 @@ const columns = [
         date: 'May 28',
         avatar: avatarRohit,
         initials: 'R',
+        projectId: 2,
+        taskId: 105
       },
     ],
   },
@@ -100,6 +129,8 @@ const columns = [
         date: 'May 30',
         avatar: avatarArjun,
         initials: 'A',
+        projectId: 3,
+        taskId: 106
       },
       {
         title: 'Content Strategy Review',
@@ -107,6 +138,8 @@ const columns = [
         date: 'May 30',
         avatar: avatarSneha,
         initials: 'S',
+        projectId: 4,
+        taskId: 107
       },
     ],
   },
@@ -122,6 +155,8 @@ const columns = [
         date: 'May 18',
         avatar: avatarRohit,
         initials: 'R',
+        projectId: 1,
+        taskId: 108
       },
       {
         title: 'Requirements Gathering',
@@ -129,10 +164,69 @@ const columns = [
         date: 'May 19',
         avatar: avatarSneha,
         initials: 'S',
+        projectId: 2,
+        taskId: 109
       },
     ],
   },
 ];
+
+const columns = computed(() => {
+  if (!props.tasks || props.tasks.length === 0) {
+    return defaultColumns;
+  }
+
+  const projectMap = new Map<number, string>();
+  if (props.projects) {
+    props.projects.forEach(p => projectMap.set(p.project_id, p.name));
+  }
+
+  const mapTask = (t: Task): SummaryTask => ({
+    title: t.title,
+    project: projectMap.get(t.project_id) || `Project #${t.project_id}`,
+    date: t.deadline ? t.deadline.slice(5) : 'No due date',
+    avatar: avatarRohit,
+    initials: t.title.charAt(0).toUpperCase(),
+    projectId: t.project_id,
+    taskId: t.task_id
+  });
+
+  const highPriority = props.tasks.filter(t => t.priority === 'HIGH' || t.priority === 'CRITICAL');
+  const inProgress = props.tasks.filter(t => t.status === 'IN_PROGRESS');
+  const dueTasks = props.tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+  const completed = props.tasks.filter(t => t.status === 'COMPLETED');
+
+  return [
+    {
+      title: 'High Priority',
+      icon: 'flag',
+      count: highPriority.length,
+      className: 'priority',
+      tasks: highPriority.slice(0, 3).map(mapTask)
+    },
+    {
+      title: 'In Progress',
+      icon: 'radio_button_checked',
+      count: inProgress.length,
+      className: 'progress',
+      tasks: inProgress.slice(0, 3).map(mapTask)
+    },
+    {
+      title: 'Due This Week',
+      icon: 'schedule',
+      count: dueTasks.length,
+      className: 'due',
+      tasks: dueTasks.slice(0, 3).map(mapTask)
+    },
+    {
+      title: 'Completed',
+      icon: 'check_circle',
+      count: completed.length,
+      className: 'completed',
+      tasks: completed.slice(0, 3).map(mapTask)
+    }
+  ];
+});
 </script>
 <style scoped lang="scss">
 .task-center {

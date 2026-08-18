@@ -49,6 +49,26 @@ const routes: RouteRecordRaw[] = [
         path: 'projects/:id',
         component: () => import('@/pages/pm/ProjectDetailsPage.vue'),
       },
+      {
+        path: 'tasks',
+        redirect: '/app/resource-dashboard/tasks',
+      },
+      {
+        path: 'resources',
+        redirect: '/app/resource-dashboard',
+      },
+      {
+        path: 'schedule',
+        redirect: '/pm/dashboard',
+      },
+      {
+        path: 'progress',
+        redirect: '/pm/projects',
+      },
+      {
+        path: 'reports',
+        redirect: '/pm/dashboard',
+      },
     ],
   },
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="task-row">
+  <div class="task-row cursor-pointer" @click="handleRowClick">
     <q-avatar size="26px" class="task-avatar">
       <img v-if="avatar" :src="avatar" :alt="title" />
       <span v-else>{{ initials }}</span>
@@ -11,18 +11,53 @@
     </div>
 
     <div class="task-date">{{ date }}</div>
-    <q-icon name="more_vert" size="16px" class="task-menu" />
+    <q-icon name="more_vert" size="16px" class="task-menu" @click.stop>
+      <q-menu anchor="bottom end" self="top end">
+        <q-list dense style="min-width: 140px">
+          <q-item clickable v-close-popup @click="handleRowClick">
+            <q-item-section avatar style="min-width: 24px">
+              <q-icon name="visibility" size="14px" color="primary" />
+            </q-item-section>
+            <q-item-section>View Details</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="goToProjects">
+            <q-item-section avatar style="min-width: 24px">
+              <q-icon name="folder_open" size="14px" color="grey-7" />
+            </q-item-section>
+            <q-item-section>All Projects</q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-icon>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { useRouter } from 'vue-router';
+
+const props = defineProps<{
   title: string;
   project: string;
   date: string;
-  avatar?: string;
-  initials?: string;
+  avatar?: string | undefined;
+  initials?: string | undefined;
+  projectId?: number | undefined;
+  taskId?: number | undefined;
 }>();
+
+const router = useRouter();
+
+function handleRowClick() {
+  if (props.projectId) {
+    void router.push(`/pm/projects/${props.projectId}`);
+  } else {
+    void router.push('/pm/projects');
+  }
+}
+
+function goToProjects() {
+  void router.push('/pm/projects');
+}
 </script>
 
 <style scoped lang="scss">

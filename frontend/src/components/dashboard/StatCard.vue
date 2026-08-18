@@ -1,5 +1,5 @@
 <template>
-  <div class="stat-card">
+  <div class="stat-card cursor-pointer" @click="$emit('click')">
     <div class="stat-icon-wrapper" :style="{ backgroundColor: iconBgColor, color: iconColor }">
       <q-icon :name="icon" size="22px" />
     </div>
@@ -33,6 +33,10 @@ const props = withDefaults(
     negative: false,
   },
 );
+
+defineEmits<{
+  (e: 'click'): void;
+}>();
 
 const iconColor = computed(() => props.color);
 const iconBgColor = computed(() => props.iconBg || `${props.color}15`);
