@@ -3,7 +3,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
-import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact } from "../services/schedulingService.js";
+import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact, handleTaskCompletionImpact } from "../services/schedulingService.js";
 import { createWorkLog, getWorkLogsByTask } from "../services/workLogService.js";
 
 const createTaskSchema = z.object({
@@ -181,6 +181,13 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
 
         if (shiftDays > 0) {
             await propagateScheduleChanges(taskId, shiftDays);
+        }
+
+        if (parsed.status === "COMPLETED" && task.status !== "COMPLETED") {
+            const today = new Date().toISOString().split("T")[0];
+            if (today) {
+                await handleTaskCompletionImpact(taskId, today);
+            }
         }
 
         const updatedTask = await getTaskById(taskId);

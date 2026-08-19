@@ -165,3 +165,20 @@ export async function checkSchedulingImpact(
             : null
     };
 }
+
+/**
+ * Calculates schedule propagation when a task is completed based on completion date vs deadline.
+ */
+export async function handleTaskCompletionImpact(taskId: number, completionDateStr: string) {
+    const task = await getTaskById(taskId) as any;
+    if (!task || !task.deadline) return;
+
+    const deadlineDate = new Date(task.deadline);
+    const completionDate = new Date(completionDateStr);
+    
+    const shiftDays = Math.round((completionDate.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (shiftDays !== 0) {
+        await propagateScheduleChanges(taskId, shiftDays);
+    }
+}

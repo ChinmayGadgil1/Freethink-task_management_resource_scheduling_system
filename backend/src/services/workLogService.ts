@@ -1,5 +1,6 @@
 import { getPool } from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { handleTaskCompletionImpact } from "./schedulingService.js";
 
 export async function createWorkLog(
     taskId: number,
@@ -56,6 +57,10 @@ export async function createWorkLog(
         );
 
         await connection.commit();
+
+        if (newStatus === "COMPLETED" && task.status !== "COMPLETED") {
+            await handleTaskCompletionImpact(taskId, logDate);
+        }
 
         return {
             log_id: result.insertId,
