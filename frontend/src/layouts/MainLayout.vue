@@ -247,7 +247,7 @@
                     <q-item-label class="text-caption text-weight-medium"
                       >New Task Assigned</q-item-label
                     >
-                    <q-item-label caption>Payment integration assigned to Rohit</q-item-label>
+                    <q-item-label caption>Payment integration assigned to Team Resource</q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
@@ -325,7 +325,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { getProjectsApi, getTasksApi, type Project, type Task } from '@/services/api';
+import { getProjectsApi, getTasksApi, getResourcesApi, type Project, type Task } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -335,14 +335,7 @@ const searchRef = ref<{ focus: () => void } | null>(null);
 
 const projects = ref<Project[]>([]);
 const tasks = ref<Task[]>([]);
-
-const resources = [
-  { name: 'Rohit Verma', role: 'UI/UX Designer', route: '/app/resource-dashboard' },
-  { name: 'Sneha Iyer', role: 'Frontend Developer', route: '/app/resource-dashboard' },
-  { name: 'Arjun Mehta', role: 'Backend Developer', route: '/app/resource-dashboard' },
-  { name: 'Priya Singh', role: 'QA Engineer', route: '/app/resource-dashboard' },
-  { name: 'Vikram Patel', role: 'DevOps Engineer', route: '/app/resource-dashboard' },
-];
+const resources = ref<{ name: string; role: string; route: string }[]>([]);
 
 const quickLinks = [
   { title: 'PM Dashboard', icon: 'dashboard', route: '/pm/dashboard' },
@@ -358,6 +351,14 @@ async function loadSearchData() {
     }
     if (tasks.value.length === 0) {
       tasks.value = await getTasksApi();
+    }
+    if (resources.value.length === 0) {
+      const dbResources = await getResourcesApi();
+      resources.value = dbResources.map((r) => ({
+        name: r.name,
+        role: r.role || 'Team Resource',
+        route: `/pm/resources/${r.user_id}`,
+      }));
     }
   } catch {
     // Keep local fallback state if offline

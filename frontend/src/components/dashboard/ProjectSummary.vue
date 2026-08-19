@@ -150,23 +150,23 @@ const projects = computed<ProjectCard[]>(() =>
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid #eaecef;
+  border: 1px solid var(--wo-border, #eaecef);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--wo-bg-card, #ffffff);
   overflow: hidden;
   transition: all 0.2s ease;
 }
 
 .project-card:hover {
-  border-color: #d0d5dd;
-  box-shadow: 0 4px 10px rgba(16, 24, 40, 0.04);
+  border-color: var(--wo-text-subtle, #d0d5dd);
+  box-shadow: var(--wo-card-shadow, 0 4px 10px rgba(16, 24, 40, 0.04));
 }
 
 .project-cover {
   position: relative;
   height: 80px;
   overflow: hidden;
-  background: #f2f4f7;
+  background: var(--wo-bg-card-hover, #f2f4f7);
 }
 
 .cover-image {
@@ -202,7 +202,7 @@ const projects = computed<ProjectCard[]>(() =>
 }
 
 .project-name {
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 11px;
   line-height: 1.3;
   font-weight: 700;
@@ -222,7 +222,7 @@ const projects = computed<ProjectCard[]>(() =>
   margin-top: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: #f0f2f5;
+  background: var(--wo-border-subtle, #f0f2f5);
 }
 
 .project-progress-bar {
@@ -233,7 +233,7 @@ const projects = computed<ProjectCard[]>(() =>
 
 .project-meta {
   margin-top: 7px;
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 9px;
   font-weight: 500;
 }
@@ -253,7 +253,7 @@ const projects = computed<ProjectCard[]>(() =>
 
 .project-avatar {
   margin-left: -5px;
-  border: 1.5px solid #ffffff;
+  border: 1.5px solid var(--wo-bg-card, #ffffff);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
 }
 
@@ -268,16 +268,16 @@ const projects = computed<ProjectCard[]>(() =>
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #ffffff;
+  border: 1.5px solid var(--wo-bg-card, #ffffff);
   border-radius: 50%;
-  background: #f4f0fd;
-  color: #8b6fd8;
+  background: var(--wo-bg-tag, #f4f0fd);
+  color: var(--wo-primary, #8b6fd8);
   font-size: 8px;
   font-weight: 700;
 }
 
 .project-tasks {
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 9px;
   font-weight: 500;
 }

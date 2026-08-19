@@ -332,6 +332,16 @@
               map-options
               :rules="[(val) => !!val || 'Project is required']"
             />
+            <q-select
+              v-model="newTaskForm.assigned_resource_id"
+              :options="resourceOptions"
+              label="Assign Resource"
+              outlined
+              dense
+              emit-value
+              map-options
+              clearable
+            />
             <q-input
               v-model="newTaskForm.title"
               label="Task Title *"
@@ -660,6 +670,7 @@ const newProjectForm = reactive<{
 
 const newTaskForm = reactive<{
   project_id: number | null;
+  assigned_resource_id: number | null;
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -669,6 +680,7 @@ const newTaskForm = reactive<{
   deadline: string;
 }>({
   project_id: null,
+  assigned_resource_id: null,
   title: '',
   description: '',
   priority: 'MEDIUM',
@@ -863,6 +875,12 @@ async function handleCreateTask() {
   taskSubmitting.value = true;
 
   try {
+    if (newTaskForm.assigned_resource_id) {
+      try {
+        await assignProjectMemberApi(newTaskForm.project_id, newTaskForm.assigned_resource_id);
+      } catch {}
+    }
+
     const payload: CreateTaskPayload = {
       project_id: newTaskForm.project_id,
       title: newTaskForm.title.trim(),
@@ -872,6 +890,7 @@ async function handleCreateTask() {
       expected_effort: Number(newTaskForm.expected_effort) || 4,
       start_date: newTaskForm.start_date || null,
       deadline: newTaskForm.deadline || null,
+      assigned_resource_ids: newTaskForm.assigned_resource_id ? [newTaskForm.assigned_resource_id] : [],
     };
 
     const created = await createTaskApi(payload);

@@ -5,7 +5,7 @@
         v-for="(resource, index) in resources"
         :key="resource.user_id"
         class="resource-card cursor-pointer"
-        @click="goToResources"
+        @click="goToResourceDetails(resource.user_id)"
       >
         <div class="resource-top">
           <q-avatar size="36px" class="resource-avatar">
@@ -14,7 +14,7 @@
           <q-icon name="more_horiz" size="18px" class="resource-menu" @click.stop>
             <q-menu anchor="bottom end" self="top end">
               <q-list dense style="min-width: 150px">
-                <q-item clickable v-close-popup @click="goToResources">
+                <q-item clickable v-close-popup @click="goToResourceDetails(resource.user_id)">
                   <q-item-section avatar style="min-width: 24px">
                     <q-icon name="person" size="14px" color="primary" />
                   </q-item-section>
@@ -33,6 +33,11 @@
 
         <div class="resource-name">{{ resource.name }}</div>
         <div class="resource-role">{{ resource.role }}</div>
+        <div v-if="resource.projectNames && resource.projectNames.length > 0" class="resource-projects">
+          <span v-for="pName in resource.projectNames" :key="pName" class="project-tag">
+            <q-icon name="folder" size="10px" class="q-mr-xs" />{{ pName }}
+          </span>
+        </div>
 
         <div class="resource-workload">{{ resource.workload }}%</div>
         <div class="resource-label">Workload</div>
@@ -87,10 +92,15 @@ const workloadMap = ref<Record<number, {
   workload: number;
   totalExpectedEffort: number;
   status: string;
+  projectNames: string[];
 }>>({});
 
-function goToResources() {
-  void router.push('/app/resource-dashboard');
+function goToResourceDetails(userId?: number) {
+  if (userId) {
+    void router.push(`/pm/resources/${userId}`);
+  } else {
+    void router.push('/pm/resources');
+  }
 }
 
 function goToProjects() {
@@ -180,6 +190,7 @@ const resources = computed(() =>
       statusBg: meta.statusBg,
       stroke: meta.stroke,
       initials: getInitials(resource.name),
+      projectNames: data?.projectNames ?? [],
       path: sparkline.path,
       areaPath: sparkline.areaPath,
     };
@@ -197,10 +208,8 @@ async function loadWorkloads() {
       try {
         const workload = await getResourceWorkloadApi(resource.user_id);
         const expectedHours = Number(workload.total_expected_effort) || 0;
-
-        // Existing backend workload exposes allocated effort.
-        // Use a standard 40h working week to express that effort as a percentage.
         const percentage = Math.round((expectedHours / 40) * 100);
+        const pNames = Array.from(new Set((workload.tasks || []).map((t) => t.project_name).filter((n): n is string => !!n)));
 
         return [
           resource.user_id,
@@ -208,6 +217,7 @@ async function loadWorkloads() {
             workload: Math.max(0, percentage),
             totalExpectedEffort: expectedHours,
             status: getWorkloadMeta(percentage).status,
+            projectNames: pNames,
           },
         ] as const;
       } catch (error) {
@@ -218,6 +228,7 @@ async function loadWorkloads() {
             workload: 0,
             totalExpectedEffort: 0,
             status: 'Light',
+            projectNames: [],
           },
         ] as const;
       }
@@ -250,7 +261,7 @@ watch(
 .resource-card {
   min-width: 0;
   padding: 4px 14px 8px;
-  border-right: 1px solid #f0f2f5;
+  border-right: 1px solid var(--wo-border-subtle, #f0f2f5);
   display: flex;
   flex-direction: column;
 }
@@ -271,7 +282,9 @@ watch(
 }
 
 .resource-avatar {
-  border: 1.5px solid #eaecf0;
+  border: 1.5px solid var(--wo-border, #eaecf0);
+  background: var(--wo-bg-tag, #f4f0fd);
+  color: var(--wo-text-main, #8b6fd8);
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
 }
@@ -283,33 +296,50 @@ watch(
 }
 
 .resource-menu {
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   cursor: pointer;
   border-radius: 4px;
   padding: 2px;
 }
 
 .resource-menu:hover {
-  color: #1d2433;
-  background: #f2f4f7;
+  color: var(--wo-text-main, #1d2433);
+  background: var(--wo-bg-card-hover, #f2f4f7);
 }
 
 .resource-name {
   margin-top: 10px;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 11px;
   font-weight: 700;
 }
 
 .resource-role {
   margin-top: 2px;
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 9px;
+}
+
+.resource-projects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.project-tag {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--q-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.12);
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.2;
 }
 
 .resource-workload {
   margin-top: 14px;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 24px;
   line-height: 1;
   font-weight: 700;
@@ -318,7 +348,7 @@ watch(
 
 .resource-label {
   margin-top: 3px;
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 9px;
 }
 

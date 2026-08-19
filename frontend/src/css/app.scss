@@ -95,18 +95,58 @@ body {
 
 /* Quasar Dark mode adaptations */
 body.body--dark {
-  .q-card {
-    background: var(--wo-bg-card);
-    color: var(--wo-text-main);
+  .q-card,
+  .q-card.bg-white,
+  .q-dialog .q-card {
+    background: var(--wo-bg-card) !important;
+    color: var(--wo-text-main) !important;
+  }
+
+  .q-page.bg-grey-1,
+  .bg-grey-1 {
+    background-color: var(--wo-bg-page) !important;
+  }
+
+  .bg-grey-2,
+  .bg-grey-3 {
+    background-color: var(--wo-bg-card-hover) !important;
+    color: var(--wo-text-main) !important;
+  }
+
+  .text-grey-9,
+  .text-grey-8 {
+    color: var(--wo-text-main) !important;
+  }
+
+  .text-grey-7,
+  .text-grey-6 {
+    color: var(--wo-text-muted) !important;
+  }
+
+  .text-grey-5 {
+    color: var(--wo-text-subtle) !important;
+  }
+
+  .q-tabs.bg-grey-2 {
+    background-color: var(--wo-bg-card-hover) !important;
+    color: var(--wo-text-muted) !important;
+  }
+
+  .q-tab-panels {
+    background: var(--wo-bg-card) !important;
+    color: var(--wo-text-main) !important;
+  }
+
+  .q-tab-panel {
+    background: var(--wo-bg-card) !important;
+  }
+
+  .q-linear-progress__track {
+    background: var(--wo-border-subtle) !important;
+    opacity: 0.8;
   }
 
   .q-menu {
-    background: var(--wo-bg-card);
-    color: var(--wo-text-main);
-    border: 1px solid var(--wo-border);
-  }
-
-  .q-dialog .q-card {
     background: var(--wo-bg-card);
     color: var(--wo-text-main);
     border: 1px solid var(--wo-border);
@@ -156,6 +196,52 @@ body.body--dark {
     background: var(--wo-bg-card-hover);
   }
 
+  /* Status and Priority Pill Overrides for Dark Mode */
+  .priority-low {
+    background: rgba(39, 174, 96, 0.18) !important;
+    color: #4ade80 !important;
+  }
+
+  .priority-medium {
+    background: rgba(232, 149, 50, 0.18) !important;
+    color: #fbbf24 !important;
+  }
+
+  .priority-high {
+    background: rgba(229, 107, 69, 0.18) !important;
+    color: #f87171 !important;
+  }
+
+  .priority-critical {
+    background: rgba(225, 82, 99, 0.18) !important;
+    color: #f87171 !important;
+  }
+
+  .status-pending {
+    background: rgba(148, 163, 184, 0.18) !important;
+    color: #cbd5e1 !important;
+  }
+
+  .status-in_progress {
+    background: rgba(46, 144, 250, 0.18) !important;
+    color: #60a5fa !important;
+  }
+
+  .status-completed {
+    background: rgba(39, 174, 96, 0.18) !important;
+    color: #4ade80 !important;
+  }
+
+  .status-on_hold {
+    background: rgba(232, 149, 50, 0.18) !important;
+    color: #fbbf24 !important;
+  }
+
+  .status-overdue {
+    background: rgba(225, 82, 99, 0.18) !important;
+    color: #f87171 !important;
+  }
+
   ::-webkit-scrollbar-thumb {
     background: #333d52;
   }
@@ -164,3 +250,4 @@ body.body--dark {
     background: #475569;
   }
 }
+

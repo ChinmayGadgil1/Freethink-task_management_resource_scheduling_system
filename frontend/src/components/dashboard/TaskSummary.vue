@@ -36,15 +36,6 @@ const props = defineProps<{
   projects?: Project[];
 }>();
 
-const avatarRohit =
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80';
-const avatarSneha =
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80';
-const avatarArjun =
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80';
-const avatarPriya =
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80';
-
 interface SummaryTask {
   title: string;
   project: string;
@@ -55,126 +46,8 @@ interface SummaryTask {
   taskId?: number;
 }
 
-const defaultColumns = [
-  {
-    title: 'High Priority',
-    icon: 'flag',
-    count: 3,
-    className: 'priority',
-    tasks: [
-      {
-        title: 'Design System Implementation',
-        project: 'Website Redesign',
-        date: 'May 23',
-        avatar: avatarRohit,
-        initials: 'R',
-        projectId: 1,
-        taskId: 101,
-      },
-      {
-        title: 'User Authentication Module',
-        project: 'Mobile App Development',
-        date: 'May 25',
-        avatar: avatarSneha,
-        initials: 'S',
-        projectId: 2,
-        taskId: 102,
-      },
-      {
-        title: 'API Security Audit',
-        project: 'Internal Tools',
-        date: 'May 26',
-        avatar: avatarPriya,
-        initials: 'P',
-        projectId: 3,
-        taskId: 103,
-      },
-    ],
-  },
-  {
-    title: 'In Progress',
-    icon: 'radio_button_checked',
-    count: 2,
-    className: 'progress',
-    tasks: [
-      {
-        title: 'Dashboard UI Design',
-        project: 'Website Redesign',
-        date: 'May 27',
-        avatar: avatarArjun,
-        initials: 'A',
-        projectId: 1,
-        taskId: 104,
-      },
-      {
-        title: 'Payment Gateway Integration',
-        project: 'Mobile App Development',
-        date: 'May 28',
-        avatar: avatarRohit,
-        initials: 'R',
-        projectId: 2,
-        taskId: 105,
-      },
-    ],
-  },
-  {
-    title: 'Due This Week',
-    icon: 'schedule',
-    count: 2,
-    className: 'due',
-    tasks: [
-      {
-        title: 'Performance Optimization',
-        project: 'Internal Tools',
-        date: 'May 30',
-        avatar: avatarArjun,
-        initials: 'A',
-        projectId: 3,
-        taskId: 106,
-      },
-      {
-        title: 'Content Strategy Review',
-        project: 'Marketing Campaign',
-        date: 'May 30',
-        avatar: avatarSneha,
-        initials: 'S',
-        projectId: 4,
-        taskId: 107,
-      },
-    ],
-  },
-  {
-    title: 'Completed',
-    icon: 'check_circle',
-    count: 4,
-    className: 'completed',
-    tasks: [
-      {
-        title: 'Project Kick-off',
-        project: 'Website Redesign',
-        date: 'May 18',
-        avatar: avatarRohit,
-        initials: 'R',
-        projectId: 1,
-        taskId: 108,
-      },
-      {
-        title: 'Requirements Gathering',
-        project: 'Mobile App Development',
-        date: 'May 19',
-        avatar: avatarSneha,
-        initials: 'S',
-        projectId: 2,
-        taskId: 109,
-      },
-    ],
-  },
-];
-
 const columns = computed(() => {
-  if (!props.tasks || props.tasks.length === 0) {
-    return defaultColumns;
-  }
+  const rawTasks = props.tasks || [];
 
   const projectMap = new Map<number, string>();
   if (props.projects) {
@@ -185,18 +58,17 @@ const columns = computed(() => {
     title: t.title,
     project: projectMap.get(t.project_id) || `Project #${t.project_id}`,
     date: t.deadline ? t.deadline.slice(5) : 'No due date',
-    avatar: avatarRohit,
     initials: t.title.charAt(0).toUpperCase(),
     projectId: t.project_id,
     taskId: t.task_id,
   });
 
-  const highPriority = props.tasks.filter(
+  const highPriority = rawTasks.filter(
     (t) => t.priority === 'HIGH' || t.priority === 'CRITICAL',
   );
-  const inProgress = props.tasks.filter((t) => t.status === 'IN_PROGRESS');
-  const dueTasks = props.tasks.filter((t) => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
-  const completed = props.tasks.filter((t) => t.status === 'COMPLETED');
+  const inProgress = rawTasks.filter((t) => t.status === 'IN_PROGRESS');
+  const dueTasks = rawTasks.filter((t) => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+  const completed = rawTasks.filter((t) => t.status === 'COMPLETED');
 
   return [
     {

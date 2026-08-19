@@ -103,7 +103,7 @@ function goToProjects() {
 
 .task-title {
   overflow: hidden;
-  color: #1d2433;
+  color: var(--wo-text-main, #1d2433);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.3;
@@ -114,14 +114,14 @@ function goToProjects() {
 .task-project {
   margin-top: 1px;
   overflow: hidden;
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   font-size: 10px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .task-date {
-  color: #667085;
+  color: var(--wo-text-muted, #667085);
   font-size: 10px;
   font-weight: 500;
   white-space: nowrap;
@@ -129,7 +129,7 @@ function goToProjects() {
 }
 
 .task-menu {
-  color: #98a2b3;
+  color: var(--wo-text-subtle, #98a2b3);
   flex: 0 0 auto;
   cursor: pointer;
   border-radius: 4px;
@@ -137,7 +137,7 @@ function goToProjects() {
 }
 
 .task-menu:hover {
-  color: #1d2433;
-  background: #eaecf0;
+  color: var(--wo-text-main, #1d2433);
+  background: var(--wo-bg-card-hover, #eaecf0);
 }
 </style>

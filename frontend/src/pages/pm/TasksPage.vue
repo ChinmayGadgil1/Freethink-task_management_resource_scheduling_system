@@ -1,9 +1,9 @@
 <template>
-  <q-page class="q-pa-md bg-grey-1">
+  <q-page class="q-pa-md">
     <!-- PAGE HEADER -->
     <div class="row items-center justify-between q-mb-md">
       <div>
-        <div class="text-h6 text-weight-bold text-grey-9">PM Task Management</div>
+        <div class="text-h6 text-weight-bold">PM Task Management</div>
         <div class="text-caption text-grey-7">
           Overview of all tasks across projects managed by you
         </div>
@@ -46,11 +46,11 @@
     <!-- STAT SUMMARY CARDS -->
     <div class="row q-col-gutter-sm q-mb-md">
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="q-pa-sm q-px-md row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Total Tasks</div>
-              <div class="text-h6 text-weight-bold text-grey-9 q-my-none">{{ tasks.length }}</div>
+              <div class="text-h6 text-weight-bold q-my-none">{{ tasks.length }}</div>
               <div class="text-caption text-primary">All managed tasks</div>
             </div>
             <q-avatar color="deep-purple-1" text-color="primary" icon="task_alt" size="36px" />
@@ -59,11 +59,11 @@
       </div>
 
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="q-pa-sm q-px-md row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">In Progress</div>
-              <div class="text-h6 text-weight-bold text-grey-9 q-my-none">
+              <div class="text-h6 text-weight-bold q-my-none">
                 {{ inProgressCount }}
               </div>
               <div class="text-caption text-info">Active work</div>
@@ -74,11 +74,11 @@
       </div>
 
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="q-pa-sm q-px-md row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Completed</div>
-              <div class="text-h6 text-weight-bold text-grey-9 q-my-none">{{ completedCount }}</div>
+              <div class="text-h6 text-weight-bold q-my-none">{{ completedCount }}</div>
               <div class="text-caption text-positive">Done</div>
             </div>
             <q-avatar
@@ -92,11 +92,11 @@
       </div>
 
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="q-pa-sm q-px-md row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Pending / On Hold</div>
-              <div class="text-h6 text-weight-bold text-grey-9 q-my-none">{{ pendingCount }}</div>
+              <div class="text-h6 text-weight-bold q-my-none">{{ pendingCount }}</div>
               <div class="text-caption text-warning">Awaiting start</div>
             </div>
             <q-avatar color="amber-1" text-color="amber-9" icon="pending_actions" size="36px" />
@@ -106,7 +106,7 @@
     </div>
 
     <!-- FILTER BAR -->
-    <q-card flat bordered class="bg-white q-mb-md">
+    <q-card flat bordered class="dashboard-card q-mb-md">
       <q-card-section class="q-pa-md row items-center q-col-gutter-sm">
         <div class="col-12 col-md-4">
           <q-input
@@ -165,7 +165,7 @@
       <q-spinner color="primary" size="40px" />
     </div>
 
-    <q-card v-else flat bordered class="bg-white">
+    <q-card v-else flat bordered class="dashboard-card">
       <q-table
         flat
         :rows="filteredTasks"
@@ -179,7 +179,7 @@
             :props="props"
             style="max-width: 300px; overflow: hidden; padding-top: 14px; padding-bottom: 14px"
           >
-            <div class="text-weight-bold text-grey-9 ellipsis">{{ props.row.title }}</div>
+            <div class="text-weight-bold ellipsis">{{ props.row.title }}</div>
             <div v-if="props.row.description" class="text-caption text-grey-6 ellipsis">
               {{ props.row.description }}
             </div>

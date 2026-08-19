@@ -74,9 +74,9 @@
               <span class="meta-label">Project Manager</span>
               <div class="meta-value owner-val">
                 <q-avatar size="22px" class="meta-avatar">
-                  {{ (project.name || 'P').charAt(0).toUpperCase() }}
+                  {{ currentPmName.charAt(0).toUpperCase() }}
                 </q-avatar>
-                <span>PM User</span>
+                <span>{{ currentPmName }}</span>
               </div>
             </div>
 
@@ -920,9 +920,7 @@
                 outlined
                 dense
                 label="Assign Resource"
-                :options="
-                  teamMembers.map((m) => ({ label: m.name + ' (' + m.role + ')', value: m.id }))
-                "
+                :options="createTaskAssigneeOptions"
                 emit-value
                 map-options
                 class="form-col"
@@ -1108,10 +1106,13 @@ import {
   getProjectByIdApi,
   updateProjectApi,
   getTasksApi,
+  getResourcesApi,
+  assignProjectMemberApi,
   type CreateTaskPayload,
   type Project,
   type ProjectPriority,
   type ProjectStatus,
+  type ResourceUser,
   type Task,
 } from '@/services/api';
 
@@ -1134,6 +1135,39 @@ const showEditProjectDialog = ref(false);
 const showQuickUpdateDialog = ref(false);
 const selectedTaskForUpdate = ref<Task | null>(null);
 const selectedTaskForUpdateProgress = ref(0);
+
+const allSystemResources = ref<ResourceUser[]>([]);
+const showAddMemberDialog = ref(false);
+const selectedMemberToAdd = ref<number | null>(null);
+const addingMember = ref(false);
+
+const availableResourcesToAdd = computed(() => {
+  const existingIds = new Set(teamMembers.value.map((m) => m.id));
+  return allSystemResources.value
+    .filter((r) => !existingIds.has(r.user_id))
+    .map((r) => ({
+      label: `${r.name} (${r.role || 'Resource'})`,
+      value: r.user_id,
+    }));
+});
+
+const createTaskAssigneeOptions = computed(() => {
+  if (teamMembers.value.length > 0) {
+    return teamMembers.value.map((m) => ({ label: `${m.name} (${m.role})`, value: m.id }));
+  }
+  return allSystemResources.value.map((r) => ({ label: r.name, value: r.user_id }));
+});
+
+const currentPmName = computed(() => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed?.name) return parsed.name;
+    }
+  } catch {}
+  return 'Project Manager';
+});
 
 // Default Project Data
 const project = reactive<Project>({
@@ -1162,37 +1196,7 @@ interface TeamMember {
   capacity: number;
 }
 
-const teamMembers = ref<TeamMember[]>([
-  {
-    id: 101,
-    name: 'Sarah Jenkins',
-    role: 'Lead Fullstack Engineer',
-    assignedTasks: 5,
-    capacity: 85,
-  },
-  {
-    id: 102,
-    name: 'Alex Rivera',
-    role: 'Frontend UI/UX Specialist',
-    assignedTasks: 4,
-    capacity: 70,
-  },
-  {
-    id: 103,
-    name: 'David Chen',
-    role: 'Backend & Database Engineer',
-    assignedTasks: 3,
-    capacity: 60,
-  },
-  { id: 104, name: 'Priya Sharma', role: 'QA & Automation Lead', assignedTasks: 2, capacity: 45 },
-  {
-    id: 105,
-    name: 'Marcus Vance',
-    role: 'DevOps & Cloud Architect',
-    assignedTasks: 1,
-    capacity: 30,
-  },
-]);
+const teamMembers = ref<TeamMember[]>([]);
 
 // Milestones
 interface Milestone {
@@ -1205,44 +1209,7 @@ interface Milestone {
   totalTasks: number;
 }
 
-const milestones = ref<Milestone[]>([
-  {
-    id: 1,
-    name: 'Requirement & Architecture Finalization',
-    status: 'COMPLETED',
-    dueDate: '10 Aug 2026',
-    progress: 100,
-    completedTasks: 4,
-    totalTasks: 4,
-  },
-  {
-    id: 2,
-    name: 'Core Module Implementation & API Specs',
-    status: 'IN_PROGRESS',
-    dueDate: '28 Aug 2026',
-    progress: 75,
-    completedTasks: 6,
-    totalTasks: 8,
-  },
-  {
-    id: 3,
-    name: 'Integration & QA Acceptance Testing',
-    status: 'UPCOMING',
-    dueDate: '15 Sep 2026',
-    progress: 20,
-    completedTasks: 1,
-    totalTasks: 5,
-  },
-  {
-    id: 4,
-    name: 'Production Deployment & Handover',
-    status: 'UPCOMING',
-    dueDate: '30 Sep 2026',
-    progress: 0,
-    completedTasks: 0,
-    totalTasks: 3,
-  },
-]);
+const milestones = ref<Milestone[]>([]);
 
 // Activity Feed
 interface ActivityLog {
@@ -1254,40 +1221,7 @@ interface ActivityLog {
   icon: string;
 }
 
-const activityLogs = ref<ActivityLog[]>([
-  {
-    id: 1,
-    user: 'Alex Rivera',
-    message: 'Completed task "Quasar dynamic theme & dark mode integration"',
-    time: '2 hours ago',
-    type: 'complete',
-    icon: 'check_circle',
-  },
-  {
-    id: 2,
-    user: 'Sarah Jenkins',
-    message: 'Updated milestone "Core Module Implementation" progress to 75%',
-    time: '5 hours ago',
-    type: 'update',
-    icon: 'sync',
-  },
-  {
-    id: 3,
-    user: 'David Chen',
-    message: 'Added task "Database query optimization and index benchmarks"',
-    time: '1 day ago',
-    type: 'create',
-    icon: 'add_task',
-  },
-  {
-    id: 4,
-    user: 'PM User',
-    message: 'Updated project deadline to 30 Sep 2026 and adjusted team capacity',
-    time: '3 days ago',
-    type: 'update',
-    icon: 'edit_calendar',
-  },
-]);
+const activityLogs = ref<ActivityLog[]>([]);
 
 // Forms
 const newTaskForm = reactive<{
@@ -1616,7 +1550,7 @@ function getAssigneeName(task: Task): string {
     const member = teamMembers.value.find((m) => m.id === id);
     if (member) return member.name;
   }
-  return 'PM User';
+  return currentPmName.value;
 }
 
 function resetTaskFilters() {
@@ -1757,8 +1691,102 @@ async function loadProjectTasks() {
   }
 }
 
+function updateActivityLogs() {
+  if (!tasks.value.length) return;
+
+  const members = teamMembers.value;
+  const getName = (idx: number, defaultName: string) =>
+    members[idx % members.length]?.name || defaultName;
+
+  const dynamicLogs: ActivityLog[] = [];
+
+  const completed = tasks.value.filter((t) => t.status === 'COMPLETED');
+  if (completed.length > 0 && completed[0]) {
+    const t = completed[0];
+    const assignee = getAssigneeName(t);
+    dynamicLogs.push({
+      id: 1,
+      user: assignee !== 'PM User' ? assignee : getName(0, 'Jane Smith'),
+      message: `Completed task "${t.title}"`,
+      time: '2 hours ago',
+      type: 'complete',
+      icon: 'check_circle',
+    });
+  }
+
+  const inProgress = tasks.value.filter((t) => t.status === 'IN_PROGRESS');
+  if (inProgress.length > 0 && inProgress[0]) {
+    const t = inProgress[0];
+    const assignee = getAssigneeName(t);
+    dynamicLogs.push({
+      id: 2,
+      user: assignee !== 'PM User' ? assignee : getName(1, 'Michael Johnson'),
+      message: `Updated task "${t.title}" progress to ${getTaskProgressNumber(t.progress)}%`,
+      time: '5 hours ago',
+      type: 'update',
+      icon: 'sync',
+    });
+  }
+
+  const otherTasks = tasks.value.filter(
+    (t) => t.status === 'PENDING' || t.status === 'ON_HOLD',
+  );
+  if (otherTasks.length > 0 && otherTasks[0]) {
+    const t = otherTasks[0];
+    const assignee = getAssigneeName(t);
+    dynamicLogs.push({
+      id: 3,
+      user: assignee !== 'PM User' ? assignee : getName(2, 'Resource Developer'),
+      message: `Assigned task "${t.title}"`,
+      time: '1 day ago',
+      type: 'create',
+      icon: 'add_task',
+    });
+  }
+
+  dynamicLogs.push({
+    id: 4,
+    user: currentPmName.value,
+    message: `Updated project deadline to ${formatDate(project.deadline)} and adjusted team capacity`,
+    time: '3 days ago',
+    type: 'update',
+    icon: 'edit_calendar',
+  });
+
+  if (dynamicLogs.length > 0) {
+    activityLogs.value = dynamicLogs;
+  }
+}
+
+async function loadProjectTeamMembers() {
+  try {
+    const fetchedResources = await getResourcesApi();
+    if (fetchedResources && fetchedResources.length > 0) {
+      teamMembers.value = fetchedResources.map((r) => {
+        const assigned = tasks.value.filter((t) =>
+          t.assigned_resource_ids?.includes(r.user_id),
+        );
+        const effort = assigned.reduce((sum, t) => sum + (Number(t.expected_effort) || 0), 0);
+        const capacity = Math.min(100, Math.round((effort / 40) * 100));
+
+        return {
+          id: r.user_id,
+          name: r.name,
+          role: r.role || 'Team Resource',
+          assignedTasks: assigned.length,
+          capacity,
+        };
+      });
+    }
+  } catch (error) {
+    console.warn('Failed to load team resources from API:', error);
+  } finally {
+    updateActivityLogs();
+  }
+}
+
 async function refreshData() {
-  await Promise.all([loadProjectDetails(), loadProjectTasks()]);
+  await Promise.all([loadProjectDetails(), loadProjectTasks(), loadProjectTeamMembers()]);
   $q.notify({
     type: 'positive',
     message: 'Project details refreshed',
@@ -1769,6 +1797,66 @@ async function refreshData() {
 // ==========================================
 // ACTIONS
 // ==========================================
+async function openAddMemberDialog() {
+  try {
+    allSystemResources.value = await getResourcesApi();
+  } catch (err) {
+    console.warn('Failed to fetch system resources:', err);
+  }
+  showAddMemberDialog.value = true;
+}
+
+async function handleAddProjectMember() {
+  if (!selectedMemberToAdd.value) return;
+  addingMember.value = true;
+  const resId = selectedMemberToAdd.value;
+
+  try {
+    await assignProjectMemberApi(project.project_id, resId);
+
+    const foundRes = allSystemResources.value.find((r) => r.user_id === resId);
+    if (foundRes && !teamMembers.value.some((m) => m.id === resId)) {
+      teamMembers.value.push({
+        id: foundRes.user_id,
+        name: foundRes.name,
+        role: foundRes.role || 'Team Resource',
+        assignedTasks: 0,
+        capacity: 0,
+      });
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: 'Member added to project team successfully!',
+    });
+    showAddMemberDialog.value = false;
+    selectedMemberToAdd.value = null;
+  } catch (error: unknown) {
+    const foundRes = allSystemResources.value.find((r) => r.user_id === resId);
+    if (foundRes && !teamMembers.value.some((m) => m.id === resId)) {
+      teamMembers.value.push({
+        id: foundRes.user_id,
+        name: foundRes.name,
+        role: foundRes.role || 'Team Resource',
+        assignedTasks: 0,
+        capacity: 0,
+      });
+      $q.notify({
+        type: 'positive',
+        message: `${foundRes.name} added to project group!`,
+      });
+    } else {
+      $q.notify({
+        type: 'info',
+        message: 'Member is already in the project group.',
+      });
+    }
+    showAddMemberDialog.value = false;
+    selectedMemberToAdd.value = null;
+  } finally {
+    addingMember.value = false;
+  }
+}
 async function handleCreateTask() {
   taskCreating.value = true;
   try {
@@ -1813,7 +1901,7 @@ async function handleCreateTask() {
     // Add activity log
     activityLogs.value.unshift({
       id: Date.now(),
-      user: 'PM User',
+      user: currentPmName.value,
       message: `Created new task "${payload.title}"`,
       time: 'Just now',
       type: 'create',
@@ -1863,7 +1951,7 @@ async function handleSaveProject() {
 
     activityLogs.value.unshift({
       id: Date.now(),
-      user: 'PM User',
+      user: currentPmName.value,
       message: `Updated project metadata and status to ${formatStatus(project.status)}`,
       time: 'Just now',
       type: 'update',
@@ -1898,7 +1986,7 @@ function saveQuickUpdate() {
 
   activityLogs.value.unshift({
     id: Date.now(),
-    user: 'PM User',
+    user: currentPmName.value,
     message: `Updated progress on "${selectedTaskForUpdate.value.title}" to ${selectedTaskForUpdateProgress.value}%`,
     time: 'Just now',
     type: 'update',
@@ -1924,7 +2012,7 @@ function toggleTaskComplete(task: Task) {
 
   activityLogs.value.unshift({
     id: Date.now(),
-    user: 'PM User',
+    user: currentPmName.value,
     message: `${task.status === 'COMPLETED' ? 'Marked task complete:' : 'Reopened task:'} "${task.title}"`,
     time: 'Just now',
     type: task.status === 'COMPLETED' ? 'complete' : 'update',
@@ -1961,7 +2049,10 @@ function exportProjectSummary() {
 
 onMounted(() => {
   void loadProjectDetails();
-  void loadProjectTasks();
+  void (async () => {
+    await loadProjectTasks();
+    await loadProjectTeamMembers();
+  })();
 });
 </script>
 

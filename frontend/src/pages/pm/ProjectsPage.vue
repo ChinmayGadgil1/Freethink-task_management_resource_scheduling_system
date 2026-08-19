@@ -338,9 +338,9 @@
             <q-td :props="props">
               <div class="owner-cell">
                 <q-avatar size="27px" class="owner-avatar">
-                  {{ props.row.name.charAt(0).toUpperCase() }}
+                  {{ currentPmName.charAt(0).toUpperCase() }}
                 </q-avatar>
-                <span>PM User</span>
+                <span>{{ currentPmName }}</span>
               </div>
             </q-td>
           </template>
@@ -712,6 +712,17 @@ const healthFilterOptions = [
   { label: 'Delayed', value: 'DELAYED' },
 ];
 
+const currentPmName = computed(() => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed?.name) return parsed.name;
+    }
+  } catch {}
+  return 'Project Manager';
+});
+
 const projectColumns: QTableColumn<Project>[] = [
   {
     name: 'project',
@@ -722,7 +733,7 @@ const projectColumns: QTableColumn<Project>[] = [
   {
     name: 'owner',
     label: 'Owner',
-    field: () => 'PM User',
+    field: () => currentPmName.value,
     align: 'left',
   },
   {

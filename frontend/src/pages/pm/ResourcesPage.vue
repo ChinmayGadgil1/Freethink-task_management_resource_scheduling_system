@@ -1,9 +1,9 @@
 <template>
-  <q-page class="q-pa-lg bg-grey-1">
+  <q-page class="q-pa-lg">
     <!-- PAGE HEADER -->
     <div class="row items-center justify-between q-mb-lg">
       <div>
-        <div class="text-h5 text-weight-bold text-grey-9">PM Task & Resource Management</div>
+        <div class="text-h5 text-weight-bold">PM Task & Resource Management</div>
         <div class="text-subtitle2 text-grey-7">
           List tasks assigned by PM and assign team resources to projects
         </div>
@@ -34,11 +34,11 @@
     <!-- STAT SUMMARY CARDS -->
     <div class="row q-col-gutter-md q-mb-lg">
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Assigned Resources</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">
+              <div class="text-h5 text-weight-bold q-my-xs">
                 {{ resourceMap.length }}
               </div>
               <div class="text-caption text-positive">Active in backend</div>
@@ -49,11 +49,11 @@
       </div>
 
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Tasks Assigned by PM</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">{{ taskList.length }}</div>
+              <div class="text-h5 text-weight-bold q-my-xs">{{ taskList.length }}</div>
               <div class="text-caption text-teal">Across projects</div>
             </div>
             <q-avatar color="teal-1" text-color="teal" icon="task_alt" size="44px" />
@@ -62,11 +62,11 @@
       </div>
 
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Total Effort Allocated</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">
+              <div class="text-h5 text-weight-bold q-my-xs">
                 {{ totalEffortHours }}h
               </div>
               <div class="text-caption text-primary">Expected effort hours</div>
@@ -77,11 +77,11 @@
       </div>
 
       <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="bg-white">
+        <q-card flat bordered class="dashboard-card">
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Managed Projects</div>
-              <div class="text-h5 text-weight-bold text-grey-9 q-my-xs">
+              <div class="text-h5 text-weight-bold q-my-xs">
                 {{ projectList.length }}
               </div>
               <div class="text-caption text-amber-9">Projects</div>
@@ -93,7 +93,7 @@
     </div>
 
     <!-- MAIN TABS: RESOURCE ALLOCATION VS TASKS ASSIGNED BY PM -->
-    <q-card flat bordered class="bg-white q-mb-lg">
+    <q-card flat bordered class="dashboard-card q-mb-lg">
       <q-tabs
         v-model="mainTab"
         dense
@@ -163,7 +163,7 @@
             v-else-if="filteredResources.length === 0"
             class="row justify-center q-pa-xl text-center"
           >
-            <q-card flat bordered class="bg-white q-pa-lg">
+            <q-card flat bordered class="dashboard-card q-pa-lg">
               <q-icon name="person_off" size="48px" color="grey-5" />
               <div class="text-h6 text-grey-8 q-mt-sm">No Resource Allocations Found</div>
               <div class="text-caption text-grey-6 q-mt-xs">
@@ -189,7 +189,7 @@
               :key="res.resource_id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <q-card flat bordered class="bg-white full-height column justify-between">
+              <q-card flat bordered class="dashboard-card full-height column justify-between">
                 <q-card-section class="q-pa-md">
                   <!-- CARD TOP: AVATAR, NAME, CHIP -->
                   <div class="row items-center justify-between no-wrap q-mb-md">
@@ -199,7 +199,7 @@
                       </q-avatar>
                       <div>
                         <div
-                          class="text-subtitle1 text-weight-bold text-grey-9 ellipsis"
+                          class="text-subtitle1 text-weight-bold ellipsis"
                           style="max-width: 140px"
                         >
                           {{ res.name }}
@@ -223,7 +223,7 @@
                   <div class="bg-grey-2 q-pa-sm rounded-borders q-mb-sm">
                     <div class="row justify-between text-caption q-mb-xs">
                       <span class="text-grey-7 text-weight-medium">Workload Effort</span>
-                      <span class="text-weight-bold text-grey-9">{{ res.totalEffort }}h</span>
+                      <span class="text-weight-bold">{{ res.totalEffort }}h</span>
                     </div>
                     <q-linear-progress
                       rounded
@@ -244,6 +244,26 @@
                       <q-icon name="folder" size="16px" color="primary" class="q-mr-xs" />
                       <span class="text-weight-medium">{{ res.projectsCount }} Projects</span>
                     </div>
+                  </div>
+
+                  <!-- PROJECTS WORKING ON -->
+                  <div class="q-mt-sm">
+                    <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">Projects Working On:</div>
+                    <div v-if="res.projectNames && res.projectNames.length > 0" class="row q-gutter-xs wrap">
+                      <q-chip
+                        v-for="pName in res.projectNames"
+                        :key="pName"
+                        dense
+                        square
+                        size="11px"
+                        color="deep-purple-1"
+                        text-color="primary"
+                        icon="folder"
+                      >
+                        {{ pName }}
+                      </q-chip>
+                    </div>
+                    <div v-else class="text-caption text-grey-5 italic">No active project assignments</div>
                   </div>
                 </q-card-section>
 
@@ -280,7 +300,7 @@
           </div>
 
           <!-- TABLE VIEW -->
-          <q-card v-else flat bordered class="bg-white">
+          <q-card v-else flat bordered class="dashboard-card">
             <q-table
               flat
               :rows="filteredResources"
@@ -298,9 +318,32 @@
                       {{ getInitials(props.row.name) }}
                     </q-avatar>
                     <div>
-                      <div class="text-weight-bold text-grey-9">{{ props.row.name }}</div>
+                      <div class="text-weight-bold">{{ props.row.name }}</div>
                     </div>
                   </div>
+                </q-td>
+              </template>
+
+              <template #body-cell-projects="props">
+                <q-td :props="props">
+                  <div
+                    v-if="props.row.projectNames && props.row.projectNames.length > 0"
+                    class="row q-gutter-xs wrap"
+                  >
+                    <q-chip
+                      v-for="pName in props.row.projectNames"
+                      :key="pName"
+                      dense
+                      square
+                      size="11px"
+                      color="deep-purple-1"
+                      text-color="primary"
+                      icon="folder"
+                    >
+                      {{ pName }}
+                    </q-chip>
+                  </div>
+                  <span v-else class="text-caption text-grey-5">Unassigned</span>
                 </q-td>
               </template>
 
@@ -357,7 +400,7 @@
         <!-- TAB 2: TASKS ASSIGNED BY PM -->
         <q-tab-panel name="tasks" class="q-pa-md">
           <div class="row items-center justify-between q-mb-md">
-            <div class="text-h6 text-weight-bold text-grey-9">
+            <div class="text-h6 text-weight-bold">
               Tasks Assigned across Managed Projects
             </div>
             <q-chip dense color="deep-purple-1" text-color="primary" class="text-weight-bold">
@@ -481,7 +524,7 @@
       <q-card style="min-width: 420px">
         <q-card-section class="row items-center justify-between">
           <div class="text-h6 text-weight-bold">
-            Assign Task to Resource #{{ selectedResourceId }}
+            Assign Task to {{ getResourceName(selectedResourceId || 0) }}
           </div>
           <q-btn v-close-popup flat round dense icon="close" />
         </q-card-section>
@@ -622,6 +665,7 @@ interface ResourceAggregate {
   name: string;
   tasks: Task[];
   projectsCount: number;
+  projectNames: string[];
   totalEffort: number;
   utilization: number;
   status: 'AVAILABLE' | 'HIGH_LOAD' | 'OVERALLOCATED';
@@ -630,7 +674,7 @@ interface ResourceAggregate {
 const tableColumns: QTableColumn<ResourceAggregate>[] = [
   { name: 'name', label: 'Resource Member', field: (r) => r.name, align: 'left' },
   { name: 'tasks', label: 'Assigned Tasks', field: (r) => r.tasks.length, align: 'center' },
-  { name: 'projects', label: 'Projects', field: (r) => r.projectsCount, align: 'center' },
+  { name: 'projects', label: 'Projects Working On', field: (r) => r.projectsCount, align: 'left' },
   { name: 'effort', label: 'Allocated Hours', field: (r) => r.totalEffort, align: 'center' },
   { name: 'utilization', label: 'Utilization', field: (r) => r.utilization, align: 'left' },
   { name: 'status', label: 'Status', field: (r) => r.status, align: 'center' },
@@ -639,7 +683,7 @@ const tableColumns: QTableColumn<ResourceAggregate>[] = [
 
 const pmTaskColumns: QTableColumn<Task>[] = [
   { name: 'title', label: 'Task Title', field: (t) => t.title, align: 'left' },
-  { name: 'project', label: 'Project ID', field: (t) => t.project_id, align: 'center' },
+  { name: 'project', label: 'Project Name', field: (t) => getProjectName(t.project_id), align: 'left' },
   { name: 'priority', label: 'Priority', field: (t) => t.priority, align: 'center' },
   { name: 'status', label: 'Status', field: (t) => t.status, align: 'center' },
   { name: 'resources', label: 'Assigned Resources', field: () => '', align: 'left' },
@@ -656,6 +700,11 @@ const pmTaskColumns: QTableColumn<Task>[] = [
     align: 'left',
   },
 ];
+
+function getProjectName(id: number): string {
+  const p = projectList.value.find((item) => item.project_id === id);
+  return p ? p.name : `Project #${id}`;
+}
 
 async function loadData() {
   loading.value = true;
@@ -691,7 +740,7 @@ const resourceNamesMap = computed<Record<number, string>>(() => {
 });
 
 function getResourceName(id: number): string {
-  return resourceNamesMap.value[id] || `Resource #${id}`;
+  return resourceNamesMap.value[id] || 'Team Resource';
 }
 
 const resourceMemberSelectOptions = computed(() =>
@@ -710,6 +759,7 @@ const resourceMap = computed(() => {
       name: r.name,
       tasks: [],
       projectsCount: 0,
+      projectNames: [],
       totalEffort: 0,
       utilization: 0,
       status: 'AVAILABLE',
@@ -727,6 +777,7 @@ const resourceMap = computed(() => {
           name: getResourceName(rid),
           tasks: [],
           projectsCount: 0,
+          projectNames: [],
           totalEffort: 0,
           utilization: 0,
           status: 'AVAILABLE',
@@ -739,11 +790,19 @@ const resourceMap = computed(() => {
     }
   }
 
+  const projectMap = new Map<number, string>();
+  for (const p of projectList.value) {
+    projectMap.set(p.project_id, p.name);
+  }
+
   // Compute stats for each resource
   const result: ResourceAggregate[] = [];
   for (const item of map.values()) {
     const projectIds = new Set(item.tasks.map((t) => t.project_id));
     item.projectsCount = projectIds.size;
+    item.projectNames = Array.from(projectIds)
+      .map((pid) => projectMap.get(pid))
+      .filter((n): n is string => !!n);
 
     // Standard 40h capacity
     item.utilization = Math.min(150, Math.round((item.totalEffort / 40) * 100));
@@ -837,7 +896,7 @@ async function handleAssignProjectMember() {
     await assignProjectMemberApi(projectMemberForm.project_id, projectMemberForm.user_id);
     $q.notify({
       type: 'positive',
-      message: `Resource #${projectMemberForm.user_id} assigned to project successfully`,
+      message: `${getResourceName(projectMemberForm.user_id)} assigned to project successfully`,
     });
     showProjectMemberDialog.value = false;
     projectMemberForm.user_id = null;

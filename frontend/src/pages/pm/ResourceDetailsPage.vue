@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-lg bg-grey-1">
+  <q-page class="q-pa-lg">
     <!-- LOADING STATE -->
     <div v-if="loading" class="row justify-center items-center q-pa-xl" style="min-height: 300px">
       <q-spinner color="primary" size="40px" />
@@ -20,7 +20,7 @@
             @click="goToResources"
           />
           <span class="text-grey-5 q-mx-xs">/</span>
-          <span class="text-weight-bold text-grey-9">{{ resourceName }}</span>
+          <span class="text-weight-bold">{{ resourceName }}</span>
         </div>
 
         <div class="row items-center q-gutter-sm">
@@ -37,7 +37,7 @@
       </div>
 
       <!-- HERO PROFILE CARD -->
-      <q-card flat bordered class="bg-white q-mb-lg">
+      <q-card flat bordered class="dashboard-card q-mb-lg">
         <q-card-section class="row items-center justify-between">
           <div class="row items-center">
             <q-avatar color="primary" text-color="white" size="64px" class="q-mr-md">
@@ -46,7 +46,7 @@
 
             <div>
               <div class="row items-center q-gutter-xs">
-                <span class="text-h5 text-weight-bold text-grey-9">{{ resourceName }}</span>
+                <span class="text-h5 text-weight-bold">{{ resourceName }}</span>
                 <q-chip
                   dense
                   square
@@ -94,7 +94,7 @@
       </q-card>
 
       <!-- TABS & PANEL CONTENT -->
-      <q-card flat bordered class="bg-white">
+      <q-card flat bordered class="dashboard-card">
         <q-tabs
           v-model="activeTab"
           dense
@@ -115,8 +115,8 @@
           <!-- TAB 1: ASSIGNED TASKS -->
           <q-tab-panel name="tasks" class="q-pa-md">
             <div class="row items-center justify-between q-mb-md">
-              <div class="text-h6 text-weight-bold text-grey-9">
-                Tasks Assigned to Resource #{{ resourceId }}
+              <div class="text-h6 text-weight-bold">
+                Tasks Assigned to {{ resourceName }}
               </div>
               <q-chip dense color="deep-purple-1" text-color="primary">
                 {{ resourceTasks.length }} Total Tasks
@@ -181,7 +181,7 @@
 
           <!-- TAB 2: PROJECTS -->
           <q-tab-panel name="projects" class="q-pa-md">
-            <div class="text-h6 text-weight-bold text-grey-9 q-mb-md">Project Memberships</div>
+            <div class="text-h6 text-weight-bold q-mb-md">Project Memberships</div>
 
             <div v-if="resourceProjects.length === 0" class="text-grey-6 text-center q-pa-lg">
               Not currently assigned to any projects.
@@ -192,12 +192,12 @@
                 <q-card
                   flat
                   bordered
-                  class="bg-grey-1 cursor-pointer"
+                  class="bg-grey-2 cursor-pointer"
                   @click="goToProject(proj.project_id)"
                 >
                   <q-card-section>
                     <div class="row items-center justify-between q-mb-xs">
-                      <div class="text-subtitle1 text-weight-bold text-grey-9">{{ proj.name }}</div>
+                      <div class="text-subtitle1 text-weight-bold">{{ proj.name }}</div>
                       <q-chip dense color="primary" text-color="white">{{ proj.status }}</q-chip>
                     </div>
                     <div class="text-caption text-grey-7 q-mb-sm">
@@ -225,17 +225,17 @@
 
           <!-- TAB 3: WORKLOAD -->
           <q-tab-panel name="workload" class="q-pa-md">
-            <div class="text-h6 text-weight-bold text-grey-9 q-mb-md">
+            <div class="text-h6 text-weight-bold q-mb-md">
               Weekly Capacity Breakdown
             </div>
 
             <div class="row q-col-gutter-md">
               <div class="col-12 col-md-6">
-                <q-card flat bordered class="bg-grey-1">
+                <q-card flat bordered class="bg-grey-2">
                   <q-card-section class="q-gutter-sm">
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Standard Weekly Capacity</span>
-                      <strong class="text-grey-9">40 Hours</strong>
+                      <strong>40 Hours</strong>
                     </div>
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Allocated Task Effort</span>
@@ -269,9 +269,9 @@
               </div>
 
               <div class="col-12 col-md-6">
-                <q-card flat bordered class="bg-grey-1">
+                <q-card flat bordered class="bg-grey-2">
                   <q-card-section class="q-gutter-xs">
-                    <div class="text-subtitle2 text-weight-bold text-grey-9">
+                    <div class="text-subtitle2 text-weight-bold">
                       Task Distribution Summary
                     </div>
                     <div class="text-caption text-grey-7">
@@ -292,7 +292,7 @@
       <q-dialog v-model="showAssignDialog">
         <q-card style="min-width: 420px">
           <q-card-section class="row items-center justify-between">
-            <div class="text-h6 text-weight-bold">Assign Task to Resource #{{ resourceId }}</div>
+            <div class="text-h6 text-weight-bold">Assign Task to {{ resourceName }}</div>
             <q-btn v-close-popup flat round dense icon="close" />
           </q-card-section>
 
@@ -393,7 +393,7 @@ const activeTab = ref('tasks');
 const resourceInfo = ref<ResourceUser | null>(null);
 
 const resourceName = computed(
-  () => resourceInfo.value?.name || `Resource #${resourceId.value}`,
+  () => resourceInfo.value?.name || 'Team Resource',
 );
 
 function getInitials(name: string): string {
