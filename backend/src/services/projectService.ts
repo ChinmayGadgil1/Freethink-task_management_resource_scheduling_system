@@ -252,3 +252,52 @@ export async function updateProject(
 
     return getProjectById(projectId);
 }
+
+export async function deleteProject(projectId: number): Promise<boolean> {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [tasks] = await connection.query<RowDataPacket[]>(
+            "SELECT task_id FROM tasks WHERE project_id = ?",
+            [projectId]
+        );
+
+        if (tasks.length > 0) {
+            const taskIds = tasks.map(t => t.task_id);
+            await connection.query(
+                "DELETE FROM task_dependencies WHERE task_id IN (?) OR predecessor_task_id IN (?)",
+                [taskIds, taskIds]
+            );
+            await connection.query("DELETE FROM task_assignments WHERE task_id IN (?)", [taskIds]);
+            await connection.query("DELETE FROM work_logs WHERE task_id IN (?)", [taskIds]);
+            await connection.query("DELETE FROM tasks WHERE project_id = ?", [projectId]);
+        }
+
+        await connection.query("DELETE FROM project_members WHERE project_id = ?", [projectId]);
+
+        const [result] = await connection.query<ResultSetHeader>(
+            "DELETE FROM projects WHERE project_id = ?",
+            [projectId]
+        );
+
+        await connection.commit();
+        return result.affectedRows > 0;
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+export async function removeProjectMember(projectId: number, userId: number): Promise<boolean> {
+    const pool = getPool();
+    const [result] = await pool.query<ResultSetHeader>(
+        "DELETE FROM project_members WHERE project_id = ? AND user_id = ?",
+        [projectId, userId]
+    );
+    return result.affectedRows > 0;
+}
