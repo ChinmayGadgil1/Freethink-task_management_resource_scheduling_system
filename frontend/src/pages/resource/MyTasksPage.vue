@@ -388,7 +388,7 @@
               outlined
               dense
               options-dense
-              :loading="createProjects.length === 0"
+              :loading="loadingCreateProjects"
             >
               <template #prepend>
                 <q-icon
@@ -439,6 +439,7 @@
               outlined
               dense
               options-dense
+              class="q-mb-sm"
             >
               <template #prepend>
                 <q-icon
@@ -449,7 +450,7 @@
             </q-select>
 
             <!-- Dates -->
-            <div class="row q-col-gutter-md">
+            <div class="row q-col-gutter-md date-row">
               <div class="col-12 col-sm-6">
                 <q-input
                   v-model="createForm.start_date"
@@ -577,7 +578,7 @@ import type {
 
 import {
   createTaskApi,
-  getResourceProjectsApi,
+  getProjectsApi,
   getTasksApi,
   updateTaskApi,
   type Project,
@@ -989,8 +990,8 @@ watch(
 //   CREATE TASK
 
 const createDialog = ref(false);
-
 const creatingTask = ref(false);
+const loadingCreateProjects = ref(false);
 
 const createProjects =
   ref<Project[]>([]);
@@ -1063,24 +1064,10 @@ async function openCreateDialog() {
   //LOAD PROJECTS FOR CREATE
 
 async function loadCreateProjects() {
-  const storedUser =
-    localStorage.getItem('user');
-
-  if (!storedUser) {
-    return;
-  }
+  loadingCreateProjects.value = true;
 
   try {
-    const user =
-      JSON.parse(storedUser) as {
-        user_id: number;
-        role: string;
-      };
-
-    createProjects.value =
-      await getResourceProjectsApi(
-        user.user_id,
-      );
+    createProjects.value = await getProjectsApi();
   } catch (err) {
     console.error(
       'Failed to load resource projects:',
@@ -1090,9 +1077,14 @@ async function loadCreateProjects() {
     Notify.create({
       type: 'negative',
       message:
-        'Failed to load projects.',
+        err instanceof Error
+          ? err.message
+          : 'Failed to load projects.',
+      icon: 'error',
       position: 'top-right',
     });
+  } finally {
+    loadingCreateProjects.value = false;
   }
 }
 
@@ -1257,19 +1249,8 @@ async function saveTaskUpdate(payload: {
 </script>
 
 <style scoped lang="scss">
-.workspace-page {
-  background: var(
-    --wo-bg-page,
-    #f8f9fa
-  );
-}
-
-.dashboard-card {
-  overflow: hidden;
-}
-
-.empty-block {
-  padding: 48px 16px;
-  text-align: center;
-}
+.workspace-page { background: var( --wo-bg-page, #f8f9fa ); }
+.dashboard-card { overflow: hidden; }
+.empty-block { padding: 48px 16px; text-align: center; }
+.date-row { width: 100%; margin-left: 0; margin-right: 0;}
 </style>
