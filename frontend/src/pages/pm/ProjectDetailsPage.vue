@@ -1246,6 +1246,7 @@ const selectedTaskForUpdate = ref<Task | null>(null);
 const selectedTaskForUpdateProgress = ref(0);
 
 const allSystemResources = ref<ResourceUser[]>([]);
+const projectMembersResources = ref<ResourceUser[]>([]);
 const showAddMemberDialog = ref(false);
 const selectedMemberToAdd = ref<number | null>(null);
 const addingMember = ref(false);
@@ -1256,7 +1257,7 @@ const selectedPredecessorTaskId = ref<number | null>(null);
 const dependencySubmitting = ref(false);
 
 const availableResourcesToAdd = computed(() => {
-  const existingIds = new Set(teamMembers.value.map((m) => m.id));
+  const existingIds = new Set(projectMembersResources.value.map((m) => m.user_id));
   return allSystemResources.value
     .filter((r) => !existingIds.has(r.user_id))
     .map((r) => ({
@@ -1266,7 +1267,7 @@ const availableResourcesToAdd = computed(() => {
 });
 
 const createTaskAssigneeOptions = computed(() =>
-  allSystemResources.value.map((resource) => ({
+  projectMembersResources.value.map((resource) => ({
     label: `${resource.name} (${resource.role})`,
     value: resource.user_id,
   })),
@@ -1820,29 +1821,28 @@ function updateActivityLogs() {
 
 async function loadProjectTeamMembers() {
   try {
-    const fetchedResources = await getResourcesApi();
-    const assignedResourceIds = new Set(
-      tasks.value.flatMap((task) => task.assigned_resource_ids ?? []),
-    );
+    const [fetchedProjectMembers, fetchedAllResources] = await Promise.all([
+      getResourcesApi(projectIdParam.value).catch(() => []),
+      getResourcesApi().catch(() => []),
+    ]);
+    projectMembersResources.value = fetchedProjectMembers;
+    allSystemResources.value = fetchedAllResources;
 
-    teamMembers.value = (fetchedResources ?? [])
-      .filter((resource) => assignedResourceIds.has(resource.user_id))
-      .map((resource) => {
-        const assigned = tasks.value.filter((task) =>
-          task.assigned_resource_ids?.includes(resource.user_id),
-        );
-        const effort = assigned.reduce((sum, task) => sum + (Number(task.expected_effort) || 0), 0);
-        const capacity = Math.min(100, Math.round((effort / 40) * 100));
+    teamMembers.value = fetchedProjectMembers.map((resource) => {
+      const assigned = tasks.value.filter((task) =>
+        task.assigned_resource_ids?.includes(resource.user_id),
+      );
+      const effort = assigned.reduce((sum, task) => sum + (Number(task.expected_effort) || 0), 0);
+      const capacity = Math.min(100, Math.round((effort / 40) * 100));
 
-        return {
-          id: resource.user_id,
-          name: resource.name,
-          role: resource.role || 'Team Resource',
-          assignedTasks: assigned.length,
-          capacity,
-        };
-      });
-    allSystemResources.value = fetchedResources ?? [];
+      return {
+        id: resource.user_id,
+        name: resource.name,
+        role: resource.role || 'Team Resource',
+        assignedTasks: assigned.length,
+        capacity,
+      };
+    });
   } catch (error) {
     console.warn('Failed to load team resources from API:', error);
   } finally {

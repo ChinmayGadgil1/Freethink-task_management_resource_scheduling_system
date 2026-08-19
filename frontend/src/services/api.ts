@@ -385,8 +385,12 @@ export interface ResourceUser {
   created_at?: string;
 }
 
-export async function getResourcesApi(): Promise<ResourceUser[]> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/resources`);
+export async function getResourcesApi(projectId?: number): Promise<ResourceUser[]> {
+  const url = projectId !== undefined
+    ? `${API_BASE_URL}/resources?project_id=${projectId}`
+    : `${API_BASE_URL}/resources`;
+
+  const response = await authenticatedFetch(url);
 
   const data = await response.json();
 
@@ -407,4 +411,16 @@ export async function getResourceByIdApi(resourceId: number): Promise<ResourceUs
   }
 
   return data;
+}
+
+export async function getResourceProjectsApi(resourceId: number): Promise<Project[]> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/resources/${resourceId}/projects`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch resource projects');
+  }
+
+  return Array.isArray(data) ? data : data.projects ?? [];
 }

@@ -603,7 +603,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import DashboardSection from '@/components/dashboard/DashboardSection.vue';
@@ -720,12 +720,27 @@ const projectOptions = computed(() =>
   })),
 );
 
-const resourceOptions = computed(() =>
-  resources.value.map((resource) => ({
+const projectMemberResources = ref<ResourceUser[]>([]);
+
+watch(
+  () => newTaskForm.project_id,
+  async (newProjectId) => {
+    if (newProjectId) {
+      projectMemberResources.value = await getResourcesApi(newProjectId).catch(() => []);
+    } else {
+      projectMemberResources.value = [];
+    }
+  },
+  { immediate: true },
+);
+
+const resourceOptions = computed(() => {
+  const list = newTaskForm.project_id ? projectMemberResources.value : resources.value;
+  return list.map((resource) => ({
     label: resource.name,
     value: resource.user_id,
-  })),
-);
+  }));
+});
 
 const taskOptions = computed(() =>
   tasks.value.map((t) => ({

@@ -608,6 +608,7 @@ import {
   createTaskApi,
   getProjectsApi,
   getResourcesApi,
+  getResourceProjectsApi,
   getTasksApi,
   type Project,
   type ResourceUser,
@@ -626,6 +627,7 @@ const viewMode = ref<'grid' | 'table'>('grid');
 const projectList = ref<Project[]>([]);
 const taskList = ref<Task[]>([]);
 const resourceList = ref<ResourceUser[]>([]);
+const resourceProjectsMap = ref<Record<number, Project[]>>({});
 
 const showAssignDialog = ref(false);
 const selectedResourceId = ref<number | null>(null);
@@ -717,6 +719,16 @@ async function loadData() {
     projectList.value = projects;
     taskList.value = tasks;
     resourceList.value = resources;
+
+    const resourceProjectsList = await Promise.all(
+      resources.map((r) => getResourceProjectsApi(r.user_id).catch(() => [])),
+    );
+    const pMap: Record<number, Project[]> = {};
+    resources.forEach((r, idx) => {
+      pMap[r.user_id] = resourceProjectsList[idx] || [];
+    });
+    resourceProjectsMap.value = pMap;
+
     if (projects.length > 0) {
       projectMemberForm.project_id = projects[0]!.project_id;
     }
@@ -795,14 +807,29 @@ const resourceMap = computed(() => {
     projectMap.set(p.project_id, p.name);
   }
 
-  // Compute stats for each resource
+  // Compute stats for each resource combining task assignments and direct project memberships
   const result: ResourceAggregate[] = [];
   for (const item of map.values()) {
-    const projectIds = new Set(item.tasks.map((t) => t.project_id));
-    item.projectsCount = projectIds.size;
-    item.projectNames = Array.from(projectIds)
-      .map((pid) => projectMap.get(pid))
-      .filter((n): n is string => !!n);
+    const taskProjectIds = item.tasks.map((t) => t.project_id);
+    const memberProjects = resourceProjectsMap.value[item.resource_id] || [];
+    const memberProjectIds = memberProjects.map((p) => p.project_id);
+
+    const allProjectIds = new Set([...taskProjectIds, ...memberProjectIds]);
+    item.projectsCount = allProjectIds.size;
+
+    const names = new Set<string>();
+    for (const pid of allProjectIds) {
+      const name = projectMap.get(pid);
+      if (name) {
+        names.add(name);
+      }
+    }
+    for (const mp of memberProjects) {
+      if (mp.name) {
+        names.add(mp.name);
+      }
+    }
+    item.projectNames = Array.from(names);
 
     // Standard 40h capacity
     item.utilization = Math.min(150, Math.round((item.totalEffort / 40) * 100));

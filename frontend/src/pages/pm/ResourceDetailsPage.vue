@@ -375,6 +375,7 @@ import {
   createTaskApi,
   getProjectsApi,
   getResourceByIdApi,
+  getResourceProjectsApi,
   getResourceWorkloadApi,
   getTasksApi,
   type Project,
@@ -406,6 +407,7 @@ function getInitials(name: string): string {
 
 const allTasks = ref<Task[]>([]);
 const allProjects = ref<Project[]>([]);
+const directMemberProjects = ref<Project[]>([]);
 const backendWorkload = ref<ResourceWorkload | null>(null);
 
 const showAssignDialog = ref(false);
@@ -443,14 +445,16 @@ const taskColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tasks, projects, workload, resUser] = await Promise.all([
+    const [tasks, projects, workload, resUser, memberProjs] = await Promise.all([
       getTasksApi(),
       getProjectsApi(),
       getResourceWorkloadApi(resourceId.value).catch(() => null),
       getResourceByIdApi(resourceId.value).catch(() => null),
+      getResourceProjectsApi(resourceId.value).catch(() => []),
     ]);
     allTasks.value = tasks;
     allProjects.value = projects;
+    directMemberProjects.value = memberProjs;
     if (workload) {
       backendWorkload.value = workload;
     }
@@ -479,8 +483,10 @@ const resourceTasks = computed(() => {
 });
 
 const resourceProjects = computed(() => {
-  const pIds = new Set(resourceTasks.value.map((t) => t.project_id));
-  return allProjects.value.filter((p) => pIds.has(p.project_id));
+  const taskProjectIds = resourceTasks.value.map((t) => t.project_id);
+  const memberProjectIds = directMemberProjects.value.map((p) => p.project_id);
+  const allIds = new Set([...taskProjectIds, ...memberProjectIds]);
+  return allProjects.value.filter((p) => allIds.has(p.project_id));
 });
 
 const completedTasksCount = computed(

@@ -597,7 +597,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import {
@@ -619,6 +619,7 @@ const loading = ref(true);
 const tasks = ref<Task[]>([]);
 const projects = ref<Project[]>([]);
 const resources = ref<ResourceUser[]>([]);
+const taskProjectMembers = ref<ResourceUser[]>([]);
 
 const searchQuery = ref('');
 const projectFilter = ref<number | 'ALL'>('ALL');
@@ -643,6 +644,21 @@ const assignTaskMemberForm = reactive({
   user_id: null as number | null,
 });
 
+watch(
+  () => assignTaskMemberForm.task_id,
+  async (newTaskId) => {
+    if (newTaskId) {
+      const t = tasks.value.find((item) => item.task_id === newTaskId);
+      if (t?.project_id) {
+        taskProjectMembers.value = await getResourcesApi(t.project_id).catch(() => []);
+        return;
+      }
+    }
+    taskProjectMembers.value = [];
+  },
+  { immediate: true },
+);
+
 const resourceNamesMap = computed<Record<number, string>>(() => {
   const map: Record<number, string> = {};
   for (const r of resources.value) {
@@ -655,12 +671,13 @@ function getResourceName(id: number): string {
   return resourceNamesMap.value[id] || `Resource #${id}`;
 }
 
-const resourceMemberSelectOptions = computed(() =>
-  resources.value.map((r) => ({
+const resourceMemberSelectOptions = computed(() => {
+  const source = assignTaskMemberForm.task_id ? taskProjectMembers.value : resources.value;
+  return source.map((r) => ({
     label: r.name,
     value: r.user_id,
-  })),
-);
+  }));
+});
 
 const createForm = reactive<{
   project_id: number | null;
