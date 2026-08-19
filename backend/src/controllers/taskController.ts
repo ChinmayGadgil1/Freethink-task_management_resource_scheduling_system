@@ -35,6 +35,11 @@ export async function create(req: AuthRequest, res: Response) {
 
         if (userRole === "PROJECT_MANAGER" && project.project_manager_id !== userId) {
             return res.status(403).json({ message: "You are not authorized to manage tasks for this project" });
+        } else if (userRole === "RESOURCE") {
+            const isMember = await isProjectMember(parsed.project_id, userId!);
+            if (!isMember) {
+                return res.status(403).json({ message: "You can only create tasks in projects you are assigned to" });
+            }
         }
 
         // If self-assigned by a RESOURCE, assign them automatically

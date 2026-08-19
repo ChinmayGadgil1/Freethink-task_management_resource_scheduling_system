@@ -9,7 +9,9 @@ import {
     getProjectById,
     updateProject,
     deleteProject,
-    removeProjectMember
+    removeProjectMember,
+    getProjectsByMember,
+    isProjectMember
 } from "../services/projectService.js";
 import { getRecentWorkLogsForManager } from "../services/workLogService.js";
 
@@ -108,13 +110,20 @@ export async function create(req: AuthRequest, res: Response) {
 
 export async function getProjects(req: AuthRequest, res: Response) {
     try {
-        if (req.user?.role !== "PROJECT_MANAGER") {
-            return res.status(403).json({
-                message: "Only project managers can view their projects"
-            });
+        if (!req.user) {
+            return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const projects = await getProjectsByManager(req.user.user_id);
+        let projects;
+        if (req.user.role === "PROJECT_MANAGER") {
+            projects = await getProjectsByManager(req.user.user_id);
+        } else if (req.user.role === "RESOURCE") {
+            projects = await getProjectsByMember(req.user.user_id);
+        } else {
+            return res.status(403).json({
+                message: "You are not authorized to view projects"
+            });
+        }
 
         return res.status(200).json({
             projects
@@ -198,9 +207,13 @@ export async function getProjectByIdController(
     res: Response
 ) {
     try {
-        if (req.user?.role !== "PROJECT_MANAGER") {
+        if (!req.user) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        if (req.user.role !== "PROJECT_MANAGER" && req.user.role !== "RESOURCE") {
             return res.status(403).json({
-                message: "Only project managers can view projects"
+                message: "You are not authorized to view projects"
             });
         }
 
@@ -220,11 +233,21 @@ export async function getProjectByIdController(
             });
         }
 
-        // A project manager should only be able to access their own project.
-        if (project.project_manager_id !== req.user.user_id) {
-            return res.status(403).json({
-                message: "You do not have access to this project"
-            });
+        if (req.user.role === "PROJECT_MANAGER") {
+            // A project manager should only be able to access their own project.
+            if (project.project_manager_id !== req.user.user_id) {
+                return res.status(403).json({
+                    message: "You do not have access to this project"
+                });
+            }
+        } else if (req.user.role === "RESOURCE") {
+            // A resource should only be able to access projects they are members of.
+            const isMember = await isProjectMember(projectId, req.user.user_id);
+            if (!isMember) {
+                return res.status(403).json({
+                    message: "You do not have access to this project"
+                });
+            }
         }
 
         return res.status(200).json({

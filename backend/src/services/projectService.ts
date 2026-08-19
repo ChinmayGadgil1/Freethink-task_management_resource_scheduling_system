@@ -79,6 +79,34 @@ export async function getProjectsByManager(projectManagerId: number) {
     return projects;
 }
 
+export async function getProjectsByMember(userId: number) {
+    const pool = getPool();
+
+    const [projects] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT
+            p.project_id,
+            p.project_manager_id,
+            p.name,
+            p.description,
+            p.status,
+            p.priority,
+            p.start_date,
+            p.deadline,
+            p.progress,
+            p.created_at,
+            p.updated_at
+        FROM projects p
+        JOIN project_members pm ON p.project_id = pm.project_id
+        WHERE pm.user_id = ?
+        ORDER BY p.created_at DESC
+        `,
+        [userId]
+    );
+
+    return projects;
+}
+
 export async function getProjectById(projectId: number) {
     const pool = getPool();
 
