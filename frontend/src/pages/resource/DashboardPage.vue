@@ -9,7 +9,6 @@
       </div>
       <div class="row q-gutter-sm">
         <q-btn flat no-caps dense icon="refresh" label="Refresh" color="grey-7" @click="loadDashboardData" />
-        <q-btn unelevated no-caps dense icon="edit_note" label="Update Progress" color="primary" @click="updateDialog = true" />
         <q-btn outline no-caps dense icon="list_alt" label="My Tasks" color="primary" @click="goToTasks" />
       </div>
     </div>
@@ -159,7 +158,6 @@
       </WorkspaceSection>
     </template>
 
-    <UpdateProgressDialog v-model="updateDialog" :tasks="tasks" @saved="handleProgressSaved" />
   </q-page>
 </template>
 
@@ -173,7 +171,6 @@ import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
 import UpcomingTasksCard from '@/components/resource/UpcomingTasksCard.vue';
 import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
 import ResourceGanttChart from '@/components/resource/ResourceGanttChart.vue';
-import UpdateProgressDialog from '@/components/resource/UpdateProgressDialog.vue';
 import { getTasksApi, getResourceWorkloadApi, type Task, type ResourceWorkload } from '@/services/api';
 
 const router = useRouter();
@@ -181,7 +178,6 @@ const loading = ref(true);
 const error = ref('');
 const tasks = ref<Task[]>([]);
 const workloadData = ref<ResourceWorkload | null>(null);
-const updateDialog = ref(false);
 
 const storedUser = localStorage.getItem('user');
 const userFirstName = computed(() => {
@@ -258,11 +254,6 @@ async function loadDashboardData() {
   }
 }
 onMounted(() => void loadDashboardData());
-
-function handleProgressSaved(updated: Task) {
-  const idx = tasks.value.findIndex((t) => t.task_id === updated.task_id);
-  if (idx !== -1) tasks.value[idx] = updated;
-}
 
 // Total, active (not completed), completed — kept distinct, never conflated.
 const stats = computed(() => {

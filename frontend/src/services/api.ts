@@ -45,6 +45,29 @@ export interface Task {
   assigned_resource_ids?: number[];
 }
 
+export interface WorkLog {
+  log_id: number;
+  task_id: number;
+  user_id: number;
+  hours_logged: number;
+  progress_logged: number;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  notes: string;
+  blockers: string | null;
+  log_date: string;
+  created_at: string;
+  author_name?: string;
+}
+
+export interface CreateWorkLogPayload {
+  hours_logged: number;
+  progress_logged: number;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  notes: string;
+  blockers?: string | null;
+  log_date: string;
+}
+
 function getStoredToken(): string | null {
   const storedUser = localStorage.getItem('user');
 
@@ -423,4 +446,39 @@ export async function getResourceProjectsApi(resourceId: number): Promise<Projec
   }
 
   return Array.isArray(data) ? data : data.projects ?? [];
+}
+
+export async function createWorkLogApi(
+  taskId: number,
+  payload: CreateWorkLogPayload,
+): Promise<WorkLog> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/tasks/${taskId}/work-logs`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create work log');
+  }
+
+  return data.log;
+}
+
+export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/tasks/${taskId}/work-logs`,
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch work history');
+  }
+
+  return data.logs ?? [];
 }
