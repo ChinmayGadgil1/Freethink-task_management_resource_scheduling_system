@@ -32,7 +32,7 @@
         />
         <StatCard
           title="Resources"
-          value="21"
+          :value="resources.length"
           subtitle="↑ 8% vs last week"
           icon="groups"
           color="#F5841F"
@@ -104,7 +104,7 @@
       @prev="scrollStrip('workload-grid', -200)"
       @next="scrollStrip('workload-grid', 200)"
     >
-      <WorkloadSummary id="workload-grid" />
+      <WorkloadSummary id="workload-grid" :resources="resources" />
     </DashboardSection>
 
     <!-- 05 TIMELINE & SCHEDULE -->
@@ -113,95 +113,85 @@
       number="05"
       label="TIMELINE & SCHEDULE"
       title="What's happening next"
-      description="Upcoming milestones and important dates."
+      description="Upcoming project tasks and important dates."
       action-label="View full timeline"
       @action="scrollToTimeline"
+      @prev="scrollStrip('timeline-body', -320)"
+      @next="scrollStrip('timeline-body', 320)"
     >
       <div class="timeline-shell">
-        <div class="timeline-header-row">
-          <div class="timeline-month-badge">May 2025</div>
-          <div class="timeline-dates-grid">
+        <div
+          v-if="positionedTimelineRows.length"
+          class="timeline-header-row"
+          :style="{ minWidth: `${140 + timelineDays.length * 54}px` }"
+        >
+          <div class="timeline-month-badge">{{ timelineMonthLabel }}</div>
+          <div
+            class="timeline-dates-grid"
+            :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))` }"
+          >
             <div
-              v-for="day in days"
-              :key="day.date"
+              v-for="day in timelineDays"
+              :key="day.key"
               class="timeline-date-cell"
-              :class="{ today: day.today }"
+              :class="{ today: day.isToday }"
             >
-              <span class="day-number">{{ day.date }}</span>
+              <span class="day-number">{{ day.label }}</span>
               <span class="day-name">{{ day.weekday }}</span>
             </div>
           </div>
         </div>
 
-        <div class="timeline-body">
-          <!-- Website Redesign Row -->
-          <div class="timeline-project-row">
-            <div class="project-label">Website Redesign</div>
-            <div class="project-track">
-              <div class="timeline-grid-lines">
-                <div v-for="i in 17" :key="i" class="grid-line" />
-              </div>
-              <div class="timeline-bar bar-purple ui-phase">
-                UI Design Phase
-                <q-tooltip>UI Design Phase: May 21 - May 25</q-tooltip>
-              </div>
-              <div class="milestone-badge milestone-purple design-review">
-                <q-icon name="bookmark" size="11px" />
-                Design Review
-                <q-tooltip>Milestone: Design Review on May 26</q-tooltip>
-              </div>
-              <div class="timeline-bar bar-purple dev-phase">
-                Development Phase
-                <q-tooltip>Development Phase: May 27 - May 31</q-tooltip>
-              </div>
-              <div class="timeline-bar bar-purple-light test-phase">
-                Testing
-                <q-tooltip>Testing Phase: Jun 1 - Jun 3</q-tooltip>
-              </div>
+        <div v-if="positionedTimelineRows.length" id="timeline-body" class="timeline-body">
+          <div
+            v-for="row in positionedTimelineRows"
+            :key="row.id"
+            class="timeline-project-row"
+            :style="{ minWidth: `${140 + timelineDays.length * 54}px` }"
+          >
+            <div class="project-label">
+              <span class="timeline-task-label">{{ row.title }}</span>
+              <span class="timeline-project-name">{{ row.projectName }}</span>
             </div>
-          </div>
 
-          <!-- Mobile App Development Row -->
-          <div class="timeline-project-row">
-            <div class="project-label">Mobile App Development</div>
             <div class="project-track">
-              <div class="timeline-grid-lines">
-                <div v-for="i in 17" :key="i" class="grid-line" />
+              <div
+                class="timeline-grid-lines"
+                :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))` }"
+              >
+                <div
+                  v-for="day in timelineDays"
+                  :key="`${row.id}-${day.key}`"
+                  class="grid-line"
+                />
               </div>
-              <div class="timeline-bar bar-teal auth-module">
-                Authentication Module
-                <q-tooltip>Authentication Module: May 19 - May 24</q-tooltip>
-              </div>
-              <div class="timeline-bar bar-teal payment-module">
-                Payment Integration
-                <q-tooltip>Payment Integration: May 25 - May 29</q-tooltip>
-              </div>
-              <div class="milestone-badge milestone-teal beta-release">
-                <q-icon name="bookmark" size="11px" />
-                Beta Release
-                <q-tooltip>Milestone: Beta Release on May 30</q-tooltip>
-              </div>
-            </div>
-          </div>
 
-          <!-- Marketing Campaign Row -->
-          <div class="timeline-project-row">
-            <div class="project-label">Marketing Campaign</div>
-            <div class="project-track">
-              <div class="timeline-grid-lines">
-                <div v-for="i in 17" :key="i" class="grid-line" />
-              </div>
-              <div class="timeline-bar bar-orange content-phase">
-                Content Creation
-                <q-tooltip>Content Creation: May 21 - May 28</q-tooltip>
-              </div>
-              <div class="milestone-badge milestone-orange launch-milestone">
-                <q-icon name="star" size="11px" />
-                Launch Campaign
-                <q-tooltip>Milestone: Launch Campaign on May 29</q-tooltip>
+              <div
+                class="timeline-bar dynamic-timeline-bar"
+                :class="`status-${row.status.toLowerCase()}`"
+                :style="{ left: `${row.left}%`, width: `${row.width}%` }"
+              >
+                <div
+                  class="timeline-progress"
+                  :style="{ width: `${row.progress}%` }"
+                />
+                <span class="timeline-bar-content">
+                  {{ row.statusLabel }} · {{ row.progress }}%
+                </span>
+                <q-tooltip>
+                  <div>{{ row.title }}</div>
+                  <div>{{ row.projectName }}</div>
+                  <div>{{ row.startLabel }} → {{ row.endLabel }}</div>
+                  <div>{{ row.statusLabel }} · {{ row.progress }}% complete</div>
+                </q-tooltip>
               </div>
             </div>
           </div>
+        </div>
+
+        <div v-else class="timeline-empty">
+          <q-icon name="event_note" size="28px" color="grey-5" />
+          <span>No tasks or project dates are available for the timeline yet.</span>
         </div>
       </div>
     </DashboardSection>
@@ -617,6 +607,7 @@ import {
   createTaskApi,
   getProjectsApi,
   getTasksApi,
+  getResourcesApi,
   updateTaskApi,
   assignProjectMemberApi,
   type CreateProjectPayload,
@@ -625,6 +616,7 @@ import {
   type ProjectPriority,
   type ProjectStatus,
   type Task,
+  type ResourceUser,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -632,6 +624,7 @@ const router = useRouter();
 
 const projects = ref<Project[]>([]);
 const tasks = ref<Task[]>([]);
+const resources = ref<ResourceUser[]>([]);
 const projectsLoading = ref(false);
 const tasksLoading = ref(false);
 
@@ -685,9 +678,12 @@ const newTaskForm = reactive<{
   deadline: '',
 });
 
-const allocateForm = reactive({
-  project_id: null as number | null,
-  user_id: 101,
+const allocateForm = reactive<{
+  project_id: number | null;
+  user_id: number | null;
+}>({
+  project_id: null,
+  user_id: null,
 });
 
 const logProgressForm = reactive<{
@@ -710,13 +706,12 @@ const projectOptions = computed(() =>
   })),
 );
 
-const resourceOptions = [
-  { label: 'Rohit Verma (UI/UX Designer)', value: 101 },
-  { label: 'Sneha Iyer (Frontend Developer)', value: 102 },
-  { label: 'Arjun Mehta (Backend Developer)', value: 103 },
-  { label: 'Priya Singh (QA Engineer)', value: 104 },
-  { label: 'Vikram Patel (DevOps Engineer)', value: 105 },
-];
+const resourceOptions = computed(() =>
+  resources.value.map((resource) => ({
+    label: resource.name,
+    value: resource.user_id,
+  })),
+);
 
 const taskOptions = computed(() =>
   tasks.value.map((t) => ({
@@ -777,7 +772,7 @@ function openAddTaskDialog() {
 
 function openAllocateResourceDialog() {
   allocateForm.project_id = projects.value.length > 0 ? projects.value[0]!.project_id : null;
-  allocateForm.user_id = 101;
+  allocateForm.user_id = resources.value[0]?.user_id ?? null;
   showAllocateModal.value = true;
 }
 
@@ -1023,6 +1018,14 @@ async function loadTasks() {
   }
 }
 
+async function loadResources() {
+  try {
+    resources.value = await getResourcesApi();
+  } catch (error) {
+    console.error('Failed to load resources:', error);
+  }
+}
+
 const totalProjects = computed(() => projects.value.length);
 
 const activeTasks = computed(
@@ -1044,30 +1047,208 @@ const overdueTasks = computed(() => {
   }).length;
 });
 
+const projectById = computed(() => {
+  const map = new Map<number, Project>();
+  projects.value.forEach((project) => map.set(project.project_id, project));
+  return map;
+});
+
+function toDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function diffDays(from: Date, to: Date): number {
+  return Math.round(
+    (startOfDay(to).getTime() - startOfDay(from).getTime()) / (1000 * 60 * 60 * 24),
+  );
+}
+
+function formatTimelineDate(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+const timelineRows = computed(() => {
+  const rows = tasks.value
+    .map((task) => {
+      const project = projectById.value.get(task.project_id);
+      const start = toDate(task.start_date) ?? toDate(project?.start_date);
+      const end = toDate(task.deadline) ?? toDate(project?.deadline);
+
+      if (!start || !end) return null;
+
+      const safeEnd = end < start ? start : end;
+      return {
+        id: `task-${task.task_id}`,
+        title: task.title,
+        projectName: project?.name ?? task.project_name ?? `Project #${task.project_id}`,
+        start,
+        end: safeEnd,
+        progress: Math.max(0, Math.min(100, Number(task.progress) || 0)),
+        status: task.status,
+        statusLabel: task.status.replaceAll('_', ' '),
+        startLabel: formatTimelineDate(start),
+        endLabel: formatTimelineDate(safeEnd),
+      };
+    })
+    .filter(
+      (
+        row,
+      ): row is {
+        id: string;
+        title: string;
+        projectName: string;
+        start: Date;
+        end: Date;
+        progress: number;
+        status: Task['status'];
+        statusLabel: string;
+        startLabel: string;
+        endLabel: string;
+      } => row !== null,
+    )
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  if (rows.length > 0) {
+    return rows;
+  }
+
+  return projects.value
+    .map((project) => {
+      const start = toDate(project.start_date);
+      const end = toDate(project.deadline);
+      if (!start || !end) return null;
+
+      const safeEnd = end < start ? start : end;
+      const progress = Math.max(0, Math.min(100, Number(project.progress) || 0));
+      return {
+        id: `project-${project.project_id}`,
+        title: project.name,
+        projectName: 'Project',
+        start,
+        end: safeEnd,
+        progress,
+        status: (project.status === 'ACTIVE' ? 'IN_PROGRESS' : project.status === 'PUBLISHED' ? 'PENDING' : project.status === 'COMPLETED' ? 'COMPLETED' : 'ON_HOLD'),
+        statusLabel: project.status.replaceAll('_', ' '),
+        startLabel: formatTimelineDate(start),
+        endLabel: formatTimelineDate(safeEnd),
+      };
+    })
+    .filter(
+      (
+        row,
+      ): row is {
+        id: string;
+        title: string;
+        projectName: string;
+        start: Date;
+        end: Date;
+        progress: number;
+        status: Task['status'];
+        statusLabel: string;
+        startLabel: string;
+        endLabel: string;
+      } => row !== null,
+    )
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+});
+
+const timelineStart = computed(() => {
+  if (!timelineRows.value.length) return startOfDay(new Date());
+  const earliest = new Date(
+    Math.min(...timelineRows.value.map((row) => row.start.getTime())),
+  );
+  earliest.setDate(earliest.getDate() - 1);
+  return startOfDay(earliest);
+});
+
+const timelineEnd = computed(() => {
+  if (!timelineRows.value.length) {
+    const fallback = startOfDay(new Date());
+    fallback.setDate(fallback.getDate() + 14);
+    return fallback;
+  }
+  const latest = new Date(
+    Math.max(...timelineRows.value.map((row) => row.end.getTime())),
+  );
+  latest.setDate(latest.getDate() + 1);
+  return startOfDay(latest);
+});
+
+const timelineDays = computed(() => {
+  const daysList: Array<{
+    key: string;
+    label: string;
+    weekday: string;
+    isToday: boolean;
+  }> = [];
+
+  const cursor = new Date(timelineStart.value);
+  const end = timelineEnd.value;
+
+  while (cursor <= end) {
+    daysList.push({
+      key: cursor.toISOString().slice(0, 10),
+      label: cursor.getDate().toString(),
+      weekday: cursor.toLocaleDateString(undefined, { weekday: 'short' }),
+      isToday: startOfDay(cursor).getTime() === startOfDay(new Date()).getTime(),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return daysList;
+});
+
+const timelineMonthLabel = computed(() => {
+  if (!timelineRows.value.length) return 'Timeline';
+
+  const start = timelineStart.value;
+  const end = timelineEnd.value;
+  const startLabel = start.toLocaleDateString(undefined, {
+    month: 'short',
+    year: 'numeric',
+  });
+  const endLabel = end.toLocaleDateString(undefined, {
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+});
+
+function timelineGeometry(row: (typeof timelineRows.value)[number]) {
+  const totalDays = Math.max(1, diffDays(timelineStart.value, timelineEnd.value) + 1);
+  const rowStart = Math.max(0, diffDays(timelineStart.value, row.start));
+  const rowDuration = Math.max(1, diffDays(row.start, row.end) + 1);
+
+  return {
+    left: Math.min(100, (rowStart / totalDays) * 100),
+    width: Math.min(100, (rowDuration / totalDays) * 100),
+  };
+}
+
+const positionedTimelineRows = computed(() =>
+  timelineRows.value.map((row) => ({
+    ...row,
+    ...timelineGeometry(row),
+  })),
+);
+
 onMounted(() => {
   void loadProjects();
   void loadTasks();
+  void loadResources();
 });
-
-const days = [
-  { date: '18', weekday: 'Sun' },
-  { date: '19', weekday: 'Mon' },
-  { date: '20', weekday: 'Tue' },
-  { date: '21', weekday: 'Wed', today: true },
-  { date: '22', weekday: 'Thu' },
-  { date: '23', weekday: 'Fri' },
-  { date: '24', weekday: 'Sat' },
-  { date: '25', weekday: 'Sun' },
-  { date: '26', weekday: 'Mon' },
-  { date: '27', weekday: 'Tue' },
-  { date: '28', weekday: 'Wed' },
-  { date: '29', weekday: 'Thu' },
-  { date: '30', weekday: 'Fri' },
-  { date: '31', weekday: 'Sat' },
-  { date: '1', weekday: 'Sun' },
-  { date: '2', weekday: 'Mon' },
-  { date: '3', weekday: 'Tue' },
-];
 </script>
 
 <style scoped lang="scss">
@@ -1102,6 +1283,7 @@ const days = [
 .timeline-shell {
   position: relative;
   min-width: 0;
+  overflow-x: auto;
 }
 
 .timeline-header-row {
@@ -1318,6 +1500,71 @@ const days = [
 
 .launch-milestone {
   left: 60%;
+}
+
+.dynamic-timeline-bar {
+  overflow: hidden;
+  border-radius: 12px;
+  color: #ffffff;
+  min-width: 32px;
+  background: #8b6fd8;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.14);
+}
+
+.dynamic-timeline-bar.status-pending {
+  background: #8b6fd8;
+}
+
+.dynamic-timeline-bar.status-in_progress {
+  background: #2e90fa;
+}
+
+.dynamic-timeline-bar.status-completed {
+  background: #27ae60;
+}
+
+.dynamic-timeline-bar.status-on_hold {
+  background: #f5841f;
+}
+
+.timeline-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(255, 255, 255, 0.24);
+  pointer-events: none;
+}
+
+.timeline-bar-content {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-task-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-project-name {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--wo-text-subtle, #98a2b3);
+  font-size: 9px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.timeline-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  color: var(--wo-text-subtle, #98a2b3);
+  font-size: 12px;
 }
 
 /* Quick Actions Bar */

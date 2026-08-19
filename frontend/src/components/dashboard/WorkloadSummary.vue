@@ -3,13 +3,13 @@
     <div class="resource-grid">
       <div
         v-for="(resource, index) in resources"
-        :key="resource.name"
+        :key="resource.user_id"
         class="resource-card cursor-pointer"
         @click="goToResources"
       >
         <div class="resource-top">
           <q-avatar size="36px" class="resource-avatar">
-            <img :src="resource.avatar" :alt="resource.name" />
+            {{ resource.initials }}
           </q-avatar>
           <q-icon name="more_horiz" size="18px" class="resource-menu" @click.stop>
             <q-menu anchor="bottom end" self="top end">
@@ -74,9 +74,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { getResourceWorkloadApi, type ResourceUser } from '@/services/api';
+
+const props = defineProps<{
+  resources: ResourceUser[];
+}>();
 
 const router = useRouter();
+const workloadMap = ref<Record<number, {
+  workload: number;
+  totalExpectedEffort: number;
+  status: string;
+}>>({});
 
 function goToResources() {
   void router.push('/app/resource-dashboard');
@@ -86,84 +97,143 @@ function goToProjects() {
   void router.push('/pm/projects');
 }
 
-const avatarRohit =
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80';
-const avatarSneha =
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80';
-const avatarArjun =
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80';
-const avatarPriya =
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80';
-const avatarVikram =
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&auto=format&fit=crop&q=80';
+function getInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
-const resources = [
-  {
-    name: 'Rohit Verma',
-    role: 'UI/UX Designer',
-    workload: 85,
-    status: 'Overloaded',
-    statusColor: '#E15263',
-    statusBg: '#FDEEF0',
-    stroke: '#E15263',
-    avatar: avatarRohit,
-    path: 'M 0,32 C 20,20 35,36 55,22 C 75,8 95,28 115,16 C 135,4 150,24 170,18',
-    areaPath:
-      'M 0,32 C 20,20 35,36 55,22 C 75,8 95,28 115,16 C 135,4 150,24 170,18 L 170,46 L 0,46 Z',
-  },
-  {
-    name: 'Sneha Iyer',
-    role: 'Frontend Developer',
-    workload: 72,
-    status: 'High',
-    statusColor: '#F5841F',
-    statusBg: '#FFF4EB',
-    stroke: '#F5841F',
-    avatar: avatarSneha,
-    path: 'M 0,30 C 25,32 40,16 65,22 C 90,28 110,14 135,20 C 150,24 160,18 170,22',
-    areaPath:
-      'M 0,30 C 25,32 40,16 65,22 C 90,28 110,14 135,20 C 150,24 160,18 170,22 L 170,46 L 0,46 Z',
-  },
-  {
-    name: 'Arjun Mehta',
-    role: 'Backend Developer',
-    workload: 60,
-    status: 'Medium',
-    statusColor: '#D97706',
-    statusBg: '#FEF7E6',
-    stroke: '#F59E0B',
-    avatar: avatarArjun,
-    path: 'M 0,28 C 20,24 35,30 55,20 C 75,10 95,26 120,18 C 140,10 155,22 170,16',
-    areaPath:
-      'M 0,28 C 20,24 35,30 55,20 C 75,10 95,26 120,18 C 140,10 155,22 170,16 L 170,46 L 0,46 Z',
-  },
-  {
-    name: 'Priya Singh',
-    role: 'QA Engineer',
-    workload: 45,
-    status: 'Normal',
-    statusColor: '#27AE60',
-    statusBg: '#EAF7F0',
-    stroke: '#27AE60',
-    avatar: avatarPriya,
-    path: 'M 0,26 C 20,20 35,30 55,22 C 75,14 95,20 120,12 C 140,6 155,16 170,14',
-    areaPath:
-      'M 0,26 C 20,20 35,30 55,22 C 75,14 95,20 120,12 C 140,6 155,16 170,14 L 170,46 L 0,46 Z',
-  },
-  {
-    name: 'Vikram Patel',
-    role: 'DevOps Engineer',
-    workload: 30,
+function getWorkloadMeta(workload: number) {
+  if (workload > 100) {
+    return {
+      status: 'Overloaded',
+      statusColor: '#E15263',
+      statusBg: '#FDEEF0',
+      stroke: '#E15263',
+    };
+  }
+
+  if (workload > 80) {
+    return {
+      status: 'High',
+      statusColor: '#F5841F',
+      statusBg: '#FFF4EB',
+      stroke: '#F5841F',
+    };
+  }
+
+  if (workload > 50) {
+    return {
+      status: 'Medium',
+      statusColor: '#D97706',
+      statusBg: '#FEF7E6',
+      stroke: '#F59E0B',
+    };
+  }
+
+  if (workload > 25) {
+    return {
+      status: 'Normal',
+      statusColor: '#27AE60',
+      statusBg: '#EAF7F0',
+      stroke: '#27AE60',
+    };
+  }
+
+  return {
     status: 'Light',
     statusColor: '#1ABC9C',
     statusBg: '#E6F7F5',
     stroke: '#1ABC9C',
-    avatar: avatarVikram,
-    path: 'M 0,24 C 20,22 35,28 55,20 C 75,12 95,16 120,12 C 140,14 155,18 170,16',
-    areaPath:
-      'M 0,24 C 20,22 35,28 55,20 C 75,12 95,16 120,12 C 140,14 155,18 170,16 L 170,46 L 0,46 Z',
+  };
+}
+
+function buildSparkline(workload: number): { path: string; areaPath: string } {
+  const level = Math.max(4, Math.min(38, workload * 0.35));
+  const p1 = Math.max(8, 32 - level * 0.35);
+  const p2 = Math.max(6, 30 - level * 0.55);
+  const p3 = Math.max(5, 28 - level * 0.75);
+  const p4 = Math.max(5, 26 - level * 0.95);
+
+  const path = `M 0,32 C 25,${p1} 50,${p2} 85,${p2 + 3} C 115,${p3 + 5} 140,${p4} 170,${p4 + 2}`;
+  const areaPath = `${path} L 170,46 L 0,46 Z`;
+
+  return { path, areaPath };
+}
+
+const resources = computed(() =>
+  props.resources.map((resource) => {
+    const data = workloadMap.value[resource.user_id];
+    const workload = data?.workload ?? 0;
+    const meta = getWorkloadMeta(workload);
+    const sparkline = buildSparkline(workload);
+
+    return {
+      ...resource,
+      workload,
+      totalExpectedEffort: data?.totalExpectedEffort ?? 0,
+      status: meta.status,
+      statusColor: meta.statusColor,
+      statusBg: meta.statusBg,
+      stroke: meta.stroke,
+      initials: getInitials(resource.name),
+      path: sparkline.path,
+      areaPath: sparkline.areaPath,
+    };
+  }),
+);
+
+async function loadWorkloads() {
+  if (!props.resources.length) {
+    workloadMap.value = {};
+    return;
+  }
+
+  const entries = await Promise.all(
+    props.resources.map(async (resource) => {
+      try {
+        const workload = await getResourceWorkloadApi(resource.user_id);
+        const expectedHours = Number(workload.total_expected_effort) || 0;
+
+        // Existing backend workload exposes allocated effort.
+        // Use a standard 40h working week to express that effort as a percentage.
+        const percentage = Math.round((expectedHours / 40) * 100);
+
+        return [
+          resource.user_id,
+          {
+            workload: Math.max(0, percentage),
+            totalExpectedEffort: expectedHours,
+            status: getWorkloadMeta(percentage).status,
+          },
+        ] as const;
+      } catch (error) {
+        console.error(`Failed to load workload for resource ${resource.user_id}:`, error);
+        return [
+          resource.user_id,
+          {
+            workload: 0,
+            totalExpectedEffort: 0,
+            status: 'Light',
+          },
+        ] as const;
+      }
+    }),
+  );
+
+  workloadMap.value = Object.fromEntries(entries);
+}
+
+watch(
+  () => props.resources.map((resource) => resource.user_id),
+  () => {
+    void loadWorkloads();
   },
-];
+  { immediate: true },
+);
 </script>
 
 <style scoped lang="scss">
@@ -173,7 +243,7 @@ const resources = [
 
 .resource-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 0;
 }
 
