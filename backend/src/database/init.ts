@@ -57,6 +57,7 @@ export async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS tasks (
             task_id BIGINT AUTO_INCREMENT PRIMARY KEY,
             project_id BIGINT NOT NULL,
+            created_by BIGINT NOT NULL,
             title VARCHAR(150) NOT NULL,
             description TEXT,
             priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
@@ -68,7 +69,8 @@ export async function initializeDatabase() {
             progress DECIMAL(5,2) NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (project_id) REFERENCES projects(project_id)
+            FOREIGN KEY (project_id) REFERENCES projects(project_id),
+            FOREIGN KEY (created_by) REFERENCES users(user_id)
         )
     `);
 

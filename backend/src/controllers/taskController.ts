@@ -45,6 +45,7 @@ export async function create(req: AuthRequest, res: Response) {
 
         const task = await createTask(
             parsed.project_id,
+            userId!,
             parsed.title,
             parsed.description ?? null,
             parsed.priority,

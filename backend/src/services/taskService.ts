@@ -4,6 +4,7 @@ import type { TaskPriority, TaskStatus } from "../models/taskModel.js";
 
 export async function createTask(
     projectId: number,
+    createdBy: number,
     title: string,
     description: string | null,
     priority: TaskPriority,
@@ -21,12 +22,12 @@ export async function createTask(
 
         const [result] = await connection.query<ResultSetHeader>(
             `
-            INSERT INTO tasks
-                (project_id, title, description, priority, status, start_date, deadline, expected_effort, progress)
-            VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, 0)
+        INSERT INTO tasks
+            (project_id, created_by, title, description, priority, status, start_date, deadline, expected_effort, progress)
+        VALUES
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             `,
-            [projectId, title, description, priority, status, startDate, deadline, expectedEffort]
+            [projectId, createdBy, title, description, priority, status, startDate, deadline, expectedEffort]
         );
 
         const taskId = result.insertId;
@@ -62,6 +63,7 @@ export async function createTask(
         return {
             task_id: taskId,
             project_id: projectId,
+            created_by: createdBy,
             title,
             description,
             priority,

@@ -1,24 +1,46 @@
 import { getPool } from "../config/database.js";
 import type { RowDataPacket } from "mysql2";
 
-export async function getResources() {
+export async function getResources(projectId?: number) {
     const pool = getPool();
 
-    const [resources] = await pool.query<RowDataPacket[]>(
-        `
+    let query = `
         SELECT
-            user_id,
-            name,
-            email,
-            role,
-            is_active,
-            created_at
-        FROM users
-        WHERE role = 'RESOURCE'
-          AND is_active = TRUE
-        ORDER BY name ASC
-        `
-    );
+            u.user_id,
+            u.name,
+            u.email,
+            u.role,
+            u.is_active,
+            u.created_at
+        FROM users u
+    `;
+
+    const params: number[] = [];
+
+    if (projectId !== undefined) {
+        query += `
+            INNER JOIN project_members pm
+                ON u.user_id = pm.user_id
+        `;
+    }
+
+    query += `
+        WHERE u.role = 'RESOURCE'
+          AND u.is_active = TRUE
+    `;
+
+    if (projectId !== undefined) {
+        query += `
+          AND pm.project_id = ?
+        `;
+        params.push(projectId);
+    }
+
+    query += `
+        ORDER BY u.name ASC
+    `;
+
+    const [resources] = await pool.query<RowDataPacket[]>(query, params);
 
     return resources;
 }

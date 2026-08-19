@@ -13,7 +13,21 @@ export async function listResources(
             });
         }
 
-        const resources = await getResources();
+        const projectIdParam = req.query.project_id;
+
+        let projectId: number | undefined;
+
+        if (projectIdParam !== undefined) {
+            projectId = Number(projectIdParam);
+
+            if (!Number.isInteger(projectId) || projectId <= 0) {
+                return res.status(400).json({
+                    message: "Invalid project ID"
+                });
+            }
+        }
+
+        const resources = await getResources(projectId);
 
         return res.status(200).json(resources);
     } catch (error: any) {
