@@ -11,6 +11,7 @@ import {
     deleteProject,
     removeProjectMember
 } from "../services/projectService.js";
+import { getRecentWorkLogsForManager } from "../services/workLogService.js";
 
 const createProjectSchema = z.object({
     project_manager_id: z.number().int().positive(),
@@ -355,6 +356,23 @@ export async function removeProjectMemberController(req: AuthRequest, res: Respo
         return res.status(200).json({ message: "Member removed successfully" });
     } catch (error: any) {
         console.error("Remove project member error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+export async function getGlobalProgressFeedController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can view the global progress feed" });
+        }
+        
+        const limit = req.query.limit ? Number(req.query.limit) : 50;
+        
+        const logs = await getRecentWorkLogsForManager(req.user.user_id, limit);
+        
+        return res.status(200).json({ logs });
+    } catch (error: any) {
+        console.error("Global progress feed error:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 }

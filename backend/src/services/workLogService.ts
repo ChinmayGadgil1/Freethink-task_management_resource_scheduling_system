@@ -96,3 +96,21 @@ export async function getWorkLogsByTask(taskId: number) {
 
     return logs;
 }
+
+export async function getRecentWorkLogsForManager(projectManagerId: number, limit: number = 50) {
+    const pool = getPool();
+
+    const [logs] = await pool.query<RowDataPacket[]>(
+        `SELECT wl.*, u.name as author_name, t.title as task_title, p.name as project_name 
+         FROM work_logs wl
+         JOIN users u ON wl.user_id = u.user_id
+         JOIN tasks t ON wl.task_id = t.task_id
+         JOIN projects p ON t.project_id = p.project_id
+         WHERE p.project_manager_id = ?
+         ORDER BY wl.created_at DESC
+         LIMIT ?`,
+        [projectManagerId, limit]
+    );
+
+    return logs;
+}
