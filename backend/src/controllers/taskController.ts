@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask } from "../services/taskService.js";
+import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact } from "../services/schedulingService.js";
 import { createWorkLog, getWorkLogsByTask } from "../services/workLogService.js";
@@ -392,6 +392,18 @@ export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response
         if (error instanceof z.ZodError) {
             return res.status(400).json({ message: "Validation error", errors: error.issues });
         }
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function getBottlenecksController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can view bottlenecks" });
+        }
+        const tasks = await getBottleneckTasks(req.user.user_id);
+        return res.status(200).json({ tasks });
+    } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }

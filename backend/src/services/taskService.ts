@@ -282,3 +282,23 @@ export async function updateTask(taskId: number, updates: Record<string, any>) {
     await pool.query(`UPDATE tasks SET ${setClause} WHERE task_id = ?`, params);
 }
 
+export async function getBottleneckTasks(projectManagerId: number) {
+    const pool = getPool();
+    const [tasks] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT t.*, p.name as project_name
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.project_id
+        WHERE p.project_manager_id = ?
+          AND t.status != 'COMPLETED'
+          AND (
+              (t.deadline IS NOT NULL AND t.deadline < CURRENT_DATE)
+              OR
+              (t.actual_effort > t.expected_effort)
+          )
+        ORDER BY t.deadline ASC
+        `,
+        [projectManagerId]
+    );
+    return tasks;
+}
