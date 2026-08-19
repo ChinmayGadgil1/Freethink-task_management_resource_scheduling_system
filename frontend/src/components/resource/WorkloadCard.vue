@@ -2,36 +2,29 @@
   <q-card flat bordered class="dashboard-card full-height">
     <q-card-section>
       <div class="row items-baseline justify-between">
-        <div class="text-h3 text-weight-bold">{{ utilization }}%</div>
-        <q-badge :color="loadColor" :label="loadLabel" class="load-badge" />
+        <div class="text-h3 text-weight-bold">{{ allocatedHours }}h</div>
+        <q-badge color="primary" label="Allocated Effort" class="load-badge" />
       </div>
-      <div class="text-caption text-grey-6 q-mt-xs">of daily capacity utilized</div>
+      <div class="text-caption text-grey-6 q-mt-xs">expected effort across your active tasks</div>
 
-      <q-linear-progress
-        :value="utilization / 100"
-        size="10px"
-        rounded
-        class="q-mt-md"
-        :color="loadColor"
-        track-color="grey-3"
-      />
+      <div class="row justify-between q-mt-md q-mb-xs">
+        <span class="text-caption text-grey-7">Effort consumed</span>
+        <span class="text-caption text-weight-medium">{{ consumedPct }}%</span>
+      </div>
+      <q-linear-progress :value="consumedPct / 100" size="10px" rounded color="primary" track-color="grey-3" />
 
       <div class="stat-grid q-mt-lg">
         <div class="stat-cell">
-          <div class="stat-label">Assigned tasks</div>
+          <div class="stat-label">Active tasks</div>
           <div class="stat-value">{{ assignedTasks }}</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Allocated hours</div>
-          <div class="stat-value">{{ allocatedHours }}h</div>
+          <div class="stat-label">Actual effort</div>
+          <div class="stat-value">{{ actualHours }}h</div>
         </div>
         <div class="stat-cell">
-          <div class="stat-label">Daily capacity</div>
-          <div class="stat-value">{{ dailyCapacity }}h</div>
-        </div>
-        <div class="stat-cell">
-          <div class="stat-label">Remaining today</div>
-          <div class="stat-value">{{ remaining }}h</div>
+          <div class="stat-label">Remaining effort</div>
+          <div class="stat-value">{{ remainingHours }}h</div>
         </div>
       </div>
     </q-card-section>
@@ -42,24 +35,15 @@
 import { computed } from 'vue';
 
 const props = defineProps<{
-  utilization: number;
   allocatedHours: number;
-  dailyCapacity: number;
-  remaining: number;
+  actualHours: number;
+  remainingHours: number;
   assignedTasks: number;
 }>();
 
-const loadColor = computed(() => {
-  if (props.utilization >= 90) return 'negative';
-  if (props.utilization >= 70) return 'warning';
-  return 'positive';
-});
-
-const loadLabel = computed(() => {
-  if (props.utilization >= 90) return 'Overloaded';
-  if (props.utilization >= 70) return 'Busy';
-  return 'On track';
-});
+const consumedPct = computed(() =>
+  props.allocatedHours ? Math.min(100, Math.round((props.actualHours / props.allocatedHours) * 100)) : 0,
+);
 </script>
 
 <style scoped lang="scss">
@@ -69,19 +53,16 @@ const loadLabel = computed(() => {
   font-size: 10px;
   font-weight: 700;
 }
-
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
-
 .stat-cell {
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--wo-bg-page, #f8f9fa);
 }
-
 .stat-label {
   color: var(--wo-text-muted, #667085);
   font-size: 10px;
@@ -89,7 +70,6 @@ const loadLabel = computed(() => {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-
 .stat-value {
   margin-top: 4px;
   color: var(--wo-text-main, #1d2433);
