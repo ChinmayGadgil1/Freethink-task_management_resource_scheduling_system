@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks } from "../services/taskService.js";
+import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, unassignResource, removeTaskDependency } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact, handleTaskCompletionImpact } from "../services/schedulingService.js";
 import { createWorkLog, getWorkLogsByTask } from "../services/workLogService.js";
@@ -420,6 +420,82 @@ export async function getWorkLogs(req: AuthRequest<{ id: string }>, res: Respons
         const taskId = Number(req.params.id);
         const logs = await getWorkLogsByTask(taskId);
         return res.status(200).json({ logs });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function deleteTaskController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can delete tasks" });
+        }
+        const taskId = Number((req.params as any).id);
+        const task = await getTaskById(taskId) as any;
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+        
+        const project = await getProjectById(task.project_id);
+        if (!project || project.project_manager_id !== req.user.user_id) {
+            return res.status(403).json({ message: "Not authorized to delete this task" });
+        }
+        
+        const success = await deleteTask(taskId);
+        if (!success) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+        return res.status(200).json({ message: "Task deleted successfully" });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function unassignResourceController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can unassign resources" });
+        }
+        const taskId = Number((req.params as any).id);
+        const userId = Number((req.params as any).userId);
+        
+        const task = await getTaskById(taskId) as any;
+        if (!task) return res.status(404).json({ message: "Task not found" });
+        
+        const project = await getProjectById(task.project_id);
+        if (!project || project.project_manager_id !== req.user.user_id) {
+            return res.status(403).json({ message: "Not authorized to modify this task" });
+        }
+        
+        const success = await unassignResource(taskId, userId);
+        if (!success) return res.status(404).json({ message: "Resource not assigned to task" });
+        
+        return res.status(200).json({ message: "Resource unassigned successfully" });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function removeTaskDependencyController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can remove dependencies" });
+        }
+        const taskId = Number((req.params as any).id);
+        const predecessorTaskId = Number((req.params as any).predecessorId);
+        
+        const task = await getTaskById(taskId) as any;
+        if (!task) return res.status(404).json({ message: "Task not found" });
+        
+        const project = await getProjectById(task.project_id);
+        if (!project || project.project_manager_id !== req.user.user_id) {
+            return res.status(403).json({ message: "Not authorized to modify this task" });
+        }
+        
+        const success = await removeTaskDependency(taskId, predecessorTaskId);
+        if (!success) return res.status(404).json({ message: "Dependency not found" });
+        
+        return res.status(200).json({ message: "Dependency removed successfully" });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }

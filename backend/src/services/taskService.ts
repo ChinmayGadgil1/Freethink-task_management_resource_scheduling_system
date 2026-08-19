@@ -302,3 +302,51 @@ export async function getBottleneckTasks(projectManagerId: number) {
     );
     return tasks;
 }
+
+export async function deleteTask(taskId: number): Promise<boolean> {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        await connection.query(
+            "DELETE FROM task_dependencies WHERE task_id = ? OR predecessor_task_id = ?",
+            [taskId, taskId]
+        );
+
+        await connection.query("DELETE FROM task_assignments WHERE task_id = ?", [taskId]);
+        await connection.query("DELETE FROM work_logs WHERE task_id = ?", [taskId]);
+
+        const [result] = await connection.query<ResultSetHeader>(
+            "DELETE FROM tasks WHERE task_id = ?",
+            [taskId]
+        );
+
+        await connection.commit();
+        return result.affectedRows > 0;
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+export async function unassignResource(taskId: number, userId: number): Promise<boolean> {
+    const pool = getPool();
+    const [result] = await pool.query<ResultSetHeader>(
+        "DELETE FROM task_assignments WHERE task_id = ? AND user_id = ?",
+        [taskId, userId]
+    );
+    return result.affectedRows > 0;
+}
+
+export async function removeTaskDependency(taskId: number, predecessorTaskId: number): Promise<boolean> {
+    const pool = getPool();
+    const [result] = await pool.query<ResultSetHeader>(
+        "DELETE FROM task_dependencies WHERE task_id = ? AND predecessor_task_id = ?",
+        [taskId, predecessorTaskId]
+    );
+    return result.affectedRows > 0;
+}

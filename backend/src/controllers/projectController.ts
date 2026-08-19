@@ -7,7 +7,9 @@ import {
     getProjectsByManager,
     assignResourceToProject,
     getProjectById,
-    updateProject
+    updateProject,
+    deleteProject,
+    removeProjectMember
 } from "../services/projectService.js";
 
 const createProjectSchema = z.object({
@@ -303,5 +305,56 @@ export async function updateProjectController(
         return res.status(500).json({
             message: "Internal server error"
         });
+    }
+}
+
+export async function deleteProjectController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can delete projects" });
+        }
+        
+        const projectId = Number((req.params as any).id);
+        const project = await getProjectById(projectId);
+        
+        if (!project || project.project_manager_id !== req.user.user_id) {
+            return res.status(404).json({ message: "Project not found or unauthorized" });
+        }
+        
+        const success = await deleteProject(projectId);
+        if (!success) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+        
+        return res.status(200).json({ message: "Project deleted successfully" });
+    } catch (error: any) {
+        console.error("Delete project error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+export async function removeProjectMemberController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can manage project members" });
+        }
+        
+        const projectId = Number((req.params as any).id);
+        const userId = Number((req.params as any).userId);
+        
+        const project = await getProjectById(projectId);
+        if (!project || project.project_manager_id !== req.user.user_id) {
+            return res.status(404).json({ message: "Project not found or unauthorized" });
+        }
+        
+        const success = await removeProjectMember(projectId, userId);
+        if (!success) {
+            return res.status(404).json({ message: "Member not found in project" });
+        }
+        
+        return res.status(200).json({ message: "Member removed successfully" });
+    } catch (error: any) {
+        console.error("Remove project member error:", error);
+        return res.status(500).json({ message: "Internal server error" });
     }
 }
