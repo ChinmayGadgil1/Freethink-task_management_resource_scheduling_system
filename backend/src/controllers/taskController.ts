@@ -373,7 +373,9 @@ export async function assignResource(
 const workLogSchema = z.object({
     hours_logged: z.number().positive(),
     progress_logged: z.number().min(0).max(100),
+    status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"]),
     notes: z.string().min(1),
+    blockers: z.string().nullable().optional(),
     log_date: z.string()
 });
 
@@ -391,7 +393,9 @@ export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response
             req.user.user_id,
             parsed.hours_logged,
             parsed.progress_logged,
+            parsed.status,
             parsed.notes,
+            parsed.blockers ?? null,
             parsed.log_date
         );
 
@@ -419,10 +423,42 @@ export async function getBottlenecksController(req: AuthRequest, res: Response) 
 export async function getWorkLogs(req: AuthRequest<{ id: string }>, res: Response) {
     try {
         const taskId = Number(req.params.id);
+        const userRole = req.user!.role;
+        const userId = req.user!.user_id;
+
+        const task = await getTaskById(taskId) as any;
+
+        if (!task) {
+            return res.status(404).json({
+                message: "Task not found"
+            });
+        }
+
+        if (userRole === "RESOURCE") {
+            const isAssigned = (task.assigned_resource_ids || []).includes(userId);
+
+            if (!isAssigned) {
+                return res.status(403).json({
+                    message: "You are not authorized to view this task's progress history"
+                });
+            }
+        } else if (userRole === "PROJECT_MANAGER") {
+            const project = await getProjectById(task.project_id);
+
+            if (!project || project.project_manager_id !== userId) {
+                return res.status(403).json({
+                    message: "You are not authorized to view this task's progress history"
+                });
+            }
+        }
+
         const logs = await getWorkLogsByTask(taskId);
+
         return res.status(200).json({ logs });
     } catch (error: any) {
-        return res.status(500).json({ message: error.message || "Internal server error" });
+        return res.status(500).json({
+            message: error.message || "Internal server error"
+        });
     }
 }
 

@@ -7,7 +7,9 @@ export async function createWorkLog(
     userId: number,
     hoursLogged: number,
     progressLogged: number,
+    status: string,
     notes: string,
+    blockers: string | null,
     logDate: string
 ) {
     const pool = getPool();
@@ -33,21 +35,15 @@ export async function createWorkLog(
 
         // Insert the work log
         const [result] = await connection.query<ResultSetHeader>(
-            `INSERT INTO work_logs (task_id, user_id, hours_logged, progress_logged, notes, log_date)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [taskId, userId, hoursLogged, progressLogged, notes, logDate]
+            `INSERT INTO work_logs (task_id, user_id, hours_logged, progress_logged, status, notes, blockers, log_date)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [taskId, userId, hoursLogged, progressLogged, status, notes, blockers, logDate]
         );
 
         // Update the task actual effort, progress, and status
         const newActualEffort = Number(task.actual_effort) + Number(hoursLogged);
+        const newStatus = status;
         const newProgress = Number(progressLogged);
-        let newStatus = task.status;
-
-        if (newProgress >= 100) {
-            newStatus = "COMPLETED";
-        } else if (newProgress > 0 && task.status === "PENDING") {
-            newStatus = "IN_PROGRESS";
-        }
 
         await connection.query(
             `UPDATE tasks 
@@ -68,7 +64,9 @@ export async function createWorkLog(
             user_id: userId,
             hours_logged: hoursLogged,
             progress_logged: progressLogged,
+            status,
             notes,
+            blockers,
             log_date: logDate,
             task_updated_status: newStatus,
             task_updated_progress: newProgress,

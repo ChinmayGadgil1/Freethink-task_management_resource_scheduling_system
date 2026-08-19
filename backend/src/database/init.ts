@@ -128,9 +128,12 @@ export async function initializeDatabase() {
             user_id BIGINT NOT NULL,
             hours_logged DECIMAL(5,2) NOT NULL DEFAULT 0,
             progress_logged DECIMAL(5,2) NOT NULL DEFAULT 0,
+            status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD') NOT NULL,
             notes TEXT,
+            blockers TEXT,
             log_date DATE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
             FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
