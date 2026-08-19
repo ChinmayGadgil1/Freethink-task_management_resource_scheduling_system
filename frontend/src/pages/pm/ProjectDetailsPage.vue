@@ -722,6 +722,12 @@
                     </q-item-section>
                     <q-item-section>Update Progress</q-item-section>
                   </q-item>
+                  <q-item clickable @click="openDependencyDialog(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="account_tree" size="18px" color="primary" />
+                    </q-item-section>
+                    <q-item-section>Add Dependency</q-item-section>
+                  </q-item>
                   <q-item clickable @click="toggleTaskComplete(props.row)">
                     <q-item-section avatar>
                       <q-icon
@@ -752,6 +758,16 @@
             <h2 class="card-header-title">Assigned Team & Workload</h2>
           </div>
           <q-badge color="primary" rounded :label="`${teamMembers.length} Members`" />
+          <q-btn
+            outline
+            dense
+            no-caps
+            icon="person_add"
+            label="Add Resource"
+            color="primary"
+            class="q-ml-sm"
+            @click="openAddMemberDialog"
+          />
         </q-card-section>
 
         <q-separator />
@@ -943,6 +959,56 @@
       </q-card>
     </q-dialog>
 
+    <!-- DIALOG: ADD TASK DEPENDENCY -->
+    <q-dialog v-model="showDependencyDialog">
+      <q-card class="modal-dialog" style="width: 480px; max-width: 95vw">
+        <q-card-section class="modal-header">
+          <div>
+            <div class="modal-eyebrow">TASK DEPENDENCY</div>
+            <div class="modal-title">Add Task Dependency</div>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-form @submit.prevent="handleAddDependency">
+          <q-card-section class="modal-form">
+            <q-input
+              :model-value="dependencyTaskLabel"
+              outlined
+              dense
+              readonly
+              label="Task"
+            />
+
+            <q-select
+              v-model="selectedPredecessorTaskId"
+              outlined
+              dense
+              label="Depends On"
+              hint="The selected task will wait for this predecessor."
+              :options="dependencyPredecessorOptions"
+              emit-value
+              map-options
+              :rules="[(value) => !!value || 'Predecessor task is required']"
+            />
+          </q-card-section>
+
+          <q-card-actions align="right" class="modal-actions">
+            <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+            <q-btn
+              type="submit"
+              no-caps
+              unelevated
+              label="Add Dependency"
+              color="primary"
+              :loading="dependencySubmitting"
+              :disable="!selectedDependencyTaskId || !selectedPredecessorTaskId"
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
     <!-- DIALOG: EDIT PROJECT -->
     <q-dialog v-model="showEditProjectDialog">
       <q-card class="modal-dialog">
@@ -1093,6 +1159,47 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- DIALOG: ADD RESOURCE TO PROJECT -->
+    <q-dialog v-model="showAddMemberDialog">
+      <q-card style="width: 480px; max-width: 95vw" class="modal-dialog">
+        <q-card-section class="modal-header">
+          <div>
+            <div class="modal-eyebrow">PROJECT TEAM</div>
+            <div class="modal-title">Add Resource to Project</div>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-card-section class="modal-form">
+          <q-select
+            v-model="selectedMemberToAdd"
+            outlined
+            dense
+            clearable
+            emit-value
+            map-options
+            label="Resource Member"
+            :options="availableResourcesToAdd"
+            :disable="addingMember"
+            hint="Only active RESOURCE accounts are shown."
+          />
+        </q-card-section>
+
+        <q-card-actions align="right" class="modal-actions">
+          <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+          <q-btn
+            no-caps
+            unelevated
+            color="primary"
+            label="Add to Project"
+            :loading="addingMember"
+            :disable="!selectedMemberToAdd"
+            @click="handleAddProjectMember"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -1105,9 +1212,11 @@ import {
   createTaskApi,
   getProjectByIdApi,
   updateProjectApi,
+  updateTaskApi,
   getTasksApi,
   getResourcesApi,
   assignProjectMemberApi,
+  addTaskDependencyApi,
   type CreateTaskPayload,
   type Project,
   type ProjectPriority,
@@ -1141,22 +1250,41 @@ const showAddMemberDialog = ref(false);
 const selectedMemberToAdd = ref<number | null>(null);
 const addingMember = ref(false);
 
+const showDependencyDialog = ref(false);
+const selectedDependencyTaskId = ref<number | null>(null);
+const selectedPredecessorTaskId = ref<number | null>(null);
+const dependencySubmitting = ref(false);
+
 const availableResourcesToAdd = computed(() => {
   const existingIds = new Set(teamMembers.value.map((m) => m.id));
   return allSystemResources.value
     .filter((r) => !existingIds.has(r.user_id))
     .map((r) => ({
-      label: `${r.name} (${r.role || 'Resource'})`,
+      label: `${r.name} (${r.role})`,
       value: r.user_id,
     }));
 });
 
-const createTaskAssigneeOptions = computed(() => {
-  if (teamMembers.value.length > 0) {
-    return teamMembers.value.map((m) => ({ label: `${m.name} (${m.role})`, value: m.id }));
-  }
-  return allSystemResources.value.map((r) => ({ label: r.name, value: r.user_id }));
+const createTaskAssigneeOptions = computed(() =>
+  allSystemResources.value.map((resource) => ({
+    label: `${resource.name} (${resource.role})`,
+    value: resource.user_id,
+  })),
+);
+
+const dependencyTaskLabel = computed(() => {
+  const task = tasks.value.find((item) => item.task_id === selectedDependencyTaskId.value);
+  return task ? `${task.title} (#${task.task_id})` : '';
 });
+
+const dependencyPredecessorOptions = computed(() =>
+  tasks.value
+    .filter((task) => task.task_id !== selectedDependencyTaskId.value)
+    .map((task) => ({
+      label: `${task.title} (#${task.task_id})`,
+      value: task.task_id,
+    })),
+);
 
 const currentPmName = computed(() => {
   try {
@@ -1165,22 +1293,22 @@ const currentPmName = computed(() => {
       const parsed = JSON.parse(storedUser);
       if (parsed?.name) return parsed.name;
     }
-  } catch {}
+  } catch { // Fall back to the default project manager label. 
+    }
   return 'Project Manager';
 });
 
 // Default Project Data
 const project = reactive<Project>({
-  project_id: 1,
-  project_manager_id: 1,
-  name: 'TaskFlow Cloud Architecture & Platform Migration',
-  description:
-    'Enterprise resource scheduling platform overhaul with real-time capacity management, task automation, and intelligent workload balancing.',
-  status: 'ACTIVE',
-  priority: 'HIGH',
-  start_date: '2026-08-01',
-  deadline: '2026-09-30',
-  progress: 68,
+  project_id: projectIdParam.value,
+  project_manager_id: 0,
+  name: '',
+  description: null,
+  status: 'DRAFT',
+  priority: 'MEDIUM',
+  start_date: null,
+  deadline: null,
+  progress: 0,
 });
 
 // Tasks
@@ -1241,7 +1369,7 @@ const newTaskForm = reactive<{
   start_date: new Date().toISOString().split('T')[0] ?? '',
   deadline: '',
   expected_effort: 6,
-  assigned_resource: 101,
+  assigned_resource: null,
 });
 
 const editProjectForm = reactive<{
@@ -1588,200 +1716,185 @@ async function loadProjectTasks() {
   tasksLoading.value = true;
   try {
     const fetchedTasks = await getTasksApi(projectIdParam.value);
-    if (fetchedTasks && fetchedTasks.length > 0) {
-      tasks.value = fetchedTasks;
-    } else {
-      // Fallback high-fidelity sample tasks for rich UI presentation
-      tasks.value = [
-        {
-          task_id: 101,
-          project_id: project.project_id,
-          title: 'Design high-converting Project Overview UI with Quasar',
-          description:
-            'Implement Vue 3 + TypeScript components adhering to TaskFlow design system and dark theme tokens.',
-          priority: 'HIGH',
-          status: 'COMPLETED',
-          start_date: '2026-08-02',
-          deadline: '2026-08-10',
-          expected_effort: 16,
-          actual_effort: 14,
-          progress: 100,
-          assigned_resource_ids: [102],
-        },
-        {
-          task_id: 102,
-          project_id: project.project_id,
-          title: 'Implement Task Breakdown Table with Sorting & Filters',
-          description:
-            'Add live filtering for status, priority, and assignees with Quasar table slots.',
-          priority: 'CRITICAL',
-          status: 'IN_PROGRESS',
-          start_date: '2026-08-08',
-          deadline: '2026-08-22',
-          expected_effort: 24,
-          actual_effort: 18,
-          progress: 75,
-          assigned_resource_ids: [101],
-        },
-        {
-          task_id: 103,
-          project_id: project.project_id,
-          title: 'Setup Database Connection & Resource Scheduling Schema',
-          description:
-            'Configure PostgreSQL connection pooling and multi-resource allocation constraints.',
-          priority: 'HIGH',
-          status: 'IN_PROGRESS',
-          start_date: '2026-08-12',
-          deadline: '2026-08-25',
-          expected_effort: 20,
-          actual_effort: 10,
-          progress: 50,
-          assigned_resource_ids: [103],
-        },
-        {
-          task_id: 104,
-          project_id: project.project_id,
-          title: 'End-to-End API Integration & Unit Testing Suite',
-          description:
-            'Verify authorization middleware, project creation and task updates against API contracts.',
-          priority: 'MEDIUM',
-          status: 'PENDING',
-          start_date: '2026-08-20',
-          deadline: '2026-09-05',
-          expected_effort: 16,
-          actual_effort: 0,
-          progress: 0,
-          assigned_resource_ids: [104],
-        },
-        {
-          task_id: 105,
-          project_id: project.project_id,
-          title: 'Cloud Infrastructure & Automated CI/CD Pipeline Setup',
-          description:
-            'Configure container builds, environment secrets, and automated preview deployments.',
-          priority: 'MEDIUM',
-          status: 'ON_HOLD',
-          start_date: '2026-08-15',
-          deadline: '2026-09-12',
-          expected_effort: 12,
-          actual_effort: 3,
-          progress: 25,
-          assigned_resource_ids: [105],
-        },
-        {
-          task_id: 106,
-          project_id: project.project_id,
-          title: 'Security Audit & Role-Based Access Control Validation',
-          description: 'Ensure resource users cannot modify project manager permissions.',
-          priority: 'CRITICAL',
-          status: 'COMPLETED',
-          start_date: '2026-08-04',
-          deadline: '2026-08-14',
-          expected_effort: 10,
-          actual_effort: 10,
-          progress: 100,
-          assigned_resource_ids: [101],
-        },
-      ];
-    }
+    tasks.value = fetchedTasks ?? [];
+    updateDerivedMilestones();
   } catch (error) {
-    console.warn('Failed to load tasks from API, using fallback task set', error);
+    console.error('Failed to load tasks from API:', error);
+    tasks.value = [];
+    updateDerivedMilestones();
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to load project tasks',
+    });
   } finally {
     tasksLoading.value = false;
   }
 }
 
+function updateDerivedMilestones() {
+  milestones.value = tasks.value
+    .filter((task) => task.start_date || task.deadline)
+    .map((task) => {
+      const progress = getTaskProgressNumber(task.progress);
+      const status: Milestone['status'] =
+        task.status === 'COMPLETED'
+          ? 'COMPLETED'
+          : task.status === 'IN_PROGRESS'
+            ? 'IN_PROGRESS'
+            : 'UPCOMING';
+
+      return {
+        id: task.task_id,
+        name: task.title,
+        status,
+        dueDate: formatDate(task.deadline),
+        progress,
+        completedTasks: task.status === 'COMPLETED' ? 1 : 0,
+        totalTasks: 1,
+      };
+    });
+}
+
+function formatRelativeTime(date: string | undefined): string {
+  if (!date) return 'Recently';
+  const timestamp = new Date(date).getTime();
+  if (Number.isNaN(timestamp)) return 'Recently';
+
+  const diffMs = Math.max(0, Date.now() - timestamp);
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+  return `${Math.floor(days / 30)} month${Math.floor(days / 30) === 1 ? '' : 's'} ago`;
+}
+
 function updateActivityLogs() {
-  if (!tasks.value.length) return;
+  const records = tasks.value
+    .map((task) => ({
+      task,
+      timestamp: task.updated_at ?? task.created_at ?? task.deadline ?? undefined,
+    }))
+    .filter((entry) => entry.timestamp)
+    .sort((a, b) => {
+      const aTime = new Date(a.timestamp ?? 0).getTime();
+      const bTime = new Date(b.timestamp ?? 0).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 4);
 
-  const members = teamMembers.value;
-  const getName = (idx: number, defaultName: string) =>
-    members[idx % members.length]?.name || defaultName;
+ const logs: ActivityLog[] = records.map(({ task, timestamp }) => {
+    const assignee = getAssigneeName(task);
+    const isCompleted = task.status === 'COMPLETED';
+    const isCreated = task.created_at && task.updated_at && task.created_at === task.updated_at;
 
-  const dynamicLogs: ActivityLog[] = [];
-
-  const completed = tasks.value.filter((t) => t.status === 'COMPLETED');
-  if (completed.length > 0 && completed[0]) {
-    const t = completed[0];
-    const assignee = getAssigneeName(t);
-    dynamicLogs.push({
-      id: 1,
-      user: assignee !== 'PM User' ? assignee : getName(0, 'Jane Smith'),
-      message: `Completed task "${t.title}"`,
-      time: '2 hours ago',
-      type: 'complete',
-      icon: 'check_circle',
-    });
-  }
-
-  const inProgress = tasks.value.filter((t) => t.status === 'IN_PROGRESS');
-  if (inProgress.length > 0 && inProgress[0]) {
-    const t = inProgress[0];
-    const assignee = getAssigneeName(t);
-    dynamicLogs.push({
-      id: 2,
-      user: assignee !== 'PM User' ? assignee : getName(1, 'Michael Johnson'),
-      message: `Updated task "${t.title}" progress to ${getTaskProgressNumber(t.progress)}%`,
-      time: '5 hours ago',
-      type: 'update',
-      icon: 'sync',
-    });
-  }
-
-  const otherTasks = tasks.value.filter(
-    (t) => t.status === 'PENDING' || t.status === 'ON_HOLD',
-  );
-  if (otherTasks.length > 0 && otherTasks[0]) {
-    const t = otherTasks[0];
-    const assignee = getAssigneeName(t);
-    dynamicLogs.push({
-      id: 3,
-      user: assignee !== 'PM User' ? assignee : getName(2, 'Resource Developer'),
-      message: `Assigned task "${t.title}"`,
-      time: '1 day ago',
-      type: 'create',
-      icon: 'add_task',
-    });
-  }
-
-  dynamicLogs.push({
-    id: 4,
-    user: currentPmName.value,
-    message: `Updated project deadline to ${formatDate(project.deadline)} and adjusted team capacity`,
-    time: '3 days ago',
-    type: 'update',
-    icon: 'edit_calendar',
+    return {
+      id: task.task_id,
+      user: assignee || currentPmName.value,
+      message: isCompleted
+        ? `Completed task "${task.title}"`
+        : isCreated
+          ? `Created task "${task.title}"`
+          : `Updated task "${task.title}" to ${formatStatus(task.status)}`,
+      time: formatRelativeTime(timestamp),
+      type: isCompleted ? 'complete' : isCreated ? 'create' : 'update',
+      icon: isCompleted ? 'check_circle' : isCreated ? 'add_task' : 'sync',
+    };
   });
 
-  if (dynamicLogs.length > 0) {
-    activityLogs.value = dynamicLogs;
+  if (!logs.length && project.name) {
+    logs.push({
+      id: project.project_id,
+      user: currentPmName.value,
+      message: `Project "${project.name}" is ready for task management`,
+      time: 'Current',
+      type: 'update',
+      icon: 'folder_open',
+    });
   }
+
+  activityLogs.value = logs;
 }
 
 async function loadProjectTeamMembers() {
   try {
     const fetchedResources = await getResourcesApi();
-    if (fetchedResources && fetchedResources.length > 0) {
-      teamMembers.value = fetchedResources.map((r) => {
-        const assigned = tasks.value.filter((t) =>
-          t.assigned_resource_ids?.includes(r.user_id),
+    const assignedResourceIds = new Set(
+      tasks.value.flatMap((task) => task.assigned_resource_ids ?? []),
+    );
+
+    teamMembers.value = (fetchedResources ?? [])
+      .filter((resource) => assignedResourceIds.has(resource.user_id))
+      .map((resource) => {
+        const assigned = tasks.value.filter((task) =>
+          task.assigned_resource_ids?.includes(resource.user_id),
         );
-        const effort = assigned.reduce((sum, t) => sum + (Number(t.expected_effort) || 0), 0);
+        const effort = assigned.reduce((sum, task) => sum + (Number(task.expected_effort) || 0), 0);
         const capacity = Math.min(100, Math.round((effort / 40) * 100));
 
         return {
-          id: r.user_id,
-          name: r.name,
-          role: r.role || 'Team Resource',
+          id: resource.user_id,
+          name: resource.name,
+          role: resource.role || 'Team Resource',
           assignedTasks: assigned.length,
           capacity,
         };
       });
-    }
+    allSystemResources.value = fetchedResources ?? [];
   } catch (error) {
     console.warn('Failed to load team resources from API:', error);
   } finally {
     updateActivityLogs();
+  }
+}
+
+async function openAddMemberDialog() {
+  try {
+    allSystemResources.value = await getResourcesApi();
+    selectedMemberToAdd.value = null;
+    showAddMemberDialog.value = true;
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to load resources',
+    });
+  }
+}
+
+async function handleAddProjectMember() {
+  if (!selectedMemberToAdd.value) return;
+
+  addingMember.value = true;
+  const resourceId = selectedMemberToAdd.value;
+  try {
+    await assignProjectMemberApi(project.project_id, resourceId);
+
+    const resource = allSystemResources.value.find((r) => r.user_id === resourceId);
+    if (resource && !teamMembers.value.some((member) => member.id === resourceId)) {
+      teamMembers.value.push({
+        id: resource.user_id,
+        name: resource.name,
+        role: resource.role,
+        assignedTasks: 0,
+        capacity: 0,
+      });
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: `${resource?.name ?? 'Resource'} added to the project`,
+    });
+    showAddMemberDialog.value = false;
+    selectedMemberToAdd.value = null;
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to assign resource to project',
+    });
+  } finally {
+    addingMember.value = false;
   }
 }
 
@@ -1794,69 +1907,44 @@ async function refreshData() {
   });
 }
 
-// ==========================================
-// ACTIONS
-// ==========================================
-async function openAddMemberDialog() {
-  try {
-    allSystemResources.value = await getResourcesApi();
-  } catch (err) {
-    console.warn('Failed to fetch system resources:', err);
-  }
-  showAddMemberDialog.value = true;
+
+function openDependencyDialog(task: Task) {
+  selectedDependencyTaskId.value = task.task_id;
+  selectedPredecessorTaskId.value = null;
+  showDependencyDialog.value = true;
 }
 
-async function handleAddProjectMember() {
-  if (!selectedMemberToAdd.value) return;
-  addingMember.value = true;
-  const resId = selectedMemberToAdd.value;
+async function handleAddDependency() {
+  if (!selectedDependencyTaskId.value || !selectedPredecessorTaskId.value) return;
 
+  dependencySubmitting.value = true;
   try {
-    await assignProjectMemberApi(project.project_id, resId);
+    await addTaskDependencyApi(
+      selectedDependencyTaskId.value,
+      selectedPredecessorTaskId.value,
+    );
 
-    const foundRes = allSystemResources.value.find((r) => r.user_id === resId);
-    if (foundRes && !teamMembers.value.some((m) => m.id === resId)) {
-      teamMembers.value.push({
-        id: foundRes.user_id,
-        name: foundRes.name,
-        role: foundRes.role || 'Team Resource',
-        assignedTasks: 0,
-        capacity: 0,
-      });
-    }
+    const successor = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
+    const predecessor = tasks.value.find((task) => task.task_id === selectedPredecessorTaskId.value);
 
     $q.notify({
       type: 'positive',
-      message: 'Member added to project team successfully!',
+      message: `${successor?.title ?? 'Task'} now depends on ${predecessor?.title ?? 'the selected task'}`,
     });
-    showAddMemberDialog.value = false;
-    selectedMemberToAdd.value = null;
+
+    showDependencyDialog.value = false;
+    selectedDependencyTaskId.value = null;
+    selectedPredecessorTaskId.value = null;
   } catch (error: unknown) {
-    const foundRes = allSystemResources.value.find((r) => r.user_id === resId);
-    if (foundRes && !teamMembers.value.some((m) => m.id === resId)) {
-      teamMembers.value.push({
-        id: foundRes.user_id,
-        name: foundRes.name,
-        role: foundRes.role || 'Team Resource',
-        assignedTasks: 0,
-        capacity: 0,
-      });
-      $q.notify({
-        type: 'positive',
-        message: `${foundRes.name} added to project group!`,
-      });
-    } else {
-      $q.notify({
-        type: 'info',
-        message: 'Member is already in the project group.',
-      });
-    }
-    showAddMemberDialog.value = false;
-    selectedMemberToAdd.value = null;
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to add task dependency',
+    });
   } finally {
-    addingMember.value = false;
+    dependencySubmitting.value = false;
   }
 }
+
 async function handleCreateTask() {
   taskCreating.value = true;
   try {
@@ -1872,30 +1960,12 @@ async function handleCreateTask() {
       assigned_resource_ids: newTaskForm.assigned_resource ? [newTaskForm.assigned_resource] : [],
     };
 
-    try {
-      const created = await createTaskApi(payload);
-      if (created) {
-        tasks.value.unshift(created);
-      }
-    } catch {
-      // Offline fallback: push directly to local state
-      const localTask: Task = {
-        task_id: Date.now(),
-        project_id: project.project_id,
-        title: payload.title,
-        description: payload.description ?? null,
-        priority: payload.priority || 'MEDIUM',
-        status: payload.status || 'PENDING',
-        start_date: payload.start_date ?? null,
-        deadline: payload.deadline ?? null,
-        expected_effort: payload.expected_effort,
-        actual_effort: 0,
-        progress: payload.status === 'COMPLETED' ? 100 : 0,
-        ...(payload.assigned_resource_ids
-          ? { assigned_resource_ids: payload.assigned_resource_ids }
-          : {}),
-      };
-      tasks.value.unshift(localTask);
+    const created = await createTaskApi(payload);
+    if (created) {
+      tasks.value.unshift(created);
+      await loadProjectTeamMembers();
+      updateDerivedMilestones();
+      updateActivityLogs();
     }
 
     // Add activity log
@@ -1977,66 +2047,101 @@ function openQuickUpdate(task: Task) {
   showQuickUpdateDialog.value = true;
 }
 
-function saveQuickUpdate() {
+async function saveQuickUpdate() {
   if (!selectedTaskForUpdate.value) return;
-  selectedTaskForUpdate.value.progress = selectedTaskForUpdateProgress.value;
-  if (selectedTaskForUpdateProgress.value === 100) {
-    selectedTaskForUpdate.value.status = 'COMPLETED';
+  const nextStatus =
+    selectedTaskForUpdateProgress.value === 100
+      ? 'COMPLETED'
+      : selectedTaskForUpdate.value.status;
+
+  try {
+    const updated = await updateTaskApi(selectedTaskForUpdate.value.task_id, {
+      status: nextStatus,
+      progress: selectedTaskForUpdateProgress.value,
+      actual_effort: Number(selectedTaskForUpdate.value.actual_effort) || 0,
+    });
+
+    Object.assign(selectedTaskForUpdate.value, updated);
+    updateDerivedMilestones();
+    updateActivityLogs();
+
+    $q.notify({
+      type: 'positive',
+      message: 'Task updated successfully',
+    });
+    showQuickUpdateDialog.value = false;
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to update task',
+    });
   }
-
-  activityLogs.value.unshift({
-    id: Date.now(),
-    user: currentPmName.value,
-    message: `Updated progress on "${selectedTaskForUpdate.value.title}" to ${selectedTaskForUpdateProgress.value}%`,
-    time: 'Just now',
-    type: 'update',
-    icon: 'sync',
-  });
-
-  $q.notify({
-    type: 'positive',
-    message: 'Task updated successfully',
-  });
-
-  showQuickUpdateDialog.value = false;
 }
 
-function toggleTaskComplete(task: Task) {
-  if (task.status === 'COMPLETED') {
-    task.status = 'IN_PROGRESS';
-    task.progress = 50;
-  } else {
-    task.status = 'COMPLETED';
-    task.progress = 100;
+async function toggleTaskComplete(task: Task) {
+  const nextStatus = task.status === 'COMPLETED' ? 'IN_PROGRESS' : 'COMPLETED';
+  const nextProgress = nextStatus === 'COMPLETED' ? 100 : Math.min(99, getTaskProgressNumber(task.progress));
+
+  try {
+    const updated = await updateTaskApi(task.task_id, {
+      status: nextStatus,
+      progress: nextProgress,
+    });
+
+    Object.assign(task, updated);
+
+    // Re-fetch from backend so any auto-scheduled/dependent task
+    // changes are immediately reflected in the PM dashboard.
+    await loadProjectTasks();
+
+    updateActivityLogs();
+    $q.notify({
+      type: 'positive',
+      message: `Task ${nextStatus === 'COMPLETED' ? 'marked as completed' : 'reopened'}`,
+    });
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to update task',
+    });
   }
-
-  activityLogs.value.unshift({
-    id: Date.now(),
-    user: currentPmName.value,
-    message: `${task.status === 'COMPLETED' ? 'Marked task complete:' : 'Reopened task:'} "${task.title}"`,
-    time: 'Just now',
-    type: task.status === 'COMPLETED' ? 'complete' : 'update',
-    icon: task.status === 'COMPLETED' ? 'check_circle' : 'replay',
-  });
-
-  $q.notify({
-    type: 'positive',
-    message: `Task ${task.status === 'COMPLETED' ? 'marked as completed' : 'reopened'}`,
-  });
 }
 
-function markProjectComplete() {
-  project.status = 'COMPLETED';
-  project.progress = 100;
-  tasks.value.forEach((t) => {
-    t.status = 'COMPLETED';
-    t.progress = 100;
-  });
+async function markProjectComplete() {
+  try {
+    const updatedProject = await updateProjectApi(project.project_id, {
+      name: project.name,
+      description: project.description,
+      status: 'COMPLETED',
+      priority: (project.priority as ProjectPriority) || 'MEDIUM',
+      start_date: project.start_date,
+      deadline: project.deadline,
+    });
+    Object.assign(project, updatedProject);
 
-  $q.notify({
-    type: 'positive',
-    message: 'Project and all deliverables marked as completed!',
-  });
+    await Promise.all(
+      tasks.value
+        .filter((task) => task.status !== 'COMPLETED')
+        .map((task) =>
+          updateTaskApi(task.task_id, {
+            status: 'COMPLETED',
+            progress: 100,
+          }).then((updated) => Object.assign(task, updated)),
+        ),
+    );
+
+    updateDerivedMilestones();
+    updateActivityLogs();
+    $q.notify({
+      type: 'positive',
+      message: 'Project and all deliverables marked as completed',
+    });
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to complete project',
+    });
+  }
 }
 
 function exportProjectSummary() {

@@ -617,6 +617,7 @@ import {
   createTaskApi,
   getProjectsApi,
   getTasksApi,
+  
   getResourcesApi,
   updateTaskApi,
   assignProjectMemberApi,
@@ -635,6 +636,7 @@ const router = useRouter();
 const projects = ref<Project[]>([]);
 const tasks = ref<Task[]>([]);
 const resources = ref<ResourceUser[]>([]);
+
 const projectsLoading = ref(false);
 const tasksLoading = ref(false);
 
@@ -878,7 +880,8 @@ async function handleCreateTask() {
     if (newTaskForm.assigned_resource_id) {
       try {
         await assignProjectMemberApi(newTaskForm.project_id, newTaskForm.assigned_resource_id);
-      } catch {}
+      } catch { // Project membership assignment is optional here. 
+        }
     }
 
     const payload: CreateTaskPayload = {
@@ -1036,6 +1039,7 @@ async function loadTasks() {
     tasksLoading.value = false;
   }
 }
+
 
 async function loadResources() {
   try {
@@ -1267,6 +1271,7 @@ onMounted(() => {
   void loadProjects();
   void loadTasks();
   void loadResources();
+  
 });
 </script>
 

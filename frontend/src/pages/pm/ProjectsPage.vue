@@ -719,7 +719,8 @@ const currentPmName = computed(() => {
       const parsed = JSON.parse(storedUser);
       if (parsed?.name) return parsed.name;
     }
-  } catch {}
+  } catch { // Fall back to the default project manager label.
+    }
   return 'Project Manager';
 });
 

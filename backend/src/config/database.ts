@@ -24,6 +24,7 @@ const mysqlConfig = {
     user: DB_USER,
     password: DB_PASSWORD,
     port: DB_PORT,
+    dateStrings: ['DATE'],
 };
 
 // Store the pool instance here

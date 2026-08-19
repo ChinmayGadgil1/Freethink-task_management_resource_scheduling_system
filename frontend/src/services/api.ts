@@ -181,9 +181,17 @@ export async function getTasksApi(projectId?: number): Promise<Task[]> {
   return data.tasks ?? [];
 }
 
-/* RESOURCE TASK APIs
- * Update a task assigned to the logged-in Resource.
- * The backend allows updating: status, progress, actual_effort */
+export async function getBottleneckTasksApi(): Promise<Task[]> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/bottlenecks`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch bottleneck tasks');
+  }
+
+  return data.tasks ?? [];
+}
 
 export interface UpdateResourceTaskPayload {
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
@@ -346,6 +354,28 @@ export async function assignTaskResourceApi(taskId: number, userId: number) {
   return data;
 }
 
+/**
+ * Add an existing task as the predecessor of another task.
+ * Uses the backend dependency endpoint: POST /tasks/:id/dependencies
+ */
+export async function addTaskDependencyApi(
+  taskId: number,
+  predecessorTaskId: number,
+): Promise<{ message?: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/dependencies`, {
+    method: 'POST',
+    body: JSON.stringify({ predecessor_task_id: predecessorTaskId }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to add task dependency');
+  }
+
+  return data;
+}
+
 export interface ResourceUser {
   user_id: number;
   name: string;
@@ -378,5 +408,3 @@ export async function getResourceByIdApi(resourceId: number): Promise<ResourceUs
 
   return data;
 }
-
-

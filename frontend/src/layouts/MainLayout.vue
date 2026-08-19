@@ -383,9 +383,11 @@ const filteredResults = computed(() => {
       (t.description && t.description.toLowerCase().includes(q)),
   );
 
-  const matchedResources = resources.filter(
+ 
+  const matchedResources = resources.value.filter(
     (r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q),
   );
+  
 
   const matchedLinks = quickLinks.filter((l) => l.title.toLowerCase().includes(q));
 

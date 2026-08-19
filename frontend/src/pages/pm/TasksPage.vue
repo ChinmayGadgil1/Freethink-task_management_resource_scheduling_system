@@ -277,6 +277,16 @@
               >
                 <q-tooltip>Assign Member to Task</q-tooltip>
               </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                icon="account_tree"
+                color="primary"
+                @click="openDependencyDialog(props.row)"
+              >
+                <q-tooltip>Add Task Dependency</q-tooltip>
+              </q-btn>
               <q-btn flat round dense icon="edit" color="primary" @click="openEditModal(props.row)">
                 <q-tooltip>Edit Task Details</q-tooltip>
               </q-btn>
@@ -328,6 +338,61 @@
               color="primary"
               label="Assign to Task"
               :loading="submittingTaskMember"
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <!-- ADD TASK DEPENDENCY DIALOG -->
+    <q-dialog v-model="showDependencyDialog">
+      <q-card style="min-width: 440px; max-width: 95vw">
+        <q-card-section class="row items-center justify-between">
+          <div>
+            <div class="text-h6 text-weight-bold">Add Task Dependency</div>
+            <div class="text-caption text-grey-7">
+              The selected task will depend on the predecessor.
+            </div>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" />
+        </q-card-section>
+
+        <q-form @submit.prevent="handleAddDependency">
+          <q-card-section class="q-gutter-md">
+            <q-select
+              v-model="selectedDependencyTaskId"
+              outlined
+              dense
+              label="Task"
+              :options="taskSelectOptions"
+              emit-value
+              map-options
+              :rules="[(value) => !!value || 'Task is required']"
+            />
+
+            <q-select
+              v-model="selectedPredecessorTaskId"
+              outlined
+              dense
+              label="Depends On"
+              :options="dependencyPredecessorOptions"
+              emit-value
+              map-options
+              :rules="[(value) => !!value || 'Predecessor task is required']"
+              :disable="!selectedDependencyTaskId"
+            />
+          </q-card-section>
+
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn v-close-popup flat no-caps label="Cancel" />
+            <q-btn
+              type="submit"
+              unelevated
+              no-caps
+              color="primary"
+              label="Add Dependency"
+              :loading="submittingDependency"
+              :disable="!selectedDependencyTaskId || !selectedPredecessorTaskId"
             />
           </q-card-actions>
         </q-form>
@@ -491,6 +556,27 @@
                 />
               </div>
             </div>
+
+            <div class="row q-col-gutter-sm">
+              <div class="col-6">
+                <q-input
+                  v-model="editForm.start_date"
+                  outlined
+                  dense
+                  type="date"
+                  label="Start Date"
+                />
+              </div>
+              <div class="col-6">
+                <q-input
+                  v-model="editForm.deadline"
+                  outlined
+                  dense
+                  type="date"
+                  label="Deadline"
+                />
+              </div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
@@ -516,6 +602,7 @@ import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import {
   assignTaskResourceApi,
+  addTaskDependencyApi,
   createTaskApi,
   getProjectsApi,
   getResourcesApi,
@@ -545,6 +632,11 @@ const submitting = ref(false);
 
 const showAssignTaskMemberDialog = ref(false);
 const submittingTaskMember = ref(false);
+
+const showDependencyDialog = ref(false);
+const selectedDependencyTaskId = ref<number | null>(null);
+const selectedPredecessorTaskId = ref<number | null>(null);
+const submittingDependency = ref(false);
 
 const assignTaskMemberForm = reactive({
   task_id: null as number | null,
@@ -595,12 +687,16 @@ const editForm = reactive<{
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   progress: number;
   expected_effort: number;
+  start_date: string;
+  deadline: string;
 }>({
   title: '',
   status: 'PENDING',
   priority: 'MEDIUM',
   progress: 0,
   expected_effort: 8,
+  start_date: '',
+  deadline: '',
 });
 
 const statusFilterOptions = [
@@ -631,6 +727,21 @@ const projectSelectOptions = computed(() =>
 const taskSelectOptions = computed(() =>
   tasks.value.map((t) => ({ label: `${t.title} (#${t.task_id})`, value: t.task_id })),
 );
+
+const dependencyPredecessorOptions = computed(() => {
+  const selectedTask = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
+
+  return tasks.value
+    .filter(
+      (task) =>
+        task.task_id !== selectedDependencyTaskId.value &&
+        task.project_id === selectedTask?.project_id,
+    )
+    .map((task) => ({
+      label: `${task.title} (#${task.task_id})`,
+      value: task.task_id,
+    }));
+});
 
 const tableColumns: QTableColumn<Task>[] = [
   {
@@ -756,6 +867,43 @@ async function handleAssignTaskMember() {
   }
 }
 
+function openDependencyDialog(task: Task) {
+  selectedDependencyTaskId.value = task.task_id;
+  selectedPredecessorTaskId.value = null;
+  showDependencyDialog.value = true;
+}
+
+async function handleAddDependency() {
+  if (!selectedDependencyTaskId.value || !selectedPredecessorTaskId.value) return;
+
+  submittingDependency.value = true;
+  try {
+    await addTaskDependencyApi(
+      selectedDependencyTaskId.value,
+      selectedPredecessorTaskId.value,
+    );
+
+    const successor = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
+    const predecessor = tasks.value.find((task) => task.task_id === selectedPredecessorTaskId.value);
+
+    $q.notify({
+      type: 'positive',
+      message: `${successor?.title ?? 'Task'} now depends on ${predecessor?.title ?? 'the selected task'}`,
+    });
+
+    showDependencyDialog.value = false;
+    selectedDependencyTaskId.value = null;
+    selectedPredecessorTaskId.value = null;
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to add task dependency',
+    });
+  } finally {
+    submittingDependency.value = false;
+  }
+}
+
 async function handleCreateTask() {
   if (!createForm.project_id || !createForm.title.trim()) return;
 
@@ -799,6 +947,8 @@ function openEditModal(task: Task) {
   editForm.priority = task.priority;
   editForm.progress = Number(task.progress) || 0;
   editForm.expected_effort = Number(task.expected_effort) || 8;
+  editForm.start_date = task.start_date?.split('T')[0] ?? '';
+  editForm.deadline = task.deadline?.split('T')[0] ?? '';
   showEditDialog.value = true;
 }
 
@@ -813,6 +963,8 @@ async function handleUpdateTask() {
       priority: editForm.priority,
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
+      start_date: editForm.start_date || null,
+      deadline: editForm.deadline || null,
     });
 
     $q.notify({
