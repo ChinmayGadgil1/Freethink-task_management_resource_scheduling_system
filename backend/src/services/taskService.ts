@@ -91,11 +91,14 @@ export async function getTasksList(filters: {
     const pool = getPool();
 
     let query = `
-        SELECT t.*, p.name as project_name,
-               GROUP_CONCAT(ta.user_id) as assigned_resource_ids
+        SELECT t.*, 
+            p.name as project_name,
+            GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
+            GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
         FROM tasks t
         LEFT JOIN projects p ON t.project_id = p.project_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN task_dependencies td ON t.task_id = td.task_id
     `;
     const params: any[] = [];
     const whereClauses: string[] = [];
@@ -128,9 +131,12 @@ export async function getTasksList(filters: {
     const [tasks] = await pool.query<RowDataPacket[]>(query, params);
     return tasks.map(t => ({
         ...t,
-        assigned_resource_ids: t.assigned_resource_ids 
+        assigned_resource_ids: t.assigned_resource_ids
             ? t.assigned_resource_ids.split(",").map(Number)
-            : []
+            : [],
+        predecessor_task_ids: t.predecessor_task_ids
+        ? t.predecessor_task_ids.split(",").map(Number)
+        : []
     }));
 }
 
@@ -139,9 +145,11 @@ export async function getTaskById(taskId: number) {
     const [tasks] = await pool.query<RowDataPacket[]>(
         `
         SELECT t.*, 
-               GROUP_CONCAT(ta.user_id) as assigned_resource_ids
+               GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
+               GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
         FROM tasks t
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN task_dependencies td ON t.task_id = td.task_id
         WHERE t.task_id = ?
         GROUP BY t.task_id
         `,
@@ -158,8 +166,11 @@ export async function getTaskById(taskId: number) {
     }
     return {
         ...task,
-        assigned_resource_ids: task.assigned_resource_ids 
+        assigned_resource_ids: task.assigned_resource_ids
             ? task.assigned_resource_ids.split(",").map(Number)
+            : [],
+        predecessor_task_ids: task.predecessor_task_ids
+            ? task.predecessor_task_ids.split(",").map(Number)
             : []
     } as any;
 }

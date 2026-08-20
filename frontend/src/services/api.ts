@@ -32,7 +32,7 @@ export interface Project {
 export interface Task {
   task_id: number;
   project_id: number;
-  project_name?: string; //for displaying project name in task list
+  project_name?: string;
   created_by: number; //added to track who created the task
   title: string;
   description: string | null;
@@ -46,6 +46,7 @@ export interface Task {
   created_at?: string;
   updated_at?: string;
   assigned_resource_ids?: number[];
+  predecessor_task_ids?: number[];
 }
 
 export interface WorkLog {
