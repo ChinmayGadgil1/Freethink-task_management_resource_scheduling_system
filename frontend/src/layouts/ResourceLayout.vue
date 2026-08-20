@@ -36,8 +36,12 @@
             :key="link.to"
             :to="link.disabled ? '' : link.to"
             class="nav-link"
-            :class="{ 'nav-link-disabled': link.disabled }"
-            active-class="nav-link-active"
+            :class="{
+              'nav-link-disabled': link.disabled,
+              'nav-link-active': isLinkActive(link.to),
+            }"
+            exact-active-class=""
+            active-class=""
           >
             {{ link.label }}
             <span v-if="link.disabled" class="soon-tag">Soon</span>
@@ -72,7 +76,6 @@
               $q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'
             }}</q-tooltip>
           </q-btn>
-
 
           <div v-if="user" class="profile">
             <q-avatar size="34px" class="profile-avatar">
@@ -114,17 +117,25 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const searchQuery = ref('');
 
+function isLinkActive(linkTo: string): boolean {
+  if (!linkTo) return false;
+  if (linkTo === '/app/resource-dashboard') {
+    return route.path === '/app/resource-dashboard' || route.path === '/app/resource-dashboard/';
+  }
+  return route.path.startsWith(linkTo);
+}
 
 function toggleDarkMode() {
   themeStore.toggleDarkMode();
@@ -143,7 +154,6 @@ const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCa
 // until those pages exist.
 const navLinks = [
   { label: 'Dashboard', to: '/app/resource-dashboard', disabled: false },
-  { label: 'My Tasks', to: '/app/resource-dashboard/tasks', disabled: false },
   { label: 'Task Specs', to: '/app/resource-dashboard/task-details', disabled: false },
   { label: 'Progress', to: '/app/resource-dashboard/progress', disabled: false },
 ];

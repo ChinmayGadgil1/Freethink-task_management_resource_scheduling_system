@@ -53,6 +53,17 @@
           step="0.5"
         />
 
+        <div class="field-label q-mt-md">Task Description</div>
+
+        <q-input
+          v-model="form.description"
+          outlined
+          type="textarea"
+          autogrow
+          rows="2"
+          placeholder="Add or edit task description..."
+        />
+
         <div class="field-label q-mt-md">Work Update</div>
 
         <q-input
@@ -95,6 +106,7 @@ const emit = defineEmits<{
       progress: number;
       hoursWorked: number;
       workUpdate: string;
+      description: string;
     },
   ): void;
 }>();
@@ -114,11 +126,13 @@ const form = reactive<{
   progress: number;
   hoursWorked: number;
   workUpdate: string;
+  description: string;
 }>({
   status: 'PENDING',
   progress: 0,
   hoursWorked: 0,
   workUpdate: '',
+  description: '',
 });
 
 watch(
@@ -130,6 +144,7 @@ watch(
     form.progress = task.progress;
     form.hoursWorked = task.hoursWorked;
     form.workUpdate = '';
+    form.description = task.description || '';
   },
   { immediate: true },
 );
@@ -143,6 +158,7 @@ function save() {
     progress: Math.min(Math.max(Number(form.progress), 0), 100),
     hoursWorked: Math.max(Number(form.hoursWorked), 0),
     workUpdate: form.workUpdate.trim(),
+    description: form.description.trim(),
   });
 
   emit('update:modelValue', false);

@@ -14,4 +14,5 @@ export interface ResourceTask {
   hoursWorked: number;
   estimatedHours: number;
   workUpdate: string;
+  description?: string | null;
 }
