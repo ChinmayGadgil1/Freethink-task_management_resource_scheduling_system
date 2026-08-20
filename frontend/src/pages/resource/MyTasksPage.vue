@@ -408,7 +408,7 @@ import TaskListItem from '@/components/tasks/TaskListItem.vue';
 
 import UpdateTaskDialog from '@/components/tasks/UpdateTaskDialog.vue';
 
-import type { ResourceTask, TaskPriority } from '@/components/tasks/task-types';
+import type { ResourceTask } from '@/components/tasks/task-types';
 
 import {
   createTaskApi,
@@ -418,6 +418,8 @@ import {
   type Project,
   type Task,
 } from '@/services/api';
+
+type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 //task data
 const tasks = ref<ResourceTask[]>([]);

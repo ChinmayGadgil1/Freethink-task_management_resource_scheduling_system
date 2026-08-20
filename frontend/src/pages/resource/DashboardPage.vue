@@ -281,9 +281,7 @@ const selfAssignedTasks = computed(() => {
     return [];
   }
 
-  return tasks.value.filter(
-    (task) => Number(task.created_by) === currentUserId.value,
-  );
+  return tasks.value.filter((task) => Number(task.created_by) === currentUserId.value);
 });
 
 const userFirstName = computed(() => {

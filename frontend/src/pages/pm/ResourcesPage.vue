@@ -1,30 +1,29 @@
 <template>
-  <q-page class="q-pa-lg">
+  <q-page class="pm-page resources-page">
     <!-- PAGE HEADER -->
-    <div class="row items-center justify-between q-mb-lg">
+    <div class="page-header-row">
       <div>
-        <div class="text-h5 text-weight-bold">PM Task & Resource Management</div>
-        <div class="text-subtitle2 text-grey-7">
+        <div class="page-title">PM Task & Resource Management</div>
+        <div class="page-subtitle">
           List tasks assigned by PM and assign team resources to projects
         </div>
       </div>
 
       <div class="row items-center q-gutter-sm">
         <q-btn
-          color="deep-purple"
+          unelevated
+          no-caps
           icon="person_add"
           label="Assign Resource to Project"
-          no-caps
-          unelevated
+          class="action-btn-primary"
           @click="showProjectMemberDialog = true"
         />
         <q-btn
           outline
-          color="grey-8"
+          no-caps
           icon="refresh"
           label="Refresh"
-          no-caps
-          unelevated
+          class="action-btn-outline"
           :loading="loading"
           @click="loadData"
         />
@@ -32,66 +31,62 @@
     </div>
 
     <!-- STAT SUMMARY CARDS -->
-    <div class="row q-col-gutter-md q-mb-lg">
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="dashboard-card">
-          <q-card-section class="row items-center justify-between">
-            <div>
-              <div class="text-caption text-weight-medium text-grey-7">Assigned Resources</div>
-              <div class="text-h5 text-weight-bold q-my-xs">
-                {{ resourceMap.length }}
-              </div>
-              <div class="text-caption text-positive">Active in backend</div>
-            </div>
-            <q-avatar color="deep-purple-1" text-color="primary" icon="groups" size="44px" />
-          </q-card-section>
-        </q-card>
-      </div>
+    <div class="stats-grid q-mb-md">
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="48px" class="stat-icon stat-purple">
+            <q-icon name="groups" size="24px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Assigned Resources</div>
+            <div class="stat-value">{{ resourceMap.length }}</div>
+            <div class="stat-note stat-purple-text">Active in backend</div>
+          </div>
+        </q-card-section>
+      </q-card>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="dashboard-card">
-          <q-card-section class="row items-center justify-between">
-            <div>
-              <div class="text-caption text-weight-medium text-grey-7">Tasks Assigned by PM</div>
-              <div class="text-h5 text-weight-bold q-my-xs">{{ taskList.length }}</div>
-              <div class="text-caption text-teal">Across projects</div>
-            </div>
-            <q-avatar color="teal-1" text-color="teal" icon="task_alt" size="44px" />
-          </q-card-section>
-        </q-card>
-      </div>
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="48px" class="stat-icon stat-blue-bg">
+            <q-icon name="task_alt" size="24px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Tasks Assigned by PM</div>
+            <div class="stat-value">{{ taskList.length }}</div>
+            <div class="stat-note stat-blue">Across projects</div>
+          </div>
+        </q-card-section>
+      </q-card>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="dashboard-card">
-          <q-card-section class="row items-center justify-between">
-            <div>
-              <div class="text-caption text-weight-medium text-grey-7">Total Effort Allocated</div>
-              <div class="text-h5 text-weight-bold q-my-xs">{{ totalEffortHours }}h</div>
-              <div class="text-caption text-primary">Expected effort hours</div>
-            </div>
-            <q-avatar color="blue-1" text-color="blue" icon="schedule" size="44px" />
-          </q-card-section>
-        </q-card>
-      </div>
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="48px" class="stat-icon stat-green-bg">
+            <q-icon name="schedule" size="24px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Total Effort Allocated</div>
+            <div class="stat-value">{{ totalEffortHours }}h</div>
+            <div class="stat-note stat-green">Expected effort hours</div>
+          </div>
+        </q-card-section>
+      </q-card>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card flat bordered class="dashboard-card">
-          <q-card-section class="row items-center justify-between">
-            <div>
-              <div class="text-caption text-weight-medium text-grey-7">Managed Projects</div>
-              <div class="text-h5 text-weight-bold q-my-xs">
-                {{ projectList.length }}
-              </div>
-              <div class="text-caption text-amber-9">Projects</div>
-            </div>
-            <q-avatar color="amber-1" text-color="amber-9" icon="folder_open" size="44px" />
-          </q-card-section>
-        </q-card>
-      </div>
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="48px" class="stat-icon stat-orange-bg">
+            <q-icon name="folder" size="24px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Managed Projects</div>
+            <div class="stat-value">{{ projectList.length }}</div>
+            <div class="stat-note stat-orange">Active projects</div>
+          </div>
+        </q-card-section>
+      </q-card>
     </div>
 
     <!-- MAIN TABS: RESOURCE ALLOCATION VS TASKS ASSIGNED BY PM -->
-    <q-card flat bordered class="dashboard-card q-mb-lg">
+    <q-card flat bordered class="table-card q-mb-lg">
       <q-tabs
         v-model="mainTab"
         dense
@@ -99,10 +94,15 @@
         align="left"
         active-color="primary"
         indicator-color="primary"
-        class="bg-grey-2 text-grey-7"
+        class="resource-tabs"
       >
-        <q-tab name="resources" icon="groups" label="Resource Directory & Allocation" />
-        <q-tab name="tasks" icon="task_alt" label="Tasks Assigned by PM" />
+        <q-tab
+          name="resources"
+          icon="groups"
+          label="Resource Directory & Allocation"
+          class="resource-tab"
+        />
+        <q-tab name="tasks" icon="task_alt" label="Tasks Assigned by PM" class="resource-tab" />
       </q-tabs>
 
       <q-separator />
@@ -111,44 +111,52 @@
         <!-- TAB 1: RESOURCES -->
         <q-tab-panel name="resources" class="q-pa-md">
           <!-- SEARCH & FILTER BAR -->
-          <div class="row items-center q-col-gutter-sm q-mb-md">
-            <div class="col-12 col-md-5">
-              <q-input
-                v-model="searchQuery"
-                outlined
-                dense
-                clearable
-                placeholder="Search resources..."
-              >
-                <template #prepend>
-                  <q-icon name="search" />
-                </template>
-              </q-input>
-            </div>
+          <div class="filter-card q-pa-sm q-mb-md">
+            <div class="row items-center q-col-gutter-sm">
+              <div class="col-12 col-md-5">
+                <q-input
+                  v-model="searchQuery"
+                  outlined
+                  dense
+                  clearable
+                  placeholder="Search resources..."
+                  class="filter-search"
+                >
+                  <template #prepend>
+                    <q-icon name="search" size="18px" />
+                  </template>
+                </q-input>
+              </div>
 
-            <div class="col-12 col-md-4">
-              <q-select
-                v-model="statusFilter"
-                outlined
-                dense
-                emit-value
-                map-options
-                :options="statusOptions"
-                label="Workload Status"
-              />
-            </div>
+              <div class="col-12 col-md-4">
+                <q-select
+                  v-model="statusFilter"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  :options="statusOptions"
+                  label="Workload Status"
+                  class="filter-select"
+                />
+              </div>
 
-            <div class="col-12 col-md-3 row justify-end items-center">
-              <q-btn-toggle
-                v-model="viewMode"
-                flat
-                toggle-color="primary"
-                color="grey-7"
-                :options="[
-                  { icon: 'grid_view', value: 'grid' },
-                  { icon: 'format_list_bulleted', value: 'table' },
-                ]"
-              />
+              <div class="col-12 col-md-3 row justify-end items-center">
+                <q-btn-toggle
+                  v-model="viewMode"
+                  unelevated
+                  dense
+                  toggle-color="primary"
+                  toggle-text-color="white"
+                  color="grey-2"
+                  text-color="grey-8"
+                  class="view-toggle-btn"
+                  :options="[
+                    { icon: 'grid_view', value: 'grid' },
+                    { icon: 'format_list_bulleted', value: 'table' },
+                  ]"
+                />
+              </div>
             </div>
           </div>
 
@@ -161,20 +169,23 @@
             v-else-if="filteredResources.length === 0"
             class="row justify-center q-pa-xl text-center"
           >
-            <q-card flat bordered class="dashboard-card q-pa-lg">
-              <q-icon name="person_off" size="48px" color="grey-5" />
-              <div class="text-h6 text-grey-8 q-mt-sm">No Resource Allocations Found</div>
+            <q-card flat bordered class="empty-state-card q-pa-lg">
+              <q-avatar size="58px" class="empty-avatar">
+                <q-icon name="person_off" size="28px" />
+              </q-avatar>
+              <div class="text-subtitle1 text-weight-bold text-dark q-mt-sm">
+                No Resource Allocations Found
+              </div>
               <div class="text-caption text-grey-6 q-mt-xs">
                 Assign a resource to a project or assign tasks to populate resource allocation
                 metrics.
               </div>
               <q-btn
-                color="primary"
+                unelevated
+                no-caps
                 icon="person_add"
                 label="Assign Resource to Project"
-                no-caps
-                unelevated
-                class="q-mt-md"
+                class="action-btn-primary q-mt-md"
                 @click="showProjectMemberDialog = true"
               />
             </q-card>
@@ -187,65 +198,61 @@
               :key="res.resource_id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <q-card flat bordered class="dashboard-card full-height column justify-between">
+              <q-card flat bordered class="resource-grid-card full-height column justify-between">
                 <q-card-section class="q-pa-md">
                   <!-- CARD TOP: AVATAR, NAME, CHIP -->
                   <div class="row items-center justify-between no-wrap q-mb-md">
                     <div class="row items-center no-wrap">
-                      <q-avatar color="primary" text-color="white" size="44px" class="q-mr-sm">
+                      <q-avatar size="42px" class="resource-card-avatar avatar-purple q-mr-sm">
                         {{ getInitials(res.name) }}
                       </q-avatar>
                       <div>
-                        <div
-                          class="text-subtitle1 text-weight-bold ellipsis"
-                          style="max-width: 140px"
-                        >
+                        <div class="resource-name ellipsis" style="max-width: 140px">
                           {{ res.name }}
                         </div>
-                        <div class="text-caption text-grey-6">Team Resource</div>
+                        <div class="resource-role">Team Resource</div>
                       </div>
                     </div>
 
-                    <q-chip
-                      dense
-                      square
-                      outline
-                      :color="getStatusColor(res.status)"
-                      class="text-caption text-weight-bold"
-                    >
-                      {{ res.status }}
+                    <q-chip dense square :class="['status-chip', getWorkloadChipClass(res.status)]">
+                      {{ formatWorkloadStatus(res.status) }}
                     </q-chip>
                   </div>
 
                   <!-- WORKLOAD METRICS BOX -->
-                  <div class="bg-grey-2 q-pa-sm rounded-borders q-mb-sm">
+                  <div class="workload-metric-box q-pa-sm q-mb-sm">
                     <div class="row justify-between text-caption q-mb-xs">
                       <span class="text-grey-7 text-weight-medium">Workload Effort</span>
-                      <span class="text-weight-bold">{{ res.totalEffort }}h</span>
+                      <span class="text-weight-bold text-dark"
+                        >{{ res.totalEffort }}h ({{ res.utilization }}%)</span
+                      >
                     </div>
                     <q-linear-progress
                       rounded
                       size="6px"
                       :value="Math.min(100, res.utilization) / 100"
                       :color="getUtilizationColor(res.utilization)"
-                      track-color="grey-4"
+                      track-color="grey-3"
+                      class="workload-progress"
                     />
                   </div>
 
                   <!-- STAT COUNTS -->
-                  <div class="row justify-between text-caption text-grey-7 q-pt-xs">
+                  <div class="row justify-between text-caption text-grey-7 q-pt-xs q-mb-sm">
                     <div class="row items-center">
-                      <q-icon name="task_alt" size="16px" color="teal" class="q-mr-xs" />
-                      <span class="text-weight-medium">{{ res.tasks.length }} Tasks</span>
+                      <q-icon name="task_alt" size="15px" color="teal" class="q-mr-xs" />
+                      <span class="text-weight-medium text-dark">{{ res.tasks.length }} Tasks</span>
                     </div>
                     <div class="row items-center">
-                      <q-icon name="folder" size="16px" color="primary" class="q-mr-xs" />
-                      <span class="text-weight-medium">{{ res.projectsCount }} Projects</span>
+                      <q-icon name="folder" size="15px" color="primary" class="q-mr-xs" />
+                      <span class="text-weight-medium text-dark"
+                        >{{ res.projectsCount }} Projects</span
+                      >
                     </div>
                   </div>
 
                   <!-- PROJECTS WORKING ON -->
-                  <div class="q-mt-sm">
+                  <div class="q-mt-xs">
                     <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">
                       Projects Working On:
                     </div>
@@ -258,11 +265,9 @@
                         :key="pName"
                         dense
                         square
-                        size="11px"
-                        color="deep-purple-1"
-                        text-color="primary"
-                        icon="folder"
+                        class="project-badge"
                       >
+                        <q-icon name="folder" size="12px" class="q-mr-xs" />
                         {{ pName }}
                       </q-chip>
                     </div>
@@ -281,9 +286,8 @@
                       outline
                       dense
                       no-caps
-                      color="grey-8"
                       label="View Profile"
-                      class="full-width"
+                      class="full-width action-btn-outline"
                       @click="goToDetails(res.resource_id)"
                     />
                   </div>
@@ -292,10 +296,9 @@
                       unelevated
                       dense
                       no-caps
-                      color="primary"
                       icon="add_task"
                       label="Assign Task"
-                      class="full-width"
+                      class="full-width action-btn-primary"
                       @click="openAssignModal(res.resource_id)"
                     />
                   </div>
@@ -305,13 +308,14 @@
           </div>
 
           <!-- TABLE VIEW -->
-          <q-card v-else flat bordered class="dashboard-card">
+          <q-card v-else flat bordered class="table-card">
             <q-table
               flat
               :rows="filteredResources"
               :columns="tableColumns"
               row-key="resource_id"
               :pagination="{ rowsPerPage: 10 }"
+              class="resources-table"
             >
               <template #body-cell-name="props">
                 <q-td :props="props">
@@ -319,11 +323,11 @@
                     class="row items-center cursor-pointer"
                     @click="goToDetails(props.row.resource_id)"
                   >
-                    <q-avatar color="primary" text-color="white" size="32px" class="q-mr-sm">
+                    <q-avatar size="32px" class="avatar-purple q-mr-sm">
                       {{ getInitials(props.row.name) }}
                     </q-avatar>
                     <div>
-                      <div class="text-weight-bold">{{ props.row.name }}</div>
+                      <div class="text-weight-bold text-dark">{{ props.row.name }}</div>
                     </div>
                   </div>
                 </q-td>
@@ -340,11 +344,9 @@
                       :key="pName"
                       dense
                       square
-                      size="11px"
-                      color="deep-purple-1"
-                      text-color="primary"
-                      icon="folder"
+                      class="project-badge"
                     >
+                      <q-icon name="folder" size="12px" class="q-mr-xs" />
                       {{ pName }}
                     </q-chip>
                   </div>
@@ -355,13 +357,13 @@
               <template #body-cell-utilization="props">
                 <q-td :props="props">
                   <div style="min-width: 130px">
-                    <div class="row justify-between text-caption">
+                    <div class="row justify-between text-caption progress-label-row">
                       <span class="text-weight-bold">{{ props.row.utilization }}%</span>
                       <span class="text-grey-6">({{ props.row.totalEffort }}h)</span>
                     </div>
                     <q-linear-progress
                       rounded
-                      size="6px"
+                      size="5px"
                       :value="Math.min(100, props.row.utilization) / 100"
                       :color="getUtilizationColor(props.row.utilization)"
                       track-color="grey-3"
@@ -375,11 +377,9 @@
                   <q-chip
                     dense
                     square
-                    :color="getStatusColor(props.row.status)"
-                    text-color="white"
-                    class="text-caption text-weight-bold"
+                    :class="['status-chip', getWorkloadChipClass(props.row.status)]"
                   >
-                    {{ props.row.status }}
+                    {{ formatWorkloadStatus(props.row.status) }}
                   </q-chip>
                 </q-td>
               </template>
@@ -405,31 +405,36 @@
         <!-- TAB 2: TASKS ASSIGNED BY PM -->
         <q-tab-panel name="tasks" class="q-pa-md">
           <div class="row items-center justify-between q-mb-md">
-            <div class="text-h6 text-weight-bold">Tasks Assigned across Managed Projects</div>
-            <q-chip dense color="deep-purple-1" text-color="primary" class="text-weight-bold">
+            <div class="text-subtitle1 text-weight-bold text-dark">
+              Tasks Assigned across Managed Projects
+            </div>
+            <q-chip dense square class="project-badge text-weight-bold">
               {{ taskList.length }} Total Tasks
             </q-chip>
           </div>
 
           <q-table
             flat
-            bordered
             :rows="taskList"
             :columns="pmTaskColumns"
             row-key="task_id"
             no-data-label="No tasks currently assigned by PM"
             :pagination="{ rowsPerPage: 10 }"
+            class="resources-table"
           >
+            <template #body-cell-project="props">
+              <q-td :props="props">
+                <q-chip dense square class="project-badge">
+                  <q-icon name="folder" size="12px" class="q-mr-xs" />
+                  {{ getProjectName(props.row.project_id) }}
+                </q-chip>
+              </q-td>
+            </template>
+
             <template #body-cell-status="props">
               <q-td :props="props">
-                <q-chip
-                  dense
-                  square
-                  :color="getTaskStatusColor(props.row.status)"
-                  text-color="white"
-                  class="text-caption text-weight-bold"
-                >
-                  {{ props.row.status }}
+                <q-chip dense square :class="['status-chip', getTaskStatusClass(props.row.status)]">
+                  {{ formatTaskStatus(props.row.status) }}
                 </q-chip>
               </q-td>
             </template>
@@ -439,9 +444,7 @@
                 <q-chip
                   dense
                   square
-                  outline
-                  :color="getPriorityColor(props.row.priority)"
-                  class="text-caption text-weight-bold"
+                  :class="['priority-chip', getPriorityClass(props.row.priority)]"
                 >
                   {{ props.row.priority }}
                 </q-chip>
@@ -454,19 +457,28 @@
                   v-if="
                     props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0
                   "
+                  class="row q-gutter-xs wrap"
                 >
                   <q-chip
                     v-for="rId in props.row.assigned_resource_ids"
                     :key="rId"
                     dense
-                    color="primary"
-                    text-color="white"
-                    class="text-caption q-mr-xs"
+                    square
+                    class="resource-chip"
                   >
+                    <q-avatar size="16px" class="avatar-purple q-mr-xs">
+                      {{ getResourceName(rId).charAt(0).toUpperCase() }}
+                    </q-avatar>
                     {{ getResourceName(rId) }}
                   </q-chip>
                 </div>
                 <span v-else class="text-caption text-grey-5">Unassigned</span>
+              </q-td>
+            </template>
+
+            <template #body-cell-deadline="props">
+              <q-td :props="props" class="date-cell">
+                {{ formatDate(props.row.deadline) }}
               </q-td>
             </template>
           </q-table>
@@ -476,14 +488,14 @@
 
     <!-- ASSIGN RESOURCE TO PROJECT DIALOG (POST /api/projects/:id/members) -->
     <q-dialog v-model="showProjectMemberDialog">
-      <q-card style="min-width: 420px">
-        <q-card-section class="row items-center justify-between">
-          <div class="text-h6 text-weight-bold">Assign Resource to Project</div>
-          <q-btn v-close-popup flat round dense icon="close" />
+      <q-card class="dialog-card">
+        <q-card-section class="row items-center justify-between q-pb-none">
+          <div class="text-subtitle1 text-weight-bold text-dark">Assign Resource to Project</div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
         </q-card-section>
 
         <q-form @submit.prevent="handleAssignProjectMember">
-          <q-card-section class="q-gutter-md">
+          <q-card-section class="q-gutter-md q-pt-md">
             <q-select
               v-model="projectMemberForm.project_id"
               outlined
@@ -507,14 +519,22 @@
             />
           </q-card-section>
 
-          <q-card-actions align="right" class="q-pa-md">
-            <q-btn v-close-popup flat no-caps label="Cancel" />
+          <q-card-actions align="right" class="q-pa-md q-pt-none">
+            <q-btn
+              v-close-popup
+              flat
+              no-caps
+              label="Cancel"
+              color="grey-7"
+              class="text-weight-medium"
+            />
             <q-btn
               type="submit"
               unelevated
               no-caps
               color="primary"
               label="Assign to Project"
+              class="action-btn-primary"
               :loading="submittingMember"
             />
           </q-card-actions>
@@ -524,16 +544,16 @@
 
     <!-- ASSIGN TASK DIALOG (POST /api/tasks) -->
     <q-dialog v-model="showAssignDialog">
-      <q-card style="min-width: 420px">
-        <q-card-section class="row items-center justify-between">
-          <div class="text-h6 text-weight-bold">
+      <q-card class="dialog-card">
+        <q-card-section class="row items-center justify-between q-pb-none">
+          <div class="text-subtitle1 text-weight-bold text-dark">
             Assign Task to {{ getResourceName(selectedResourceId || 0) }}
           </div>
-          <q-btn v-close-popup flat round dense icon="close" />
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
         </q-card-section>
 
         <q-form @submit.prevent="handleAssignTask">
-          <q-card-section class="q-gutter-md">
+          <q-card-section class="q-gutter-md q-pt-md">
             <q-select
               v-model="assignForm.project_id"
               outlined
@@ -584,14 +604,22 @@
             </div>
           </q-card-section>
 
-          <q-card-actions align="right" class="q-pa-md">
-            <q-btn v-close-popup flat no-caps label="Cancel" />
+          <q-card-actions align="right" class="q-pa-md q-pt-none">
+            <q-btn
+              v-close-popup
+              flat
+              no-caps
+              label="Cancel"
+              color="grey-7"
+              class="text-weight-medium"
+            />
             <q-btn
               type="submit"
               unelevated
               no-caps
               color="primary"
               label="Assign Task"
+              class="action-btn-primary"
               :loading="submitting"
             />
           </q-card-actions>
@@ -889,24 +917,46 @@ function getUtilizationColor(util: number): string {
   return 'positive';
 }
 
-function getStatusColor(status: string): string {
-  if (status === 'OVERALLOCATED') return 'negative';
-  if (status === 'HIGH_LOAD') return 'warning';
-  return 'positive';
+function formatWorkloadStatus(status: string): string {
+  if (status === 'OVERALLOCATED') return 'Overallocated';
+  if (status === 'HIGH_LOAD') return 'High Load';
+  return 'Available';
 }
 
-function getTaskStatusColor(status: string): string {
-  if (status === 'COMPLETED') return 'positive';
-  if (status === 'IN_PROGRESS') return 'info';
-  if (status === 'ON_HOLD') return 'warning';
-  return 'grey-7';
+function getWorkloadChipClass(status: string): string {
+  if (status === 'OVERALLOCATED') return 'chip-soft-red';
+  if (status === 'HIGH_LOAD') return 'chip-soft-orange';
+  return 'chip-soft-green';
 }
 
-function getPriorityColor(priority: string): string {
-  if (priority === 'CRITICAL') return 'negative';
-  if (priority === 'HIGH') return 'warning';
-  if (priority === 'MEDIUM') return 'primary';
-  return 'grey';
+function formatTaskStatus(status: string): string {
+  return status
+    .toLowerCase()
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getTaskStatusClass(status: string): string {
+  if (status === 'COMPLETED') return 'chip-soft-green';
+  if (status === 'IN_PROGRESS') return 'chip-soft-blue';
+  if (status === 'ON_HOLD') return 'chip-soft-orange';
+  return 'chip-soft-purple';
+}
+
+function getPriorityClass(priority: string): string {
+  if (priority === 'CRITICAL') return 'chip-soft-red';
+  if (priority === 'HIGH') return 'chip-soft-orange';
+  if (priority === 'MEDIUM') return 'chip-soft-blue';
+  return 'chip-soft-purple';
+}
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'TBD';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(dateStr));
 }
 
 function goToDetails(id: number) {
@@ -982,3 +1032,155 @@ async function handleAssignTask() {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.resource-tabs {
+  background: var(--wo-bg-page, #fafbfc);
+  border-bottom: 1px solid var(--wo-border, #e9ebef);
+}
+
+.resource-tab {
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 46px;
+}
+
+.filter-search :deep(.q-field__control),
+.filter-select :deep(.q-field__control) {
+  min-height: 38px;
+  border-radius: 8px;
+}
+
+.filter-search :deep(.q-field__label),
+.filter-search :deep(.q-field__native),
+.filter-search :deep(.q-field__input),
+.filter-select :deep(.q-field__label),
+.filter-select :deep(.q-field__native) {
+  font-size: 12px;
+}
+
+.view-toggle-btn {
+  border-radius: 8px;
+  border: 1px solid var(--wo-border, #e5e7ec);
+  overflow: hidden;
+}
+
+.resource-grid-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(124, 94, 212, 0.08);
+  }
+}
+
+.resource-card-avatar {
+  border-radius: 10px;
+}
+
+.resource-name {
+  color: var(--wo-text-main, #172033);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.resource-role {
+  color: var(--wo-text-muted, #64748b);
+  font-size: 11.5px;
+}
+
+.workload-metric-box {
+  background: var(--wo-bg-page, #f8f9fc);
+  border: 1px solid var(--wo-border-subtle, #edf0f5);
+  border-radius: 8px;
+}
+
+.workload-progress {
+  height: 6px;
+  border-radius: 3px;
+}
+
+.project-badge {
+  background: rgba(139, 111, 216, 0.12);
+  color: var(--wo-primary, #8b6fd8);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.resource-chip {
+  background: var(--wo-bg-page, #f1f3f7);
+  color: var(--wo-text-main, #334155);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.status-chip,
+.priority-chip {
+  min-height: 24px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.resources-table :deep(th) {
+  height: 40px;
+  padding: 0 14px;
+  background: var(--wo-bg-page, #fafbfc);
+  color: var(--wo-text-muted, #647087);
+  font-size: 11px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--wo-border, #e9ebef);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.resources-table :deep(td) {
+  height: 52px;
+  padding: 8px 14px;
+  color: var(--wo-text-main, #334155);
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--wo-border-subtle, #eef0f3);
+}
+
+.resources-table :deep(tbody tr:hover) {
+  background: var(--wo-bg-card-hover, #faf9ff);
+}
+
+.progress-label-row {
+  font-size: 11.5px;
+  margin-bottom: 4px;
+  color: var(--wo-text-main, #1e293b);
+}
+
+.date-cell {
+  color: var(--wo-text-muted, #64748b);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.empty-state-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+}
+
+.empty-avatar {
+  background: rgba(139, 111, 216, 0.15);
+  color: var(--wo-primary, #8b6fd8);
+}
+
+.dialog-card {
+  min-width: 440px;
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+}
+</style>

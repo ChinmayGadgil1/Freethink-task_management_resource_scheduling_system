@@ -32,10 +32,6 @@
 
         <!-- PM Navigation -->
         <nav class="main-nav">
-          <router-link to="/pm/dashboard" class="nav-link" active-class="nav-link-active">
-            Home
-          </router-link>
-
           <router-link to="/pm/projects" class="nav-link" active-class="nav-link-active">
             Projects
           </router-link>
@@ -50,14 +46,6 @@
 
           <router-link to="/pm/schedule" class="nav-link" active-class="nav-link-active">
             Schedule
-          </router-link>
-
-          <router-link to="/pm/progress" class="nav-link" active-class="nav-link-active">
-            Progress
-          </router-link>
-
-          <router-link to="/pm/reports" class="nav-link" active-class="nav-link-active">
-            Reports
           </router-link>
         </nav>
 
@@ -419,7 +407,7 @@ function goToRoute(path: string) {
 }
 
 function goToHome() {
-  void router.push('/pm/dashboard');
+  void router.push('/pm/projects');
 }
 
 function handleKeydown(e: KeyboardEvent) {

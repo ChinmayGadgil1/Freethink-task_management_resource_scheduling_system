@@ -1,193 +1,182 @@
 <template>
-  <q-page class="projects-page">
-    <!-- TOP / FILTER + STATS -->
-    <div class="projects-layout">
-      <q-card flat bordered class="section-card section-intro">
-        <q-card-section class="section-intro-section">
-          <div class="section-number">01</div>
-          <div class="section-eyebrow">FILTER & SEARCH</div>
-          <div class="section-title">Find any project in seconds</div>
-          <div class="section-description">
-            Use filters, search or quick views to narrow down projects.
-          </div>
-          <q-icon name="manage_search" size="34px" class="section-icon" />
-        </q-card-section>
-      </q-card>
-
-      <div class="main-column">
-        <div class="stats-grid">
-          <q-card flat bordered class="stat-card">
-            <q-card-section class="stat-section">
-              <q-avatar size="50px" class="stat-icon stat-purple">
-                <q-icon name="folder" size="24px" />
-              </q-avatar>
-              <div class="stat-copy">
-                <div class="stat-label">Total Projects</div>
-                <div class="stat-value">{{ totalProjects }}</div>
-                <div class="stat-note stat-green">↑ 2 new this month</div>
-              </div>
-            </q-card-section>
-          </q-card>
-
-          <q-card flat bordered class="stat-card">
-            <q-card-section class="stat-section">
-              <q-avatar size="50px" class="stat-icon stat-green-bg">
-                <q-icon name="check_circle" size="24px" />
-              </q-avatar>
-              <div class="stat-copy">
-                <div class="stat-label">On Track</div>
-                <div class="stat-value">{{ onTrackProjects }}</div>
-                <div class="stat-note stat-green">
-                  {{ totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0 }}% of
-                  total
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-
-          <q-card flat bordered class="stat-card">
-            <q-card-section class="stat-section">
-              <q-avatar size="50px" class="stat-icon stat-orange-bg">
-                <q-icon name="warning_amber" size="24px" />
-              </q-avatar>
-              <div class="stat-copy">
-                <div class="stat-label">At Risk</div>
-                <div class="stat-value">{{ atRiskProjects }}</div>
-                <div class="stat-note stat-orange">
-                  {{ totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0 }}% of
-                  total
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-
-          <q-card flat bordered class="stat-card">
-            <q-card-section class="stat-section">
-              <q-avatar size="50px" class="stat-icon stat-red-bg">
-                <q-icon name="schedule" size="24px" />
-              </q-avatar>
-              <div class="stat-copy">
-                <div class="stat-label">Delayed</div>
-                <div class="stat-value">{{ delayedProjects }}</div>
-                <div class="stat-note stat-red">
-                  {{ totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0 }}% of
-                  total
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-
-          <q-card flat bordered class="stat-card completion-card">
-            <q-card-section class="completion-section">
-              <div class="stat-copy">
-                <div class="stat-label">Completion Avg. <span class="info-dot">i</span></div>
-                <div class="stat-value">{{ completionAverage }}%</div>
-                <div class="stat-note stat-green">↑ 8% vs last month</div>
-              </div>
-              <div class="mini-chart" aria-hidden="true">
-                <svg viewBox="0 0 150 55" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="completionFill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stop-color="rgba(124, 92, 220, .22)" />
-                      <stop offset="100%" stop-color="rgba(124, 92, 220, 0)" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M0 40 L20 29 L42 38 L65 22 L88 31 L110 18 L132 25 L150 7 L150 55 L0 55 Z"
-                    fill="url(#completionFill)"
-                  />
-                  <polyline
-                    points="0,40 20,29 42,38 65,22 88,31 110,18 132,25 150,7"
-                    fill="none"
-                    stroke="#8062df"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </div>
-            </q-card-section>
-          </q-card>
+  <q-page class="pm-page projects-page">
+    <!-- PAGE HEADER -->
+    <div class="page-header-row">
+      <div>
+        <div class="page-title">Projects Management</div>
+        <div class="page-subtitle">
+          Track project health, delivery timelines, and performance across all projects
         </div>
+      </div>
 
-        <q-card flat bordered class="filter-card">
-          <q-card-section class="filter-section">
-            <q-input
-              v-model="searchQuery"
-              outlined
-              dense
-              clearable
-              placeholder="Search projects..."
-              class="filter-search"
-            >
-              <template #prepend>
-                <q-icon name="search" size="18px" />
-              </template>
-            </q-input>
-
-            <q-select
-              v-model="statusFilter"
-              outlined
-              dense
-              emit-value
-              map-options
-              :options="statusFilterOptions"
-              label="Status"
-              class="filter-select"
-            />
-
-            <q-select
-              v-model="healthFilter"
-              outlined
-              dense
-              emit-value
-              map-options
-              :options="healthFilterOptions"
-              label="Health"
-              class="filter-select"
-            />
-
-            <q-select
-              outlined
-              dense
-              label="Owner"
-              :options="['All Owners']"
-              model-value="All Owners"
-              class="filter-select"
-            />
-
-            <q-input v-model="startDateFilter" outlined dense label="Start Date" type="date" />
-
-            <q-input v-model="endDateFilter" outlined dense label="End Date" type="date" />
-
-            <q-btn
-              outline
-              no-caps
-              icon="filter_list"
-              label="More Filters"
-              class="more-filter-btn"
-            />
-
-            <q-btn flat round icon="tune" class="tune-btn" />
-          </q-card-section>
-        </q-card>
+      <div class="row items-center q-gutter-sm">
+        <q-btn
+          unelevated
+          no-caps
+          icon="add"
+          label="New Project"
+          class="action-btn-primary"
+          @click="showCreateDialog = true"
+        />
       </div>
     </div>
 
-    <!-- PROJECT OVERVIEW -->
-    <div class="projects-layout section-spacing">
-      <q-card flat bordered class="section-card overview-intro">
-        <q-card-section class="section-intro-section">
-          <div class="section-number">02</div>
-          <div class="section-eyebrow">PROJECT OVERVIEW</div>
-          <div class="section-title">All projects at your fingertips</div>
-          <div class="section-description">
-            Overview of progress, health, deadlines and key updates.
-          </div>
-          <q-icon name="folder_open" size="34px" class="section-icon purple-icon" />
+    <!-- TOP / FILTER + STATS -->
+    <div class="projects-section-block">
+      <div class="stats-grid">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="stat-section">
+            <q-avatar size="50px" class="stat-icon stat-purple">
+              <q-icon name="folder" size="24px" />
+            </q-avatar>
+            <div class="stat-copy">
+              <div class="stat-label">Total Projects</div>
+              <div class="stat-value">{{ totalProjects }}</div>
+              <div class="stat-note stat-green">↑ 2 new this month</div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="stat-section">
+            <q-avatar size="50px" class="stat-icon stat-green-bg">
+              <q-icon name="check_circle" size="24px" />
+            </q-avatar>
+            <div class="stat-copy">
+              <div class="stat-label">On Track</div>
+              <div class="stat-value">{{ onTrackProjects }}</div>
+              <div class="stat-note stat-green">
+                {{ totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0 }}% of
+                total
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="stat-section">
+            <q-avatar size="50px" class="stat-icon stat-orange-bg">
+              <q-icon name="warning_amber" size="24px" />
+            </q-avatar>
+            <div class="stat-copy">
+              <div class="stat-label">At Risk</div>
+              <div class="stat-value">{{ atRiskProjects }}</div>
+              <div class="stat-note stat-orange">
+                {{ totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0 }}% of
+                total
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="stat-section">
+            <q-avatar size="50px" class="stat-icon stat-red-bg">
+              <q-icon name="schedule" size="24px" />
+            </q-avatar>
+            <div class="stat-copy">
+              <div class="stat-label">Delayed</div>
+              <div class="stat-value">{{ delayedProjects }}</div>
+              <div class="stat-note stat-red">
+                {{ totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0 }}% of
+                total
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card flat bordered class="stat-card completion-card">
+          <q-card-section class="completion-section">
+            <div class="stat-copy">
+              <div class="stat-label">Completion Avg. <span class="info-dot">i</span></div>
+              <div class="stat-value">{{ completionAverage }}%</div>
+              <div class="stat-note stat-green">↑ 8% vs last month</div>
+            </div>
+            <div class="mini-chart" aria-hidden="true">
+              <svg viewBox="0 0 150 55" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="completionFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(124, 92, 220, .22)" />
+                    <stop offset="100%" stop-color="rgba(124, 92, 220, 0)" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0 40 L20 29 L42 38 L65 22 L88 31 L110 18 L132 25 L150 7 L150 55 L0 55 Z"
+                  fill="url(#completionFill)"
+                />
+                <polyline
+                  points="0,40 20,29 42,38 65,22 88,31 110,18 132,25 150,7"
+                  fill="none"
+                  stroke="#8062df"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <q-card flat bordered class="filter-card q-mt-md">
+        <q-card-section class="filter-section">
+          <q-input
+            v-model="searchQuery"
+            outlined
+            dense
+            clearable
+            placeholder="Search projects..."
+            class="filter-search"
+          >
+            <template #prepend>
+              <q-icon name="search" size="18px" />
+            </template>
+          </q-input>
+
+          <q-select
+            v-model="statusFilter"
+            outlined
+            dense
+            emit-value
+            map-options
+            :options="statusFilterOptions"
+            label="Status"
+            class="filter-select"
+          />
+
+          <q-select
+            v-model="healthFilter"
+            outlined
+            dense
+            emit-value
+            map-options
+            :options="healthFilterOptions"
+            label="Health"
+            class="filter-select"
+          />
+
+          <q-select
+            outlined
+            dense
+            label="Owner"
+            :options="['All Owners']"
+            model-value="All Owners"
+            class="filter-select"
+          />
+
+          <q-input v-model="startDateFilter" outlined dense label="Start Date" type="date" />
+
+          <q-input v-model="endDateFilter" outlined dense label="End Date" type="date" />
+
+          <q-btn outline no-caps icon="filter_list" label="More Filters" class="more-filter-btn" />
+
+          <q-btn flat round icon="tune" class="tune-btn" />
         </q-card-section>
       </q-card>
+    </div>
 
+    <!-- PROJECT OVERVIEW -->
+    <div class="projects-section-block section-spacing">
       <q-card flat bordered class="overview-panel">
         <q-card-section class="overview-scroll-section">
           <div v-if="loading" class="state-container">
@@ -266,17 +255,7 @@
     </div>
 
     <!-- PROJECT INSIGHTS -->
-    <div class="projects-layout section-spacing">
-      <q-card flat bordered class="section-card insights-intro">
-        <q-card-section class="section-intro-section">
-          <div class="section-number">03</div>
-          <div class="section-eyebrow">PROJECT INSIGHTS</div>
-          <div class="section-title">Track what matters most</div>
-          <div class="section-description">Real-time insights help you take the right action.</div>
-          <q-icon name="trending_up" size="34px" class="section-icon green-icon" />
-        </q-card-section>
-      </q-card>
-
+    <div class="projects-section-block section-spacing">
       <q-card flat bordered class="table-card">
         <q-card-section class="table-toolbar">
           <div class="toolbar-title">Project Insights</div>
@@ -469,17 +448,7 @@
     </div>
 
     <!-- PERFORMANCE -->
-    <div class="projects-layout section-spacing">
-      <q-card flat bordered class="section-card performance-intro">
-        <q-card-section class="section-intro-section">
-          <div class="section-number">04</div>
-          <div class="section-eyebrow">PERFORMANCE VIEW</div>
-          <div class="section-title">Compare & prioritize</div>
-          <div class="section-description">Sort, compare and prioritize projects effortlessly.</div>
-          <q-icon name="format_list_numbered" size="34px" class="section-icon orange-icon" />
-        </q-card-section>
-      </q-card>
-
+    <div class="projects-section-block section-spacing">
       <q-card flat bordered class="performance-panel">
         <q-card-section class="performance-grid">
           <div class="performance-stat">
@@ -496,39 +465,6 @@
             <span>Projects Needing Attention</span>
             <strong>{{ atRiskProjects + delayedProjects }}</strong>
           </div>
-        </q-card-section>
-      </q-card>
-    </div>
-
-    <!-- QUICK ACTIONS -->
-    <div class="projects-layout section-spacing">
-      <q-card flat bordered class="section-card quick-intro">
-        <q-card-section class="section-intro-section">
-          <div class="section-number">05</div>
-          <div class="section-eyebrow">QUICK ACTIONS</div>
-          <div class="section-title">Manage projects efficiently</div>
-          <div class="section-description">
-            Create, import or update projects in just a few clicks.
-          </div>
-          <q-icon name="bolt" size="34px" class="section-icon purple-icon" />
-        </q-card-section>
-      </q-card>
-
-      <q-card flat bordered class="quick-actions-card">
-        <q-card-section class="quick-actions">
-          <q-btn
-            unelevated
-            no-caps
-            icon="add"
-            label="New Project"
-            color="primary"
-            class="quick-btn primary-action"
-            @click="showCreateDialog = true"
-          />
-          <q-btn outline no-caps icon="cloud_upload" label="Import Project" class="quick-btn" />
-          <q-btn outline no-caps icon="auto_awesome" label="Project Template" class="quick-btn" />
-          <q-btn outline no-caps icon="edit_note" label="Bulk Update" class="quick-btn" />
-          <q-btn outline no-caps icon="description" label="Export Report" class="quick-btn" />
         </q-card-section>
       </q-card>
     </div>
@@ -975,81 +911,12 @@ onMounted(() => {
   color: var(--wo-text-main, #172033);
 }
 
-.projects-layout {
-  display: grid;
-  grid-template-columns: 205px minmax(0, 1fr);
-  gap: 18px;
-  align-items: stretch;
-}
-
-.main-column {
-  min-width: 0;
+.projects-section-block {
+  width: 100%;
 }
 
 .section-spacing {
   margin-top: 18px;
-}
-
-.section-card {
-  border-radius: 14px;
-  background: var(--wo-bg-card, #fff);
-  border-color: var(--wo-border, #e7e9ef);
-}
-
-.section-intro-section {
-  position: relative;
-  min-height: 100%;
-  padding: 15px 15px 16px;
-}
-
-.section-number {
-  margin-bottom: 7px;
-  color: var(--wo-primary, #7c5ed4);
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.section-eyebrow {
-  margin-bottom: 12px;
-  color: var(--wo-text-muted, #63708a);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.section-title {
-  max-width: 175px;
-  color: var(--wo-text-main, #172033);
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.18;
-}
-
-.section-description {
-  margin-top: 11px;
-  color: var(--wo-text-muted, #758097);
-  font-size: 11px;
-  line-height: 1.55;
-}
-
-.section-icon {
-  position: absolute;
-  right: 14px;
-  bottom: 16px;
-  color: var(--wo-primary, #8062df);
-}
-
-.purple-icon {
-  color: var(--wo-primary, #8062df);
-}
-
-.green-icon {
-  color: #21a66b;
-}
-
-.orange-icon {
-  color: #ee8a1c;
 }
 
 .stats-grid {

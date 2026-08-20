@@ -103,6 +103,6 @@ const handleForgotPassword = async () => {
 };
 
 const goToLogin = () => {
-  void router.push('/');
+  void router.push('/login');
 };
 </script>

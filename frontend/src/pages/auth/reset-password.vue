@@ -159,7 +159,7 @@ const handleResetPassword = async () => {
       type: 'positive',
       message: 'Password reset successful!',
     });
-    void router.push('/');
+    void router.push('/login');
   } catch (error) {
     console.error(error);
     $q.notify({
@@ -172,6 +172,6 @@ const handleResetPassword = async () => {
 };
 
 const goToLogin = () => {
-  void router.push('/');
+  void router.push('/login');
 };
 </script>

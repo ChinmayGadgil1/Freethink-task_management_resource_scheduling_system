@@ -217,7 +217,7 @@ const handleSignup = async () => {
       message: data.message || 'Account created successfully!',
     });
 
-    void router.push('/');
+    void router.push('/login');
   } catch (error: unknown) {
     console.error('Signup error:', error);
     $q.notify({
@@ -230,6 +230,6 @@ const handleSignup = async () => {
 };
 
 const goToLogin = () => {
-  void router.push('/');
+  void router.push('/login');
 };
 </script>

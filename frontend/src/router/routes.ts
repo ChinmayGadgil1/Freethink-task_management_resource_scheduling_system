@@ -1,20 +1,22 @@
 import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
+  // Public Landing Page
+  {
+    path: '/',
+    component: () => import('@/pages/LandingPage.vue'),
+  },
+
   // Auth routes (sharing AuthLayout for layout and background reuse)
   {
     path: '/',
     component: () => import('@/layouts/AuthLayout.vue'),
     children: [
-      { path: '', component: () => import('@/pages/auth/LoginPage.vue') },
+      { path: 'login', component: () => import('@/pages/auth/LoginPage.vue') },
       { path: 'signup', component: () => import('@/pages/auth/SignupPage.vue') },
       { path: 'forgot-password', component: () => import('@/pages/auth/forgot-password.vue') },
       { path: 'reset-password', component: () => import('@/pages/auth/reset-password.vue') },
     ],
-  },
-  {
-    path: '/login',
-    redirect: '/',
   },
 
   // Main app routes (sharing MainLayout)
@@ -63,7 +65,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'schedule',
-        redirect: '/pm/dashboard',
+        component: () => import('@/pages/pm/SchedulePage.vue'),
       },
       {
         path: 'progress',
