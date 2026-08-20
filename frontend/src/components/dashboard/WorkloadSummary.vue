@@ -33,7 +33,10 @@
 
         <div class="resource-name">{{ resource.name }}</div>
         <div class="resource-role">{{ resource.role }}</div>
-        <div v-if="resource.projectNames && resource.projectNames.length > 0" class="resource-projects">
+        <div
+          v-if="resource.projectNames && resource.projectNames.length > 0"
+          class="resource-projects"
+        >
           <span v-for="pName in resource.projectNames" :key="pName" class="project-tag">
             <q-icon name="folder" size="10px" class="q-mr-xs" />{{ pName }}
           </span>
@@ -88,12 +91,17 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const workloadMap = ref<Record<number, {
-  workload: number;
-  totalExpectedEffort: number;
-  status: string;
-  projectNames: string[];
-}>>({});
+const workloadMap = ref<
+  Record<
+    number,
+    {
+      workload: number;
+      totalExpectedEffort: number;
+      status: string;
+      projectNames: string[];
+    }
+  >
+>({});
 
 function goToResourceDetails(userId?: number) {
   if (userId) {
@@ -209,7 +217,11 @@ async function loadWorkloads() {
         const workload = await getResourceWorkloadApi(resource.user_id);
         const expectedHours = Number(workload.total_expected_effort) || 0;
         const percentage = Math.round((expectedHours / 40) * 100);
-        const pNames = Array.from(new Set((workload.tasks || []).map((t) => t.project_name).filter((n): n is string => !!n)));
+        const pNames = Array.from(
+          new Set(
+            (workload.tasks || []).map((t) => t.project_name).filter((n): n is string => !!n),
+          ),
+        );
 
         return [
           resource.user_id,

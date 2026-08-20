@@ -972,13 +972,7 @@
 
         <q-form @submit.prevent="handleAddDependency">
           <q-card-section class="modal-form">
-            <q-input
-              :model-value="dependencyTaskLabel"
-              outlined
-              dense
-              readonly
-              label="Task"
-            />
+            <q-input :model-value="dependencyTaskLabel" outlined dense readonly label="Task" />
 
             <q-select
               v-model="selectedPredecessorTaskId"
@@ -1224,9 +1218,11 @@ import {
   type ResourceUser,
   type Task,
 } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
 const route = useRoute();
+const authStore = useAuthStore();
 
 const projectIdParam = computed(() => {
   const param = route.params.id;
@@ -1288,15 +1284,7 @@ const dependencyPredecessorOptions = computed(() =>
 );
 
 const currentPmName = computed(() => {
-  try {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      if (parsed?.name) return parsed.name;
-    }
-  } catch { // Fall back to the default project manager label. 
-    }
-  return 'Project Manager';
+  return authStore.user?.name || 'Project Manager';
 });
 
 // Default Project Data
@@ -1786,7 +1774,7 @@ function updateActivityLogs() {
     })
     .slice(0, 4);
 
- const logs: ActivityLog[] = records.map(({ task, timestamp }) => {
+  const logs: ActivityLog[] = records.map(({ task, timestamp }) => {
     const assignee = getAssigneeName(task);
     const isCompleted = task.status === 'COMPLETED';
     const isCreated = task.created_at && task.updated_at && task.created_at === task.updated_at;
@@ -1907,7 +1895,6 @@ async function refreshData() {
   });
 }
 
-
 function openDependencyDialog(task: Task) {
   selectedDependencyTaskId.value = task.task_id;
   selectedPredecessorTaskId.value = null;
@@ -1919,13 +1906,12 @@ async function handleAddDependency() {
 
   dependencySubmitting.value = true;
   try {
-    await addTaskDependencyApi(
-      selectedDependencyTaskId.value,
-      selectedPredecessorTaskId.value,
-    );
+    await addTaskDependencyApi(selectedDependencyTaskId.value, selectedPredecessorTaskId.value);
 
     const successor = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
-    const predecessor = tasks.value.find((task) => task.task_id === selectedPredecessorTaskId.value);
+    const predecessor = tasks.value.find(
+      (task) => task.task_id === selectedPredecessorTaskId.value,
+    );
 
     $q.notify({
       type: 'positive',
@@ -2050,9 +2036,7 @@ function openQuickUpdate(task: Task) {
 async function saveQuickUpdate() {
   if (!selectedTaskForUpdate.value) return;
   const nextStatus =
-    selectedTaskForUpdateProgress.value === 100
-      ? 'COMPLETED'
-      : selectedTaskForUpdate.value.status;
+    selectedTaskForUpdateProgress.value === 100 ? 'COMPLETED' : selectedTaskForUpdate.value.status;
 
   try {
     const updated = await updateTaskApi(selectedTaskForUpdate.value.task_id, {
@@ -2080,7 +2064,8 @@ async function saveQuickUpdate() {
 
 async function toggleTaskComplete(task: Task) {
   const nextStatus = task.status === 'COMPLETED' ? 'IN_PROGRESS' : 'COMPLETED';
-  const nextProgress = nextStatus === 'COMPLETED' ? 100 : Math.min(99, getTaskProgressNumber(task.progress));
+  const nextProgress =
+    nextStatus === 'COMPLETED' ? 100 : Math.min(99, getTaskProgressNumber(task.progress));
 
   try {
     const updated = await updateTaskApi(task.task_id, {

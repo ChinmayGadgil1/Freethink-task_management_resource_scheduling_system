@@ -8,18 +8,30 @@
         <div class="text-body2 text-grey-6 q-mt-xs">Here's an overview of your work today.</div>
       </div>
       <div class="row q-gutter-sm">
-        <q-btn flat no-caps dense icon="refresh" label="Refresh" color="grey-7" @click="loadDashboardData" />
-        <q-btn outline no-caps dense icon="list_alt" label="My Tasks" color="primary" @click="goToTasks" />
+        <q-btn
+          flat
+          no-caps
+          dense
+          icon="refresh"
+          label="Refresh"
+          color="grey-7"
+          @click="loadDashboardData"
+        />
+        <q-btn
+          outline
+          no-caps
+          dense
+          icon="list_alt"
+          label="My Tasks"
+          color="primary"
+          @click="goToTasks"
+        />
       </div>
     </div>
 
     <div v-if="loading" class="row q-col-gutter-md">
       <div v-for="n in 5" :key="n" class="col-12 col-sm-6 col-md">
-        <q-skeleton
-          type="rect"
-          height="96px"
-          animation="fade"
-        />
+        <q-skeleton type="rect" height="96px" animation="fade" />
       </div>
     </div>
 
@@ -102,13 +114,20 @@
             </div>
           </div>
           <q-list v-else separator>
-            <q-item v-for="t in attentionTasks" :key="t.task_id" clickable @click="goToTaskDetails(t.task_id)">
+            <q-item
+              v-for="t in attentionTasks"
+              :key="t.task_id"
+              clickable
+              @click="goToTaskDetails(t.task_id)"
+            >
               <q-item-section avatar>
                 <q-icon :name="attentionMeta(t).icon" :color="attentionMeta(t).color" />
               </q-item-section>
               <q-item-section>
                 <q-item-label class="text-weight-medium">{{ t.title }}</q-item-label>
-                <q-item-label caption>{{ t.project_name || `Project #${t.project_id}` }}</q-item-label>
+                <q-item-label caption>{{
+                  t.project_name || `Project #${t.project_id}`
+                }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-badge :color="attentionMeta(t).color" :label="attentionMeta(t).label" />
@@ -130,8 +149,8 @@
             <q-icon name="info" color="grey-6" size="20px" />
             <div class="text-body2 text-grey-7">
               Not available yet — the task API doesn't return who created each task
-              (<code>created_by</code>). This section is wired up and will populate automatically once
-              that field is added to the backend response.
+              (<code>created_by</code>). This section is wired up and will populate automatically
+              once that field is added to the backend response.
             </div>
           </q-card-section>
         </q-card>
@@ -157,7 +176,6 @@
         <ResourceGanttChart :tasks="ganttTasks" />
       </WorkspaceSection>
     </template>
-
   </q-page>
 </template>
 
@@ -171,22 +189,23 @@ import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
 import UpcomingTasksCard from '@/components/resource/UpcomingTasksCard.vue';
 import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
 import ResourceGanttChart from '@/components/resource/ResourceGanttChart.vue';
-import { getTasksApi, getResourceWorkloadApi, type Task, type ResourceWorkload } from '@/services/api';
+import {
+  getTasksApi,
+  getResourceWorkloadApi,
+  type Task,
+  type ResourceWorkload,
+} from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const loading = ref(true);
 const error = ref('');
 const tasks = ref<Task[]>([]);
 const workloadData = ref<ResourceWorkload | null>(null);
 
-const storedUser = localStorage.getItem('user');
 const userFirstName = computed(() => {
-  if (!storedUser) return '';
-  try {
-    return (JSON.parse(storedUser) as { name?: string }).name?.split(' ')[0] ?? '';
-  } catch {
-    return '';
-  }
+  return authStore.user?.name?.split(' ')[0] ?? '';
 });
 
 function isOverdue(task: Task): boolean {
@@ -209,7 +228,11 @@ function isUpcoming(task: Task): boolean {
   return d >= 0 && d <= 7;
 }
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 function formatDue(deadlineStr: string | null): string {
   if (!deadlineStr) return 'No deadline';
@@ -220,19 +243,17 @@ function formatDue(deadlineStr: string | null): string {
   return formatDate(deadlineStr);
 }
 
-function normalizePriority(
-  priority: Task['priority']
-): 'Low' | 'Medium' | 'High' | 'Critical' {
+function normalizePriority(priority: Task['priority']): 'Low' | 'Medium' | 'High' | 'Critical' {
   switch (String(priority).toUpperCase()) {
     case 'LOW':
-      return 'Low'
+      return 'Low';
     case 'HIGH':
-      return 'High'
+      return 'High';
     case 'CRITICAL':
-      return 'Critical'
+      return 'Critical';
     case 'MEDIUM':
     default:
-      return 'Medium'
+      return 'Medium';
   }
 }
 
@@ -267,19 +288,55 @@ const stats = computed(() => {
 });
 
 const statCards = computed(() => [
-  { title: 'Total Tasks', value: stats.value.total, subtitle: 'Assigned to you', icon: 'task_alt', color: '#8B6FD8' },
-  { title: 'Active', value: stats.value.active, subtitle: 'Not yet completed', icon: 'autorenew', color: '#2E90FA' },
-  { title: 'Completed', value: stats.value.completed, subtitle: 'Tasks completed', icon: 'check_circle_outline', color: '#27AE60' },
-  { title: 'Overdue', value: stats.value.overdue, subtitle: 'Past deadline', icon: 'warning_amber', color: '#E15263' },
-  { title: 'Upcoming', value: stats.value.upcoming, subtitle: 'Due within 7 days', icon: 'schedule', color: '#E89532' },
+  {
+    title: 'Total Tasks',
+    value: stats.value.total,
+    subtitle: 'Assigned to you',
+    icon: 'task_alt',
+    color: '#8B6FD8',
+  },
+  {
+    title: 'Active',
+    value: stats.value.active,
+    subtitle: 'Not yet completed',
+    icon: 'autorenew',
+    color: '#2E90FA',
+  },
+  {
+    title: 'Completed',
+    value: stats.value.completed,
+    subtitle: 'Tasks completed',
+    icon: 'check_circle_outline',
+    color: '#27AE60',
+  },
+  {
+    title: 'Overdue',
+    value: stats.value.overdue,
+    subtitle: 'Past deadline',
+    icon: 'warning_amber',
+    color: '#E15263',
+  },
+  {
+    title: 'Upcoming',
+    value: stats.value.upcoming,
+    subtitle: 'Due within 7 days',
+    icon: 'schedule',
+    color: '#E89532',
+  },
 ]);
 
 const workload = computed(() => {
   const fallbackExpected = tasks.value.reduce((s, t) => s + (Number(t.expected_effort) || 0), 0);
   const fallbackActual = tasks.value.reduce((s, t) => s + (Number(t.actual_effort) || 0), 0);
-  const expectedEffort = workloadData.value ? Number(workloadData.value.total_expected_effort) || 0 : fallbackExpected;
-  const actualEffort = workloadData.value ? Number(workloadData.value.total_actual_effort) || 0 : fallbackActual;
-  const activeTasks = workloadData.value ? workloadData.value.active_tasks_count : stats.value.active;
+  const expectedEffort = workloadData.value
+    ? Number(workloadData.value.total_expected_effort) || 0
+    : fallbackExpected;
+  const actualEffort = workloadData.value
+    ? Number(workloadData.value.total_actual_effort) || 0
+    : fallbackActual;
+  const activeTasks = workloadData.value
+    ? workloadData.value.active_tasks_count
+    : stats.value.active;
   const overEstimate = actualEffort > expectedEffort && expectedEffort > 0;
   return {
     activeTasks,
@@ -287,16 +344,34 @@ const workload = computed(() => {
     actualEffort,
     remainingEffort: Math.max(expectedEffort - actualEffort, 0),
     // Clamped 0–100 so exceeding the estimate never renders a misleading >100% bar.
-    consumedPct: expectedEffort ? Math.min(100, Math.round((actualEffort / expectedEffort) * 100)) : 0,
+    consumedPct: expectedEffort
+      ? Math.min(100, Math.round((actualEffort / expectedEffort) * 100))
+      : 0,
     overEstimate,
   };
 });
 
 const taskStatus = computed(() => [
-  { label: 'Completed', value: tasks.value.filter((t) => t.status === 'COMPLETED').length, color: '#27AE60' },
-  { label: 'In Progress', value: tasks.value.filter((t) => t.status === 'IN_PROGRESS').length, color: '#2E90FA' },
-  { label: 'Pending', value: tasks.value.filter((t) => t.status === 'PENDING').length, color: '#98A2B3' },
-  { label: 'On Hold', value: tasks.value.filter((t) => t.status === 'ON_HOLD').length, color: '#E89532' },
+  {
+    label: 'Completed',
+    value: tasks.value.filter((t) => t.status === 'COMPLETED').length,
+    color: '#27AE60',
+  },
+  {
+    label: 'In Progress',
+    value: tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
+    color: '#2E90FA',
+  },
+  {
+    label: 'Pending',
+    value: tasks.value.filter((t) => t.status === 'PENDING').length,
+    color: '#98A2B3',
+  },
+  {
+    label: 'On Hold',
+    value: tasks.value.filter((t) => t.status === 'ON_HOLD').length,
+    color: '#E89532',
+  },
 ]);
 
 const upcomingTasks = computed(() =>
@@ -316,16 +391,23 @@ const upcomingTasks = computed(() =>
 
 function attentionMeta(t: Task) {
   if (isOverdue(t)) return { label: 'Overdue', color: 'negative', icon: 'error_outline' };
-  if (t.deadline && daysUntil(t.deadline) <= 3) return { label: 'Due Soon', color: 'orange', icon: 'schedule' };
+  if (t.deadline && daysUntil(t.deadline) <= 3)
+    return { label: 'Due Soon', color: 'orange', icon: 'schedule' };
   return { label: `${t.priority} Priority`, color: 'deep-orange', icon: 'flag' };
 }
 
 const attentionTasks = computed(() => {
   const seen = new Set<number>();
   const result: Task[] = [];
-  const overdue = [...tasks.value].filter(isOverdue).sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
-  const approaching = tasks.value.filter((t) => t.status !== 'COMPLETED' && t.deadline && !isOverdue(t) && daysUntil(t.deadline) <= 3);
-  const criticalIncomplete = tasks.value.filter((t) => t.status !== 'COMPLETED' && (t.priority === 'HIGH' || t.priority === 'CRITICAL'));
+  const overdue = [...tasks.value]
+    .filter(isOverdue)
+    .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
+  const approaching = tasks.value.filter(
+    (t) => t.status !== 'COMPLETED' && t.deadline && !isOverdue(t) && daysUntil(t.deadline) <= 3,
+  );
+  const criticalIncomplete = tasks.value.filter(
+    (t) => t.status !== 'COMPLETED' && (t.priority === 'HIGH' || t.priority === 'CRITICAL'),
+  );
   for (const group of [overdue, approaching, criticalIncomplete]) {
     for (const t of group) {
       if (!seen.has(t.task_id)) {
@@ -338,11 +420,24 @@ const attentionTasks = computed(() => {
 });
 
 const projectSummary = computed(() => {
-  interface Acc { project: string; tasks: number; progressSum: number; deadlines: string[]; hasDelayed: boolean }
+  interface Acc {
+    project: string;
+    tasks: number;
+    progressSum: number;
+    deadlines: string[];
+    hasDelayed: boolean;
+  }
   const map = new Map<string, Acc>();
   for (const t of tasks.value) {
     const pName = t.project_name || `Project #${t.project_id}`;
-    if (!map.has(pName)) map.set(pName, { project: pName, tasks: 0, progressSum: 0, deadlines: [], hasDelayed: false });
+    if (!map.has(pName))
+      map.set(pName, {
+        project: pName,
+        tasks: 0,
+        progressSum: 0,
+        deadlines: [],
+        hasDelayed: false,
+      });
     const item = map.get(pName)!;
     item.tasks += 1;
     item.progressSum += Number(t.progress) || 0;
@@ -360,15 +455,11 @@ const projectSummary = computed(() => {
 
 const ganttTasks = computed(() =>
   tasks.value.map((task) => {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = new Date().toISOString().slice(0, 10);
 
-    const start = task.start_date
-      ? task.start_date.split('T')[0] ?? today
-      : today
+    const start = task.start_date ? (task.start_date.split('T')[0] ?? today) : today;
 
-    const end = task.deadline
-      ? task.deadline.split('T')[0] ?? start
-      : start
+    const end = task.deadline ? (task.deadline.split('T')[0] ?? start) : start;
 
     return {
       id: task.task_id,
@@ -376,16 +467,13 @@ const ganttTasks = computed(() =>
       project: task.project_name || `Project #${task.project_id}`,
       start,
       end,
-      progress: Math.min(
-        100,
-        Math.max(0, Number(task.progress) || 0)
-      ),
+      progress: Math.min(100, Math.max(0, Number(task.progress) || 0)),
       status: task.status,
       priority: normalizePriority(task.priority),
-      overdue: isOverdue(task)
-    }
-  })
-)
+      overdue: isOverdue(task),
+    };
+  }),
+);
 
 function goToTasks() {
   void router.push('/app/resource-dashboard/tasks');

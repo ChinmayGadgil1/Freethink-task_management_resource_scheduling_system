@@ -631,9 +631,11 @@ import {
   type ProjectPriority,
   type ProjectStatus,
 } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
 const router = useRouter();
+const authStore = useAuthStore();
 
 function goToProject(projectId: number) {
   void router.push(`/pm/projects/${projectId}`);
@@ -713,15 +715,7 @@ const healthFilterOptions = [
 ];
 
 const currentPmName = computed(() => {
-  try {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      if (parsed?.name) return parsed.name;
-    }
-  } catch { // Fall back to the default project manager label.
-    }
-  return 'Project Manager';
+  return authStore.user?.name || 'Project Manager';
 });
 
 const projectColumns: QTableColumn<Project>[] = [
@@ -896,9 +890,9 @@ async function loadProjects() {
 }
 
 async function handleCreateProject() {
-  const storedUser = localStorage.getItem('user');
+  const userId = authStore.user?.user_id;
 
-  if (!storedUser) {
+  if (!userId) {
     $q.notify({
       type: 'negative',
       message: 'Please sign in again',
@@ -906,15 +900,11 @@ async function handleCreateProject() {
     return;
   }
 
-  const user = JSON.parse(storedUser) as {
-    user_id: number;
-  };
-
   creating.value = true;
 
   try {
     const payload: CreateProjectPayload = {
-      project_manager_id: user.user_id,
+      project_manager_id: userId,
       name: form.name.trim(),
       status: form.status,
       priority: form.priority,

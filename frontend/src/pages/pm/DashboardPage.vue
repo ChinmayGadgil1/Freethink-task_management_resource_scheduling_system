@@ -157,13 +157,11 @@
             <div class="project-track">
               <div
                 class="timeline-grid-lines"
-                :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))` }"
+                :style="{
+                  gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))`,
+                }"
               >
-                <div
-                  v-for="day in timelineDays"
-                  :key="`${row.id}-${day.key}`"
-                  class="grid-line"
-                />
+                <div v-for="day in timelineDays" :key="`${row.id}-${day.key}`" class="grid-line" />
               </div>
 
               <div
@@ -171,10 +169,7 @@
                 :class="`status-${row.status.toLowerCase()}`"
                 :style="{ left: `${row.left}%`, width: `${row.width}%` }"
               >
-                <div
-                  class="timeline-progress"
-                  :style="{ width: `${row.progress}%` }"
-                />
+                <div class="timeline-progress" :style="{ width: `${row.progress}%` }" />
                 <span class="timeline-bar-content">
                   {{ row.statusLabel }} · {{ row.progress }}%
                 </span>
@@ -617,7 +612,6 @@ import {
   createTaskApi,
   getProjectsApi,
   getTasksApi,
-  
   getResourcesApi,
   updateTaskApi,
   assignProjectMemberApi,
@@ -629,9 +623,11 @@ import {
   type Task,
   type ResourceUser,
 } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
 const router = useRouter();
+const authStore = useAuthStore();
 
 const projects = ref<Project[]>([]);
 const tasks = ref<Task[]>([]);
@@ -830,9 +826,9 @@ function openGenerateReportDialog() {
 }
 
 async function handleCreateProject() {
-  const storedUser = localStorage.getItem('user');
+  const userId = authStore.user?.user_id;
 
-  if (!storedUser) {
+  if (!userId) {
     $q.notify({
       type: 'negative',
       message: 'Please sign in again',
@@ -840,15 +836,11 @@ async function handleCreateProject() {
     return;
   }
 
-  const user = JSON.parse(storedUser) as {
-    user_id: number;
-  };
-
   projectSubmitting.value = true;
 
   try {
     const payload: CreateProjectPayload = {
-      project_manager_id: user.user_id,
+      project_manager_id: userId,
       name: newProjectForm.name.trim(),
       priority: newProjectForm.priority,
       status: newProjectForm.status,
@@ -895,8 +887,9 @@ async function handleCreateTask() {
     if (newTaskForm.assigned_resource_id) {
       try {
         await assignProjectMemberApi(newTaskForm.project_id, newTaskForm.assigned_resource_id);
-      } catch { // Project membership assignment is optional here. 
-        }
+      } catch {
+        // Project membership assignment is optional here.
+      }
     }
 
     const payload: CreateTaskPayload = {
@@ -908,7 +901,9 @@ async function handleCreateTask() {
       expected_effort: Number(newTaskForm.expected_effort) || 4,
       start_date: newTaskForm.start_date || null,
       deadline: newTaskForm.deadline || null,
-      assigned_resource_ids: newTaskForm.assigned_resource_id ? [newTaskForm.assigned_resource_id] : [],
+      assigned_resource_ids: newTaskForm.assigned_resource_id
+        ? [newTaskForm.assigned_resource_id]
+        : [],
     };
 
     const created = await createTaskApi(payload);
@@ -1055,7 +1050,6 @@ async function loadTasks() {
   }
 }
 
-
 async function loadResources() {
   try {
     resources.value = await getResourcesApi();
@@ -1176,7 +1170,14 @@ const timelineRows = computed(() => {
         start,
         end: safeEnd,
         progress,
-        status: (project.status === 'ACTIVE' ? 'IN_PROGRESS' : project.status === 'PUBLISHED' ? 'PENDING' : project.status === 'COMPLETED' ? 'COMPLETED' : 'ON_HOLD'),
+        status:
+          project.status === 'ACTIVE'
+            ? 'IN_PROGRESS'
+            : project.status === 'PUBLISHED'
+              ? 'PENDING'
+              : project.status === 'COMPLETED'
+                ? 'COMPLETED'
+                : 'ON_HOLD',
         statusLabel: project.status.replaceAll('_', ' '),
         startLabel: formatTimelineDate(start),
         endLabel: formatTimelineDate(safeEnd),
@@ -1203,9 +1204,7 @@ const timelineRows = computed(() => {
 
 const timelineStart = computed(() => {
   if (!timelineRows.value.length) return startOfDay(new Date());
-  const earliest = new Date(
-    Math.min(...timelineRows.value.map((row) => row.start.getTime())),
-  );
+  const earliest = new Date(Math.min(...timelineRows.value.map((row) => row.start.getTime())));
   earliest.setDate(earliest.getDate() - 1);
   return startOfDay(earliest);
 });
@@ -1216,9 +1215,7 @@ const timelineEnd = computed(() => {
     fallback.setDate(fallback.getDate() + 14);
     return fallback;
   }
-  const latest = new Date(
-    Math.max(...timelineRows.value.map((row) => row.end.getTime())),
-  );
+  const latest = new Date(Math.max(...timelineRows.value.map((row) => row.end.getTime())));
   latest.setDate(latest.getDate() + 1);
   return startOfDay(latest);
 });
@@ -1286,7 +1283,6 @@ onMounted(() => {
   void loadProjects();
   void loadTasks();
   void loadResources();
-  
 });
 </script>
 

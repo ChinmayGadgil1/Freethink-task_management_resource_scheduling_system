@@ -66,9 +66,7 @@
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-medium text-grey-7">Total Effort Allocated</div>
-              <div class="text-h5 text-weight-bold q-my-xs">
-                {{ totalEffortHours }}h
-              </div>
+              <div class="text-h5 text-weight-bold q-my-xs">{{ totalEffortHours }}h</div>
               <div class="text-caption text-primary">Expected effort hours</div>
             </div>
             <q-avatar color="blue-1" text-color="blue" icon="schedule" size="44px" />
@@ -248,8 +246,13 @@
 
                   <!-- PROJECTS WORKING ON -->
                   <div class="q-mt-sm">
-                    <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">Projects Working On:</div>
-                    <div v-if="res.projectNames && res.projectNames.length > 0" class="row q-gutter-xs wrap">
+                    <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">
+                      Projects Working On:
+                    </div>
+                    <div
+                      v-if="res.projectNames && res.projectNames.length > 0"
+                      class="row q-gutter-xs wrap"
+                    >
                       <q-chip
                         v-for="pName in res.projectNames"
                         :key="pName"
@@ -263,7 +266,9 @@
                         {{ pName }}
                       </q-chip>
                     </div>
-                    <div v-else class="text-caption text-grey-5 italic">No active project assignments</div>
+                    <div v-else class="text-caption text-grey-5 italic">
+                      No active project assignments
+                    </div>
                   </div>
                 </q-card-section>
 
@@ -400,9 +405,7 @@
         <!-- TAB 2: TASKS ASSIGNED BY PM -->
         <q-tab-panel name="tasks" class="q-pa-md">
           <div class="row items-center justify-between q-mb-md">
-            <div class="text-h6 text-weight-bold">
-              Tasks Assigned across Managed Projects
-            </div>
+            <div class="text-h6 text-weight-bold">Tasks Assigned across Managed Projects</div>
             <q-chip dense color="deep-purple-1" text-color="primary" class="text-weight-bold">
               {{ taskList.length }} Total Tasks
             </q-chip>
@@ -685,7 +688,12 @@ const tableColumns: QTableColumn<ResourceAggregate>[] = [
 
 const pmTaskColumns: QTableColumn<Task>[] = [
   { name: 'title', label: 'Task Title', field: (t) => t.title, align: 'left' },
-  { name: 'project', label: 'Project Name', field: (t) => getProjectName(t.project_id), align: 'left' },
+  {
+    name: 'project',
+    label: 'Project Name',
+    field: (t) => getProjectName(t.project_id),
+    align: 'left',
+  },
   { name: 'priority', label: 'Priority', field: (t) => t.priority, align: 'center' },
   { name: 'status', label: 'Status', field: (t) => t.status, align: 'center' },
   { name: 'resources', label: 'Assigned Resources', field: () => '', align: 'left' },

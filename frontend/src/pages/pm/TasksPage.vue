@@ -568,13 +568,7 @@
                 />
               </div>
               <div class="col-6">
-                <q-input
-                  v-model="editForm.deadline"
-                  outlined
-                  dense
-                  type="date"
-                  label="Deadline"
-                />
+                <q-input v-model="editForm.deadline" outlined dense type="date" label="Deadline" />
               </div>
             </div>
           </q-card-section>
@@ -895,13 +889,12 @@ async function handleAddDependency() {
 
   submittingDependency.value = true;
   try {
-    await addTaskDependencyApi(
-      selectedDependencyTaskId.value,
-      selectedPredecessorTaskId.value,
-    );
+    await addTaskDependencyApi(selectedDependencyTaskId.value, selectedPredecessorTaskId.value);
 
     const successor = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
-    const predecessor = tasks.value.find((task) => task.task_id === selectedPredecessorTaskId.value);
+    const predecessor = tasks.value.find(
+      (task) => task.task_id === selectedPredecessorTaskId.value,
+    );
 
     $q.notify({
       type: 'positive',

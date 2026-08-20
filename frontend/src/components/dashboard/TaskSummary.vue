@@ -63,9 +63,7 @@ const columns = computed(() => {
     taskId: t.task_id,
   });
 
-  const highPriority = rawTasks.filter(
-    (t) => t.priority === 'HIGH' || t.priority === 'CRITICAL',
-  );
+  const highPriority = rawTasks.filter((t) => t.priority === 'HIGH' || t.priority === 'CRITICAL');
   const inProgress = rawTasks.filter((t) => t.status === 'IN_PROGRESS');
   const dueTasks = rawTasks.filter((t) => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
   const completed = rawTasks.filter((t) => t.status === 'COMPLETED');

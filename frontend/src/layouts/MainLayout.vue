@@ -247,7 +247,9 @@
                     <q-item-label class="text-caption text-weight-medium"
                       >New Task Assigned</q-item-label
                     >
-                    <q-item-label caption>Payment integration assigned to Team Resource</q-item-label>
+                    <q-item-label caption
+                      >Payment integration assigned to Team Resource</q-item-label
+                    >
                   </q-item-section>
                 </q-item>
                 <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
@@ -325,10 +327,20 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { getProjectsApi, getTasksApi, getResourcesApi, type Project, type Task } from '@/services/api';
+import {
+  getProjectsApi,
+  getTasksApi,
+  getResourcesApi,
+  type Project,
+  type Task,
+} from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
 
 const $q = useQuasar();
 const router = useRouter();
+const authStore = useAuthStore();
+const themeStore = useThemeStore();
 
 const searchQuery = ref('');
 const searchRef = ref<{ focus: () => void } | null>(null);
@@ -383,11 +395,9 @@ const filteredResults = computed(() => {
       (t.description && t.description.toLowerCase().includes(q)),
   );
 
- 
   const matchedResources = resources.value.filter(
     (r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q),
   );
-  
 
   const matchedLinks = quickLinks.filter((l) => l.title.toLowerCase().includes(q));
 
@@ -419,38 +429,15 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-interface User {
-  user_id: number;
-  name: string;
-  email: string;
-  role: string;
-}
-
-const user = ref<User | null>(null);
+const user = computed(() => authStore.user);
 
 function toggleDarkMode() {
-  $q.dark.toggle();
-  localStorage.setItem('taskflow_theme', $q.dark.isActive ? 'dark' : 'light');
+  themeStore.toggleDarkMode();
 }
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
-
-  const savedTheme = localStorage.getItem('taskflow_theme');
-  if (savedTheme) {
-    $q.dark.set(savedTheme === 'dark');
-  }
-
-  const storedUser = localStorage.getItem('user');
-
-  if (storedUser) {
-    try {
-      user.value = JSON.parse(storedUser);
-    } catch (error) {
-      console.error('Failed to parse stored user:', error);
-    }
-  }
-
+  themeStore.initTheme();
   void loadSearchData();
 });
 
@@ -459,7 +446,9 @@ onUnmounted(() => {
 });
 
 function handleLogout() {
+  authStore.clearAuth();
   localStorage.removeItem('user');
+  sessionStorage.removeItem('flashMessage');
 
   $q.notify({
     type: 'info',

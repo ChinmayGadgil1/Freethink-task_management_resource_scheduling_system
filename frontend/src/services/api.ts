@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/stores/auth';
+
 const API_BASE_URL = 'http://localhost:3000/api';
 const AUTH_BASE_URL = `${API_BASE_URL}/auth`;
 
@@ -69,19 +71,38 @@ export interface CreateWorkLogPayload {
 }
 
 function getStoredToken(): string | null {
-  const storedUser = localStorage.getItem('user');
-
-  if (!storedUser) {
-    return null;
-  }
-
   try {
-    const user = JSON.parse(storedUser);
-
-    return typeof user.token === 'string' ? user.token : null;
+    const authStore = useAuthStore();
+    if (authStore.token) {
+      return authStore.token;
+    }
   } catch {
-    return null;
+    // Pinia instance not active in current execution context
   }
+
+  const storedAuth = sessionStorage.getItem('auth');
+  if (storedAuth) {
+    try {
+      const parsed = JSON.parse(storedAuth);
+      if (parsed && typeof parsed.token === 'string') {
+        return parsed.token;
+      }
+    } catch {
+      // Ignore JSON parse error
+    }
+  }
+
+  const storedUser = localStorage.getItem('user');
+  if (storedUser) {
+    try {
+      const user = JSON.parse(storedUser);
+      return typeof user.token === 'string' ? user.token : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
@@ -409,9 +430,10 @@ export interface ResourceUser {
 }
 
 export async function getResourcesApi(projectId?: number): Promise<ResourceUser[]> {
-  const url = projectId !== undefined
-    ? `${API_BASE_URL}/resources?project_id=${projectId}`
-    : `${API_BASE_URL}/resources`;
+  const url =
+    projectId !== undefined
+      ? `${API_BASE_URL}/resources?project_id=${projectId}`
+      : `${API_BASE_URL}/resources`;
 
   const response = await authenticatedFetch(url);
 
@@ -421,7 +443,7 @@ export async function getResourcesApi(projectId?: number): Promise<ResourceUser[
     throw new Error(data.message || 'Failed to fetch resources');
   }
 
-  return Array.isArray(data) ? data : data.resources ?? [];
+  return Array.isArray(data) ? data : (data.resources ?? []);
 }
 
 export async function getResourceByIdApi(resourceId: number): Promise<ResourceUser> {
@@ -445,20 +467,17 @@ export async function getResourceProjectsApi(resourceId: number): Promise<Projec
     throw new Error(data.message || 'Failed to fetch resource projects');
   }
 
-  return Array.isArray(data) ? data : data.projects ?? [];
+  return Array.isArray(data) ? data : (data.projects ?? []);
 }
 
 export async function createWorkLogApi(
   taskId: number,
   payload: CreateWorkLogPayload,
 ): Promise<WorkLog> {
-  const response = await authenticatedFetch(
-    `${API_BASE_URL}/tasks/${taskId}/work-logs`,
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-  );
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/work-logs`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
   const data = await response.json();
 
@@ -470,9 +489,7 @@ export async function createWorkLogApi(
 }
 
 export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
-  const response = await authenticatedFetch(
-    `${API_BASE_URL}/tasks/${taskId}/work-logs`,
-  );
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/work-logs`);
 
   const data = await response.json();
 

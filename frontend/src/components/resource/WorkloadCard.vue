@@ -11,7 +11,13 @@
         <span class="text-caption text-grey-7">Effort consumed</span>
         <span class="text-caption text-weight-medium">{{ consumedPct }}%</span>
       </div>
-      <q-linear-progress :value="consumedPct / 100" size="10px" rounded color="primary" track-color="grey-3" />
+      <q-linear-progress
+        :value="consumedPct / 100"
+        size="10px"
+        rounded
+        color="primary"
+        track-color="grey-3"
+      />
 
       <div class="stat-grid q-mt-lg">
         <div class="stat-cell">
@@ -42,7 +48,9 @@ const props = defineProps<{
 }>();
 
 const consumedPct = computed(() =>
-  props.allocatedHours ? Math.min(100, Math.round((props.actualHours / props.allocatedHours) * 100)) : 0,
+  props.allocatedHours
+    ? Math.min(100, Math.round((props.actualHours / props.allocatedHours) * 100))
+    : 0,
 );
 </script>
 

@@ -118,9 +118,11 @@ import { reactive, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { signinApi } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
 const router = useRouter();
+const authStore = useAuthStore();
 
 const form = reactive({
   email: '',
@@ -141,7 +143,9 @@ const handleLogin = async () => {
     console.log('Sign in response:', data);
 
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
+      const token = data.user.token || data.token || '';
+      authStore.setAuth(token, data.user);
+      localStorage.removeItem('user');
     }
 
     const messageText = data.user?.name

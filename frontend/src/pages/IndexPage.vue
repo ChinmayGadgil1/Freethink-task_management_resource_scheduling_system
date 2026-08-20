@@ -15,23 +15,19 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 onMounted(() => {
-  const storedUser = localStorage.getItem('user');
-  if (storedUser) {
-    try {
-      const user = JSON.parse(storedUser);
-      if (user.role === 'PROJECT_MANAGER') {
-        void router.replace('/app/pm-dashboard');
-        return;
-      } else if (user.role === 'RESOURCE') {
-        void router.replace('/app/resource-dashboard');
-        return;
-      }
-    } catch (e) {
-      console.error('Error parsing user:', e);
+  if (authStore.user) {
+    if (authStore.user.role === 'PROJECT_MANAGER') {
+      void router.replace('/app/pm-dashboard');
+      return;
+    } else if (authStore.user.role === 'RESOURCE') {
+      void router.replace('/app/resource-dashboard');
+      return;
     }
   }
   void router.replace('/');

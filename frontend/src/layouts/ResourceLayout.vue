@@ -121,39 +121,25 @@
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
 
 const $q = useQuasar();
 const router = useRouter();
+const authStore = useAuthStore();
+const themeStore = useThemeStore();
 const searchQuery = ref('');
 const notificationCount = 0;
 
 function toggleDarkMode() {
-  $q.dark.toggle();
-  localStorage.setItem('taskflow_theme', $q.dark.isActive ? 'dark' : 'light');
+  themeStore.toggleDarkMode();
 }
 
 onMounted(() => {
-  const savedTheme = localStorage.getItem('taskflow_theme');
-  if (savedTheme) {
-    $q.dark.set(savedTheme === 'dark');
-  }
+  themeStore.initTheme();
 });
 
-interface StoredUser {
-  name?: string;
-  email?: string;
-  role?: string;
-}
-
-const storedUser = localStorage.getItem('user');
-const user = computed<StoredUser | null>(() => {
-  if (!storedUser) return null;
-  try {
-    return JSON.parse(storedUser) as StoredUser;
-  } catch {
-    return null;
-  }
-});
+const user = computed(() => authStore.user);
 
 const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCase());
 
@@ -168,6 +154,7 @@ const navLinks = [
 ];
 
 function logout() {
+  authStore.clearAuth();
   localStorage.removeItem('user');
   sessionStorage.removeItem('flashMessage');
   void router.push('/');

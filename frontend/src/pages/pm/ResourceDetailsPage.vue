@@ -115,9 +115,7 @@
           <!-- TAB 1: ASSIGNED TASKS -->
           <q-tab-panel name="tasks" class="q-pa-md">
             <div class="row items-center justify-between q-mb-md">
-              <div class="text-h6 text-weight-bold">
-                Tasks Assigned to {{ resourceName }}
-              </div>
+              <div class="text-h6 text-weight-bold">Tasks Assigned to {{ resourceName }}</div>
               <q-chip dense color="deep-purple-1" text-color="primary">
                 {{ resourceTasks.length }} Total Tasks
               </q-chip>
@@ -225,9 +223,7 @@
 
           <!-- TAB 3: WORKLOAD -->
           <q-tab-panel name="workload" class="q-pa-md">
-            <div class="text-h6 text-weight-bold q-mb-md">
-              Weekly Capacity Breakdown
-            </div>
+            <div class="text-h6 text-weight-bold q-mb-md">Weekly Capacity Breakdown</div>
 
             <div class="row q-col-gutter-md">
               <div class="col-12 col-md-6">
@@ -271,9 +267,7 @@
               <div class="col-12 col-md-6">
                 <q-card flat bordered class="bg-grey-2">
                   <q-card-section class="q-gutter-xs">
-                    <div class="text-subtitle2 text-weight-bold">
-                      Task Distribution Summary
-                    </div>
+                    <div class="text-subtitle2 text-weight-bold">Task Distribution Summary</div>
                     <div class="text-caption text-grey-7">
                       Completed: {{ completedTasksCount }} / {{ resourceTasks.length }} tasks
                     </div>
@@ -393,9 +387,7 @@ const loading = ref(true);
 const activeTab = ref('tasks');
 const resourceInfo = ref<ResourceUser | null>(null);
 
-const resourceName = computed(
-  () => resourceInfo.value?.name || 'Team Resource',
-);
+const resourceName = computed(() => resourceInfo.value?.name || 'Team Resource');
 
 function getInitials(name: string): string {
   return name
