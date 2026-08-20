@@ -658,7 +658,23 @@
         <!-- Assignee Column -->
         <template #body-cell-assignee="props">
           <q-td :props="props">
-            <div class="assignee-cell">
+            <div v-if="getAssigneeMembers(props.row).length" class="row items-center q-gutter-xs">
+              <q-chip
+                v-for="member in getAssigneeMembers(props.row)"
+                :key="member.id"
+                dense
+                square
+                color="purple-1"
+                text-color="deep-purple-9"
+                class="q-ma-none q-mr-xs"
+              >
+                <q-avatar size="18px" color="primary" text-color="white">
+                  {{ member.name.charAt(0).toUpperCase() }}
+                </q-avatar>
+                <span class="q-ml-xs text-weight-medium" style="font-size: 11px">{{ member.name }}</span>
+              </q-chip>
+            </div>
+            <div v-else class="assignee-cell">
               <q-avatar size="24px" class="assignee-avatar">
                 {{ getAssigneeName(props.row).charAt(0) }}
               </q-avatar>
@@ -932,15 +948,29 @@
                 :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
               />
               <q-select
-                v-model="newTaskForm.assigned_resource"
+                v-model="newTaskForm.assigned_resources"
                 outlined
                 dense
-                label="Assign Resource"
+                multiple
+                clearable
+                :display-value="newTaskForm.assigned_resources.length ? `${newTaskForm.assigned_resources.length} selected` : ''"
+                label="Assign Member(s)"
                 :options="createTaskAssigneeOptions"
                 emit-value
                 map-options
                 class="form-col"
-              />
+              >
+                <template #option="{ itemProps, opt, selected, toggleOption }">
+                  <q-item v-bind="itemProps">
+                    <q-item-section side>
+                      <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ opt.label }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
             </div>
           </q-card-section>
 
@@ -975,16 +1005,46 @@
             <q-input :model-value="dependencyTaskLabel" outlined dense readonly label="Task" />
 
             <q-select
-              v-model="selectedPredecessorTaskId"
+              v-model="selectedPredecessorTaskIds"
               outlined
               dense
-              label="Depends On"
-              hint="The selected task will wait for this predecessor."
+              multiple
+              clearable
+              :display-value="selectedPredecessorTaskIds.length ? `${selectedPredecessorTaskIds.length} selected` : ''"
+              label="Depends On Predecessor(s)"
+              hint="The selected task will wait for these predecessor(s)."
               :options="dependencyPredecessorOptions"
               emit-value
               map-options
-              :rules="[(value) => !!value || 'Predecessor task is required']"
-            />
+              :rules="[(val) => (val && val.length > 0) || 'At least one predecessor task is required']"
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps" :disable="opt.alreadyDependent">
+                  <q-item-section side>
+                    <q-checkbox
+                      :model-value="selected || opt.alreadyDependent"
+                      :disable="opt.alreadyDependent"
+                      color="primary"
+                      @update:model-value="toggleOption(opt)"
+                    />
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="account_tree" color="primary" size="18px" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label :class="{ 'text-grey-6': opt.alreadyDependent, 'text-weight-medium': !opt.alreadyDependent }">
+                      {{ opt.label }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="opt.alreadyDependent" side>
+                    <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 10px">
+                      <q-icon name="check" size="13px" class="q-mr-xs" color="positive" />
+                      Already Dependent
+                    </q-chip>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
           </q-card-section>
 
           <q-card-actions align="right" class="modal-actions">
@@ -996,7 +1056,7 @@
               label="Add Dependency"
               color="primary"
               :loading="dependencySubmitting"
-              :disable="!selectedDependencyTaskId || !selectedPredecessorTaskId"
+              :disable="!selectedDependencyTaskId || !selectedPredecessorTaskIds?.length"
             />
           </q-card-actions>
         </q-form>
@@ -1249,7 +1309,7 @@ const addingMember = ref(false);
 
 const showDependencyDialog = ref(false);
 const selectedDependencyTaskId = ref<number | null>(null);
-const selectedPredecessorTaskId = ref<number | null>(null);
+const selectedPredecessorTaskIds = ref<number[]>([]);
 const dependencySubmitting = ref(false);
 
 const availableResourcesToAdd = computed(() => {
@@ -1274,14 +1334,25 @@ const dependencyTaskLabel = computed(() => {
   return task ? `${task.title} (#${task.task_id})` : '';
 });
 
-const dependencyPredecessorOptions = computed(() =>
-  tasks.value
+const existingTaskDependencies = reactive<Record<number, number[]>>({});
+
+const dependencyPredecessorOptions = computed(() => {
+  const currentTaskDeps = selectedDependencyTaskId.value
+    ? existingTaskDependencies[selectedDependencyTaskId.value] || []
+    : [];
+
+  return tasks.value
     .filter((task) => task.task_id !== selectedDependencyTaskId.value)
-    .map((task) => ({
-      label: `${task.title} (#${task.task_id})`,
-      value: task.task_id,
-    })),
-);
+    .map((task) => {
+      const isDep = currentTaskDeps.includes(task.task_id);
+      return {
+        label: `${task.title} (#${task.task_id})`,
+        value: task.task_id,
+        alreadyDependent: isDep,
+        disable: isDep,
+      };
+    });
+});
 
 const currentPmName = computed(() => {
   return authStore.user?.name || 'Project Manager';
@@ -1349,7 +1420,7 @@ const newTaskForm = reactive<{
   start_date: string;
   deadline: string;
   expected_effort: number;
-  assigned_resource: number | null;
+  assigned_resources: number[];
 }>({
   title: '',
   description: '',
@@ -1358,7 +1429,7 @@ const newTaskForm = reactive<{
   start_date: new Date().toISOString().split('T')[0] ?? '',
   deadline: '',
   expected_effort: 6,
-  assigned_resource: null,
+  assigned_resources: [],
 });
 
 const editProjectForm = reactive<{
@@ -1661,11 +1732,24 @@ function getPriorityIcon(priority: string) {
   }
 }
 
+function getAssigneeMembers(task: Task): { id: number; name: string }[] {
+  if (task.assigned_resource_ids && task.assigned_resource_ids.length > 0) {
+    return task.assigned_resource_ids
+      .map((id) => {
+        const m = teamMembers.value.find((tm) => tm.id === id);
+        return m ? { id: m.id, name: m.name } : null;
+      })
+      .filter((m): m is { id: number; name: string } => m !== null);
+  }
+  return [];
+}
+
 function getAssigneeName(task: Task): string {
   if (task.assigned_resource_ids && task.assigned_resource_ids.length > 0) {
-    const id = task.assigned_resource_ids[0];
-    const member = teamMembers.value.find((m) => m.id === id);
-    if (member) return member.name;
+    const names = task.assigned_resource_ids
+      .map((id) => teamMembers.value.find((m) => m.id === id)?.name)
+      .filter(Boolean);
+    if (names.length > 0) return names.join(', ');
   }
   return currentPmName.value;
 }
@@ -1897,30 +1981,48 @@ async function refreshData() {
 
 function openDependencyDialog(task: Task) {
   selectedDependencyTaskId.value = task.task_id;
-  selectedPredecessorTaskId.value = null;
+  selectedPredecessorTaskIds.value = [];
   showDependencyDialog.value = true;
 }
 
 async function handleAddDependency() {
-  if (!selectedDependencyTaskId.value || !selectedPredecessorTaskId.value) return;
+  if (!selectedDependencyTaskId.value || !selectedPredecessorTaskIds.value?.length) return;
+
+  const taskId = selectedDependencyTaskId.value;
+  const currentDeps = existingTaskDependencies[taskId] || [];
+  const toAdd = selectedPredecessorTaskIds.value.filter((id) => !currentDeps.includes(id));
+
+  if (toAdd.length === 0) {
+    $q.notify({
+      type: 'info',
+      message: 'Selected predecessor(s) are already dependencies of this task',
+    });
+    showDependencyDialog.value = false;
+    selectedPredecessorTaskIds.value = [];
+    return;
+  }
 
   dependencySubmitting.value = true;
   try {
-    await addTaskDependencyApi(selectedDependencyTaskId.value, selectedPredecessorTaskId.value);
+    for (const predId of toAdd) {
+      await addTaskDependencyApi(taskId, predId);
+    }
 
-    const successor = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
-    const predecessor = tasks.value.find(
-      (task) => task.task_id === selectedPredecessorTaskId.value,
-    );
+    if (!existingTaskDependencies[taskId]) {
+      existingTaskDependencies[taskId] = [];
+    }
+    existingTaskDependencies[taskId].push(...toAdd);
+
+    const successor = tasks.value.find((task) => task.task_id === taskId);
 
     $q.notify({
       type: 'positive',
-      message: `${successor?.title ?? 'Task'} now depends on ${predecessor?.title ?? 'the selected task'}`,
+      message: `Added ${toAdd.length} dependency/dependencies to "${successor?.title ?? 'Task'}"`,
     });
 
     showDependencyDialog.value = false;
     selectedDependencyTaskId.value = null;
-    selectedPredecessorTaskId.value = null;
+    selectedPredecessorTaskIds.value = [];
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
@@ -1943,7 +2045,7 @@ async function handleCreateTask() {
       start_date: newTaskForm.start_date || null,
       deadline: newTaskForm.deadline || null,
       expected_effort: Number(newTaskForm.expected_effort) || 4,
-      assigned_resource_ids: newTaskForm.assigned_resource ? [newTaskForm.assigned_resource] : [],
+      assigned_resource_ids: newTaskForm.assigned_resources || [],
     };
 
     const created = await createTaskApi(payload);
@@ -1972,6 +2074,7 @@ async function handleCreateTask() {
     showCreateTaskDialog.value = false;
     newTaskForm.title = '';
     newTaskForm.description = '';
+    newTaskForm.assigned_resources = [];
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',

@@ -175,10 +175,42 @@
       </q-card>
     </div>
 
-    <!-- PROJECT OVERVIEW -->
+    <!-- PROJECTS PANEL -->
     <div class="projects-section-block section-spacing">
-      <q-card flat bordered class="overview-panel">
-        <q-card-section class="overview-scroll-section">
+      <q-card flat bordered class="table-card">
+        <q-card-section class="table-toolbar">
+          <div class="toolbar-title">Projects Overview & Insights</div>
+          <div class="toolbar-actions">
+            <q-select
+              v-model="groupBy"
+              dense
+              outlined
+              options-dense
+              :options="['None', 'Status', 'Health']"
+              label="Group by"
+              class="toolbar-select"
+            />
+            <q-btn-toggle
+              v-model="viewMode"
+              unelevated
+              dense
+              toggle-color="primary"
+              toggle-text-color="white"
+              color="transparent"
+              text-color="grey-6"
+              class="view-segmented-toggle"
+              :options="[
+                { icon: 'grid_view', value: 'cards' },
+                { icon: 'format_list_bulleted', value: 'table' },
+              ]"
+            />
+          </div>
+        </q-card-section>
+
+        <q-separator />
+
+        <!-- CARDS VIEW -->
+        <div v-if="viewMode === 'cards'" class="q-pa-md">
           <div v-if="loading" class="state-container">
             <q-spinner size="32px" color="deep-purple-5" />
             <span>Loading projects...</span>
@@ -192,99 +224,67 @@
             <div class="empty-copy">Try changing your search or filters.</div>
           </div>
 
-          <q-scroll-area v-else class="project-scroll-area">
-            <div class="project-card-row">
-              <q-card
-                v-for="(project, index) in filteredProjects.slice(0, 5)"
-                :key="project.project_id"
-                flat
-                bordered
-                class="overview-project-card cursor-pointer"
-                @click="goToProject(project.project_id)"
-              >
-                <q-img
-                  :src="getProjectImage(index)"
-                  :alt="project.name"
-                  ratio="2.35"
-                  class="project-image"
-                />
+          <div v-else class="projects-cards-grid">
+            <q-card
+              v-for="(project, index) in filteredProjects"
+              :key="project.project_id"
+              flat
+              bordered
+              class="overview-project-card cursor-pointer project-grid-card"
+              @click="goToProject(project.project_id)"
+            >
+              <q-img
+                :src="getProjectImage(index)"
+                :alt="project.name"
+                ratio="2.2"
+                class="project-image"
+              />
 
-                <q-card-section class="overview-card-body">
-                  <div class="project-title-row">
-                    <div class="project-name" :title="project.name">{{ project.name }}</div>
-                    <q-chip
-                      dense
-                      square
-                      :class="['health-chip', `health-${getProjectHealth(project).toLowerCase()}`]"
-                    >
-                      {{ getHealthLabel(project) }}
-                    </q-chip>
-                  </div>
+              <q-card-section class="overview-card-body">
+                <div class="project-title-row">
+                  <div class="project-name" :title="project.name">{{ project.name }}</div>
+                  <q-chip
+                    dense
+                    square
+                    :class="['health-chip', `health-${getProjectHealth(project).toLowerCase()}`]"
+                  >
+                    {{ getHealthLabel(project) }}
+                  </q-chip>
+                </div>
 
-                  <div class="progress-row">
-                    <q-linear-progress
-                      rounded
-                      size="5px"
-                      :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
-                      color="primary"
-                      track-color="grey-3"
-                      class="overview-progress"
-                    />
-                    <span class="progress-value">{{ Number(project.progress) || 0 }}%</span>
-                  </div>
+                <div class="progress-row">
+                  <q-linear-progress
+                    rounded
+                    size="5px"
+                    :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
+                    color="primary"
+                    track-color="grey-3"
+                    class="overview-progress"
+                  />
+                  <span class="progress-value">{{ Number(project.progress) || 0 }}%</span>
+                </div>
 
-                  <div class="date-row">
-                    <span>{{ formatDate(project.start_date) }}</span>
-                    <span>—</span>
-                    <span>{{ formatDate(project.deadline) }}</span>
-                  </div>
+                <div class="date-row">
+                  <span>{{ formatDate(project.start_date) }}</span>
+                  <span>—</span>
+                  <span>{{ formatDate(project.deadline) }}</span>
+                </div>
 
-                  <div class="team-row">
-                    <q-avatar size="26px" class="team-avatar avatar-purple">
-                      {{ project.name.charAt(0).toUpperCase() }}
-                    </q-avatar>
-                    <q-avatar size="26px" class="team-avatar avatar-dark">P</q-avatar>
-                    <span class="team-count">+1</span>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-          </q-scroll-area>
-        </q-card-section>
-      </q-card>
-    </div>
-
-    <!-- PROJECT INSIGHTS -->
-    <div class="projects-section-block section-spacing">
-      <q-card flat bordered class="table-card">
-        <q-card-section class="table-toolbar">
-          <div class="toolbar-title">Project Insights</div>
-          <div class="toolbar-actions">
-            <q-select
-              v-model="groupBy"
-              dense
-              outlined
-              options-dense
-              :options="['None', 'Status', 'Health']"
-              label="Group by"
-              class="toolbar-select"
-            />
-            <q-select
-              v-model="tableView"
-              dense
-              outlined
-              options-dense
-              :options="['Table']"
-              label="View"
-              class="toolbar-select view-select"
-            />
-            <q-btn flat round icon="view_column" color="grey-7" />
+                <div class="team-row">
+                  <q-avatar size="26px" class="team-avatar avatar-purple">
+                    {{ project.name.charAt(0).toUpperCase() }}
+                  </q-avatar>
+                  <q-avatar size="26px" class="team-avatar avatar-dark">P</q-avatar>
+                  <span class="team-count">+1</span>
+                </div>
+              </q-card-section>
+            </q-card>
           </div>
-        </q-card-section>
+        </div>
 
-        <q-separator />
-
+        <!-- TABLE VIEW -->
         <q-table
+          v-else
           v-model:selected="selectedProjects"
           flat
           :rows="filteredProjects"
@@ -622,7 +622,7 @@ const searchQuery = ref('');
 const statusFilter = ref('ALL');
 const healthFilter = ref('ALL');
 const groupBy = ref('None');
-const tableView = ref('Table');
+const viewMode = ref<'cards' | 'table'>('cards');
 
 const selectedProjects = ref<Project[]>([]);
 
@@ -1108,8 +1108,50 @@ onMounted(() => {
   padding: 0 1px 9px;
 }
 
+.view-segmented-toggle {
+  border-radius: 10px;
+  padding: 3px;
+  background: var(--wo-bg-page, #f0f2f7);
+  border: 1px solid var(--wo-border, #e2e5ec);
+  display: inline-flex;
+}
+
+body.body--dark .view-segmented-toggle {
+  background: #181d28;
+  border-color: #2a3142;
+}
+
+.view-segmented-toggle :deep(.q-btn) {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 7px !important;
+  transition: all 0.2s ease;
+}
+
+.view-segmented-toggle :deep(.q-btn--active) {
+  background: var(--wo-primary, #8b6fd8) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(139, 111, 216, 0.35);
+}
+
+.projects-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.project-grid-card {
+  width: 100%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.project-grid-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
 .overview-project-card {
-  width: 235px;
+  width: 100%;
   border-radius: 10px;
   border-color: var(--wo-border, #e5e7ec);
   overflow: hidden;
@@ -1293,7 +1335,7 @@ onMounted(() => {
 }
 
 .view-select {
-  width: 108px;
+  width: 135px;
 }
 
 .toolbar-select :deep(.q-field__control) {

@@ -73,11 +73,6 @@
             }}</q-tooltip>
           </q-btn>
 
-          <q-btn flat round dense icon="notifications_none" color="grey-7" class="header-icon-btn">
-            <q-badge v-if="notificationCount > 0" floating color="primary" rounded>
-              {{ notificationCount }}
-            </q-badge>
-          </q-btn>
 
           <div v-if="user" class="profile">
             <q-avatar size="34px" class="profile-avatar">
@@ -129,7 +124,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const searchQuery = ref('');
-const notificationCount = 0;
+
 
 function toggleDarkMode() {
   themeStore.toggleDarkMode();

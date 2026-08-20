@@ -211,49 +211,6 @@
             }}</q-tooltip>
           </q-btn>
 
-          <q-btn flat round dense icon="notifications_none" color="grey-7" class="header-icon-btn">
-            <q-badge floating color="primary" rounded class="notification-badge"> 3 </q-badge>
-            <q-menu anchor="bottom end" self="top end">
-              <q-list style="min-width: 260px">
-                <q-item-label header class="text-weight-bold">Notifications</q-item-label>
-                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon name="check_circle" color="positive" size="18px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-caption text-weight-medium"
-                      >Website Redesign UI Phase</q-item-label
-                    >
-                    <q-item-label caption>Milestone completed on track</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon name="assignment_ind" color="primary" size="18px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-caption text-weight-medium"
-                      >New Task Assigned</q-item-label
-                    >
-                    <q-item-label caption
-                      >Payment integration assigned to Team Resource</q-item-label
-                    >
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon name="warning" color="warning" size="18px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-caption text-weight-medium"
-                      >Sprint Review Approaching</q-item-label
-                    >
-                    <q-item-label caption>Due in 3 days</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </q-btn>
 
           <!-- Real authenticated user -->
           <div v-if="user" class="profile">
@@ -595,12 +552,6 @@ function handleLogout() {
   height: 34px;
 }
 
-.notification-badge {
-  background: var(--wo-primary, #8b6fd8) !important;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 5px;
-}
 
 .profile {
   display: flex;

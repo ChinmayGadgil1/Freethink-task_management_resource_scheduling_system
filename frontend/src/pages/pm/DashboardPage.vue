@@ -328,15 +328,28 @@
               :rules="[(val) => !!val || 'Project is required']"
             />
             <q-select
-              v-model="newTaskForm.assigned_resource_id"
+              v-model="newTaskForm.assigned_resource_ids"
               :options="resourceOptions"
-              label="Assign Resource"
+              label="Assign Member(s)"
               outlined
               dense
+              multiple
+              clearable
+              :display-value="newTaskForm.assigned_resource_ids.length ? `${newTaskForm.assigned_resource_ids.length} selected` : ''"
               emit-value
               map-options
-              clearable
-            />
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps">
+                  <q-item-section side>
+                    <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ opt.label }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
             <q-input
               v-model="newTaskForm.title"
               label="Task Title *"
@@ -668,7 +681,7 @@ const newProjectForm = reactive<{
 
 const newTaskForm = reactive<{
   project_id: number | null;
-  assigned_resource_id: number | null;
+  assigned_resource_ids: number[];
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -678,7 +691,7 @@ const newTaskForm = reactive<{
   deadline: string;
 }>({
   project_id: null,
-  assigned_resource_id: null,
+  assigned_resource_ids: [],
   title: '',
   description: '',
   priority: 'MEDIUM',
@@ -785,6 +798,7 @@ function openNewProjectDialog() {
 
 function openAddTaskDialog() {
   newTaskForm.project_id = projects.value.length > 0 ? projects.value[0]!.project_id : null;
+  newTaskForm.assigned_resource_ids = [];
   newTaskForm.title = '';
   newTaskForm.description = '';
   newTaskForm.priority = 'MEDIUM';
@@ -884,11 +898,13 @@ async function handleCreateTask() {
   taskSubmitting.value = true;
 
   try {
-    if (newTaskForm.assigned_resource_id) {
-      try {
-        await assignProjectMemberApi(newTaskForm.project_id, newTaskForm.assigned_resource_id);
-      } catch {
-        // Project membership assignment is optional here.
+    if (newTaskForm.assigned_resource_ids?.length) {
+      for (const resId of newTaskForm.assigned_resource_ids) {
+        try {
+          await assignProjectMemberApi(newTaskForm.project_id, resId);
+        } catch {
+          // Project membership assignment is optional here.
+        }
       }
     }
 
@@ -901,9 +917,7 @@ async function handleCreateTask() {
       expected_effort: Number(newTaskForm.expected_effort) || 4,
       start_date: newTaskForm.start_date || null,
       deadline: newTaskForm.deadline || null,
-      assigned_resource_ids: newTaskForm.assigned_resource_id
-        ? [newTaskForm.assigned_resource_id]
-        : [],
+      assigned_resource_ids: newTaskForm.assigned_resource_ids || [],
     };
 
     const created = await createTaskApi(payload);
