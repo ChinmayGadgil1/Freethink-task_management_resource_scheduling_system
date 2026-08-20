@@ -33,6 +33,7 @@ export interface Task {
   task_id: number;
   project_id: number;
   project_name?: string; //for displaying project name in task list
+  created_by: number; //added to track who created the task
   title: string;
   description: string | null;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';

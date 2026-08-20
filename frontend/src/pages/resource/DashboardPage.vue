@@ -145,14 +145,66 @@
         description="Tasks you created yourself, versus tasks assigned to you by a project manager."
       >
         <q-card flat bordered>
-          <q-card-section class="row items-center q-gutter-sm">
-            <q-icon name="info" color="grey-6" size="20px" />
-            <div class="text-body2 text-grey-7">
-              Not available yet — the task API doesn't return who created each task
-              (<code>created_by</code>). This section is wired up and will populate automatically
-              once that field is added to the backend response.
+          <q-card-section class="row items-center justify-between">
+            <div>
+              <div class="text-subtitle1 text-weight-bold">Self-assigned tasks</div>
+
+              <div class="text-caption text-grey-6">Tasks you created yourself.</div>
             </div>
+
+            <q-badge color="primary" :label="`${selfAssignedTasks.length} tasks`" />
           </q-card-section>
+
+          <q-separator />
+
+          <!-- No self-assigned tasks -->
+          <div v-if="selfAssignedTasks.length === 0" class="q-pa-lg text-center">
+            <q-icon name="assignment_ind" size="36px" color="grey-5" />
+
+            <div class="text-body2 text-grey-7 q-mt-sm">No self-assigned tasks yet.</div>
+
+            <div class="text-caption text-grey-6 q-mt-xs">
+              Tasks you create yourself will appear here.
+            </div>
+          </div>
+
+          <!-- Self-assigned tasks -->
+          <q-list v-else separator>
+            <q-item v-for="task in selfAssignedTasks" :key="task.task_id">
+              <q-item-section avatar>
+                <q-avatar size="36px" color="primary" text-color="white" icon="assignment_ind" />
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label class="text-weight-medium">
+                  {{ task.title }}
+                </q-item-label>
+
+                <q-item-label caption>
+                  {{ task.project_name || `Project #${task.project_id}` }}
+                </q-item-label>
+              </q-item-section>
+
+              <q-item-section side>
+                <div class="column items-end q-gutter-xs">
+                  <q-badge
+                    :color="
+                      task.status === 'COMPLETED'
+                        ? 'positive'
+                        : task.status === 'IN_PROGRESS'
+                          ? 'primary'
+                          : task.status === 'ON_HOLD'
+                            ? 'warning'
+                            : 'grey-7'
+                    "
+                    :label="task.status.replace('_', ' ')"
+                  />
+
+                  <div class="text-caption text-grey-6">{{ Number(task.progress) || 0 }}%</div>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
         </q-card>
       </WorkspaceSection>
 
@@ -202,7 +254,37 @@ const authStore = useAuthStore();
 const loading = ref(true);
 const error = ref('');
 const tasks = ref<Task[]>([]);
+
 const workloadData = ref<ResourceWorkload | null>(null);
+
+// Logged-in Resource ID
+
+const currentUserId = computed<number | null>(() => {
+  // Prefer the authenticated store (Pinia) when available.
+  if (authStore.user?.user_id) return Number(authStore.user.user_id) || null;
+
+  // Fallback to localStorage for other execution contexts.
+  const stored = localStorage.getItem('user');
+  if (!stored) return null;
+
+  try {
+    const user = JSON.parse(stored);
+    return Number(user.user_id ?? user.id ?? user.userId) || null;
+  } catch {
+    return null;
+  }
+});
+
+// Tasks created by the logged-in Resource
+const selfAssignedTasks = computed(() => {
+  if (currentUserId.value === null) {
+    return [];
+  }
+
+  return tasks.value.filter(
+    (task) => Number(task.created_by) === currentUserId.value,
+  );
+});
 
 const userFirstName = computed(() => {
   return authStore.user?.name?.split(' ')[0] ?? '';
@@ -265,6 +347,9 @@ async function loadDashboardData() {
       getTasksApi(),
       getResourceWorkloadApi().catch(() => null),
     ]);
+    console.log('Fetched resource tasks:', fetchedTasks);
+    console.log('First task:', fetchedTasks[0]);
+    console.log('Current user ID:', currentUserId.value);
     tasks.value = fetchedTasks;
     workloadData.value = fetchedWorkload;
   } catch (err) {
