@@ -525,15 +525,49 @@
             />
 
             <q-select
-              v-model="projectMemberForm.user_id"
+              v-model="projectMemberForm.user_ids"
               outlined
               dense
-              label="Select Resource Member"
-              :options="resourceMemberSelectOptions"
+              multiple
+              clearable
               emit-value
               map-options
-              :rules="[(val) => !!val || 'Resource Member is required']"
-            />
+              :display-value="
+                projectMemberForm.user_ids.length ? `${projectMemberForm.user_ids.length} selected` : ''
+              "
+              label="Select Resource Member(s)"
+              :options="resourceMemberSelectOptions"
+              :rules="[(val) => (val && val.length > 0) || 'At least one Resource Member is required']"
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps" :disable="opt.alreadyMember">
+                  <q-item-section side>
+                    <q-checkbox
+                      :model-value="selected || opt.alreadyMember"
+                      :disable="opt.alreadyMember"
+                      color="primary"
+                      @update:model-value="toggleOption(opt)"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label
+                      :class="{
+                        'text-grey-6': opt.alreadyMember,
+                        'text-weight-medium': !opt.alreadyMember,
+                      }"
+                    >
+                      {{ opt.label }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="opt.alreadyMember" side>
+                    <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 10px">
+                      <q-icon name="check" size="13px" class="q-mr-xs" color="positive" />
+                      Already Member
+                    </q-chip>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -689,7 +723,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
@@ -769,7 +803,7 @@ async function handleExecuteUnassignTask() {
 
 const projectMemberForm = reactive({
   project_id: null as number | null,
-  user_id: null as number | null,
+  user_ids: [] as number[],
 });
 
 const assignForm = reactive<{
@@ -901,12 +935,50 @@ function getResourceName(id: number): string {
   return resourceNamesMap.value[id] || 'Team Resource';
 }
 
-const resourceMemberSelectOptions = computed(() =>
-  resourceList.value.map((r) => ({
-    label: r.name,
-    value: r.user_id,
-  })),
+const projectMemberFormExistingMembers = ref<ResourceUser[]>([]);
+
+watch(
+  () => projectMemberForm.project_id,
+  async (newProjectId) => {
+    if (newProjectId) {
+      projectMemberFormExistingMembers.value = await getResourcesApi(newProjectId).catch(() => []);
+    } else {
+      projectMemberFormExistingMembers.value = [];
+    }
+  },
+  { immediate: true },
 );
+
+watch(
+  () => showProjectMemberDialog.value,
+  async (isOpen) => {
+    if (isOpen) {
+      if (!projectMemberForm.project_id && projectList.value.length > 0) {
+        projectMemberForm.project_id = projectList.value[0]!.project_id;
+      }
+      if (projectMemberForm.project_id) {
+        projectMemberFormExistingMembers.value = await getResourcesApi(projectMemberForm.project_id).catch(() => []);
+      }
+      projectMemberForm.user_ids = [];
+    }
+  },
+);
+
+const resourceMemberSelectOptions = computed(() => {
+  const existingIds = new Set(
+    projectMemberFormExistingMembers.value.map((m) => Number(m.user_id)).filter((id) => !isNaN(id) && id > 0),
+  );
+  return resourceList.value.map((r) => {
+    const rId = Number(r.user_id);
+    const isMember = existingIds.has(rId);
+    return {
+      label: r.name,
+      value: rId,
+      alreadyMember: isMember,
+      disable: isMember,
+    };
+  });
+});
 
 const resourceMap = computed(() => {
   const map = new Map<number, ResourceAggregate>();
@@ -1084,20 +1156,22 @@ function openAssignModal(resourceId: number) {
 }
 
 async function handleAssignProjectMember() {
-  if (!projectMemberForm.project_id || !projectMemberForm.user_id) return;
+  if (!projectMemberForm.project_id || !projectMemberForm.user_ids.length) return;
 
   submittingMember.value = true;
   try {
-    await assignProjectMemberApi(projectMemberForm.project_id, projectMemberForm.user_id);
+    for (const uId of projectMemberForm.user_ids) {
+      await assignProjectMemberApi(projectMemberForm.project_id, uId);
+    }
     $q.notify({
       type: 'positive',
-      message: `${getResourceName(projectMemberForm.user_id)} assigned to project successfully`,
+      message: `${projectMemberForm.user_ids.length} resource(s) assigned to project successfully`,
     });
     showProjectMemberDialog.value = false;
-    projectMemberForm.user_id = null;
+    projectMemberForm.user_ids = [];
     void loadData();
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to assign resource to project';
+    const msg = error instanceof Error ? error.message : 'Failed to assign resource(s) to project';
     $q.notify({
       type: 'negative',
       message: msg,

@@ -449,15 +449,49 @@
               :rules="[(val) => !!val || 'Project is required']"
             />
             <q-select
-              v-model="allocateForm.user_id"
-              :options="resourceOptions"
-              label="Select Resource / Team Member *"
+              v-model="allocateForm.user_ids"
+              :options="allocateResourceOptions"
+              label="Select Resource / Team Member(s) *"
               outlined
               dense
+              multiple
+              clearable
               emit-value
               map-options
-              :rules="[(val) => !!val || 'Resource is required']"
-            />
+              :display-value="
+                allocateForm.user_ids.length ? `${allocateForm.user_ids.length} selected` : ''
+              "
+              :rules="[(val) => (val && val.length > 0) || 'At least one resource is required']"
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps" :disable="opt.alreadyMember">
+                  <q-item-section side>
+                    <q-checkbox
+                      :model-value="selected || opt.alreadyMember"
+                      :disable="opt.alreadyMember"
+                      color="primary"
+                      @update:model-value="toggleOption(opt)"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label
+                      :class="{
+                        'text-grey-6': opt.alreadyMember,
+                        'text-weight-medium': !opt.alreadyMember,
+                      }"
+                    >
+                      {{ opt.label }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="opt.alreadyMember" side>
+                    <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 10px">
+                      <q-icon name="check" size="13px" class="q-mr-xs" color="positive" />
+                      Already Member
+                    </q-chip>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
 
             <div class="row justify-end q-mt-md q-gutter-sm">
               <q-btn flat label="Cancel" v-close-popup />
@@ -707,10 +741,40 @@ const newTaskForm = reactive<{
 
 const allocateForm = reactive<{
   project_id: number | null;
-  user_id: number | null;
+  user_ids: number[];
 }>({
   project_id: null,
-  user_id: null,
+  user_ids: [],
+});
+
+const allocateProjectMembers = ref<ResourceUser[]>([]);
+
+watch(
+  () => allocateForm.project_id,
+  async (newProjectId) => {
+    if (newProjectId) {
+      allocateProjectMembers.value = await getResourcesApi(newProjectId).catch(() => []);
+    } else {
+      allocateProjectMembers.value = [];
+    }
+  },
+  { immediate: true },
+);
+
+const allocateResourceOptions = computed(() => {
+  const existingIds = new Set(
+    allocateProjectMembers.value.map((m) => Number(m.user_id)).filter((id) => !isNaN(id) && id > 0),
+  );
+  return resources.value.map((resource) => {
+    const rId = Number(resource.user_id);
+    const isMember = existingIds.has(rId);
+    return {
+      label: `${resource.name} (${resource.role || 'RESOURCE'})`,
+      value: rId,
+      alreadyMember: isMember,
+      disable: isMember,
+    };
+  });
 });
 
 const logProgressForm = reactive<{
@@ -813,9 +877,14 @@ function openAddTaskDialog() {
   showAddTaskModal.value = true;
 }
 
-function openAllocateResourceDialog() {
+async function openAllocateResourceDialog() {
   allocateForm.project_id = projects.value.length > 0 ? projects.value[0]!.project_id : null;
-  allocateForm.user_id = resources.value[0]?.user_id ?? null;
+  if (allocateForm.project_id) {
+    allocateProjectMembers.value = await getResourcesApi(allocateForm.project_id).catch(() => []);
+  } else {
+    allocateProjectMembers.value = [];
+  }
+  allocateForm.user_ids = [];
   showAllocateModal.value = true;
 }
 
@@ -946,23 +1015,26 @@ async function handleCreateTask() {
   }
 }
 async function handleAllocateResource() {
-  if (!allocateForm.project_id || !allocateForm.user_id) {
-    $q.notify({ type: 'warning', message: 'Please select project and resource' });
+  if (!allocateForm.project_id || !allocateForm.user_ids.length) {
+    $q.notify({ type: 'warning', message: 'Please select project and at least one resource' });
     return;
   }
   allocateSubmitting.value = true;
   try {
-    try {
-      await assignProjectMemberApi(allocateForm.project_id, allocateForm.user_id);
-    } catch {
-      // Offline / demo fallback
+    for (const uId of allocateForm.user_ids) {
+      try {
+        await assignProjectMemberApi(allocateForm.project_id, uId);
+      } catch {
+        // Offline / demo fallback
+      }
     }
 
     $q.notify({
       type: 'positive',
-      message: 'Resource allocated to project successfully',
+      message: `${allocateForm.user_ids.length} resource(s) allocated to project successfully`,
     });
     showAllocateModal.value = false;
+    allocateForm.user_ids = [];
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',

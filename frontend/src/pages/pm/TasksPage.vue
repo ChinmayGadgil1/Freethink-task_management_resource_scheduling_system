@@ -423,7 +423,7 @@
                       :model-value="selected || opt.alreadyDependent"
                       :disable="opt.alreadyDependent"
                       color="primary"
-                      @update:model-value="toggleOption(opt)"
+                      @update:model-value="!opt.alreadyDependent && toggleOption(opt)"
                     />
                   </q-item-section>
                   <q-item-section side>
@@ -1002,22 +1002,30 @@ const taskSelectOptions = computed(() =>
 const existingTaskDependencies = reactive<Record<number, number[]>>({});
 
 const dependencyPredecessorOptions = computed(() => {
-  const selectedTask = tasks.value.find((task) => task.task_id === selectedDependencyTaskId.value);
+  const selectedTask = tasks.value.find(
+    (task) => Number(task.task_id) === Number(selectedDependencyTaskId.value),
+  );
   const currentTaskDeps = selectedDependencyTaskId.value
-    ? existingTaskDependencies[selectedDependencyTaskId.value] || []
+    ? [
+        ...(existingTaskDependencies[selectedDependencyTaskId.value] || []),
+        ...(selectedTask?.predecessor_task_ids || []).map(Number),
+      ]
     : [];
+
+  const existingSet = new Set(currentTaskDeps);
 
   return tasks.value
     .filter(
       (task) =>
-        task.task_id !== selectedDependencyTaskId.value &&
-        task.project_id === selectedTask?.project_id,
+        Number(task.task_id) !== Number(selectedDependencyTaskId.value) &&
+        Number(task.project_id) === Number(selectedTask?.project_id),
     )
     .map((task) => {
-      const isDep = currentTaskDeps.includes(task.task_id);
+      const tId = Number(task.task_id);
+      const isDep = existingSet.has(tId);
       return {
         label: `${task.title} (#${task.task_id})`,
-        value: task.task_id,
+        value: tId,
         alreadyDependent: isDep,
         disable: isDep,
       };
@@ -1183,6 +1191,8 @@ async function handleAssignTaskMember() {
 
 function openDependencyDialog(task: Task) {
   selectedDependencyTaskId.value = task.task_id;
+  const predIds = (task.predecessor_task_ids || []).map(Number);
+  existingTaskDependencies[task.task_id] = predIds;
   selectedPredecessorTaskIds.value = [];
   showDependencyDialog.value = true;
 }
@@ -1215,7 +1225,13 @@ async function handleAddDependency() {
     }
     existingTaskDependencies[taskId].push(...toAdd);
 
-    const successor = tasks.value.find((task) => task.task_id === taskId);
+    const successor = tasks.value.find((task) => Number(task.task_id) === Number(taskId));
+    if (successor) {
+      if (!successor.predecessor_task_ids) {
+        successor.predecessor_task_ids = [];
+      }
+      successor.predecessor_task_ids.push(...toAdd);
+    }
 
     $q.notify({
       type: 'positive',

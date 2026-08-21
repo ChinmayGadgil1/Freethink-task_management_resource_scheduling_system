@@ -1066,7 +1066,7 @@
                       :model-value="selected || opt.alreadyDependent"
                       :disable="opt.alreadyDependent"
                       color="primary"
-                      @update:model-value="toggleOption(opt)"
+                      @update:model-value="!opt.alreadyDependent && toggleOption(opt)"
                     />
                   </q-item-section>
                   <q-item-section side>
@@ -1273,17 +1273,52 @@
 
         <q-card-section class="modal-form">
           <q-select
-            v-model="selectedMemberToAdd"
+            v-model="selectedMembersToAdd"
             outlined
             dense
+            multiple
             clearable
             emit-value
             map-options
-            label="Resource Member"
+            :display-value="
+              selectedMembersToAdd.length
+                ? `${selectedMembersToAdd.length} selected`
+                : ''
+            "
+            label="Resource Member(s)"
             :options="availableResourcesToAdd"
             :disable="addingMember"
-            hint="Only active RESOURCE accounts are shown."
-          />
+            hint="Check members to assign. Already existing members cannot be added."
+          >
+            <template #option="{ itemProps, opt, selected, toggleOption }">
+              <q-item v-bind="itemProps" :disable="opt.alreadyMember">
+                <q-item-section side>
+                  <q-checkbox
+                    :model-value="selected || opt.alreadyMember"
+                    :disable="opt.alreadyMember"
+                    color="primary"
+                    @update:model-value="!opt.alreadyMember && toggleOption(opt)"
+                  />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label
+                    :class="{
+                      'text-grey-6': opt.alreadyMember,
+                      'text-weight-medium': !opt.alreadyMember,
+                    }"
+                  >
+                    {{ opt.label }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section v-if="opt.alreadyMember" side>
+                  <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 10px">
+                    <q-icon name="check" size="13px" class="q-mr-xs" color="positive" />
+                    Already Member
+                  </q-chip>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
         </q-card-section>
 
         <q-card-actions align="right" class="modal-actions">
@@ -1294,7 +1329,7 @@
             color="primary"
             label="Add to Project"
             :loading="addingMember"
-            :disable="!selectedMemberToAdd"
+            :disable="!selectedMembersToAdd.length"
             @click="handleAddProjectMember"
           />
         </q-card-actions>
@@ -1527,7 +1562,7 @@ const selectedTaskForUpdateProgress = ref(0);
 const allSystemResources = ref<ResourceUser[]>([]);
 const projectMembersResources = ref<ResourceUser[]>([]);
 const showAddMemberDialog = ref(false);
-const selectedMemberToAdd = ref<number | null>(null);
+const selectedMembersToAdd = ref<number[]>([]);
 const addingMember = ref(false);
 
 const showDeleteProjectDialog = ref(false);
@@ -1556,13 +1591,22 @@ const selectedPredecessorTaskIds = ref<number[]>([]);
 const dependencySubmitting = ref(false);
 
 const availableResourcesToAdd = computed(() => {
-  const existingIds = new Set(projectMembersResources.value.map((m) => m.user_id));
-  return allSystemResources.value
-    .filter((r) => !existingIds.has(r.user_id))
-    .map((r) => ({
-      label: `${r.name} (${r.role})`,
-      value: r.user_id,
-    }));
+  const existingIds = new Set(
+    [
+      ...projectMembersResources.value.map((m) => Number(m.user_id)),
+      ...teamMembers.value.map((tm) => Number(tm.id)),
+    ].filter((id) => !isNaN(id) && id > 0),
+  );
+  return allSystemResources.value.map((r) => {
+    const rId = Number(r.user_id);
+    const isMember = existingIds.has(rId);
+    return {
+      label: `${r.name} (${r.role || 'RESOURCE'})`,
+      value: rId,
+      alreadyMember: isMember,
+      disable: isMember,
+    };
+  });
 });
 
 const createTaskAssigneeOptions = computed(() =>
@@ -1580,17 +1624,24 @@ const dependencyTaskLabel = computed(() => {
 const existingTaskDependencies = reactive<Record<number, number[]>>({});
 
 const dependencyPredecessorOptions = computed(() => {
+  const selectedTask = tasks.value.find((t) => Number(t.task_id) === Number(selectedDependencyTaskId.value));
   const currentTaskDeps = selectedDependencyTaskId.value
-    ? existingTaskDependencies[selectedDependencyTaskId.value] || []
+    ? [
+        ...(existingTaskDependencies[selectedDependencyTaskId.value] || []),
+        ...(selectedTask?.predecessor_task_ids || []).map(Number),
+      ]
     : [];
 
+  const existingSet = new Set(currentTaskDeps);
+
   return tasks.value
-    .filter((task) => task.task_id !== selectedDependencyTaskId.value)
+    .filter((task) => Number(task.task_id) !== Number(selectedDependencyTaskId.value))
     .map((task) => {
-      const isDep = currentTaskDeps.includes(task.task_id);
+      const tId = Number(task.task_id);
+      const isDep = existingSet.has(tId);
       return {
         label: `${task.title} (#${task.task_id})`,
-        value: task.task_id,
+        value: tId,
         alreadyDependent: isDep,
         disable: isDep,
       };
@@ -2310,8 +2361,13 @@ async function loadProjectTeamMembers() {
 
 async function openAddMemberDialog() {
   try {
-    allSystemResources.value = await getResourcesApi();
-    selectedMemberToAdd.value = null;
+    const [fetchedProjectMembers, fetchedAllResources] = await Promise.all([
+      getResourcesApi(projectIdParam.value).catch(() => []),
+      getResourcesApi().catch(() => []),
+    ]);
+    projectMembersResources.value = fetchedProjectMembers;
+    allSystemResources.value = fetchedAllResources;
+    selectedMembersToAdd.value = [];
     showAddMemberDialog.value = true;
   } catch (error) {
     $q.notify({
@@ -2322,34 +2378,26 @@ async function openAddMemberDialog() {
 }
 
 async function handleAddProjectMember() {
-  if (!selectedMemberToAdd.value) return;
+  if (!selectedMembersToAdd.value.length) return;
 
   addingMember.value = true;
-  const resourceId = selectedMemberToAdd.value;
+  const resourceIds = selectedMembersToAdd.value;
   try {
-    await assignProjectMemberApi(project.project_id, resourceId);
-
-    const resource = allSystemResources.value.find((r) => r.user_id === resourceId);
-    if (resource && !teamMembers.value.some((member) => member.id === resourceId)) {
-      teamMembers.value.push({
-        id: resource.user_id,
-        name: resource.name,
-        role: resource.role,
-        assignedTasks: 0,
-        capacity: 0,
-      });
+    for (const rId of resourceIds) {
+      await assignProjectMemberApi(project.project_id, rId);
     }
 
     $q.notify({
       type: 'positive',
-      message: `${resource?.name ?? 'Resource'} added to the project`,
+      message: `${resourceIds.length} member(s) added to the project`,
     });
     showAddMemberDialog.value = false;
-    selectedMemberToAdd.value = null;
+    selectedMembersToAdd.value = [];
+    await refreshData();
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Failed to assign resource to project',
+      message: error instanceof Error ? error.message : 'Failed to assign resource(s) to project',
     });
   } finally {
     addingMember.value = false;
@@ -2368,6 +2416,8 @@ async function refreshData() {
 
 function openDependencyDialog(task: Task) {
   selectedDependencyTaskId.value = task.task_id;
+  const predIds = (task.predecessor_task_ids || []).map(Number);
+  existingTaskDependencies[task.task_id] = predIds;
   selectedPredecessorTaskIds.value = [];
   showDependencyDialog.value = true;
 }
@@ -2400,7 +2450,13 @@ async function handleAddDependency() {
     }
     existingTaskDependencies[taskId].push(...toAdd);
 
-    const successor = tasks.value.find((task) => task.task_id === taskId);
+    const successor = tasks.value.find((task) => Number(task.task_id) === Number(taskId));
+    if (successor) {
+      if (!successor.predecessor_task_ids) {
+        successor.predecessor_task_ids = [];
+      }
+      successor.predecessor_task_ids.push(...toAdd);
+    }
 
     $q.notify({
       type: 'positive',
