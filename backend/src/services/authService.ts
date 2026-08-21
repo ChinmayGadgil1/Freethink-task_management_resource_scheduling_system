@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 
 export async function signupUser(
   name: string,
+  username: string,
   email: string,
   password: string,
   role: UserRole,
@@ -14,16 +15,21 @@ export async function signupUser(
 
   const [existingUsers] = await pool.query<RowDataPacket[]>(
     `
-        SELECT user_id
+        SELECT user_id, email, username
         FROM users
-        WHERE email = ?
+        WHERE email = ? OR username = ?
         LIMIT 1
         `,
-    [email],
+    [email, username],
   );
 
   if (existingUsers.length > 0) {
-    throw new Error("EMAIL_ALREADY_EXISTS");
+    const existingUser = existingUsers[0]!;
+    if (existingUser.email === email) {
+      throw new Error("EMAIL_ALREADY_EXISTS");
+    } else {
+      throw new Error("USERNAME_ALREADY_EXISTS");
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -31,16 +37,17 @@ export async function signupUser(
   const [result] = await pool.query<ResultSetHeader>(
     `
         INSERT INTO users
-            (name, email, password_hash, role)
+            (name, username, email, password_hash, role)
         VALUES
-            (?, ?, ?, ?)
+            (?, ?, ?, ?, ?)
         `,
-    [name, email, passwordHash, role],
+    [name, username, email, passwordHash, role],
   );
 
   return {
     user_id: result.insertId,
     name,
+    username,
     email,
     role,
   };
@@ -54,6 +61,7 @@ export async function signinUser(identifier: string, password: string) {
     ? `SELECT
             user_id,
             name,
+            username,
             email,
             password_hash,
             role,
@@ -64,12 +72,13 @@ export async function signinUser(identifier: string, password: string) {
     : `SELECT
             user_id,
             name,
+            username,
             email,
             password_hash,
             role,
             is_active
         FROM users
-        WHERE LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?)
+        WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)
         LIMIT 1`;
 
   const queryParams = isEmail ? [identifier] : [identifier, identifier];
@@ -100,6 +109,7 @@ export async function signinUser(identifier: string, password: string) {
     return {
         user_id: user.user_id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
         token
@@ -122,7 +132,7 @@ export async function resetPassword(
          LIMIT 1`
     : `SELECT user_id, email, password_hash
          FROM users
-         WHERE LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?)
+         WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)
          LIMIT 1`;
 
   const queryParams = isEmail ? [identifier] : [identifier, identifier];

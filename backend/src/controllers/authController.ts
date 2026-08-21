@@ -5,6 +5,7 @@ import { signupUser, signinUser,resetPassword } from "../services/authService.js
 
 const signupSchema = z.object({
     name: z.string().min(1, "Name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters").max(50, "Username must be at most 50 characters"),
     email: z.email("Invalid email format"),
     password: z
         .string()
@@ -48,6 +49,7 @@ export async function signup(
 
         const user = await signupUser(
             parsedData.name,
+            parsedData.username,
             parsedData.email,
             parsedData.password,
             parsedData.role
@@ -70,6 +72,12 @@ export async function signup(
         if (error.message === "EMAIL_ALREADY_EXISTS") {
             return res.status(409).json({
                 message: "Email is already registered",
+            });
+        }
+
+        if (error.message === "USERNAME_ALREADY_EXISTS") {
+            return res.status(409).json({
+                message: "Username is already taken",
             });
         }
 
