@@ -1,12 +1,12 @@
 <template>
   <section class="hero-section">
     <!-- Ambient Blur Glows -->
-    <div class="glow-orb glow-purple-top" />
+    <div class="glow-orb glow-purple-left" />
     <div class="glow-orb glow-purple-right" />
 
     <div class="container hero-container">
       <div class="row q-col-gutter-xl items-center">
-        <!-- Left Column: Copy & Actions -->
+        <!-- Left Column: Editorial Copy & Action -->
         <div class="col-12 col-md-6 hero-copy-col">
           <div class="eyebrow-pill q-mb-md">
             <span class="sparkle">✦</span>
@@ -19,177 +19,139 @@
           </h1>
 
           <p class="hero-subtitle">
-            TaskFlow helps teams plan projects, assign work, track progress and hit every deadline
-            with clarity.
+            TaskFlow empowers teams to plan projects, assign work, manage resources, track live
+            progress, and hit every milestone with complete clarity.
           </p>
 
-          <div class="hero-actions row items-center q-pt-sm">
+          <div class="hero-actions-row row items-center q-gutter-md q-pt-xs">
             <q-btn
               unelevated
               no-caps
               label="Get Started"
+              icon-right="arrow_forward"
               class="primary-cta-btn"
               @click="goToSignup"
             />
           </div>
+
+          <!-- Value Prop Badges (Honest & Authentic) -->
+          <div class="hero-indicators-row row items-center q-pt-lg q-gutter-md">
+            <div class="indicator-item">
+              <span class="indicator-icon">✦</span>
+              <span>Smart Scheduling</span>
+            </div>
+            <div class="indicator-item">
+              <span class="indicator-icon">✦</span>
+              <span>Resource Allocation</span>
+            </div>
+            <div class="indicator-item">
+              <span class="indicator-icon">✦</span>
+              <span>Real-Time Insights</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Right Column: Visual Mockup matching Reference Design -->
+        <!-- Right Column: Sleek Product Showcase Device Frame -->
         <div class="col-12 col-md-6 hero-mockup-col">
           <div class="mockup-frame-wrapper">
-            <div class="mockup-window">
-              <!-- Window Chrome Header -->
-              <div class="window-header">
-                <div class="window-dots">
-                  <span class="dot dot-close" />
-                  <span class="dot dot-min" />
-                  <span class="dot dot-max" />
+            <div class="mockup-device-card">
+              <!-- Top Device Header -->
+              <div class="device-header">
+                <div class="header-left">
+                  <div class="brand-avatar-mini">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <rect width="24" height="24" rx="6" fill="#8B6FD8" />
+                      <path
+                        d="M7 12.5L10.5 16L17 8.5"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="device-user-title">Start Your Day & Be Productive ⚡</div>
+                    <div class="device-user-sub">Active Workspace • Sprint 4</div>
+                  </div>
                 </div>
-                <div class="window-search-bar" />
+
+                <!-- Team Avatar Stack -->
+                <div class="team-avatar-stack">
+                  <span class="avatar-pill av-sarah">S</span>
+                  <span class="avatar-pill av-alex">A</span>
+                  <span class="avatar-pill av-elena">E</span>
+                  <span class="avatar-pill av-plus">+4</span>
+                </div>
               </div>
 
-              <!-- Window Body: Sleek Mini TaskFlow Dashboard -->
-              <div class="window-body">
-                <!-- Mini Sidebar -->
-                <div class="mini-sidebar">
-                  <div class="mini-icon active-icon">
-                    <q-icon name="dashboard" size="14px" />
+              <!-- Quick Search / Filter Bar -->
+              <div class="device-search-bar">
+                <q-icon name="search" size="16px" color="grey-6" />
+                <span class="search-placeholder">Search tasks, milestones, team...</span>
+                <span class="search-shortcut">⌘K</span>
+              </div>
+
+              <!-- Today's Primary Task Card -->
+              <div class="device-task-card">
+                <div class="task-card-header">
+                  <div class="task-tag-badge">Today's Priority</div>
+                  <span class="task-status-pill in-progress">In Progress</span>
+                </div>
+
+                <div class="task-title-text">Delivery App Kit & API Integration</div>
+                <p class="task-desc-text">
+                  Finalize sprint milestone dependencies and assign backend endpoints.
+                </p>
+
+                <div class="task-progress-section">
+                  <div class="progress-meta-row">
+                    <span class="progress-label">Sprint Progress</span>
+                    <span class="progress-value">84%</span>
                   </div>
-                  <div class="mini-icon">
-                    <q-icon name="folder" size="14px" />
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-active" style="width: 84%" />
                   </div>
-                  <div class="mini-icon">
-                    <q-icon name="task_alt" size="14px" />
-                  </div>
-                  <div class="mini-icon">
-                    <q-icon name="groups" size="14px" />
-                  </div>
-                  <div class="mini-icon">
-                    <q-icon name="bar_chart" size="14px" />
-                  </div>
-                  <div class="mini-icon">
-                    <q-icon name="settings" size="14px" />
+                </div>
+              </div>
+
+              <!-- Floating Live Metric & Timeline Snippet -->
+              <div class="row q-col-gutter-sm">
+                <div class="col-6">
+                  <div class="mini-metric-box">
+                    <div class="metric-icon-wrap velocity-icon">
+                      <q-icon name="trending_up" size="16px" />
+                    </div>
+                    <div>
+                      <div class="metric-val">+28%</div>
+                      <div class="metric-sub">Team Velocity</div>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Mini Main Content -->
-                <div class="mini-content">
-                  <div class="mini-top-bar">
-                    <div class="mini-title">Project Dashboard</div>
-                    <div class="mini-badge">Live</div>
-                  </div>
-
-                  <!-- 4 Stat Metric Cards -->
-                  <div class="mini-stats-grid">
-                    <div class="mini-stat-card">
-                      <div class="stat-meta">
-                        <span class="stat-icon-box purple-box">
-                          <q-icon name="folder" size="11px" />
-                        </span>
-                        <span class="stat-title">Total Projects</span>
-                      </div>
-                      <div class="stat-number">12</div>
+                <div class="col-6">
+                  <div class="mini-metric-box">
+                    <div class="metric-icon-wrap schedule-icon">
+                      <q-icon name="schedule" size="16px" />
                     </div>
-
-                    <div class="mini-stat-card">
-                      <div class="stat-meta">
-                        <span class="stat-icon-box blue-box">
-                          <q-icon name="autorenew" size="11px" />
-                        </span>
-                        <span class="stat-title">In Progress</span>
-                      </div>
-                      <div class="stat-number">8</div>
-                    </div>
-
-                    <div class="mini-stat-card">
-                      <div class="stat-meta">
-                        <span class="stat-icon-box green-box">
-                          <q-icon name="check_circle" size="11px" />
-                        </span>
-                        <span class="stat-title">Completed</span>
-                      </div>
-                      <div class="stat-number">4</div>
-                    </div>
-
-                    <div class="mini-stat-card">
-                      <div class="stat-meta">
-                        <span class="stat-icon-box pink-box">
-                          <q-icon name="schedule" size="11px" />
-                        </span>
-                        <span class="stat-title">Overdue</span>
-                      </div>
-                      <div class="stat-number">2</div>
+                    <div>
+                      <div class="metric-val">On Track</div>
+                      <div class="metric-sub">May 20 Deadline</div>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <!-- Project Timeline Gantt Card -->
-                  <div class="mini-gantt-card">
-                    <div class="gantt-header">
-                      <span class="gantt-title">Project Timeline</span>
-                      <div class="gantt-days-row">
-                        <span class="month-name">May</span>
-                        <span
-                          v-for="day in [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]"
-                          :key="day"
-                          class="gantt-day-num"
-                          :class="{ 'day-active': day === 15 }"
-                        >
-                          {{ day }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Gantt Rows -->
-                    <div class="gantt-rows-container">
-                      <!-- Vertical current-day marker line -->
-                      <div class="today-marker-line" />
-
-                      <div class="gantt-row">
-                        <span class="row-label">Research & Planning</span>
-                        <div class="row-track">
-                          <div class="gantt-bar bar-purple" style="left: 0%; width: 36%">
-                            <span class="bar-tag">Done</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="gantt-row">
-                        <span class="row-label">Design System</span>
-                        <div class="row-track">
-                          <div class="gantt-bar bar-blue" style="left: 20%; width: 44%">
-                            <span class="bar-user-circle user-sarah">S</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="gantt-row">
-                        <span class="row-label">Development</span>
-                        <div class="row-track">
-                          <div class="gantt-bar bar-green" style="left: 30%; width: 50%">
-                            <span class="bar-user-circle user-alex">A</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="gantt-row">
-                        <span class="row-label">Testing</span>
-                        <div class="row-track">
-                          <div class="gantt-bar bar-orange" style="left: 50%; width: 38%">
-                            <span class="bar-user-circle user-elena">E</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="gantt-row">
-                        <span class="row-label">Deployment</span>
-                        <div class="row-track">
-                          <div class="gantt-bar bar-pink" style="left: 70%; width: 28%">
-                            <span class="bar-tag">May 20</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <!-- Mini Timeline Bar -->
+              <div class="device-timeline-snippet">
+                <div class="snippet-header">
+                  <span class="snippet-title">Live Gantt Flow</span>
+                  <span class="snippet-live-dot">● Active</span>
+                </div>
+                <div class="mini-timeline-track">
+                  <div class="track-bar bar-1" style="width: 38%" title="Planning: 100%" />
+                  <div class="track-bar bar-2" style="width: 44%" title="Development: 80%" />
+                  <div class="track-bar bar-3" style="width: 18%" title="QA: In Review" />
                 </div>
               </div>
             </div>
@@ -213,7 +175,7 @@ function goToSignup() {
 <style scoped lang="scss">
 .hero-section {
   position: relative;
-  padding: 64px 0 88px 0;
+  padding: 80px 0 96px 0;
   overflow: hidden;
   background: #ffffff;
 }
@@ -229,23 +191,23 @@ function goToSignup() {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(80px);
-  opacity: 0.6;
+  filter: blur(90px);
+  opacity: 0.55;
 }
 
-.glow-purple-top {
-  top: -40px;
-  left: 20%;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(224, 214, 255, 0.7) 0%, rgba(243, 238, 255, 0) 70%);
+.glow-purple-left {
+  top: -60px;
+  left: 10%;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(224, 214, 255, 0.75) 0%, rgba(243, 238, 255, 0) 70%);
 }
 
 .glow-purple-right {
   top: 10%;
   right: -5%;
-  width: 480px;
-  height: 480px;
+  width: 520px;
+  height: 520px;
   background: radial-gradient(circle, rgba(216, 198, 255, 0.65) 0%, rgba(240, 235, 255, 0) 70%);
 }
 
@@ -257,7 +219,7 @@ function goToSignup() {
 .eyebrow-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 6px 14px;
   background: #f4f0fd;
   border: 1px solid #e9ddfd;
@@ -272,12 +234,12 @@ function goToSignup() {
 }
 
 .hero-title {
-  font-size: 52px;
-  line-height: 1.12;
+  font-size: 56px;
+  line-height: 1.1;
   font-weight: 800;
   letter-spacing: -0.035em;
-  color: #181d28;
-  margin: 0 0 20px 0;
+  color: #121620;
+  margin: 0 0 22px 0;
 
   .accent-word {
     color: #8b6fd8;
@@ -288,28 +250,48 @@ function goToSignup() {
   font-size: 17.5px;
   line-height: 1.6;
   color: #64748b;
-  margin: 0 0 28px 0;
-  max-width: 500px;
+  margin: 0 0 32px 0;
+  max-width: 520px;
 }
 
 .primary-cta-btn {
   background: #8b6fd8;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 600;
-  padding: 12px 28px;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(139, 111, 216, 0.35);
+  padding: 13px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(139, 111, 216, 0.35);
   transition: all 0.2s ease;
 
   &:hover {
     background: #7554cc;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 111, 216, 0.45);
+    box-shadow: 0 8px 24px rgba(139, 111, 216, 0.45);
   }
 }
 
-/* Right Column Mockup Styling */
+.hero-indicators-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.indicator-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+
+  .indicator-icon {
+    color: #8b6fd8;
+    font-size: 11px;
+  }
+}
+
+/* Right Mockup Styling */
 .hero-mockup-col {
   position: relative;
   z-index: 2;
@@ -319,14 +301,17 @@ function goToSignup() {
   perspective: 1000px;
 }
 
-.mockup-window {
+.mockup-device-card {
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   box-shadow:
-    0 20px 48px -10px rgba(139, 111, 216, 0.18),
-    0 8px 24px -4px rgba(16, 24, 40, 0.08);
-  overflow: hidden;
+    0 24px 64px -12px rgba(139, 111, 216, 0.22),
+    0 10px 28px -4px rgba(16, 24, 40, 0.08);
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
@@ -334,333 +319,303 @@ function goToSignup() {
   &:hover {
     transform: translateY(-4px);
     box-shadow:
-      0 26px 56px -8px rgba(139, 111, 216, 0.22),
-      0 12px 28px -4px rgba(16, 24, 40, 0.1);
+      0 32px 72px -10px rgba(139, 111, 216, 0.28),
+      0 14px 34px -4px rgba(16, 24, 40, 0.12);
   }
 }
 
-.window-header {
-  height: 36px;
-  background: #f8fafc;
-  border-bottom: 1px solid #edf2f7;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 12px;
-}
-
-.window-dots {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.dot-close {
-  background: #f87171;
-}
-.dot-min {
-  background: #fbbf24;
-}
-.dot-max {
-  background: #34d399;
-}
-
-.window-search-bar {
-  flex: 1;
-  max-width: 180px;
-  height: 18px;
-  background: #e2e8f0;
-  border-radius: 6px;
-  opacity: 0.6;
-}
-
-.window-body {
-  display: flex;
-  min-height: 380px;
-  background: #fbfbfd;
-}
-
-.mini-sidebar {
-  width: 44px;
-  border-right: 1px solid #f0f2f5;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  gap: 14px;
-}
-
-.mini-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &.active-icon {
-    background: #f4f0fd;
-    color: #8b6fd8;
-  }
-}
-
-.mini-content {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mini-top-bar {
+.device-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.mini-title {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-avatar-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-user-title {
   font-size: 14px;
   font-weight: 700;
   color: #1e293b;
 }
 
-.mini-badge {
-  font-size: 10px;
-  font-weight: 600;
-  color: #059669;
-  background: #d1fae5;
-  padding: 2px 7px;
-  border-radius: 6px;
-}
-
-.mini-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.mini-stat-card {
-  background: #ffffff;
-  border: 1px solid #f0f2f5;
-  border-radius: 8px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stat-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stat-icon-box {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.purple-box {
-  background: #f4f0fd;
-  color: #8b6fd8;
-}
-.blue-box {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-.green-box {
-  background: #ecfdf5;
-  color: #10b981;
-}
-.pink-box {
-  background: #fdf2f8;
-  color: #ec4899;
-}
-
-.stat-title {
-  font-size: 9px;
+.device-user-sub {
+  font-size: 11px;
   color: #64748b;
-  white-space: nowrap;
   font-weight: 500;
 }
 
-.stat-number {
-  font-size: 16px;
+.team-avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-pill {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-left: -6px;
+  border: 2px solid #ffffff;
+
+  &.av-sarah {
+    background: #8b6fd8;
+    margin-left: 0;
+  }
+  &.av-alex {
+    background: #3b82f6;
+  }
+  &.av-elena {
+    background: #10b981;
+  }
+  &.av-plus {
+    background: #64748b;
+    font-size: 9px;
+  }
+}
+
+.device-search-bar {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-placeholder {
+  flex: 1;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+.search-shortcut {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.device-task-card {
+  background: #fbfbfd;
+  border: 1px solid #edf0f5;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-tag-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8b6fd8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+
+  &.in-progress {
+    background: #fdf4eb;
+    color: #f5841f;
+  }
+}
+
+.task-title-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.task-desc-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+}
+
+.task-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.progress-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.progress-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b6fd8;
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: #edf0f5;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-active {
+  height: 100%;
+  background: linear-gradient(90deg, #8b6fd8 0%, #a78bfa 100%);
+  border-radius: 9999px;
+}
+
+.mini-metric-box {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.metric-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.velocity-icon {
+    background: #ecfdf5;
+    color: #10b981;
+  }
+
+  &.schedule-icon {
+    background: #f5f3ff;
+    color: #8b6fd8;
+  }
+}
+
+.metric-val {
+  font-size: 13px;
   font-weight: 700;
   color: #1e293b;
 }
 
-/* Mini Gantt Card */
-.mini-gantt-card {
-  background: #ffffff;
-  border: 1px solid #f0f2f5;
-  border-radius: 10px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.metric-sub {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.gantt-header {
+.device-timeline-snippet {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.snippet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 6px;
 }
 
-.gantt-title {
-  font-size: 11.5px;
+.snippet-title {
+  font-size: 11px;
   font-weight: 700;
   color: #334155;
 }
 
-.gantt-days-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .month-name {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: #64748b;
-    margin-right: 4px;
-  }
-}
-
-.gantt-day-num {
-  font-size: 9px;
-  color: #94a3b8;
-  font-weight: 600;
-  width: 14px;
-  text-align: center;
-
-  &.day-active {
-    color: #ef4444;
-    font-weight: 700;
-  }
-}
-
-.gantt-rows-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding-top: 4px;
-}
-
-.today-marker-line {
-  position: absolute;
-  left: 64%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  border-left: 1.5px dashed #f87171;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.gantt-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.row-label {
-  width: 100px;
+.snippet-live-dot {
   font-size: 9.5px;
-  font-weight: 600;
-  color: #475569;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.row-track {
-  flex: 1;
-  height: 18px;
-  background: #f8fafc;
-  border-radius: 6px;
-  position: relative;
-}
-
-.gantt-bar {
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 3px;
-}
-
-.bar-purple {
-  background: #8b6fd8;
-}
-.bar-blue {
-  background: #60a5fa;
-}
-.bar-green {
-  background: #4ade80;
-}
-.bar-orange {
-  background: #fb923c;
-}
-.bar-pink {
-  background: #f472b6;
-}
-
-.bar-tag {
-  font-size: 8px;
-  font-weight: 600;
-  color: #ffffff;
-  padding: 0 4px;
-}
-
-.bar-user-circle {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ffffff;
-  font-size: 7px;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: #10b981;
 }
 
-.user-sarah {
-  color: #2563eb;
+.mini-timeline-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  display: flex;
+  overflow: hidden;
+  gap: 2px;
 }
-.user-alex {
-  color: #16a34a;
-}
-.user-elena {
-  color: #ea580c;
+
+.track-bar {
+  height: 100%;
+
+  &.bar-1 {
+    background: #8b6fd8;
+  }
+  &.bar-2 {
+    background: #3b82f6;
+  }
+  &.bar-3 {
+    background: #f59e0b;
+  }
 }
 
 @media (max-width: 950px) {
   .hero-title {
-    font-size: 38px;
+    font-size: 40px;
   }
   .hero-subtitle {
     font-size: 16px;
+  }
+  .hero-section {
+    padding: 56px 0 64px 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: 32px;
+  }
+  .hero-indicators-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
 </style>

@@ -1,17 +1,34 @@
 <template>
   <q-page class="pm-page tasks-page">
-    <!-- PAGE HEADER -->
+    <!-- 1. PAGE HEADER -->
     <div class="page-header-row">
-      <div>
-        <div class="page-title">PM Task Management</div>
-        <div class="page-subtitle">Overview of all tasks across projects managed by you</div>
+      <div class="header-left">
+        <div class="page-title">Tasks</div>
+        <div class="page-subtitle">Track, organize, and manage work across all your active projects</div>
       </div>
-      <div class="row items-center q-gutter-sm">
+      <div class="header-actions row items-center q-gutter-sm">
+        <!-- View Mode Switcher: Board / Table -->
+        <q-btn-toggle
+          v-model="viewMode"
+          toggle-color="primary"
+          toggle-text-color="white"
+          color="white"
+          text-color="grey-8"
+          dense
+          rounded
+          unelevated
+          class="view-toggle-btn shadow-subtle q-mr-xs"
+          :options="[
+            { label: 'Board', value: 'board', icon: 'view_kanban' },
+            { label: 'List', value: 'table', icon: 'view_list' },
+          ]"
+        />
+
         <q-btn
           unelevated
           no-caps
           icon="person_add"
-          label="Assign Member to Task"
+          label="Assign Member"
           class="action-btn-secondary"
           @click="openAssignTaskMemberDialog(null)"
         />
@@ -35,12 +52,12 @@
       </div>
     </div>
 
-    <!-- STAT SUMMARY CARDS -->
+    <!-- 2. STAT SUMMARY CARDS -->
     <div class="stats-grid q-mb-md">
       <q-card flat bordered class="stat-card">
         <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-purple">
-            <q-icon name="task_alt" size="24px" />
+          <q-avatar size="46px" class="stat-icon stat-purple">
+            <q-icon name="task_alt" size="22px" />
           </q-avatar>
           <div class="stat-copy">
             <div class="stat-label">Total Tasks</div>
@@ -52,8 +69,8 @@
 
       <q-card flat bordered class="stat-card">
         <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-blue-bg">
-            <q-icon name="autorenew" size="24px" />
+          <q-avatar size="46px" class="stat-icon stat-blue-bg">
+            <q-icon name="autorenew" size="22px" />
           </q-avatar>
           <div class="stat-copy">
             <div class="stat-label">In Progress</div>
@@ -65,8 +82,8 @@
 
       <q-card flat bordered class="stat-card">
         <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-green-bg">
-            <q-icon name="check_circle" size="24px" />
+          <q-avatar size="46px" class="stat-icon stat-green-bg">
+            <q-icon name="check_circle" size="22px" />
           </q-avatar>
           <div class="stat-copy">
             <div class="stat-label">Completed</div>
@@ -78,8 +95,8 @@
 
       <q-card flat bordered class="stat-card">
         <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-orange-bg">
-            <q-icon name="pending_actions" size="24px" />
+          <q-avatar size="46px" class="stat-icon stat-orange-bg">
+            <q-icon name="pending_actions" size="22px" />
           </q-avatar>
           <div class="stat-copy">
             <div class="stat-label">Pending / On Hold</div>
@@ -90,7 +107,7 @@
       </q-card>
     </div>
 
-    <!-- FILTER BAR -->
+    <!-- 3. FILTER BAR -->
     <q-card flat bordered class="filter-card q-mb-md">
       <q-card-section class="filter-section">
         <q-input
@@ -141,11 +158,205 @@
       </q-card-section>
     </q-card>
 
-    <!-- LOADING / TABLE -->
+    <!-- LOADING STATE -->
     <div v-if="loading" class="row justify-center q-pa-xl">
-      <q-spinner color="primary" size="40px" />
+      <q-spinner color="primary" size="44px" />
     </div>
 
+    <!-- 4. KANBAN TASK BOARD VIEW -->
+    <div v-else-if="viewMode === 'board'" class="kanban-board-container">
+      <div class="kanban-columns-grid">
+        <div
+          v-for="col in KANBAN_COLUMNS"
+          :key="col.id"
+          class="kanban-column"
+          :style="{ '--col-tint': col.headerBg, '--col-border': col.borderColor }"
+        >
+          <!-- Column Header -->
+          <div class="kanban-col-header row items-center justify-between no-wrap">
+            <div class="row items-center gap-xs no-wrap">
+              <span class="col-status-dot" :style="{ background: col.dotColor }" />
+              <span class="col-title">{{ col.title }}</span>
+              <span
+                class="col-count-pill"
+                :style="{ background: col.badgeBg, color: col.badgeColor }"
+              >
+                {{ tasksByStatus[col.id]?.length || 0 }}
+              </span>
+            </div>
+
+            <q-btn
+              flat
+              round
+              dense
+              icon="add"
+              size="sm"
+              class="col-add-btn"
+              title="Add task in this column"
+              @click="quickCreateInColumn(col.id)"
+            >
+              <q-tooltip>Add {{ col.title }} Task</q-tooltip>
+            </q-btn>
+          </div>
+
+          <!-- Column Tasks Cards List -->
+          <div class="kanban-cards-wrapper">
+            <div
+              v-for="task in tasksByStatus[col.id]"
+              :key="task.task_id"
+              class="kanban-task-card"
+            >
+              <!-- Card Top Row: Badges & 3-Dot Actions -->
+              <div class="task-card-header row items-center justify-between no-wrap q-mb-xs">
+                <div class="row items-center gap-xs no-wrap ellipsis">
+                  <!-- Project Badge -->
+                  <span class="task-project-pill ellipsis" :title="getProjectName(task.project_id)">
+                    <q-icon name="folder" size="12px" class="q-mr-xs" />
+                    {{ getProjectName(task.project_id) }}
+                  </span>
+
+                  <!-- Priority Badge -->
+                  <span :class="['task-priority-pill', `priority-${task.priority.toLowerCase()}`]">
+                    {{ task.priority }}
+                  </span>
+                </div>
+
+                <!-- 3-Dot Action Menu -->
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="more_vert"
+                  size="sm"
+                  color="grey-7"
+                  class="task-more-btn"
+                  @click.stop
+                >
+                  <q-menu auto-close anchor="bottom right" self="top right" class="task-action-menu">
+                    <q-list dense style="min-width: 170px">
+                      <q-item clickable @click="openEditModal(task)">
+                        <q-item-section avatar>
+                          <q-icon name="edit" size="16px" color="grey-8" />
+                        </q-item-section>
+                        <q-item-section>Edit Details</q-item-section>
+                      </q-item>
+
+                      <q-item clickable @click="openAssignTaskMemberDialog(task.task_id)">
+                        <q-item-section avatar>
+                          <q-icon name="person_add" size="16px" color="primary" />
+                        </q-item-section>
+                        <q-item-section>Assign Member</q-item-section>
+                      </q-item>
+
+                      <q-item clickable @click="openDependencyDialog(task)">
+                        <q-item-section avatar>
+                          <q-icon name="account_tree" size="16px" color="teal" />
+                        </q-item-section>
+                        <q-item-section>Add Dependency</q-item-section>
+                      </q-item>
+
+                      <q-separator />
+
+                      <q-item clickable class="text-negative" @click="confirmDeleteTask(task)">
+                        <q-item-section avatar>
+                          <q-icon name="delete" size="16px" color="negative" />
+                        </q-item-section>
+                        <q-item-section>Delete Task</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </div>
+
+              <!-- Task Title -->
+              <div class="task-card-title ellipsis-2-lines" :title="task.title">
+                {{ task.title }}
+              </div>
+
+              <!-- Task Description (if any) -->
+              <div v-if="task.description" class="task-card-desc ellipsis-2-lines">
+                {{ task.description }}
+              </div>
+
+              <!-- Progress & Effort Bar -->
+              <div class="task-progress-section q-mt-sm">
+                <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
+                  <span class="progress-pct font-bold">{{ Number(task.progress) || 0 }}%</span>
+                  <span class="progress-effort text-grey-6">{{ task.expected_effort || 8 }}h effort</span>
+                </div>
+                <q-linear-progress
+                  rounded
+                  size="5px"
+                  :value="(Number(task.progress) || 0) / 100"
+                  :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
+                  track-color="grey-3"
+                  class="kanban-progress-bar"
+                />
+              </div>
+
+              <div class="card-divider q-my-sm" />
+
+              <!-- Card Bottom Row: Assigned Resources & Deadline -->
+              <div class="task-card-footer row items-center justify-between no-wrap">
+                <!-- Assigned Resources -->
+                <div class="task-resources-wrap row items-center gap-xs">
+                  <template v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0">
+                    <div class="avatar-stack row items-center">
+                      <q-avatar
+                        v-for="rId in task.assigned_resource_ids.slice(0, 3)"
+                        :key="rId"
+                        size="22px"
+                        class="stack-avatar cursor-pointer"
+                        @click="confirmUnassignResource(task, rId)"
+                      >
+                        <span>{{ getResourceName(rId).charAt(0).toUpperCase() }}</span>
+                        <q-tooltip>{{ getResourceName(rId) }} (Click to unassign)</q-tooltip>
+                      </q-avatar>
+
+                      <q-avatar
+                        v-if="task.assigned_resource_ids.length > 3"
+                        size="22px"
+                        class="stack-avatar stack-more"
+                      >
+                        <span>+{{ task.assigned_resource_ids.length - 3 }}</span>
+                        <q-tooltip>
+                          {{ task.assigned_resource_ids.length - 3 }} more assigned
+                        </q-tooltip>
+                      </q-avatar>
+                    </div>
+                  </template>
+                  <span
+                    v-else
+                    class="unassigned-btn cursor-pointer"
+                    @click="openAssignTaskMemberDialog(task.task_id)"
+                  >
+                    <q-icon name="person_add" size="13px" class="q-mr-xs" />
+                    Assign
+                  </span>
+                </div>
+
+                <!-- Deadline Badge -->
+                <div
+                  :class="['task-deadline-tag row items-center gap-xs', { 'deadline-overdue': isTaskOverdue(task) }]"
+                  :title="task.deadline ? `Due on ${formatDate(task.deadline)}` : 'No deadline set'"
+                >
+                  <q-icon name="event" size="13px" />
+                  <span>{{ task.deadline ? formatDate(task.deadline) : 'TBD' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State for Column -->
+            <div v-if="!tasksByStatus[col.id]?.length" class="kanban-col-empty column items-center justify-center">
+              <q-icon :name="col.icon" size="26px" color="grey-4" class="q-mb-xs" />
+              <div class="empty-col-text">No {{ col.title.toLowerCase() }} tasks</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. TABLE / LIST VIEW (Fallback & Detail View) -->
     <q-card v-else flat bordered class="table-card">
       <q-table
         flat
@@ -153,7 +364,7 @@
         :columns="tableColumns"
         row-key="task_id"
         no-data-label="No tasks found matching criteria"
-        :pagination="{ rowsPerPage: 8 }"
+        :pagination="{ rowsPerPage: 10 }"
         class="tasks-table"
       >
         <template #body-cell-title="props">
@@ -283,7 +494,7 @@
       </q-table>
     </q-card>
 
-    <!-- ASSIGN MEMBER TO TASK DIALOG (POST /api/tasks/:id/assign) -->
+    <!-- 6. ASSIGN MEMBER TO TASK DIALOG (POST /api/tasks/:id/assign) -->
     <q-dialog v-model="showAssignTaskMemberDialog">
       <q-card class="dialog-card">
         <q-card-section class="row items-center justify-between q-pb-none">
@@ -370,7 +581,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- ADD TASK DEPENDENCY DIALOG -->
+    <!-- 7. ADD TASK DEPENDENCY DIALOG -->
     <q-dialog v-model="showDependencyDialog">
       <q-card class="dialog-card" style="max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
@@ -474,7 +685,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- CREATE TASK DIALOG -->
+    <!-- 8. CREATE TASK DIALOG -->
     <q-dialog v-model="showCreateDialog">
       <q-card class="dialog-card">
         <q-card-section class="row items-center justify-between q-pb-none">
@@ -580,7 +791,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- EDIT TASK DIALOG -->
+    <!-- 9. EDIT TASK DIALOG -->
     <q-dialog v-model="showEditDialog">
       <q-card class="dialog-card">
         <q-card-section class="row items-center justify-between q-pb-none">
@@ -681,7 +892,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- DELETE TASK CONFIRMATION DIALOG -->
+    <!-- 10. DELETE TASK CONFIRMATION DIALOG -->
     <q-dialog v-model="showDeleteTaskDialog">
       <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
         <q-card-section class="row items-center q-pb-none">
@@ -726,7 +937,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- UNASSIGN TASK RESOURCE DIALOG -->
+    <!-- 11. UNASSIGN TASK RESOURCE DIALOG -->
     <q-dialog v-model="showUnassignDialog">
       <q-card class="dialog-card">
         <q-card-section class="row items-center q-pb-none">
@@ -791,6 +1002,7 @@ import {
 const $q = useQuasar();
 
 const loading = ref(true);
+const viewMode = ref<'board' | 'table'>('board');
 const tasks = ref<Task[]>([]);
 const projects = ref<Project[]>([]);
 const resources = ref<ResourceUser[]>([]);
@@ -809,6 +1021,73 @@ const submitting = ref(false);
 const showDeleteTaskDialog = ref(false);
 const deletingTask = ref(false);
 const taskToDelete = ref<Task | null>(null);
+
+// ----------------------------------------------------
+// KANBAN COLUMN DEFINITION
+// ----------------------------------------------------
+interface KanbanColumn {
+  id: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  title: string;
+  dotColor: string;
+  headerBg: string;
+  borderColor: string;
+  badgeBg: string;
+  badgeColor: string;
+  icon: string;
+}
+
+const KANBAN_COLUMNS: KanbanColumn[] = [
+  {
+    id: 'PENDING',
+    title: 'Pending',
+    dotColor: '#8b6fd8',
+    headerBg: 'rgba(139, 111, 216, 0.08)',
+    borderColor: 'rgba(139, 111, 216, 0.22)',
+    badgeBg: '#f0ecfa',
+    badgeColor: '#6d4ec4',
+    icon: 'hourglass_empty',
+  },
+  {
+    id: 'IN_PROGRESS',
+    title: 'In Progress',
+    dotColor: '#0284c7',
+    headerBg: 'rgba(2, 132, 199, 0.08)',
+    borderColor: 'rgba(2, 132, 199, 0.22)',
+    badgeBg: '#e0f2fe',
+    badgeColor: '#0369a1',
+    icon: 'autorenew',
+  },
+  {
+    id: 'COMPLETED',
+    title: 'Completed',
+    dotColor: '#059669',
+    headerBg: 'rgba(5, 150, 105, 0.08)',
+    borderColor: 'rgba(5, 150, 105, 0.22)',
+    badgeBg: '#ecfdf5',
+    badgeColor: '#047857',
+    icon: 'check_circle',
+  },
+  {
+    id: 'ON_HOLD',
+    title: 'On Hold',
+    dotColor: '#ea580c',
+    headerBg: 'rgba(234, 88, 12, 0.08)',
+    borderColor: 'rgba(234, 88, 12, 0.22)',
+    badgeBg: '#fff7ed',
+    badgeColor: '#c2410c',
+    icon: 'pause_circle',
+  },
+];
+
+function quickCreateInColumn(status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD') {
+  createForm.status = status;
+  showCreateDialog.value = true;
+}
+
+function isTaskOverdue(task: Task): boolean {
+  if (!task.deadline || task.status === 'COMPLETED') return false;
+  return new Date(task.deadline).getTime() < new Date().setHours(0, 0, 0, 0);
+}
 
 function confirmDeleteTask(task: Task) {
   taskToDelete.value = task;
@@ -952,6 +1231,7 @@ const createForm = reactive<{
   start_date: '',
   deadline: '',
 });
+
 const editForm = reactive<{
   title: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
@@ -1064,8 +1344,8 @@ async function loadData() {
     tasks.value = tList;
     projects.value = pList;
     resources.value = rList;
-    if (pList.length > 0) {
-      createForm.project_id = pList[0]!.project_id;
+    if (pList.length > 0 && pList[0]) {
+      createForm.project_id = pList[0].project_id;
     }
   } catch (error) {
     console.error('Failed to fetch tasks/projects/resources from backend:', error);
@@ -1104,6 +1384,25 @@ const filteredTasks = computed(() => {
 
     return matchesSearch && matchesProject && matchesStatus && matchesPriority;
   });
+});
+
+const tasksByStatus = computed(() => {
+  const map: Record<'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD', Task[]> = {
+    PENDING: [],
+    IN_PROGRESS: [],
+    COMPLETED: [],
+    ON_HOLD: [],
+  };
+
+  for (const task of filteredTasks.value) {
+    if (task.status in map) {
+      map[task.status].push(task);
+    } else {
+      map.PENDING.push(task);
+    }
+  }
+
+  return map;
 });
 
 function getProjectName(projectId: number): string {
@@ -1262,7 +1561,7 @@ async function handleCreateTask() {
       title: createForm.title.trim(),
       description: createForm.description || null,
       priority: createForm.priority,
-      status: 'PENDING',
+      status: createForm.status,
       expected_effort: Number(createForm.expected_effort) || 8,
       start_date: createForm.start_date || null,
       deadline: createForm.deadline || null,
@@ -1276,6 +1575,7 @@ async function handleCreateTask() {
     showCreateDialog.value = false;
     createForm.title = '';
     createForm.description = '';
+    createForm.status = 'PENDING';
     void loadData();
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to create task';
@@ -1335,10 +1635,36 @@ async function handleUpdateTask() {
 </script>
 
 <style scoped lang="scss">
+.tasks-page {
+  padding: 20px 28px 36px;
+  background: var(--wo-bg-page, #f8f9fa);
+  min-height: 100vh;
+}
+
+.view-toggle-btn {
+  border: 1px solid var(--wo-border, #e2e8f0);
+  background: var(--wo-bg-card, #ffffff);
+
+  :deep(.q-btn) {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 12px;
+  }
+}
+
+/* ===================================================
+   Filter Toolbar
+   =================================================== */
+.filter-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+}
+
 .filter-section {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 14px;
   align-items: center;
 
@@ -1360,6 +1686,275 @@ async function handleUpdateTask() {
 .filter-section :deep(.q-field__native),
 .filter-section :deep(.q-field__input) {
   font-size: 12px;
+}
+
+/* ===================================================
+   Kanban Board Layout
+   =================================================== */
+.kanban-board-container {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.kanban-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: flex-start;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(4, 300px);
+  }
+}
+
+.kanban-column {
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--col-border, var(--wo-border, #e5e7ec));
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.kanban-col-header {
+  padding: 12px 14px;
+  background: var(--col-tint, #f8fafc);
+  border-bottom: 1px solid var(--col-border, var(--wo-border, #e5e7ec));
+}
+
+.col-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.col-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--wo-text-main, #1e293b);
+  letter-spacing: -0.01em;
+}
+
+.col-count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+.col-add-btn {
+  color: var(--wo-text-muted, #64748b);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--wo-primary, #8b6fd8);
+    background: rgba(139, 111, 216, 0.12);
+  }
+}
+
+.kanban-cards-wrapper {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 480px;
+  max-height: calc(100vh - 330px);
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+  }
+}
+
+/* ===================================================
+   Kanban Task Card
+   =================================================== */
+.kanban-task-card {
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e6e9f0);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 24, 40, 0.08);
+    border-color: rgba(139, 111, 216, 0.35);
+  }
+}
+
+.task-project-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wo-primary, #8b6fd8);
+  background: rgba(139, 111, 216, 0.12);
+  padding: 2px 7px;
+  border-radius: 6px;
+  max-width: 130px;
+}
+
+.task-priority-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  &.priority-low {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
+  }
+
+  &.priority-medium {
+    background: #f5f3ff;
+    color: #6d28d9;
+    border: 1px solid #ede9fe;
+  }
+
+  &.priority-high {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+  }
+
+  &.priority-critical {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fee2e2;
+  }
+}
+
+.task-more-btn {
+  margin: -6px -4px -6px 0;
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.task-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--wo-text-main, #1e293b);
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.task-card-desc {
+  font-size: 12px;
+  color: var(--wo-text-muted, #64748b);
+  line-height: 1.4;
+}
+
+.kanban-progress-bar {
+  border-radius: 4px;
+}
+
+.progress-pct {
+  font-size: 11.5px;
+  color: var(--wo-text-main, #1e293b);
+}
+
+.progress-effort {
+  font-size: 11px;
+}
+
+.card-divider {
+  height: 1px;
+  background: var(--wo-border-subtle, #f1f3f7);
+}
+
+.avatar-stack {
+  display: flex;
+  align-items: center;
+
+  .stack-avatar {
+    margin-left: -5px;
+    border: 1.5px solid var(--wo-bg-card, #ffffff);
+    background: #8b6fd8;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+
+  .stack-more {
+    background: #e2e8f0;
+    color: #475569;
+  }
+}
+
+.unassigned-btn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wo-text-muted, #64748b);
+  background: var(--wo-bg-tag, #f1f5f9);
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: var(--wo-primary, #8b6fd8);
+    background: rgba(139, 111, 216, 0.12);
+  }
+}
+
+.task-deadline-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wo-text-muted, #64748b);
+  background: var(--wo-bg-tag, #f1f5f9);
+  padding: 2px 7px;
+  border-radius: 6px;
+
+  &.deadline-overdue {
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+  }
+}
+
+.kanban-col-empty {
+  min-height: 200px;
+  border: 1.5px dashed var(--wo-border, #e2e8f0);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.5);
+  margin-top: 8px;
+}
+
+.empty-col-text {
+  font-size: 12px;
+  color: var(--wo-text-muted, #94a3b8);
+  font-weight: 500;
+}
+
+/* ===================================================
+   Table / List Mode Styles
+   =================================================== */
+.table-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
 }
 
 .tasks-table :deep(th) {

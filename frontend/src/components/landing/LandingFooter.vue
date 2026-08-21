@@ -1,9 +1,13 @@
 <template>
-  <footer class="landing-footer">
-    <div class="container">
-      <div class="footer-top row q-col-gutter-xl">
-        <!-- Brand Column -->
-        <div class="col-12 col-md-4 brand-column">
+  <footer class="landing-footer-dark">
+    <!-- Ambient glow behind dark footer -->
+    <div class="footer-ambient-glow" />
+
+    <div class="container footer-container">
+      <!-- Top Section: Large CTA & Link Columns -->
+      <div class="footer-top-row row q-col-gutter-xl items-start justify-between">
+        <!-- Left: Brand & Large CTA Heading -->
+        <div class="col-12 col-md-5 brand-cta-col">
           <div class="brand" @click="scrollToTop">
             <div class="brand-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -20,100 +24,119 @@
             <span class="brand-name">TaskFlow</span>
           </div>
 
-          <p class="brand-tagline">
-            A modern project management solution for teams that want to get things done.
+          <h2 class="footer-cta-title">
+            Plan better.<br />
+            Work smarter.<br />
+            Deliver together.
+          </h2>
+
+          <p class="footer-cta-desc">
+            Unlock the full potential of your team with TaskFlow's unified project management,
+            resource scheduling, and progress tracking platform.
           </p>
 
-          <!-- Social Icons -->
-          <div class="social-icons row items-center q-gutter-x-sm">
-            <a href="javascript:void(0)" class="social-link" aria-label="Twitter">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-                />
-              </svg>
-            </a>
-            <a href="javascript:void(0)" class="social-link" aria-label="LinkedIn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.55c-.93 0-1.68.75-1.68 1.68s.75 1.68 1.68 1.68 1.68-.75 1.68-1.68-.75-1.68-1.68-1.68z"
-                />
-              </svg>
-            </a>
-            <a href="javascript:void(0)" class="social-link" aria-label="GitHub">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
-                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                />
-              </svg>
-            </a>
+          <div class="footer-action-btn-row q-pt-sm">
+            <q-btn
+              unelevated
+              no-caps
+              label="Get Started"
+              icon-right="arrow_forward"
+              class="footer-primary-btn"
+              @click="goToSignup"
+            />
           </div>
         </div>
 
-        <!-- Links Columns -->
-        <div class="col-12 col-md-8 links-columns">
+        <!-- Right: Links Columns -->
+        <div class="col-12 col-md-6 links-col">
           <div class="row q-col-gutter-lg">
-            <!-- Product -->
-            <div class="col-6 col-sm-3">
-              <h4 class="column-heading">Product</h4>
-              <ul class="footer-links">
+            <!-- Product Column -->
+            <div class="col-6 col-sm-4">
+              <h4 class="column-title">Product</h4>
+              <ul class="footer-link-list">
                 <li><a href="#features" @click.prevent="scrollTo('features')">Features</a></li>
                 <li>
-                  <a href="#how-it-works" @click.prevent="scrollTo('how-it-works')">How it Works</a>
+                  <a href="#how-it-works" @click.prevent="scrollTo('how-it-works')">How It Works</a>
                 </li>
-                <li><a href="#pricing" @click.prevent="scrollTo('pricing')">Pricing</a></li>
-                <li><a href="javascript:void(0)">Updates</a></li>
+                <li><a href="#for-teams" @click.prevent="scrollTo('for-teams')">For Teams</a></li>
+                <li><a href="#features" @click.prevent="scrollTo('features')">Benefits</a></li>
               </ul>
             </div>
 
-            <!-- Company -->
-            <div class="col-6 col-sm-3">
-              <h4 class="column-heading">Company</h4>
-              <ul class="footer-links">
-                <li><a href="javascript:void(0)">About Us</a></li>
-                <li><a href="javascript:void(0)">Careers</a></li>
-                <li><a href="javascript:void(0)">Blog</a></li>
-                <li><a href="javascript:void(0)">Contact</a></li>
+            <!-- Account Column -->
+            <div class="col-6 col-sm-4">
+              <h4 class="column-title">Account</h4>
+              <ul class="footer-link-list">
+                <li><a href="javascript:void(0)" @click.prevent="goToLogin">Log in</a></li>
+                <li><a href="javascript:void(0)" @click.prevent="goToSignup">Sign up</a></li>
               </ul>
             </div>
 
-            <!-- Resources -->
-            <div class="col-6 col-sm-3">
-              <h4 class="column-heading">Resources</h4>
-              <ul class="footer-links">
+            <!-- Resources / Legal Column -->
+            <div class="col-6 col-sm-4">
+              <h4 class="column-title">Resources</h4>
+              <ul class="footer-link-list">
                 <li><a href="javascript:void(0)">Help Center</a></li>
-                <li><a href="javascript:void(0)">Guides</a></li>
-                <li><a href="javascript:void(0)">API Docs</a></li>
-                <li><a href="javascript:void(0)">Community</a></li>
-              </ul>
-            </div>
-
-            <!-- Legal -->
-            <div class="col-6 col-sm-3">
-              <h4 class="column-heading">Legal</h4>
-              <ul class="footer-links">
+                <li><a href="javascript:void(0)">Support</a></li>
                 <li><a href="javascript:void(0)">Privacy Policy</a></li>
                 <li><a href="javascript:void(0)">Terms of Service</a></li>
-                <li><a href="javascript:void(0)">Cookie Policy</a></li>
               </ul>
             </div>
           </div>
         </div>
       </div>
 
-      <q-separator class="q-my-xl" />
+      <div class="footer-divider-line" />
 
-      <!-- Footer Bottom -->
-      <div class="footer-bottom text-center">
-        <p class="copyright-text">© 2026 TaskFlow. All rights reserved.</p>
+      <!-- Bottom Bar: Brand, Copyright & Social Pills -->
+      <div class="footer-bottom-bar row items-center justify-between q-col-gutter-md">
+        <div class="col-12 col-sm-auto text-center-lt-sm">
+          <p class="copyright-text">© 2026 TaskFlow. All rights reserved.</p>
+        </div>
+
+        <!-- Social Pills Strip matching reference design -->
+        <div class="col-12 col-sm-auto">
+          <div class="social-pills-row row items-center justify-center q-gutter-xs">
+            <a href="javascript:void(0)" class="social-pill-btn" aria-label="Instagram">
+              <span class="pill-dot teal-dot" />
+              <span>Instagram</span>
+            </a>
+            <a href="javascript:void(0)" class="social-pill-btn" aria-label="Facebook">
+              <span class="pill-dot blue-dot" />
+              <span>Facebook</span>
+            </a>
+            <a href="javascript:void(0)" class="social-pill-btn active-brand-pill" aria-label="TaskFlow">
+              <span class="pill-dot purple-dot" />
+              <span>TaskFlow</span>
+            </a>
+            <a href="javascript:void(0)" class="social-pill-btn" aria-label="Twitter">
+              <span class="pill-dot amber-dot" />
+              <span>Twitter</span>
+            </a>
+            <a href="javascript:void(0)" class="social-pill-btn" aria-label="YouTube">
+              <span class="pill-dot pink-dot" />
+              <span>YouTube</span>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+function goToSignup() {
+  void router.push('/signup');
+}
+
+function goToLogin() {
+  void router.push('/login');
+}
+
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -127,10 +150,24 @@ function scrollTo(sectionId: string) {
 </script>
 
 <style scoped lang="scss">
-.landing-footer {
-  background: #ffffff;
-  border-top: 1px solid #f0f2f5;
-  padding: 72px 0 40px 0;
+.landing-footer-dark {
+  background: #0e121b;
+  color: #f1f5f9;
+  position: relative;
+  overflow: hidden;
+  padding: 90px 0 40px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-ambient-glow {
+  position: absolute;
+  top: -100px;
+  right: 15%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 111, 216, 0.15) 0%, rgba(14, 18, 27, 0) 70%);
+  pointer-events: none;
 }
 
 .container {
@@ -144,7 +181,8 @@ function scrollTo(sectionId: string) {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
+  user-select: none;
 }
 
 .brand-icon {
@@ -154,54 +192,56 @@ function scrollTo(sectionId: string) {
 }
 
 .brand-name {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700;
-  color: #181d28;
+  color: #ffffff;
   letter-spacing: -0.02em;
 }
 
-.brand-tagline {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #64748b;
-  margin: 0 0 20px 0;
-  max-width: 300px;
-}
-
-.social-icons {
-  display: flex;
-  gap: 12px;
-}
-
-.social-link {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  text-decoration: none;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f4f0fd;
-    color: #8b6fd8;
-    border-color: #d8b4fe;
-  }
-}
-
-.column-heading {
-  font-size: 14px;
-  font-weight: 700;
-  color: #181d28;
-  letter-spacing: -0.01em;
+.footer-cta-title {
+  font-size: 38px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
   margin: 0 0 16px 0;
 }
 
-.footer-links {
+.footer-cta-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin: 0 0 24px 0;
+  max-width: 440px;
+}
+
+.footer-primary-btn {
+  background: #8b6fd8;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(139, 111, 216, 0.35);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #7554cc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 111, 216, 0.45);
+  }
+}
+
+.column-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 18px 0;
+}
+
+.footer-link-list {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -210,7 +250,7 @@ function scrollTo(sectionId: string) {
   gap: 12px;
 
   li a {
-    color: #64748b;
+    color: #94a3b8;
     font-size: 14px;
     text-decoration: none;
     transition: color 0.15s ease;
@@ -221,9 +261,87 @@ function scrollTo(sectionId: string) {
   }
 }
 
+.footer-divider-line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 64px 0 28px 0;
+}
+
 .copyright-text {
-  font-size: 13.5px;
-  color: #94a3b8;
+  font-size: 13px;
+  color: #64748b;
   margin: 0;
+}
+
+/* Social Pills Styling */
+.social-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.social-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #181d28;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #232a3b;
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+
+  &.active-brand-pill {
+    background: rgba(139, 111, 216, 0.15);
+    border-color: rgba(139, 111, 216, 0.35);
+    color: #f1f5f9;
+  }
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  &.teal-dot {
+    background: #14b8a6;
+  }
+  &.blue-dot {
+    background: #3b82f6;
+  }
+  &.purple-dot {
+    background: #8b6fd8;
+  }
+  &.amber-dot {
+    background: #f59e0b;
+  }
+  &.pink-dot {
+    background: #ec4899;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-footer-dark {
+    padding: 60px 0 32px 0;
+  }
+  .footer-cta-title {
+    font-size: 28px;
+  }
+  .footer-divider-line {
+    margin: 40px 0 24px 0;
+  }
+  .text-center-lt-sm {
+    text-align: center;
+  }
 }
 </style>

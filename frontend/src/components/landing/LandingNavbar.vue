@@ -5,8 +5,8 @@
       <div class="brand" @click="goToRoot">
         <div class="brand-icon">
           <svg
-            width="22"
-            height="22"
+            width="24"
+            height="24"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -28,7 +28,7 @@
       <nav class="nav-links gt-sm">
         <a href="#features" class="nav-link" @click.prevent="scrollTo('features')">Features</a>
         <a href="#how-it-works" class="nav-link" @click.prevent="scrollTo('how-it-works')"
-          >How it Works</a
+          >How It Works</a
         >
         <a href="#for-teams" class="nav-link" @click.prevent="scrollTo('for-teams')">For Teams</a>
         <a href="#features" class="nav-link" @click.prevent="scrollTo('features')">Benefits</a>
@@ -38,7 +38,14 @@
       <!-- Auth Actions -->
       <div class="nav-actions gt-sm">
         <q-btn flat no-caps label="Log in" class="login-btn" @click="goToLogin" />
-        <q-btn unelevated no-caps label="Sign up" class="signup-btn" @click="goToSignup" />
+        <q-btn
+          unelevated
+          no-caps
+          label="Get Started"
+          icon-right="arrow_forward"
+          class="signup-btn"
+          @click="goToSignup"
+        />
       </div>
 
       <!-- Mobile Menu Toggle Button -->
@@ -61,7 +68,7 @@
         <div class="row items-center justify-between q-pb-sm">
           <div class="brand" @click="goToRoot">
             <div class="brand-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <rect width="24" height="24" rx="6" fill="#8B6FD8" />
                 <path
                   d="M7 12.5L10.5 16L17 8.5"
@@ -92,7 +99,7 @@
             flat
             align="left"
             no-caps
-            label="How it Works"
+            label="How It Works"
             class="mobile-nav-link"
             @click="scrollToAndClose('how-it-works')"
           />
@@ -103,6 +110,14 @@
             label="For Teams"
             class="mobile-nav-link"
             @click="scrollToAndClose('for-teams')"
+          />
+          <q-btn
+            flat
+            align="left"
+            no-caps
+            label="Benefits"
+            class="mobile-nav-link"
+            @click="scrollToAndClose('features')"
           />
           <q-btn
             flat
@@ -128,7 +143,8 @@
           <q-btn
             unelevated
             no-caps
-            label="Sign up"
+            label="Get Started"
+            icon-right="arrow_forward"
             color="primary"
             class="full-width signup-btn"
             @click="goToSignup"
@@ -176,10 +192,10 @@ function scrollToAndClose(sectionId: string) {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(230, 232, 237, 0.7);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(230, 232, 237, 0.8);
   transition: all 0.2s ease;
 }
 
@@ -208,20 +224,19 @@ function scrollToAndClose(sectionId: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
 }
 
 .brand-name {
-  font-size: 20px;
-  font-weight: 700;
-  color: #181d28;
-  letter-spacing: -0.02em;
+  font-size: 21px;
+  font-weight: 800;
+  color: #121620;
+  letter-spacing: -0.025em;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 32px;
 }
 
 .nav-link {
@@ -240,7 +255,7 @@ function scrollToAndClose(sectionId: string) {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .login-btn {
@@ -262,22 +277,23 @@ function scrollToAndClose(sectionId: string) {
   color: #ffffff;
   font-size: 14.5px;
   font-weight: 600;
-  padding: 8px 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(139, 111, 216, 0.25);
+  padding: 9px 22px;
+  border-radius: 9999px;
+  box-shadow: 0 3px 12px rgba(139, 111, 216, 0.3);
   transition: all 0.2s ease;
 
   &:hover {
     background: #7554cc;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 111, 216, 0.35);
+    box-shadow: 0 5px 16px rgba(139, 111, 216, 0.4);
   }
 }
 
 .mobile-nav-card {
   width: 100%;
   max-width: 500px;
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
 .mobile-nav-link {

@@ -1,4 +1,5 @@
 :root {
+  --font-primary: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --wo-primary: #8b6fd8;
   --wo-primary-dark: #7554cc;
   --wo-primary-light: #eee9fb;
@@ -34,20 +35,40 @@ body.body--dark {
   --wo-header-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
+body,
+html,
+#q-app,
+.q-layout,
+.q-page-container,
+.q-page,
+.q-header,
+.q-drawer,
+.q-btn,
+.q-card,
+.q-table,
+.q-dialog,
+.q-field,
+.q-field__native,
+.q-field__input,
+.q-field__label,
+.q-menu,
+.q-tooltip,
+.q-chip,
+.q-badge,
+.q-item,
+input,
+button,
+textarea,
+select {
+  font-family: var(--font-primary, 'Manrope', sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   margin: 0;
   background: var(--wo-bg-page);
   color: var(--wo-text-main);
-  font-family:
-    'Plus Jakarta Sans',
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 .q-layout,
@@ -59,7 +80,6 @@ body {
 .q-btn {
   text-transform: none;
   letter-spacing: -0.01em;
-  font-family: inherit;
 }
 
 .dashboard-card {

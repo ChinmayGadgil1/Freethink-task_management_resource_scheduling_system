@@ -23,7 +23,7 @@ const authStore = useAuthStore();
 onMounted(() => {
   if (authStore.user) {
     if (authStore.user.role === 'PROJECT_MANAGER') {
-      void router.replace('/app/pm-dashboard');
+      void router.replace('/pm/projects');
       return;
     } else if (authStore.user.role === 'RESOURCE') {
       void router.replace('/app/resource-dashboard');

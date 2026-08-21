@@ -73,7 +73,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'reports',
-        redirect: '/pm/dashboard',
+        redirect: '/pm/projects',
       },
     ],
   },

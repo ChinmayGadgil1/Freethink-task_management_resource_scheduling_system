@@ -6,7 +6,6 @@
         <template #separator>
           <q-icon size="14px" name="chevron_right" color="grey-5" />
         </template>
-        <q-breadcrumbs-el label="Home" icon="home" to="/pm/dashboard" />
         <q-breadcrumbs-el label="Projects" icon="folder" to="/pm/projects" />
         <q-breadcrumbs-el
           :label="project.name || 'Project Details'"

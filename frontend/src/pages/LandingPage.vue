@@ -8,17 +8,17 @@
       <!-- Hero Section with UI Mockup -->
       <HeroSection />
 
-      <!-- Features Section (3x2 grid) -->
-      <FeaturesSection />
+      <!-- Horizontal Announcement / Promotional Strip -->
+      <AnnouncementStrip />
 
-      <!-- Mid-Page CTA Banner ("Built for teams. Designed for productivity.") -->
-      <LandingCTA />
+      <!-- Alternating Product Showcase Sections -->
+      <ProductShowcaseSection />
 
-      <!-- How It Works Section -->
-      <HowItWorksSection />
+      <!-- Role-based Clarity & Testimonial Section -->
+      <RoleTestimonialSection />
     </main>
 
-    <!-- Footer -->
+    <!-- Large Dark CTA & Footer -->
     <LandingFooter />
   </div>
 </template>
@@ -26,9 +26,9 @@
 <script setup lang="ts">
 import LandingNavbar from '@/components/landing/LandingNavbar.vue';
 import HeroSection from '@/components/landing/HeroSection.vue';
-import FeaturesSection from '@/components/landing/FeaturesSection.vue';
-import LandingCTA from '@/components/landing/LandingCTA.vue';
-import HowItWorksSection from '@/components/landing/HowItWorksSection.vue';
+import AnnouncementStrip from '@/components/landing/AnnouncementStrip.vue';
+import ProductShowcaseSection from '@/components/landing/ProductShowcaseSection.vue';
+import RoleTestimonialSection from '@/components/landing/RoleTestimonialSection.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 </script>
 
@@ -36,10 +36,9 @@ import LandingFooter from '@/components/landing/LandingFooter.vue';
 .landing-page-root {
   min-height: 100vh;
   background-color: #ffffff;
-  color: #181d28;
+  color: #121620;
   font-family:
-    'Plus Jakarta Sans',
-    Inter,
+    'Manrope',
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
