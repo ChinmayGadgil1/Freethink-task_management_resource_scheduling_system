@@ -46,7 +46,10 @@
       </div>
 
       <div class="text-caption text-grey-6 text-center q-mt-xs" style="max-width: 380px">
-        {{ emptySubtitle || 'Tasks will appear on the timeline once they have scheduling information.' }}
+        {{
+          emptySubtitle ||
+          'Tasks will appear on the timeline once they have scheduling information.'
+        }}
       </div>
     </q-card-section>
 

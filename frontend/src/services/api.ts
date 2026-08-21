@@ -503,3 +503,107 @@ export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
 
   return data.logs ?? [];
 }
+
+export async function deleteProjectApi(projectId: number): Promise<{ message?: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete project');
+  }
+
+  return data;
+}
+
+export async function deleteTaskApi(taskId: number): Promise<{ message?: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete task');
+  }
+
+  return data;
+}
+
+export async function unassignTaskResourceApi(
+  taskId: number,
+  userId: number,
+): Promise<{ message?: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/assignees/${userId}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to unassign resource from task');
+  }
+
+  return data;
+}
+
+export async function removeProjectMemberApi(
+  projectId: number,
+  userId: number,
+): Promise<{ message?: string }> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/projects/${projectId}/members/${userId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to remove member from project');
+  }
+
+  return data;
+}
+
+export async function removeTaskDependencyApi(
+  taskId: number,
+  predecessorTaskId: number,
+): Promise<{ message?: string }> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/tasks/${taskId}/dependencies/${predecessorTaskId}`,
+    {
+      method: 'DELETE',
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to remove task dependency');
+  }
+
+  return data;
+}
+
+export interface ProgressFeedLog extends WorkLog {
+  task_title?: string;
+  project_name?: string;
+}
+
+export async function getGlobalProgressFeedApi(limit = 50): Promise<ProgressFeedLog[]> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/projects/feed/progress?limit=${limit}`,
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch global progress feed');
+  }
+
+  return data.logs ?? [];
+}

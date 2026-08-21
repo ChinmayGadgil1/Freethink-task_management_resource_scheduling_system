@@ -113,7 +113,7 @@
           <!-- SEARCH & FILTER BAR -->
           <div class="filter-card q-pa-sm q-mb-md">
             <div class="row items-center q-col-gutter-sm">
-              <div class="col-12 col-md-5">
+              <div class="col-12 col-md-4">
                 <q-input
                   v-model="searchQuery"
                   outlined
@@ -128,7 +128,21 @@
                 </q-input>
               </div>
 
-              <div class="col-12 col-md-4">
+              <div class="col-12 col-md-3">
+                <q-select
+                  v-model="projectFilter"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  :options="projectFilterOptions"
+                  label="Filter by Project"
+                  class="filter-select"
+                  @update:model-value="loadData"
+                />
+              </div>
+
+              <div class="col-12 col-md-3">
                 <q-select
                   v-model="statusFilter"
                   outlined
@@ -141,7 +155,7 @@
                 />
               </div>
 
-              <div class="col-12 col-md-3 row justify-end items-center">
+              <div class="col-12 col-md-2 row justify-end items-center">
                 <q-btn-toggle
                   v-model="viewMode"
                   unelevated
@@ -464,12 +478,15 @@
                     :key="rId"
                     dense
                     square
+                    removable
                     class="resource-chip"
+                    @remove="confirmUnassignTaskResource(props.row, rId)"
                   >
                     <q-avatar size="16px" class="avatar-purple q-mr-xs">
                       {{ getResourceName(rId).charAt(0).toUpperCase() }}
                     </q-avatar>
                     {{ getResourceName(rId) }}
+                    <q-tooltip>Click X to unassign this resource</q-tooltip>
                   </q-chip>
                 </div>
                 <span v-else class="text-caption text-grey-5">Unassigned</span>
@@ -626,6 +643,48 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <!-- CONFIRM UNASSIGN TASK RESOURCE DIALOG -->
+    <q-dialog v-model="showUnassignTaskDialog">
+      <q-card class="dialog-card">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="person_remove"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div class="text-subtitle1 text-weight-bold text-dark">Unassign Resource from Task</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to remove
+          <strong>{{ unassignTaskTarget.resourceName }}</strong> from the task
+          <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Unassign"
+            class="action-btn-primary"
+            :loading="unassigningTask"
+            @click="handleExecuteUnassignTask"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -641,6 +700,7 @@ import {
   getResourcesApi,
   getResourceProjectsApi,
   getTasksApi,
+  unassignTaskResourceApi,
   type Project,
   type ResourceUser,
   type Task,
@@ -652,6 +712,7 @@ const router = useRouter();
 const loading = ref(true);
 const searchQuery = ref('');
 const statusFilter = ref('ALL');
+const projectFilter = ref<number | 'ALL'>('ALL');
 const mainTab = ref<'resources' | 'tasks'>('resources');
 const viewMode = ref<'grid' | 'table'>('grid');
 
@@ -666,6 +727,45 @@ const submitting = ref(false);
 
 const showProjectMemberDialog = ref(false);
 const submittingMember = ref(false);
+
+const showUnassignTaskDialog = ref(false);
+const unassigningTask = ref(false);
+const unassignTaskTarget = reactive({
+  taskId: 0,
+  taskTitle: '',
+  resourceId: 0,
+  resourceName: '',
+});
+
+function confirmUnassignTaskResource(task: Task, rId: number) {
+  unassignTaskTarget.taskId = task.task_id;
+  unassignTaskTarget.taskTitle = task.title;
+  unassignTaskTarget.resourceId = rId;
+  unassignTaskTarget.resourceName = getResourceName(rId);
+  showUnassignTaskDialog.value = true;
+}
+
+async function handleExecuteUnassignTask() {
+  if (!unassignTaskTarget.taskId || !unassignTaskTarget.resourceId) return;
+
+  unassigningTask.value = true;
+  try {
+    await unassignTaskResourceApi(unassignTaskTarget.taskId, unassignTaskTarget.resourceId);
+    $q.notify({
+      type: 'positive',
+      message: `Unassigned ${unassignTaskTarget.resourceName} successfully`,
+    });
+    showUnassignTaskDialog.value = false;
+    await loadData();
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to unassign resource',
+    });
+  } finally {
+    unassigningTask.value = false;
+  }
+}
 
 const projectMemberForm = reactive({
   project_id: null as number | null,
@@ -692,6 +792,14 @@ const statusOptions = [
   { label: 'High Load (75-100%)', value: 'HIGH_LOAD' },
   { label: 'Overallocated (>100%)', value: 'OVERALLOCATED' },
 ];
+
+const projectFilterOptions = computed(() => [
+  { label: 'All Projects', value: 'ALL' },
+  ...projectList.value.map((p) => ({
+    label: p.name,
+    value: p.project_id,
+  })),
+]);
 
 interface ResourceAggregate {
   resource_id: number;
@@ -747,10 +855,12 @@ function getProjectName(id: number): string {
 async function loadData() {
   loading.value = true;
   try {
+    const selectedProjectId =
+      projectFilter.value === 'ALL' ? undefined : Number(projectFilter.value);
     const [projects, tasks, resources] = await Promise.all([
       getProjectsApi(),
-      getTasksApi(),
-      getResourcesApi(),
+      getTasksApi(selectedProjectId),
+      getResourcesApi(selectedProjectId),
     ]);
     projectList.value = projects;
     taskList.value = tasks;
@@ -765,7 +875,7 @@ async function loadData() {
     });
     resourceProjectsMap.value = pMap;
 
-    if (projects.length > 0) {
+    if (projects.length > 0 && !projectMemberForm.project_id) {
       projectMemberForm.project_id = projects[0]!.project_id;
     }
   } catch (error) {

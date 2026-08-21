@@ -1,9 +1,6 @@
 <template>
   <div class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md" style="width: 100%; max-width: 540px">
-    <q-card
-      elevated
-      class="auth-card q-pa-xl"
-    >
+    <q-card elevated class="auth-card q-pa-xl">
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold auth-title">Login</div>
@@ -29,9 +26,7 @@
             label="Enter Username or Email-id"
             type="text"
             class="auth-input"
-            :rules="[
-              (val) => !!val || 'Username or Email is required',
-            ]"
+            :rules="[(val) => !!val || 'Username or Email is required']"
           >
             <template #prepend>
               <q-icon name="person_outline" class="auth-icon" />

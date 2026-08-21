@@ -335,7 +335,11 @@
               dense
               multiple
               clearable
-              :display-value="newTaskForm.assigned_resource_ids.length ? `${newTaskForm.assigned_resource_ids.length} selected` : ''"
+              :display-value="
+                newTaskForm.assigned_resource_ids.length
+                  ? `${newTaskForm.assigned_resource_ids.length} selected`
+                  : ''
+              "
               emit-value
               map-options
             >

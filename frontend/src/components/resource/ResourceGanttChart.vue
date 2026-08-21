@@ -17,4 +17,3 @@ defineProps<{
   tasks: GanttTask[];
 }>();
 </script>
-

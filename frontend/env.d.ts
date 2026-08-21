@@ -41,4 +41,3 @@ declare module 'pinia' {
     persist?: boolean | PersistenceOptions | PersistenceOptions[];
   }
 }
-

@@ -211,7 +211,6 @@
             }}</q-tooltip>
           </q-btn>
 
-
           <!-- Real authenticated user -->
           <div v-if="user" class="profile">
             <q-avatar size="34px" class="profile-avatar">
@@ -551,7 +550,6 @@ function handleLogout() {
   width: 34px;
   height: 34px;
 }
-
 
 .profile {
   display: flex;

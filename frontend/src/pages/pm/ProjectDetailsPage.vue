@@ -190,6 +190,13 @@
                     </q-item-section>
                     <q-item-section class="text-positive">Mark Complete</q-item-section>
                   </q-item>
+                  <q-separator />
+                  <q-item clickable class="text-negative" @click="confirmDeleteProject">
+                    <q-item-section avatar>
+                      <q-icon name="delete" size="18px" color="negative" />
+                    </q-item-section>
+                    <q-item-section>Delete Project</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-btn>
@@ -664,14 +671,19 @@
                 :key="member.id"
                 dense
                 square
+                removable
                 color="purple-1"
                 text-color="deep-purple-9"
                 class="q-ma-none q-mr-xs"
+                @remove="confirmUnassignTaskResource(props.row, member.id, member.name)"
               >
                 <q-avatar size="18px" color="primary" text-color="white">
                   {{ member.name.charAt(0).toUpperCase() }}
                 </q-avatar>
-                <span class="q-ml-xs text-weight-medium" style="font-size: 11px">{{ member.name }}</span>
+                <span class="q-ml-xs text-weight-medium" style="font-size: 11px">{{
+                  member.name
+                }}</span>
+                <q-tooltip>Click X to unassign {{ member.name }}</q-tooltip>
               </q-chip>
             </div>
             <div v-else class="assignee-cell">
@@ -756,6 +768,13 @@
                       {{ props.row.status === 'COMPLETED' ? 'Mark Incomplete' : 'Mark Complete' }}
                     </q-item-section>
                   </q-item>
+                  <q-separator />
+                  <q-item clickable class="text-negative" @click="confirmDeleteTask(props.row)">
+                    <q-item-section avatar>
+                      <q-icon name="delete" size="18px" color="negative" />
+                    </q-item-section>
+                    <q-item-section>Delete Task</q-item-section>
+                  </q-item>
                 </q-list>
               </q-menu>
             </q-btn>
@@ -818,6 +837,18 @@
                   />
                   <span class="member-cap-text">{{ member.capacity }}% capacity</span>
                 </div>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="person_remove"
+                  color="grey-6"
+                  size="sm"
+                  class="q-ml-xs"
+                  @click="confirmRemoveProjectMember(member)"
+                >
+                  <q-tooltip>Remove member from project</q-tooltip>
+                </q-btn>
               </q-item-section>
             </q-item>
           </q-list>
@@ -953,7 +984,11 @@
                 dense
                 multiple
                 clearable
-                :display-value="newTaskForm.assigned_resources.length ? `${newTaskForm.assigned_resources.length} selected` : ''"
+                :display-value="
+                  newTaskForm.assigned_resources.length
+                    ? `${newTaskForm.assigned_resources.length} selected`
+                    : ''
+                "
                 label="Assign Member(s)"
                 :options="createTaskAssigneeOptions"
                 emit-value
@@ -1010,13 +1045,19 @@
               dense
               multiple
               clearable
-              :display-value="selectedPredecessorTaskIds.length ? `${selectedPredecessorTaskIds.length} selected` : ''"
+              :display-value="
+                selectedPredecessorTaskIds.length
+                  ? `${selectedPredecessorTaskIds.length} selected`
+                  : ''
+              "
               label="Depends On Predecessor(s)"
               hint="The selected task will wait for these predecessor(s)."
               :options="dependencyPredecessorOptions"
               emit-value
               map-options
-              :rules="[(val) => (val && val.length > 0) || 'At least one predecessor task is required']"
+              :rules="[
+                (val) => (val && val.length > 0) || 'At least one predecessor task is required',
+              ]"
             >
               <template #option="{ itemProps, opt, selected, toggleOption }">
                 <q-item v-bind="itemProps" :disable="opt.alreadyDependent">
@@ -1032,7 +1073,12 @@
                     <q-icon name="account_tree" color="primary" size="18px" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-grey-6': opt.alreadyDependent, 'text-weight-medium': !opt.alreadyDependent }">
+                    <q-item-label
+                      :class="{
+                        'text-grey-6': opt.alreadyDependent,
+                        'text-weight-medium': !opt.alreadyDependent,
+                      }"
+                    >
                       {{ opt.label }}
                     </q-item-label>
                   </q-item-section>
@@ -1254,21 +1300,197 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- DELETE PROJECT CONFIRMATION DIALOG -->
+    <q-dialog v-model="showDeleteProjectDialog">
+      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="delete_forever"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div>
+            <div class="text-subtitle1 text-weight-bold text-dark">Delete Project</div>
+            <div class="text-caption text-grey-6">This action cannot be undone</div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to delete project <strong>"{{ project.name }}"</strong>? All
+          associated tasks, dependencies, and team assignments will be permanently removed.
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Delete Project"
+            class="action-btn-primary"
+            :loading="deletingProject"
+            @click="handleExecuteDeleteProject"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- DELETE TASK CONFIRMATION DIALOG -->
+    <q-dialog v-model="showDeleteTaskDialog">
+      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="delete_forever"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div>
+            <div class="text-subtitle1 text-weight-bold text-dark">Delete Task</div>
+            <div class="text-caption text-grey-6">This action cannot be undone</div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>? All
+          associated dependencies and work logs will be removed.
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Delete Task"
+            class="action-btn-primary"
+            :loading="deletingTask"
+            @click="handleExecuteDeleteTask"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- UNASSIGN TASK RESOURCE DIALOG -->
+    <q-dialog v-model="showUnassignTaskDialog">
+      <q-card class="dialog-card">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="person_remove"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div class="text-subtitle1 text-weight-bold text-dark">Unassign Resource from Task</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to remove
+          <strong>{{ unassignTaskTarget.resourceName }}</strong> from task
+          <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Unassign"
+            class="action-btn-primary"
+            :loading="unassigningTask"
+            @click="handleExecuteUnassignTask"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- REMOVE PROJECT MEMBER DIALOG -->
+    <q-dialog v-model="showRemoveMemberDialog">
+      <q-card class="dialog-card">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="person_remove"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div class="text-subtitle1 text-weight-bold text-dark">Remove Member from Project</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to remove <strong>{{ memberToRemove?.name }}</strong> from this
+          project?
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Remove Member"
+            class="action-btn-primary"
+            :loading="removingMember"
+            @click="handleExecuteRemoveMember"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import {
   createTaskApi,
+  deleteProjectApi,
+  deleteTaskApi,
+  getGlobalProgressFeedApi,
   getProjectByIdApi,
+  getResourcesApi,
+  getTasksApi,
+  removeProjectMemberApi,
+  unassignTaskResourceApi,
   updateProjectApi,
   updateTaskApi,
-  getTasksApi,
-  getResourcesApi,
   assignProjectMemberApi,
   addTaskDependencyApi,
   type CreateTaskPayload,
@@ -1282,6 +1504,7 @@ import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 
 const projectIdParam = computed(() => {
@@ -1306,6 +1529,26 @@ const projectMembersResources = ref<ResourceUser[]>([]);
 const showAddMemberDialog = ref(false);
 const selectedMemberToAdd = ref<number | null>(null);
 const addingMember = ref(false);
+
+const showDeleteProjectDialog = ref(false);
+const deletingProject = ref(false);
+
+const showDeleteTaskDialog = ref(false);
+const deletingTask = ref(false);
+const taskToDelete = ref<Task | null>(null);
+
+const showUnassignTaskDialog = ref(false);
+const unassigningTask = ref(false);
+const unassignTaskTarget = reactive({
+  taskId: 0,
+  taskTitle: '',
+  resourceId: 0,
+  resourceName: '',
+});
+
+const showRemoveMemberDialog = ref(false);
+const removingMember = ref(false);
+const memberToRemove = ref<TeamMember | null>(null);
 
 const showDependencyDialog = ref(false);
 const selectedDependencyTaskId = ref<number | null>(null);
@@ -1844,7 +2087,40 @@ function formatRelativeTime(date: string | undefined): string {
   return `${Math.floor(days / 30)} month${Math.floor(days / 30) === 1 ? '' : 's'} ago`;
 }
 
-function updateActivityLogs() {
+async function updateActivityLogs() {
+  try {
+    const feedLogs = await getGlobalProgressFeedApi(50).catch(() => []);
+    const projectTaskIds = new Set(tasks.value.map((t) => t.task_id));
+    const projectLogs = feedLogs.filter(
+      (log) =>
+        (log.task_id && projectTaskIds.has(log.task_id)) ||
+        (log.project_name &&
+          project.name &&
+          log.project_name.toLowerCase() === project.name.toLowerCase()),
+    );
+
+    if (projectLogs.length > 0) {
+      activityLogs.value = projectLogs.slice(0, 10).map((log) => {
+        const isCompleted = log.status === 'COMPLETED';
+        let detail = `Logged ${log.hours_logged}h (${log.progress_logged}% progress) on "${log.task_title || 'Task'}": ${log.notes}`;
+        if (log.blockers) {
+          detail += ` [Blocker: ${log.blockers}]`;
+        }
+        return {
+          id: log.log_id,
+          user: log.author_name || currentPmName.value,
+          message: detail,
+          time: formatRelativeTime(log.created_at || log.log_date),
+          type: isCompleted ? 'complete' : 'update',
+          icon: isCompleted ? 'check_circle' : 'edit_note',
+        };
+      });
+      return;
+    }
+  } catch (error) {
+    console.warn('Failed to load global progress feed:', error);
+  }
+
   const records = tasks.value
     .map((task) => ({
       task,
@@ -1856,7 +2132,7 @@ function updateActivityLogs() {
       const bTime = new Date(b.timestamp ?? 0).getTime();
       return bTime - aTime;
     })
-    .slice(0, 4);
+    .slice(0, 5);
 
   const logs: ActivityLog[] = records.map(({ task, timestamp }) => {
     const assignee = getAssigneeName(task);
@@ -1891,6 +2167,116 @@ function updateActivityLogs() {
   activityLogs.value = logs;
 }
 
+function confirmDeleteProject() {
+  showDeleteProjectDialog.value = true;
+}
+
+async function handleExecuteDeleteProject() {
+  deletingProject.value = true;
+  try {
+    await deleteProjectApi(projectIdParam.value);
+    $q.notify({
+      type: 'positive',
+      message: `Project "${project.name}" deleted successfully`,
+    });
+    showDeleteProjectDialog.value = false;
+    void router.push('/pm/projects');
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to delete project',
+    });
+  } finally {
+    deletingProject.value = false;
+  }
+}
+
+function confirmDeleteTask(task: Task) {
+  taskToDelete.value = task;
+  showDeleteTaskDialog.value = true;
+}
+
+async function handleExecuteDeleteTask() {
+  if (!taskToDelete.value) return;
+
+  deletingTask.value = true;
+  try {
+    await deleteTaskApi(taskToDelete.value.task_id);
+    $q.notify({
+      type: 'positive',
+      message: `Task "${taskToDelete.value.title}" deleted successfully`,
+    });
+    showDeleteTaskDialog.value = false;
+    taskToDelete.value = null;
+    await refreshData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to delete task',
+    });
+  } finally {
+    deletingTask.value = false;
+  }
+}
+
+function confirmUnassignTaskResource(task: Task, rId: number, rName: string) {
+  unassignTaskTarget.taskId = task.task_id;
+  unassignTaskTarget.taskTitle = task.title;
+  unassignTaskTarget.resourceId = rId;
+  unassignTaskTarget.resourceName = rName;
+  showUnassignTaskDialog.value = true;
+}
+
+async function handleExecuteUnassignTask() {
+  if (!unassignTaskTarget.taskId || !unassignTaskTarget.resourceId) return;
+
+  unassigningTask.value = true;
+  try {
+    await unassignTaskResourceApi(unassignTaskTarget.taskId, unassignTaskTarget.resourceId);
+    $q.notify({
+      type: 'positive',
+      message: `Unassigned ${unassignTaskTarget.resourceName} successfully`,
+    });
+    showUnassignTaskDialog.value = false;
+    await refreshData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to unassign resource',
+    });
+  } finally {
+    unassigningTask.value = false;
+  }
+}
+
+function confirmRemoveProjectMember(member: TeamMember) {
+  memberToRemove.value = member;
+  showRemoveMemberDialog.value = true;
+}
+
+async function handleExecuteRemoveMember() {
+  if (!memberToRemove.value) return;
+
+  removingMember.value = true;
+  try {
+    await removeProjectMemberApi(projectIdParam.value, memberToRemove.value.id);
+    $q.notify({
+      type: 'positive',
+      message: `Removed ${memberToRemove.value.name} from project successfully`,
+    });
+    showRemoveMemberDialog.value = false;
+    memberToRemove.value = null;
+    await refreshData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to remove member from project',
+    });
+  } finally {
+    removingMember.value = false;
+  }
+}
+
 async function loadProjectTeamMembers() {
   try {
     const [fetchedProjectMembers, fetchedAllResources] = await Promise.all([
@@ -1918,7 +2304,7 @@ async function loadProjectTeamMembers() {
   } catch (error) {
     console.warn('Failed to load team resources from API:', error);
   } finally {
-    updateActivityLogs();
+    void updateActivityLogs();
   }
 }
 
@@ -1972,6 +2358,7 @@ async function handleAddProjectMember() {
 
 async function refreshData() {
   await Promise.all([loadProjectDetails(), loadProjectTasks(), loadProjectTeamMembers()]);
+  await updateActivityLogs();
   $q.notify({
     type: 'positive',
     message: 'Project details refreshed',
@@ -2053,7 +2440,7 @@ async function handleCreateTask() {
       tasks.value.unshift(created);
       await loadProjectTeamMembers();
       updateDerivedMilestones();
-      updateActivityLogs();
+      void updateActivityLogs();
     }
 
     // Add activity log
@@ -2150,7 +2537,7 @@ async function saveQuickUpdate() {
 
     Object.assign(selectedTaskForUpdate.value, updated);
     updateDerivedMilestones();
-    updateActivityLogs();
+    void updateActivityLogs();
 
     $q.notify({
       type: 'positive',
@@ -2182,7 +2569,7 @@ async function toggleTaskComplete(task: Task) {
     // changes are immediately reflected in the PM dashboard.
     await loadProjectTasks();
 
-    updateActivityLogs();
+    void updateActivityLogs();
     $q.notify({
       type: 'positive',
       message: `Task ${nextStatus === 'COMPLETED' ? 'marked as completed' : 'reopened'}`,
@@ -2219,7 +2606,7 @@ async function markProjectComplete() {
     );
 
     updateDerivedMilestones();
-    updateActivityLogs();
+    void updateActivityLogs();
     $q.notify({
       type: 'positive',
       message: 'Project and all deliverables marked as completed',
@@ -2241,10 +2628,9 @@ function exportProjectSummary() {
 }
 
 onMounted(() => {
-  void loadProjectDetails();
   void (async () => {
-    await loadProjectTasks();
-    await loadProjectTeamMembers();
+    await Promise.all([loadProjectDetails(), loadProjectTasks(), loadProjectTeamMembers()]);
+    await updateActivityLogs();
   })();
 });
 </script>

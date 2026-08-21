@@ -148,7 +148,9 @@
       <q-card-section class="row items-center justify-between q-pb-sm">
         <div>
           <div class="text-subtitle1 text-weight-bold text-dark">Schedule Breakdown</div>
-          <div class="text-caption text-grey-6">Detailed timeline information for all filtered tasks</div>
+          <div class="text-caption text-grey-6">
+            Detailed timeline information for all filtered tasks
+          </div>
         </div>
 
         <q-chip dense square class="project-badge text-weight-bold">
@@ -171,7 +173,11 @@
               <div class="task-cell-title ellipsis" :title="props.row.title">
                 {{ props.row.title }}
               </div>
-              <div v-if="props.row.description" class="task-cell-desc ellipsis" :title="props.row.description">
+              <div
+                v-if="props.row.description"
+                class="task-cell-desc ellipsis"
+                :title="props.row.description"
+              >
                 {{ props.row.description }}
               </div>
             </div>
@@ -189,11 +195,7 @@
 
         <template #body-cell-priority="props">
           <q-td :props="props">
-            <q-chip
-              dense
-              square
-              :class="['priority-chip', getPriorityClass(props.row.priority)]"
-            >
+            <q-chip dense square :class="['priority-chip', getPriorityClass(props.row.priority)]">
               {{ props.row.priority }}
             </q-chip>
           </q-td>
@@ -201,11 +203,7 @@
 
         <template #body-cell-status="props">
           <q-td :props="props">
-            <q-chip
-              dense
-              square
-              :class="['status-chip', getTaskStatusClass(props.row.status)]"
-            >
+            <q-chip dense square :class="['status-chip', getTaskStatusClass(props.row.status)]">
               {{ formatStatus(props.row.status) }}
             </q-chip>
           </q-td>
@@ -226,13 +224,21 @@
             <div class="progress-cell-wrapper">
               <div class="row justify-between progress-label-row">
                 <span class="text-weight-bold">{{ Number(props.row.progress) || 0 }}%</span>
-                <span v-if="isTaskOverdue(props.row)" class="text-negative text-weight-medium">Overdue</span>
+                <span v-if="isTaskOverdue(props.row)" class="text-negative text-weight-medium"
+                  >Overdue</span
+                >
               </div>
               <q-linear-progress
                 rounded
                 size="6px"
                 :value="(Number(props.row.progress) || 0) / 100"
-                :color="isTaskOverdue(props.row) ? 'negative' : (props.row.status === 'COMPLETED' ? 'positive' : 'primary')"
+                :color="
+                  isTaskOverdue(props.row)
+                    ? 'negative'
+                    : props.row.status === 'COMPLETED'
+                      ? 'positive'
+                      : 'primary'
+                "
                 track-color="grey-3"
               />
             </div>
@@ -248,12 +254,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import type { QTableColumn } from 'quasar';
 import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
-import {
-  getProjectsApi,
-  getTasksApi,
-  type Project,
-  type Task,
-} from '@/services/api';
+import { getProjectsApi, getTasksApi, type Project, type Task } from '@/services/api';
 
 const router = useRouter();
 
@@ -304,10 +305,7 @@ const tableColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tList, pList] = await Promise.all([
-      getTasksApi(),
-      getProjectsApi(),
-    ]);
+    const [tList, pList] = await Promise.all([getTasksApi(), getProjectsApi()]);
     tasks.value = tList;
     projects.value = pList;
   } catch (error) {
@@ -325,13 +323,9 @@ const inProgressCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
 );
 
-const completedCount = computed(
-  () => tasks.value.filter((t) => t.status === 'COMPLETED').length,
-);
+const completedCount = computed(() => tasks.value.filter((t) => t.status === 'COMPLETED').length);
 
-const overdueCount = computed(
-  () => tasks.value.filter((t) => isTaskOverdue(t)).length,
-);
+const overdueCount = computed(() => tasks.value.filter((t) => isTaskOverdue(t)).length);
 
 function isTaskOverdue(task: Task): boolean {
   if (task.status === 'COMPLETED') return false;

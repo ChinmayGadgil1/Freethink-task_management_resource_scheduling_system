@@ -270,12 +270,36 @@
                   <span>{{ formatDate(project.deadline) }}</span>
                 </div>
 
-                <div class="team-row">
-                  <q-avatar size="26px" class="team-avatar avatar-purple">
-                    {{ project.name.charAt(0).toUpperCase() }}
-                  </q-avatar>
-                  <q-avatar size="26px" class="team-avatar avatar-dark">P</q-avatar>
-                  <span class="team-count">+1</span>
+                <div class="team-row row items-center justify-between no-wrap">
+                  <div class="row items-center">
+                    <q-avatar size="26px" class="team-avatar avatar-purple">
+                      {{ project.name.charAt(0).toUpperCase() }}
+                    </q-avatar>
+                    <q-avatar size="26px" class="team-avatar avatar-dark">P</q-avatar>
+                    <span class="team-count">+1</span>
+                  </div>
+                  <q-btn flat round dense icon="more_vert" color="grey-6" size="sm" @click.stop>
+                    <q-menu auto-close>
+                      <q-list style="min-width: 140px">
+                        <q-item clickable @click="goToProject(project.project_id)">
+                          <q-item-section avatar>
+                            <q-icon name="visibility" size="18px" color="primary" />
+                          </q-item-section>
+                          <q-item-section>View Details</q-item-section>
+                        </q-item>
+                        <q-item
+                          clickable
+                          class="text-negative"
+                          @click="confirmDeleteProject(project)"
+                        >
+                          <q-item-section avatar>
+                            <q-icon name="delete" size="18px" color="negative" />
+                          </q-item-section>
+                          <q-item-section>Delete Project</q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn>
                 </div>
               </q-card-section>
             </q-card>
@@ -412,6 +436,16 @@
                         <q-icon name="visibility" size="18px" color="primary" />
                       </q-item-section>
                       <q-item-section>View Details</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      class="text-negative"
+                      @click="confirmDeleteProject(props.row)"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="delete" size="18px" color="negative" />
+                      </q-item-section>
+                      <q-item-section>Delete Project</q-item-section>
                     </q-item>
                   </q-list>
                 </q-menu>
@@ -551,6 +585,51 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <!-- DELETE PROJECT CONFIRMATION DIALOG -->
+    <q-dialog v-model="showDeleteDialog">
+      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="delete_forever"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div>
+            <div class="text-subtitle1 text-weight-bold text-dark">Delete Project</div>
+            <div class="text-caption text-grey-6">This action cannot be undone</div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to delete project
+          <strong>"{{ projectToDelete?.name }}"</strong>? All associated tasks, dependencies, and
+          team assignments will be permanently removed.
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Delete Project"
+            class="action-btn-primary"
+            :loading="deletingProject"
+            @click="handleExecuteDeleteProject"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -561,6 +640,7 @@ import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import {
   createProjectApi,
+  deleteProjectApi,
   getProjectsApi,
   type CreateProjectPayload,
   type Project,
@@ -583,6 +663,38 @@ const creating = ref(false);
 const showCreateDialog = ref(false);
 const startDateFilter = ref('');
 const endDateFilter = ref('');
+
+const showDeleteDialog = ref(false);
+const deletingProject = ref(false);
+const projectToDelete = ref<Project | null>(null);
+
+function confirmDeleteProject(project: Project) {
+  projectToDelete.value = project;
+  showDeleteDialog.value = true;
+}
+
+async function handleExecuteDeleteProject() {
+  if (!projectToDelete.value) return;
+
+  deletingProject.value = true;
+  try {
+    await deleteProjectApi(projectToDelete.value.project_id);
+    $q.notify({
+      type: 'positive',
+      message: `Project "${projectToDelete.value.name}" deleted successfully`,
+    });
+    showDeleteDialog.value = false;
+    projectToDelete.value = null;
+    await loadProjects();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to delete project',
+    });
+  } finally {
+    deletingProject.value = false;
+  }
+}
 
 interface ProjectForm {
   name: string;
@@ -1142,7 +1254,9 @@ body.body--dark .view-segmented-toggle {
 
 .project-grid-card {
   width: 100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .project-grid-card:hover {

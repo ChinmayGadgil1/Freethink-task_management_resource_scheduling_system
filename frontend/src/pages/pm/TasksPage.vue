@@ -185,12 +185,15 @@
                 :key="rId"
                 dense
                 square
+                removable
                 class="resource-chip"
+                @remove="confirmUnassignResource(props.row, rId)"
               >
                 <q-avatar size="16px" class="avatar-purple q-mr-xs">
                   {{ getResourceName(rId).charAt(0).toUpperCase() }}
                 </q-avatar>
                 {{ getResourceName(rId) }}
+                <q-tooltip>Click X to unassign this resource</q-tooltip>
               </q-chip>
             </div>
             <span v-else class="text-caption text-grey-5">Unassigned</span>
@@ -264,6 +267,16 @@
               <q-btn flat round dense icon="edit" color="grey-7" @click="openEditModal(props.row)">
                 <q-tooltip>Edit Task Details</q-tooltip>
               </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                icon="delete"
+                color="negative"
+                @click="confirmDeleteTask(props.row)"
+              >
+                <q-tooltip>Delete Task</q-tooltip>
+              </q-btn>
             </div>
           </q-td>
         </template>
@@ -297,7 +310,11 @@
               dense
               multiple
               clearable
-              :display-value="assignTaskMemberForm.user_ids.length ? `${assignTaskMemberForm.user_ids.length} selected` : ''"
+              :display-value="
+                assignTaskMemberForm.user_ids.length
+                  ? `${assignTaskMemberForm.user_ids.length} selected`
+                  : ''
+              "
               label="Select Member(s)"
               :options="resourceMemberSelectOptions"
               emit-value
@@ -385,12 +402,18 @@
               dense
               multiple
               clearable
-              :display-value="selectedPredecessorTaskIds.length ? `${selectedPredecessorTaskIds.length} selected` : ''"
+              :display-value="
+                selectedPredecessorTaskIds.length
+                  ? `${selectedPredecessorTaskIds.length} selected`
+                  : ''
+              "
               label="Depends On Predecessor(s)"
               :options="dependencyPredecessorOptions"
               emit-value
               map-options
-              :rules="[(val) => (val && val.length > 0) || 'At least one predecessor task is required']"
+              :rules="[
+                (val) => (val && val.length > 0) || 'At least one predecessor task is required',
+              ]"
               :disable="!selectedDependencyTaskId"
             >
               <template #option="{ itemProps, opt, selected, toggleOption }">
@@ -407,7 +430,12 @@
                     <q-icon name="account_tree" color="primary" size="18px" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-grey-6': opt.alreadyDependent, 'text-weight-medium': !opt.alreadyDependent }">
+                    <q-item-label
+                      :class="{
+                        'text-grey-6': opt.alreadyDependent,
+                        'text-weight-medium': !opt.alreadyDependent,
+                      }"
+                    >
                       {{ opt.label }}
                     </q-item-label>
                   </q-item-section>
@@ -652,6 +680,92 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <!-- DELETE TASK CONFIRMATION DIALOG -->
+    <q-dialog v-model="showDeleteTaskDialog">
+      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="delete_forever"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div>
+            <div class="text-subtitle1 text-weight-bold text-dark">Delete Task</div>
+            <div class="text-caption text-grey-6">This action cannot be undone</div>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to delete task
+          <strong>"{{ taskToDelete?.title }}"</strong>? All associated dependencies and work logs
+          will be removed.
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Delete Task"
+            class="action-btn-primary"
+            :loading="deletingTask"
+            @click="handleExecuteDeleteTask"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- UNASSIGN TASK RESOURCE DIALOG -->
+    <q-dialog v-model="showUnassignDialog">
+      <q-card class="dialog-card">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar
+            icon="person_remove"
+            color="negative"
+            text-color="white"
+            size="36px"
+            class="q-mr-sm"
+          />
+          <div class="text-subtitle1 text-weight-bold text-dark">Unassign Resource from Task</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm text-body2 text-grey-8">
+          Are you sure you want to remove <strong>{{ unassignTarget.resourceName }}</strong> from
+          task <strong>"{{ unassignTarget.taskTitle }}"</strong>?
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md q-pt-none">
+          <q-btn
+            v-close-popup
+            flat
+            no-caps
+            label="Cancel"
+            color="grey-7"
+            class="text-weight-medium"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Unassign"
+            class="action-btn-primary"
+            :loading="unassigning"
+            @click="handleExecuteUnassign"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -663,9 +777,11 @@ import {
   assignTaskResourceApi,
   addTaskDependencyApi,
   createTaskApi,
+  deleteTaskApi,
   getProjectsApi,
   getResourcesApi,
   getTasksApi,
+  unassignTaskResourceApi,
   updateTaskApi,
   type Project,
   type ResourceUser,
@@ -689,6 +805,77 @@ const showCreateDialog = ref(false);
 const showEditDialog = ref(false);
 const editingTaskId = ref<number | null>(null);
 const submitting = ref(false);
+
+const showDeleteTaskDialog = ref(false);
+const deletingTask = ref(false);
+const taskToDelete = ref<Task | null>(null);
+
+function confirmDeleteTask(task: Task) {
+  taskToDelete.value = task;
+  showDeleteTaskDialog.value = true;
+}
+
+async function handleExecuteDeleteTask() {
+  if (!taskToDelete.value) return;
+
+  deletingTask.value = true;
+  try {
+    await deleteTaskApi(taskToDelete.value.task_id);
+    $q.notify({
+      type: 'positive',
+      message: `Task "${taskToDelete.value.title}" deleted successfully`,
+    });
+    showDeleteTaskDialog.value = false;
+    taskToDelete.value = null;
+    await loadData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to delete task',
+    });
+  } finally {
+    deletingTask.value = false;
+  }
+}
+
+const showUnassignDialog = ref(false);
+const unassigning = ref(false);
+const unassignTarget = reactive({
+  taskId: 0,
+  taskTitle: '',
+  resourceId: 0,
+  resourceName: '',
+});
+
+function confirmUnassignResource(task: Task, rId: number) {
+  unassignTarget.taskId = task.task_id;
+  unassignTarget.taskTitle = task.title;
+  unassignTarget.resourceId = rId;
+  unassignTarget.resourceName = getResourceName(rId);
+  showUnassignDialog.value = true;
+}
+
+async function handleExecuteUnassign() {
+  if (!unassignTarget.taskId || !unassignTarget.resourceId) return;
+
+  unassigning.value = true;
+  try {
+    await unassignTaskResourceApi(unassignTarget.taskId, unassignTarget.resourceId);
+    $q.notify({
+      type: 'positive',
+      message: `Unassigned ${unassignTarget.resourceName} successfully`,
+    });
+    showUnassignDialog.value = false;
+    await loadData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to unassign resource',
+    });
+  } finally {
+    unassigning.value = false;
+  }
+}
 
 const showAssignTaskMemberDialog = ref(false);
 const submittingTaskMember = ref(false);
@@ -957,7 +1144,9 @@ async function handleAssignTaskMember() {
 
   const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
   const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
-  const toAssignIds = assignTaskMemberForm.user_ids.filter((id) => !alreadyAssignedIds.includes(id));
+  const toAssignIds = assignTaskMemberForm.user_ids.filter(
+    (id) => !alreadyAssignedIds.includes(id),
+  );
 
   if (toAssignIds.length === 0) {
     $q.notify({
