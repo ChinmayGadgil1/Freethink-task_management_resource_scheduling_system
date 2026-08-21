@@ -20,18 +20,17 @@
           @submit.prevent="handleLogin"
           style="display: flex; flex-direction: column; gap: 18px"
         >
-          <!-- Email -->
+          <!-- Username or Email -->
           <q-input
-            v-model="form.email"
+            v-model="form.identifier"
             outlined
             dense
             hide-bottom-space
-            label="Enter Email-id"
-            type="email"
+            label="Enter Username or Email-id"
+            type="text"
             class="auth-input"
             :rules="[
-              (val) => !!val || 'Email is required',
-              (val) => /.+@.+\..+/.test(val) || 'Enter a valid email',
+              (val) => !!val || 'Username or Email is required',
             ]"
           >
             <template #prepend>
@@ -125,7 +124,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const form = reactive({
-  email: '',
+  identifier: '',
   password: '',
 });
 
@@ -136,7 +135,7 @@ const handleLogin = async () => {
   loading.value = true;
   try {
     const data = await signinApi({
-      email: form.email,
+      identifier: form.identifier,
       password: form.password,
     });
 

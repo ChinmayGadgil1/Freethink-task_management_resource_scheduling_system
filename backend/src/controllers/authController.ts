@@ -18,8 +18,13 @@ const signupSchema = z.object({
 });
 
 const signinSchema = z.object({
-    email: z.email("Invalid email format"),
+    identifier: z.string().min(1, "Username or Email is required").optional(),
+    email: z.string().optional(),
+    username: z.string().optional(),
     password: z.string().min(6, "Password must contain at least 6 characters")
+}).refine((data) => !!(data.identifier || data.email || data.username), {
+    message: "Username or Email is required",
+    path: ["identifier"]
 });
 
 const resetPasswordSchema = z.object({
@@ -77,9 +82,10 @@ export async function signup(
 export async function signin(req: Request, res: Response) {
     try {
         const parsedData = signinSchema.parse(req.body);
+        const loginIdentifier = (parsedData.identifier || parsedData.email || parsedData.username || "").trim();
 
         const user = await signinUser(
-            parsedData.email,
+            loginIdentifier,
             parsedData.password
         );
 
@@ -100,7 +106,7 @@ export async function signin(req: Request, res: Response) {
 
         if (error.message === "INVALID_CREDENTIALS") {
             return res.status(401).json({
-                message: "Invalid email or password"
+                message: "Invalid username/email or password"
             });
         }
 

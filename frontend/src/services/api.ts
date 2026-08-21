@@ -11,7 +11,9 @@ export interface SignupPayload {
 }
 
 export interface SigninPayload {
-  email: string;
+  identifier?: string;
+  email?: string;
+  username?: string;
   password: string;
 }
 

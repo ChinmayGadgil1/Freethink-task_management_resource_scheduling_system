@@ -46,11 +46,12 @@ export async function signupUser(
   };
 }
 
-export async function signinUser(email: string, password: string) {
+export async function signinUser(identifier: string, password: string) {
   const pool = getPool();
 
-  const [users] = await pool.query<RowDataPacket[]>(
-    `SELECT
+  const isEmail = identifier.includes("@");
+  const query = isEmail
+    ? `SELECT
             user_id,
             name,
             email,
@@ -58,10 +59,22 @@ export async function signinUser(email: string, password: string) {
             role,
             is_active
         FROM users
-        WHERE email = ?
-        LIMIT 1`,
-    [email],
-  );
+        WHERE LOWER(email) = LOWER(?)
+        LIMIT 1`
+    : `SELECT
+            user_id,
+            name,
+            email,
+            password_hash,
+            role,
+            is_active
+        FROM users
+        WHERE LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?)
+        LIMIT 1`;
+
+  const queryParams = isEmail ? [identifier] : [identifier, identifier];
+
+  const [users] = await pool.query<RowDataPacket[]>(query, queryParams);
 
   if (users.length === 0) throw new Error("INVALID_CREDENTIALS");
 
@@ -95,19 +108,26 @@ export async function signinUser(email: string, password: string) {
 
 
 export async function resetPassword(
-  email: string,
+  identifier: string,
   oldPassword: string,
   newPassword: string,
 ) {
   const pool = getPool();
 
-  const [users] = await pool.query<RowDataPacket[]>(
-    `SELECT password_hash
+  const isEmail = identifier.includes("@");
+  const query = isEmail
+    ? `SELECT user_id, email, password_hash
          FROM users
-         WHERE email = ?
-         LIMIT 1`,
-    [email],
-  );
+         WHERE LOWER(email) = LOWER(?)
+         LIMIT 1`
+    : `SELECT user_id, email, password_hash
+         FROM users
+         WHERE LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?)
+         LIMIT 1`;
+
+  const queryParams = isEmail ? [identifier] : [identifier, identifier];
+
+  const [users] = await pool.query<RowDataPacket[]>(query, queryParams);
 
   if (users.length === 0) {
     throw new Error("USER_NOT_FOUND");
@@ -126,8 +146,8 @@ export async function resetPassword(
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE users
          SET password_hash = ?
-         WHERE email = ?`,
-    [newPasswordHash, email],
+         WHERE user_id = ?`,
+    [newPasswordHash, user.user_id],
   );
 
   if (result.affectedRows === 0) {
