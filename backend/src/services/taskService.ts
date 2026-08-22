@@ -27,7 +27,7 @@ export async function createTask(
         VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             `,
-            [projectId, createdBy, title, description, priority, status, startDate, deadline, expectedEffort]
+            [projectId, createdBy, title, description, priority, status as string, startDate, deadline, expectedEffort]
         );
 
         const taskId = result.insertId;

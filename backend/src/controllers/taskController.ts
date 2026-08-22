@@ -11,7 +11,7 @@ const createTaskSchema = z.object({
     title: z.string().min(1, "Task title is required"),
     description: z.string().nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).default("MEDIUM"),
-    status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"]).default("PENDING"),
+    status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).default("UNASSIGNED"),
     start_date: z.string().nullable().optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive("Expected effort must be positive"),
@@ -127,7 +127,7 @@ const updateTaskSchema = z.object({
     title: z.string().min(1).optional(),
     description: z.string().nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-    status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"]).optional(),
+    status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
     start_date: z.string().nullable().optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive().optional(),
@@ -378,7 +378,7 @@ export async function assignResource(
 const workLogSchema = z.object({
     hours_logged: z.number().positive(),
     progress_logged: z.number().min(0).max(100),
-    status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "ON_HOLD"]),
+    status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]),
     notes: z.string().min(1),
     blockers: z.string().nullable().optional(),
     log_date: z.string()

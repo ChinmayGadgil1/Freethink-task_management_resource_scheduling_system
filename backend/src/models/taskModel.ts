@@ -1,4 +1,4 @@
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+export type TaskStatus = 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -11,6 +11,8 @@ export interface Task {
     status: TaskStatus;
     start_date: string | null; // ISO Date string (YYYY-MM-DD)
     deadline: string | null;   // ISO Date string (YYYY-MM-DD)
+    actual_start: string | null; // ISO Date string (YYYY-MM-DD)
+    actual_end: string | null;   // ISO Date string (YYYY-MM-DD)
     expected_effort: number;   // in hours
     actual_effort: number;     // in hours
     progress: number;          // percentage 0 to 100

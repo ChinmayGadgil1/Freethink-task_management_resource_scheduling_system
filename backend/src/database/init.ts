@@ -62,9 +62,11 @@ export async function initializeDatabase() {
             title VARCHAR(150) NOT NULL,
             description TEXT,
             priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
-            status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD') NOT NULL DEFAULT 'PENDING',
+            status ENUM('UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'UNASSIGNED',
             start_date DATE,
             deadline DATE,
+            actual_start DATE,
+            actual_end DATE,
             expected_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
             actual_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
             progress DECIMAL(5,2) NOT NULL DEFAULT 0,
@@ -129,7 +131,7 @@ export async function initializeDatabase() {
             user_id BIGINT NOT NULL,
             hours_logged DECIMAL(5,2) NOT NULL DEFAULT 0,
             progress_logged DECIMAL(5,2) NOT NULL DEFAULT 0,
-            status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD') NOT NULL,
+            status ENUM('UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED') NOT NULL,
             notes TEXT,
             blockers TEXT,
             log_date DATE NOT NULL,
@@ -141,6 +143,47 @@ export async function initializeDatabase() {
     `);
 
     console.log("Work logs table created successfully.");
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS task_schedules (
+            schedule_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            task_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            schedule_date DATE NOT NULL,
+            allocated_hours DECIMAL(5,2) NOT NULL,
+            schedule_version INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            INDEX idx_task_date (task_id, schedule_date),
+            INDEX idx_user_date (user_id, schedule_date)
+        )
+    `);
+
+    console.log("Task schedules table created successfully.");
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS holidays (
+            holiday_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            holiday_date DATE NOT NULL UNIQUE,
+            description VARCHAR(255) NOT NULL
+        )
+    `);
+
+    console.log("Holidays table created successfully.");
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_leaves (
+            leave_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            leave_date DATE NOT NULL,
+            leave_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            UNIQUE KEY unique_user_leave (user_id, leave_date)
+        )
+    `);
+
+    console.log("User leaves table created successfully.");
 
     return pool;
 }
