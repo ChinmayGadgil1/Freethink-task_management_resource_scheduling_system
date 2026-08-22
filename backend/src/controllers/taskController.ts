@@ -3,15 +3,16 @@ import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, unassignResource, removeTaskDependency } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
-import { getResourceWorkload, propagateScheduleChanges, checkSchedulingImpact, handleTaskCompletionImpact } from "../services/schedulingService.js";
+import { getResourceWorkload, checkSchedulingImpact } from "../services/schedulingService.js";
 import { createWorkLog, getWorkLogsByTask } from "../services/workLogService.js";
+import { recalculate as recalculateSchedule } from "../services/scheduler/SchedulingEngine.js";
 
 const createTaskSchema = z.object({
     project_id: z.number().int().positive(),
     title: z.string().min(1, "Task title is required"),
     description: z.string().nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).default("MEDIUM"),
-    status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).default("UNASSIGNED"),
+    status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
     start_date: z.string().nullable().optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive("Expected effort must be positive"),
@@ -48,18 +49,31 @@ export async function create(req: AuthRequest, res: Response) {
             resourceIds = [req.user!.user_id];
         }
 
+        // Determine status based on assignment presence if not explicitly provided
+        let taskStatus = parsed.status;
+        if (!taskStatus) {
+            taskStatus = (resourceIds && resourceIds.length > 0) ? "SCHEDULED" : "UNASSIGNED";
+        }
+
         const task = await createTask(
             parsed.project_id,
             userId!,
             parsed.title,
             parsed.description ?? null,
             parsed.priority,
-            parsed.status,
+            taskStatus as any,
             parsed.start_date ?? null,
             parsed.deadline ?? null,
             parsed.expected_effort,
             resourceIds
         );
+
+        // Hook to trigger recalculation for the project
+        try {
+            await recalculateSchedule(parsed.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation on task create:", scheduleErr);
+        }
 
         return res.status(201).json({
             message: "Task created successfully",
@@ -73,49 +87,49 @@ export async function create(req: AuthRequest, res: Response) {
     }
 }
 
-    export async function list(req: AuthRequest, res: Response) {
-        try {
-            const userRole = req.user!.role;
-            const userId = req.user!.user_id;
-    
-            const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
-            const resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
-    
-            let projectIds: number[] | undefined;
-            let actualResourceId = resourceId;
-    
-            if (userRole === "PROJECT_MANAGER") {
-                if (projectId !== undefined) {
-                    const project = await getProjectById(projectId);
-                    if (!project) {
-                        return res.status(404).json({ message: "Project not found" });
-                    }
-                    if (project.project_manager_id !== userId) {
-                        return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
-                    }
-                    projectIds = [projectId];
-                } else {
-                    const projects = await getProjectsByManager(userId);
-                    projectIds = projects.map(p => Number(p.project_id));
+export async function list(req: AuthRequest, res: Response) {
+    try {
+        const userRole = req.user!.role;
+        const userId = req.user!.user_id;
+
+        const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
+        const resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
+
+        let projectIds: number[] | undefined;
+        let actualResourceId = resourceId;
+
+        if (userRole === "PROJECT_MANAGER") {
+            if (projectId !== undefined) {
+                const project = await getProjectById(projectId);
+                if (!project) {
+                    return res.status(404).json({ message: "Project not found" });
                 }
-            } else if (userRole === "RESOURCE") {
-                actualResourceId = userId; // Resources only see their own assigned tasks
-                if (projectId !== undefined) {
-                    const project = await getProjectById(projectId);
-                    if (!project) {
-                        return res.status(404).json({ message: "Project not found" });
-                    }
-                    const isMember = await isProjectMember(projectId, userId);
-                    if (!isMember) {
-                        return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
-                    }
-                    projectIds = [projectId];
-                } else {
-                    projectIds = await getProjectIdsByMember(userId);
+                if (project.project_manager_id !== userId) {
+                    return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
                 }
+                projectIds = [projectId];
+            } else {
+                const projects = await getProjectsByManager(userId);
+                projectIds = projects.map(p => Number(p.project_id));
             }
-    
-            const tasks = await getTasksList({ resourceId: actualResourceId, projectIds });
+        } else if (userRole === "RESOURCE") {
+            actualResourceId = userId; // Resources only see their own assigned tasks
+            if (projectId !== undefined) {
+                const project = await getProjectById(projectId);
+                if (!project) {
+                    return res.status(404).json({ message: "Project not found" });
+                }
+                const isMember = await isProjectMember(projectId, userId);
+                if (!isMember) {
+                    return res.status(403).json({ message: "You are not authorized to view tasks for this project" });
+                }
+                projectIds = [projectId];
+            } else {
+                projectIds = await getProjectIdsByMember(userId);
+            }
+        }
+
+        const tasks = await getTasksList({ resourceId: actualResourceId, projectIds });
 
         return res.status(200).json({ tasks });
     } catch (error: any) {
@@ -175,24 +189,20 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
             return res.status(400).json({ message: "Deadline cannot be before start date" });
         }
 
-        let shiftDays = 0;
-        if (parsed.deadline && task.deadline) {
-            const oldDeadline = new Date(task.deadline);
-            const newDeadline = new Date(parsed.deadline);
-            const diffTime = newDeadline.getTime() - oldDeadline.getTime();
-            shiftDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        }
-
         await updateTask(taskId, parsed);
 
-        if (shiftDays > 0) {
-            await propagateScheduleChanges(taskId, shiftDays);
-        }
-
-        if (parsed.status === "COMPLETED" && task.status !== "COMPLETED") {
-            const today = new Date().toISOString().split("T")[0];
-            if (today) {
-                await handleTaskCompletionImpact(taskId, today);
+        // Hook SchedulingEngine.recalculate when priority, effort, deadline, start_date, or status updates
+        if (
+            parsed.priority !== undefined ||
+            parsed.expected_effort !== undefined ||
+            parsed.deadline !== undefined ||
+            parsed.start_date !== undefined ||
+            parsed.status !== undefined
+        ) {
+            try {
+                await recalculateSchedule(task.project_id);
+            } catch (scheduleErr) {
+                console.error("Error triggering schedule recalculation on task update:", scheduleErr);
             }
         }
 
@@ -239,6 +249,13 @@ export async function addDependency(req: AuthRequest<{ id: string }>, res: Respo
         }
 
         await addTaskDependency(taskId, parsed.predecessor_task_id);
+
+        // Hook recalculation
+        try {
+            await recalculateSchedule(task.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation on addDependency:", scheduleErr);
+        }
 
         return res.status(200).json({ message: "Dependency added successfully" });
     } catch (error: any) {
@@ -337,6 +354,13 @@ export async function assignResource(
             req.user.user_id,
             resourceId
         );
+
+        // Hook recalculation
+        try {
+            await recalculateSchedule(assignment.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation on assignResource:", scheduleErr);
+        }
 
         return res.status(201).json({
             message: "Resource assigned to task successfully",
@@ -487,6 +511,14 @@ export async function deleteTaskController(req: AuthRequest, res: Response) {
         if (!success) {
             return res.status(404).json({ message: "Task not found" });
         }
+
+        // Hook recalculation
+        try {
+            await recalculateSchedule(task.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation on deleteTask:", scheduleErr);
+        }
+
         return res.status(200).json({ message: "Task deleted successfully" });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
@@ -512,6 +544,13 @@ export async function unassignResourceController(req: AuthRequest, res: Response
         const success = await unassignResource(taskId, userId);
         if (!success) return res.status(404).json({ message: "Resource not assigned to task" });
         
+        // Hook recalculation
+        try {
+            await recalculateSchedule(task.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation on unassignResource:", scheduleErr);
+        }
+
         return res.status(200).json({ message: "Resource unassigned successfully" });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
@@ -537,6 +576,13 @@ export async function removeTaskDependencyController(req: AuthRequest, res: Resp
         const success = await removeTaskDependency(taskId, predecessorTaskId);
         if (!success) return res.status(404).json({ message: "Dependency not found" });
         
+        // Hook recalculation
+        try {
+            await recalculateSchedule(task.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation on removeTaskDependency:", scheduleErr);
+        }
+
         return res.status(200).json({ message: "Dependency removed successfully" });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });

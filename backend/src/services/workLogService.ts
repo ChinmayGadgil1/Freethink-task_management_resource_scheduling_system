@@ -1,6 +1,6 @@
 import { getPool } from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { handleTaskCompletionImpact } from "./schedulingService.js";
+import { recalculate as recalculateSchedule } from "./scheduler/SchedulingEngine.js";
 
 export async function createWorkLog(
     taskId: number,
@@ -20,7 +20,7 @@ export async function createWorkLog(
 
         // Check if task exists and user is assigned
         const [tasks] = await connection.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.actual_effort, t.progress, t.status 
+            `SELECT t.task_id, t.project_id, t.expected_effort, t.actual_effort, t.progress, t.status, t.deadline
              FROM tasks t
              JOIN task_assignments ta ON t.task_id = ta.task_id
              WHERE t.task_id = ? AND ta.user_id = ?`,
@@ -33,6 +33,13 @@ export async function createWorkLog(
 
         const task = tasks[0]!;
 
+        // Count previous work logs to detect if this is the first work log
+        const [workLogCountRows] = await connection.query<RowDataPacket[]>(
+            `SELECT COUNT(*) as log_count FROM work_logs WHERE task_id = ?`,
+            [taskId]
+        );
+        const isFirstLog = (workLogCountRows[0]?.log_count ?? 0) === 0;
+
         // Insert the work log
         const [result] = await connection.query<ResultSetHeader>(
             `INSERT INTO work_logs (task_id, user_id, hours_logged, progress_logged, status, notes, blockers, log_date)
@@ -41,21 +48,76 @@ export async function createWorkLog(
         );
 
         // Update the task actual effort, progress, and status
-        const newActualEffort = Number(task.actual_effort) + Number(hoursLogged);
-        const newStatus = status;
+        const oldActualEffort = Number(task.actual_effort);
+        const expectedEffort = Number(task.expected_effort);
+        const newActualEffort = oldActualEffort + Number(hoursLogged);
         const newProgress = Number(progressLogged);
 
-        await connection.query(
-            `UPDATE tasks 
-             SET actual_effort = ?, progress = ?, status = ?
-             WHERE task_id = ?`,
-            [newActualEffort, newProgress, newStatus, taskId]
-        );
+        // 1. If first log, set actual_start = log_date and transition to IN_PROGRESS (if not already completed)
+        let newStatus = status;
+        if (isFirstLog && (task.status === "UNASSIGNED" || task.status === "SCHEDULED" || task.status === "PENDING")) {
+            if (status !== "COMPLETED") {
+                newStatus = "IN_PROGRESS";
+            }
+        }
+
+        // Dynamically build UPDATE query for tasks
+        // We set actual_start on first log if supported, and actual_end on COMPLETED
+        const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
+        const updateParams: any[] = [newActualEffort, newProgress, newStatus];
+
+        // Check if actual_start / actual_end columns exist or can be updated safely
+        if (isFirstLog) {
+            try {
+                // If actual_start column exists, update it
+                updateFields.push("actual_start = COALESCE(actual_start, ?)");
+                updateParams.push(logDate);
+            } catch {
+                // Ignore if column not present yet
+            }
+        }
+
+        if (newStatus === "COMPLETED") {
+            try {
+                updateFields.push("actual_end = ?");
+                updateParams.push(logDate);
+            } catch {
+                // Ignore if column not present yet
+            }
+        }
+
+        updateParams.push(taskId);
+
+        try {
+            await connection.query(
+                `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
+                updateParams
+            );
+        } catch (updateErr: any) {
+            // Fallback in case actual_start or actual_end column has not been added by Dev 1 yet
+            await connection.query(
+                `UPDATE tasks SET actual_effort = ?, progress = ?, status = ? WHERE task_id = ?`,
+                [newActualEffort, newProgress, newStatus, taskId]
+            );
+        }
 
         await connection.commit();
 
-        if (newStatus === "COMPLETED" && task.status !== "COMPLETED") {
-            await handleTaskCompletionImpact(taskId, logDate);
+        // 4. Hook SchedulingEngine.recalculate(projectId) if:
+        // - total logged > expected (overrun)
+        // - OR if completed early (marked COMPLETED and (actual_effort < expected_effort OR completed before deadline))
+        const isOverrun = newActualEffort > expectedEffort;
+        const isEarlyCompletion = newStatus === "COMPLETED" && (
+            newActualEffort < expectedEffort ||
+            (task.deadline && logDate < String(task.deadline).split("T")[0]!)
+        );
+
+        if (isOverrun || isEarlyCompletion) {
+            try {
+                await recalculateSchedule(task.project_id);
+            } catch (scheduleErr) {
+                console.error("Error triggering schedule recalculation in workLogService:", scheduleErr);
+            }
         }
 
         return {
@@ -64,7 +126,7 @@ export async function createWorkLog(
             user_id: userId,
             hours_logged: hoursLogged,
             progress_logged: progressLogged,
-            status,
+            status: newStatus,
             notes,
             blockers,
             log_date: logDate,

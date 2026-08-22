@@ -20,6 +20,14 @@ export async function createTask(
     try {
         await connection.beginTransaction();
 
+        // Determine appropriate initial status if default/unspecified
+        let initialStatus = status;
+        if (!initialStatus || initialStatus === "PENDING" as any || initialStatus === "UNASSIGNED" as any) {
+            initialStatus = (assignedResourceIds && assignedResourceIds.length > 0)
+                ? ("SCHEDULED" as TaskStatus)
+                : ("UNASSIGNED" as TaskStatus);
+        }
+
         const [result] = await connection.query<ResultSetHeader>(
             `
         INSERT INTO tasks
@@ -27,7 +35,7 @@ export async function createTask(
         VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             `,
-            [projectId, createdBy, title, description, priority, status as string, startDate, deadline, expectedEffort]
+            [projectId, createdBy, title, description, priority, initialStatus, startDate, deadline, expectedEffort]
         );
 
         const taskId = result.insertId;
@@ -67,7 +75,7 @@ export async function createTask(
             title,
             description,
             priority,
-            status,
+            status: initialStatus,
             start_date: startDate,
             deadline,
             expected_effort: expectedEffort,
@@ -181,82 +189,103 @@ export async function assignResourceToTask(
     resourceId: number
 ) {
     const pool = getPool();
+    const connection = await pool.getConnection();
 
-    const [tasks] = await pool.query<RowDataPacket[]>(
-        `
-        SELECT t.task_id, t.project_id
-        FROM tasks t
-        JOIN projects p
-            ON t.project_id = p.project_id
-        WHERE t.task_id = ?
-          AND p.project_manager_id = ?
-        LIMIT 1
-        `,
-        [taskId, projectManagerId]
-    );
+    try {
+        await connection.beginTransaction();
 
-    if (tasks.length === 0)
-        throw new Error("TASK_NOT_FOUND");
+        const [tasks] = await connection.query<RowDataPacket[]>(
+            `
+            SELECT t.task_id, t.project_id, t.status
+            FROM tasks t
+            JOIN projects p
+                ON t.project_id = p.project_id
+            WHERE t.task_id = ?
+              AND p.project_manager_id = ?
+            LIMIT 1
+            `,
+            [taskId, projectManagerId]
+        );
 
-    const task = tasks[0]!;
+        if (tasks.length === 0)
+            throw new Error("TASK_NOT_FOUND");
 
-    const [users] = await pool.query<RowDataPacket[]>(
-        `
-        SELECT user_id
-        FROM users
-        WHERE user_id = ?
-          AND role = 'RESOURCE'
-          AND is_active = TRUE
-        LIMIT 1
-        `,
-        [resourceId]
-    );
+        const task = tasks[0]!;
 
-    if (users.length === 0)
-        throw new Error("RESOURCE_NOT_FOUND");
+        const [users] = await connection.query<RowDataPacket[]>(
+            `
+            SELECT user_id
+            FROM users
+            WHERE user_id = ?
+              AND role = 'RESOURCE'
+              AND is_active = TRUE
+            LIMIT 1
+            `,
+            [resourceId]
+        );
 
-    const [members] = await pool.query<RowDataPacket[]>(
-        `
-        SELECT user_id
-        FROM project_members
-        WHERE project_id = ?
-          AND user_id = ?
-        LIMIT 1
-        `,
-        [task.project_id, resourceId]
-    );
+        if (users.length === 0)
+            throw new Error("RESOURCE_NOT_FOUND");
 
-    if (members.length === 0)
-        throw new Error("RESOURCE_NOT_PROJECT_MEMBER");
+        const [members] = await connection.query<RowDataPacket[]>(
+            `
+            SELECT user_id
+            FROM project_members
+            WHERE project_id = ?
+              AND user_id = ?
+            LIMIT 1
+            `,
+            [task.project_id, resourceId]
+        );
 
-    const [existingAssignments] = await pool.query<RowDataPacket[]>(
-        `
-        SELECT task_id
-        FROM task_assignments
-        WHERE task_id = ?
-          AND user_id = ?
-        LIMIT 1
-        `,
-        [taskId, resourceId]
-    );
+        if (members.length === 0)
+            throw new Error("RESOURCE_NOT_PROJECT_MEMBER");
 
-    if (existingAssignments.length > 0)
-        throw new Error("RESOURCE_ALREADY_ASSIGNED");
+        const [existingAssignments] = await connection.query<RowDataPacket[]>(
+            `
+            SELECT task_id
+            FROM task_assignments
+            WHERE task_id = ?
+              AND user_id = ?
+            LIMIT 1
+            `,
+            [taskId, resourceId]
+        );
 
-    await pool.query(
-        `
-        INSERT INTO task_assignments
-            (task_id, user_id)
-        VALUES
-            (?, ?)
-        `,
-        [taskId, resourceId]
-    );
+        if (existingAssignments.length > 0)
+            throw new Error("RESOURCE_ALREADY_ASSIGNED");
 
-    return {
-        task_id: taskId,
-        user_id: resourceId
-    };
+        await connection.query(
+            `
+            INSERT INTO task_assignments
+                (task_id, user_id)
+            VALUES
+                (?, ?)
+            `,
+            [taskId, resourceId]
+        );
+
+        // If task is UNASSIGNED or PENDING, transition to SCHEDULED
+        if (task.status === "UNASSIGNED" || task.status === "PENDING") {
+            await connection.query(
+                `UPDATE tasks SET status = 'SCHEDULED' WHERE task_id = ?`,
+                [taskId]
+            );
+        }
+
+        await connection.commit();
+
+        return {
+            task_id: taskId,
+            user_id: resourceId,
+            project_id: task.project_id
+        };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
 }
 
 export async function addTaskDependency(taskId: number, predecessorTaskId: number) {
@@ -348,11 +377,44 @@ export async function deleteTask(taskId: number): Promise<boolean> {
 
 export async function unassignResource(taskId: number, userId: number): Promise<boolean> {
     const pool = getPool();
-    const [result] = await pool.query<ResultSetHeader>(
-        "DELETE FROM task_assignments WHERE task_id = ? AND user_id = ?",
-        [taskId, userId]
-    );
-    return result.affectedRows > 0;
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [result] = await connection.query<ResultSetHeader>(
+            "DELETE FROM task_assignments WHERE task_id = ? AND user_id = ?",
+            [taskId, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return false;
+        }
+
+        // Check if there are remaining assignees
+        const [remaining] = await connection.query<RowDataPacket[]>(
+            "SELECT COUNT(*) as count FROM task_assignments WHERE task_id = ?",
+            [taskId]
+        );
+        const count = remaining[0]?.count ?? 0;
+
+        // If no assignees left and status is SCHEDULED or PENDING, revert status to UNASSIGNED
+        if (count === 0) {
+            await connection.query(
+                `UPDATE tasks SET status = 'UNASSIGNED' WHERE task_id = ? AND status IN ('SCHEDULED', 'PENDING')`,
+                [taskId]
+            );
+        }
+
+        await connection.commit();
+        return true;
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
 }
 
 export async function removeTaskDependency(taskId: number, predecessorTaskId: number): Promise<boolean> {
