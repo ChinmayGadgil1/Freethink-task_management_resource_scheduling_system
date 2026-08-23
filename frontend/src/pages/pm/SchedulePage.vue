@@ -756,7 +756,7 @@
                   outlined
                   dense
                   label="Status"
-                  :options="['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD']"
+                  :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']"
                 />
               </div>
               <div class="col-6">
@@ -833,7 +833,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
@@ -843,6 +843,7 @@ import {
   getResourcesApi,
   createTaskApi,
   updateTaskApi,
+  getProjectScheduleDataApi,
   type Project,
   type Task,
   type ResourceUser,
@@ -1154,10 +1155,10 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
 // ----------------------------------------------------
 const statusFilterOptions = [
   { label: 'All Statuses', value: 'ALL' },
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' },
 ];
 
 const priorityFilterOptions = [
@@ -1214,7 +1215,11 @@ async function loadData() {
   loading.value = true;
   try {
     const [tList, pList, rList] = await Promise.all([
-      getTasksApi(),
+      projectFilter.value !== 'ALL'
+        ? getProjectScheduleDataApi(Number(projectFilter.value))
+            .then((res) => res.tasks)
+            .catch(() => getTasksApi(Number(projectFilter.value)))
+        : getTasksApi(),
       getProjectsApi(),
       getResourcesApi(),
     ]);
@@ -1230,6 +1235,21 @@ async function loadData() {
     loading.value = false;
   }
 }
+
+watch(projectFilter, async (newVal) => {
+  if (newVal !== 'ALL') {
+    try {
+      const scheduleRes = await getProjectScheduleDataApi(Number(newVal));
+      if (scheduleRes && scheduleRes.tasks) {
+        tasks.value = scheduleRes.tasks;
+      }
+    } catch {
+      tasks.value = await getTasksApi(Number(newVal)).catch(() => tasks.value);
+    }
+  } else {
+    tasks.value = await getTasksApi().catch(() => tasks.value);
+  }
+});
 
 onMounted(() => {
   void loadData();
@@ -1296,7 +1316,14 @@ const filteredGanttTasks = computed<GanttTask[]>(() => {
       progress: Math.min(100, Math.max(0, Number(task.progress) || 0)),
       status: task.status,
       priority: normalizePriority(task.priority),
+      expectedEffort: Number(task.expected_effort) || undefined,
+      actualEffort: Number(task.actual_effort) || 0,
+      actualStart: task.actual_start || null,
+      actualEnd: task.actual_end || null,
       overdue: isTaskOverdue(task),
+      isOverrun: task.pacing?.is_overrun,
+      isBehindSchedule: task.pacing?.is_behind_schedule,
+      pacingWarning: task.pacing?.warning || null,
     };
   });
 });
@@ -1325,8 +1352,8 @@ function formatDate(dateStr: string | null | undefined): string {
 function getTaskStatusClass(status: string): string {
   if (status === 'COMPLETED') return 'chip-soft-green';
   if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'ON_HOLD') return 'chip-soft-orange';
-  return 'chip-soft-purple';
+  if (status === 'SCHEDULED') return 'chip-soft-purple';
+  return 'chip-soft-grey';
 }
 
 function getPriorityClass(priority: string): string {
@@ -1357,7 +1384,7 @@ const createForm = reactive<{
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   start_date: string;
   deadline: string;
@@ -1366,7 +1393,7 @@ const createForm = reactive<{
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'PENDING',
+  status: 'UNASSIGNED',
   expected_effort: 8,
   start_date: '',
   deadline: '',
@@ -1374,7 +1401,7 @@ const createForm = reactive<{
 
 const editForm = reactive<{
   title: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   progress: number;
   expected_effort: number;
@@ -1382,7 +1409,7 @@ const editForm = reactive<{
   deadline: string;
 }>({
   title: '',
-  status: 'PENDING',
+  status: 'UNASSIGNED',
   priority: 'MEDIUM',
   progress: 0,
   expected_effort: 8,
@@ -1394,7 +1421,7 @@ function openCreateTaskDialog() {
   createForm.title = '';
   createForm.description = '';
   createForm.priority = 'MEDIUM';
-  createForm.status = 'PENDING';
+  createForm.status = 'UNASSIGNED';
   createForm.start_date = currentAnchorDate.value.toISOString().slice(0, 10);
   createForm.deadline = '';
   if (projects.value.length > 0 && projects.value[0]) {

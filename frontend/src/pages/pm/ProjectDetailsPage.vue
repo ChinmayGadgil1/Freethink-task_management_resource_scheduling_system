@@ -1709,7 +1709,7 @@ const newTaskForm = reactive<{
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   start_date: string;
   deadline: string;
   expected_effort: number;
@@ -1718,7 +1718,7 @@ const newTaskForm = reactive<{
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'PENDING',
+  status: 'UNASSIGNED',
   start_date: new Date().toISOString().split('T')[0] ?? '',
   deadline: '',
   expected_effort: 6,
@@ -1757,10 +1757,10 @@ const taskPagination = ref({
 // Options
 const taskStatusOptions = [
   { label: 'All Status', value: 'ALL' },
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' },
 ];
 
 const taskPriorityOptions = [
@@ -1785,12 +1785,12 @@ const taskPriorityFormOptions = [
 
 const taskStatusFormOptions: {
   label: string;
-  value: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  value: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
 }[] = [
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' },
 ];
 
 const projectStatusOptions = [
@@ -1916,9 +1916,11 @@ const inProgressTasksCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
 );
 
-const pendingTasksCount = computed(() => tasks.value.filter((t) => t.status === 'PENDING').length);
+const pendingTasksCount = computed(
+  () => tasks.value.filter((t) => t.status === 'UNASSIGNED' || t.status === 'SCHEDULED').length,
+);
 
-const onHoldTasksCount = computed(() => tasks.value.filter((t) => t.status === 'ON_HOLD').length);
+const onHoldTasksCount = computed(() => 0);
 
 const overdueTasksCount = computed(() => {
   const today = new Date();

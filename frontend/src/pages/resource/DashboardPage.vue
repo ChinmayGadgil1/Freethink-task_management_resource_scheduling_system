@@ -258,8 +258,8 @@
                               ? 'positive'
                               : task.status === 'IN_PROGRESS'
                                 ? 'primary'
-                                : task.status === 'ON_HOLD'
-                                  ? 'warning'
+                                : task.status === 'SCHEDULED'
+                                  ? 'purple-7'
                                   : 'grey-7'
                           "
                           :label="task.status.replace('_', ' ')"
@@ -363,7 +363,7 @@ function normalizePriorityForGantt(p?: string): 'High' | 'Medium' | 'Low' | 'Cri
 
 // Stats computations
 const activeTasksCount = computed(
-  () => tasks.value.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'PENDING').length,
+  () => tasks.value.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'SCHEDULED').length,
 );
 
 const completedTasksCount = computed(
@@ -451,16 +451,16 @@ const workload = computed(() => {
 
 // Status Distribution
 const taskStatus = computed(() => {
-  const pending = tasks.value.filter((t) => t.status === 'PENDING').length;
+  const unassigned = tasks.value.filter((t) => t.status === 'UNASSIGNED').length;
+  const scheduled = tasks.value.filter((t) => t.status === 'SCHEDULED').length;
   const inProgress = tasks.value.filter((t) => t.status === 'IN_PROGRESS').length;
   const completed = tasks.value.filter((t) => t.status === 'COMPLETED').length;
-  const onHold = tasks.value.filter((t) => t.status === 'ON_HOLD').length;
 
   return [
-    { label: 'Pending', value: pending, color: '#F59E0B' },
+    { label: 'Unassigned', value: unassigned, color: '#64748B' },
+    { label: 'Scheduled', value: scheduled, color: '#8B6FD8' },
     { label: 'In Progress', value: inProgress, color: '#3B82F6' },
     { label: 'Completed', value: completed, color: '#10B981' },
-    { label: 'On Hold', value: onHold, color: '#8B6FD8' },
   ];
 });
 
@@ -556,7 +556,14 @@ const ganttTasks = computed(() =>
       progress: Math.min(100, Math.max(0, Number(task.progress) || 0)),
       status: task.status,
       priority: normalizePriorityForGantt(task.priority),
+      expectedEffort: Number(task.expected_effort) || undefined,
+      actualEffort: Number(task.actual_effort) || 0,
+      actualStart: task.actual_start || null,
+      actualEnd: task.actual_end || null,
       overdue: isOverdue(task),
+      isOverrun: task.pacing?.is_overrun,
+      isBehindSchedule: task.pacing?.is_behind_schedule,
+      pacingWarning: task.pacing?.warning || null,
     };
   }),
 );

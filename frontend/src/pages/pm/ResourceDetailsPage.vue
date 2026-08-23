@@ -506,7 +506,7 @@ const projectOptions = computed(() =>
 function getTaskStatusColor(status: string): string {
   if (status === 'COMPLETED') return 'positive';
   if (status === 'IN_PROGRESS') return 'info';
-  if (status === 'ON_HOLD') return 'warning';
+  if (status === 'SCHEDULED') return 'purple-7';
   return 'grey-7';
 }
 
@@ -537,7 +537,7 @@ async function handleAssignTask() {
       title: assignForm.title.trim(),
       description: assignForm.description || null,
       priority: assignForm.priority,
-      status: 'PENDING',
+      status: 'SCHEDULED',
       expected_effort: Number(assignForm.expected_effort) || 8,
       assigned_resource_ids: [resourceId.value],
     });

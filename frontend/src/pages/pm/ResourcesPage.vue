@@ -1121,8 +1121,8 @@ function formatTaskStatus(status: string): string {
 function getTaskStatusClass(status: string): string {
   if (status === 'COMPLETED') return 'chip-soft-green';
   if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'ON_HOLD') return 'chip-soft-orange';
-  return 'chip-soft-purple';
+  if (status === 'SCHEDULED') return 'chip-soft-purple';
+  return 'chip-soft-grey';
 }
 
 function getPriorityClass(priority: string): string {
@@ -1193,7 +1193,7 @@ async function handleAssignTask() {
       title: assignForm.title.trim(),
       description: assignForm.description || null,
       priority: assignForm.priority,
-      status: 'PENDING',
+      status: 'SCHEDULED',
       expected_effort: Number(assignForm.expected_effort) || 8,
       assigned_resource_ids: [selectedResourceId.value],
     });

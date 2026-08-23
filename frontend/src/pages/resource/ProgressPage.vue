@@ -136,7 +136,7 @@
                 <div class="q-ml-sm">
                   <div class="text-caption text-grey-6">Remaining Effort</div>
 
-                  <div class="text-h5 text-weight-bold">{{ progressBasedRemainingEffort }}h</div>
+                  <div class="text-h5 text-weight-bold">{{ actualHoursRemaining }}h</div>
                 </div>
               </div>
 
@@ -752,14 +752,14 @@ const statusDistribution = computed(() => [
     color: '#2E90FA',
   },
   {
-    label: 'Pending',
-    value: tasks.value.filter((t) => t.status === 'PENDING').length,
-    color: '#98A2B3',
+    label: 'Scheduled',
+    value: tasks.value.filter((t) => t.status === 'SCHEDULED').length,
+    color: '#8B6FD8',
   },
   {
-    label: 'On Hold',
-    value: tasks.value.filter((t) => t.status === 'ON_HOLD').length,
-    color: '#E89532',
+    label: 'Unassigned',
+    value: tasks.value.filter((t) => t.status === 'UNASSIGNED').length,
+    color: '#98A2B3',
   },
   {
     label: 'Overdue',
@@ -1015,10 +1015,10 @@ function statusColor(status: Task['status']) {
     case 'IN_PROGRESS':
       return 'primary';
 
-    case 'ON_HOLD':
-      return 'orange';
+    case 'SCHEDULED':
+      return 'purple-7';
 
-    case 'PENDING':
+    case 'UNASSIGNED':
       return 'grey';
 
     default:
@@ -1031,14 +1031,14 @@ function statusLabel(status: Task['status']) {
     case 'IN_PROGRESS':
       return 'In Progress';
 
-    case 'ON_HOLD':
-      return 'On Hold';
+    case 'SCHEDULED':
+      return 'Scheduled';
 
     case 'COMPLETED':
       return 'Completed';
 
-    case 'PENDING':
-      return 'Pending';
+    case 'UNASSIGNED':
+      return 'Unassigned';
 
     default:
       return status;

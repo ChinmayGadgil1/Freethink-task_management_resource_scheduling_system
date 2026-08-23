@@ -550,7 +550,7 @@
               <div class="col-6">
                 <q-select
                   v-model="logProgressForm.status"
-                  :options="['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD']"
+                  :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']"
                   label="Status"
                   outlined
                   dense
@@ -723,7 +723,7 @@ const newTaskForm = reactive<{
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   start_date: string;
   deadline: string;
@@ -733,7 +733,7 @@ const newTaskForm = reactive<{
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'PENDING',
+  status: 'UNASSIGNED',
   expected_effort: 6,
   start_date: '',
   deadline: '',
@@ -780,7 +780,7 @@ const allocateResourceOptions = computed(() => {
 const logProgressForm = reactive<{
   task_id: number | null;
   progress: number;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   actual_effort: number;
 }>({
   task_id: null,
@@ -870,7 +870,7 @@ function openAddTaskDialog() {
   newTaskForm.title = '';
   newTaskForm.description = '';
   newTaskForm.priority = 'MEDIUM';
-  newTaskForm.status = 'PENDING';
+  newTaskForm.status = 'UNASSIGNED';
   newTaskForm.expected_effort = 6;
   newTaskForm.start_date = '';
   newTaskForm.deadline = '';
@@ -1022,11 +1022,7 @@ async function handleAllocateResource() {
   allocateSubmitting.value = true;
   try {
     for (const uId of allocateForm.user_ids) {
-      try {
-        await assignProjectMemberApi(allocateForm.project_id, uId);
-      } catch {
-        // Offline / demo fallback
-      }
+      await assignProjectMemberApi(allocateForm.project_id, uId);
     }
 
     $q.notify({
@@ -1052,15 +1048,11 @@ async function handleLogProgress() {
   }
   logSubmitting.value = true;
   try {
-    try {
-      await updateTaskApi(logProgressForm.task_id, {
-        progress: logProgressForm.progress,
-        status: logProgressForm.status,
-        actual_effort: logProgressForm.actual_effort,
-      });
-    } catch {
-      // Local fallback
-    }
+    await updateTaskApi(logProgressForm.task_id, {
+      progress: logProgressForm.progress,
+      status: logProgressForm.status,
+      actual_effort: logProgressForm.actual_effort,
+    });
 
     const target = tasks.value.find((t) => t.task_id === logProgressForm.task_id);
     if (target) {
@@ -1151,8 +1143,7 @@ async function loadResources() {
 const totalProjects = computed(() => projects.value.length);
 
 const activeTasks = computed(
-  () =>
-    tasks.value.filter((task) => task.status === 'PENDING' || task.status === 'IN_PROGRESS').length,
+  () => tasks.value.filter((task) => task.status !== 'COMPLETED').length,
 );
 
 const completedTasks = computed(
@@ -1264,10 +1255,10 @@ const timelineRows = computed(() => {
           project.status === 'ACTIVE'
             ? 'IN_PROGRESS'
             : project.status === 'PUBLISHED'
-              ? 'PENDING'
+              ? 'SCHEDULED'
               : project.status === 'COMPLETED'
                 ? 'COMPLETED'
-                : 'ON_HOLD',
+                : 'UNASSIGNED',
         statusLabel: project.status.replaceAll('_', ' '),
         startLabel: formatTimelineDate(start),
         endLabel: formatTimelineDate(safeEnd),

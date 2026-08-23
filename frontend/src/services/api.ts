@@ -31,6 +31,38 @@ export interface Project {
   updated_at?: string;
 }
 
+export type TaskStatus = 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface TaskPacing {
+  is_overrun: boolean;
+  is_behind_schedule: boolean;
+  warning: string | null;
+}
+
+export interface TaskScheduleItem {
+  schedule_id: number;
+  task_id: number;
+  user_id: number;
+  schedule_date: string;
+  allocated_hours: number;
+  schedule_version: number;
+  resource_name?: string;
+}
+
+export interface HolidayItem {
+  holiday_id: number;
+  holiday_date: string;
+  description: string;
+}
+
+export interface ProjectScheduleResponse {
+  project: Project;
+  tasks: Task[];
+  schedules: TaskScheduleItem[];
+  holidays: HolidayItem[];
+}
+
 export interface Task {
   task_id: number;
   project_id: number;
@@ -38,10 +70,12 @@ export interface Task {
   created_by: number; //added to track who created the task
   title: string;
   description: string | null;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  priority: TaskPriority;
+  status: TaskStatus;
   start_date: string | null;
   deadline: string | null;
+  actual_start?: string | null;
+  actual_end?: string | null;
   expected_effort: number | string;
   actual_effort: number | string;
   progress: number | string;
@@ -49,6 +83,7 @@ export interface Task {
   updated_at?: string;
   assigned_resource_ids?: number[];
   predecessor_task_ids?: number[];
+  pacing?: TaskPacing;
 }
 
 export interface WorkLog {
@@ -57,7 +92,7 @@ export interface WorkLog {
   user_id: number;
   hours_logged: number;
   progress_logged: number;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: TaskStatus;
   notes: string;
   blockers: string | null;
   log_date: string;
@@ -68,7 +103,7 @@ export interface WorkLog {
 export interface CreateWorkLogPayload {
   hours_logged: number;
   progress_logged: number;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: TaskStatus;
   notes: string;
   blockers?: string | null;
   log_date: string;
@@ -242,7 +277,7 @@ export async function getBottleneckTasksApi(): Promise<Task[]> {
 }
 
 export interface UpdateResourceTaskPayload {
-  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status?: TaskStatus;
   progress?: number;
   actual_effort?: number;
 }
@@ -255,8 +290,8 @@ export interface ResourceWorkloadTask {
   project_id: number;
   project_name?: string;
   title: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  priority: TaskPriority;
+  status: TaskStatus;
   start_date: string | null;
   deadline: string | null;
   expected_effort: number | string;
@@ -292,8 +327,8 @@ export interface CreateTaskPayload {
   project_id: number;
   title: string;
   description?: string | null;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  priority?: TaskPriority;
+  status?: TaskStatus;
   start_date?: string | null;
   deadline?: string | null;
   expected_effort: number;
@@ -348,8 +383,8 @@ export async function createProjectApi(payload: CreateProjectPayload): Promise<P
 export interface UpdateTaskPayload {
   title?: string;
   description?: string | null;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  priority?: TaskPriority;
+  status?: TaskStatus;
   start_date?: string | null;
   deadline?: string | null;
   expected_effort?: number;
@@ -370,6 +405,24 @@ export async function updateTaskApi(taskId: number, payload: UpdateTaskPayload):
   }
 
   return data.task;
+}
+
+/**
+ * Fetch project schedule dataset (tasks with pacing indicators, day-by-day schedules, holidays) for Gantt visualization
+ * GET /api/scheduler/project/:projectId
+ */
+export async function getProjectScheduleDataApi(
+  projectId: number,
+): Promise<ProjectScheduleResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/scheduler/project/${projectId}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch project schedule data');
+  }
+
+  return data;
 }
 
 export async function assignProjectMemberApi(projectId: number, userId: number) {

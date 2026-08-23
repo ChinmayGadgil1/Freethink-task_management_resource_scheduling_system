@@ -104,7 +104,7 @@
                 {{ task.project }}
               </div>
 
-              <div class="row items-center q-gutter-xs q-mt-xs">
+                <div class="row items-center q-gutter-xs q-mt-xs wrap">
                 <q-badge
                   dense
                   outline
@@ -114,7 +114,30 @@
 
                 <q-badge dense outline color="grey-7" :label="task.priority" />
 
+                <q-badge
+                  v-if="task.expectedEffort"
+                  dense
+                  outline
+                  color="purple-8"
+                  :label="`${task.actualEffort || 0}h / ${task.expectedEffort}h`"
+                />
+
                 <q-badge v-if="isTaskOverdue(task)" dense color="negative" label="Overdue" />
+
+                <q-badge
+                  v-if="isEffortOverrun(task)"
+                  dense
+                  color="deep-orange"
+                  label="Overrun"
+                />
+
+                <q-badge
+                  v-if="task.pacingWarning"
+                  dense
+                  color="warning"
+                  text-color="dark"
+                  :label="task.pacingWarning"
+                />
               </div>
             </div>
           </div>
@@ -141,6 +164,7 @@
               `priority-bar-${task.priority.toLowerCase()}`,
               {
                 'gantt-bar-overdue': isTaskOverdue(task),
+                'gantt-bar-overrun': isEffortOverrun(task),
                 'gantt-bar-completed': task.status === 'COMPLETED',
               },
             ]"
@@ -150,12 +174,14 @@
             <div
               class="gantt-bar-fill"
               :style="{
-                width: `${clampedProgress(task.progress)}%`,
+                width: `${clampedEffortFill(task)}%`,
               }"
             />
 
             <div class="gantt-bar-content">
-              <span class="gantt-bar-label"> {{ clampedProgress(task.progress) }}% </span>
+              <span class="gantt-bar-label">
+                {{ task.actualEffort !== undefined && task.expectedEffort ? `${task.actualEffort}h / ${task.expectedEffort}h (${clampedProgress(task.progress)}%)` : `${clampedProgress(task.progress)}%` }}
+              </span>
             </div>
           </div>
         </template>
@@ -196,9 +222,17 @@ export interface GanttTask {
   start: string;
   end: string;
   progress: number;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
-  overdue?: boolean;
+  expectedEffort?: number | undefined;
+  actualEffort?: number | undefined;
+  actualStart?: string | null | undefined;
+  actualEnd?: string | null | undefined;
+  overdue?: boolean | undefined;
+  isOverrun?: boolean | undefined;
+  isBehindSchedule?: boolean | undefined;
+  pacingWarning?: string | null | undefined;
+  assignedResourceNames?: string[] | undefined;
 }
 
 const props = withDefaults(
@@ -328,6 +362,24 @@ function clampedProgress(progress: number): number {
   return Math.min(100, Math.max(0, Number(progress) || 0));
 }
 
+function isEffortOverrun(task: GanttTask): boolean {
+  if (task.isOverrun !== undefined) return task.isOverrun;
+  if (task.expectedEffort !== undefined && task.actualEffort !== undefined) {
+    return Number(task.actualEffort) > Number(task.expectedEffort);
+  }
+  return false;
+}
+
+function clampedEffortFill(task: GanttTask): number {
+  if (task.expectedEffort && Number(task.expectedEffort) > 0 && task.actualEffort !== undefined) {
+    return Math.min(
+      100,
+      Math.max(0, Math.round((Number(task.actualEffort) / Number(task.expectedEffort)) * 100)),
+    );
+  }
+  return clampedProgress(task.progress);
+}
+
 function isTaskOverdue(task: GanttTask): boolean {
   if (task.overdue !== undefined) {
     return task.overdue;
@@ -348,24 +400,24 @@ function isTaskOverdue(task: GanttTask): boolean {
 
 function statusLabel(status: GanttTask['status']): string {
   const labels: Record<GanttTask['status'], string> = {
-    PENDING: 'Pending',
+    UNASSIGNED: 'Unassigned',
+    SCHEDULED: 'Scheduled',
     IN_PROGRESS: 'In Progress',
     COMPLETED: 'Completed',
-    ON_HOLD: 'On Hold',
   };
 
-  return labels[status];
+  return labels[status] || status;
 }
 
 function statusColor(status: GanttTask['status']): string {
   const colors: Record<GanttTask['status'], string> = {
-    PENDING: 'grey-7',
+    UNASSIGNED: 'grey-6',
+    SCHEDULED: 'purple-7',
     IN_PROGRESS: 'blue-7',
     COMPLETED: 'positive',
-    ON_HOLD: 'orange-7',
   };
 
-  return colors[status];
+  return colors[status] || 'grey-7';
 }
 
 function priorityColor(priority: GanttTask['priority']): string {
@@ -382,16 +434,26 @@ function priorityColor(priority: GanttTask['priority']): string {
 function taskTooltip(task: GanttTask): string {
   const status = statusLabel(task.status);
   const progress = clampedProgress(task.progress);
+  const effort = task.expectedEffort
+    ? `Effort: ${task.actualEffort || 0}h / ${task.expectedEffort}h`
+    : '';
+  const actualDates = task.actualStart
+    ? `Actual Start: ${formatDate(new Date(task.actualStart))}`
+    : '';
+  const warning = task.pacingWarning ? `Warning: ${task.pacingWarning}` : '';
 
   return [
     task.name,
     `Project: ${task.project}`,
-    `Start: ${formatDate(new Date(task.start))}`,
-    `Deadline: ${formatDate(new Date(task.end))}`,
+    `Planned: ${formatDate(new Date(task.start))} → ${formatDate(new Date(task.end))}`,
+    actualDates,
     `Status: ${status}`,
     `Priority: ${task.priority}`,
     `Progress: ${progress}%`,
+    effort,
     isTaskOverdue(task) ? 'OVERDUE' : '',
+    isEffortOverrun(task) ? 'EFFORT OVERRUN' : '',
+    warning,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -580,6 +642,12 @@ function taskTooltip(task: GanttTask): string {
   box-shadow:
     0 0 0 2px rgba(225, 82, 99, 0.25),
     0 2px 5px rgba(225, 82, 99, 0.18);
+}
+
+.gantt-bar-overrun {
+  box-shadow:
+    0 0 0 2px rgba(234, 88, 12, 0.35),
+    0 2px 5px rgba(234, 88, 12, 0.25);
 }
 
 .gantt-bar-completed {

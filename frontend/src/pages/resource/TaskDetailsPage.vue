@@ -865,10 +865,10 @@ const priorityFilter = ref<Task['priority'] | null>(null);
 
 const statusOptions: Array<{ label: string; value: Task['status'] | null }> = [
   { label: 'All Statuses', value: null },
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' },
 ];
 
 const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> = [
@@ -1279,20 +1279,20 @@ function formatDate(date: string | null | undefined) {
 
 function statusLabel(status: Task['status']) {
   return {
-    PENDING: 'Pending',
+    UNASSIGNED: 'Unassigned',
+    SCHEDULED: 'Scheduled',
     IN_PROGRESS: 'In Progress',
     COMPLETED: 'Completed',
-    ON_HOLD: 'On Hold',
-  }[status];
+  }[status] || status;
 }
 
 function statusColor(status: Task['status']) {
   return {
-    PENDING: 'grey-7',
+    UNASSIGNED: 'grey-7',
+    SCHEDULED: 'purple-7',
     IN_PROGRESS: 'blue-7',
     COMPLETED: 'positive',
-    ON_HOLD: 'orange-7',
-  }[status];
+  }[status] || 'grey-7';
 }
 
 function priorityColor(priority: Task['priority']) {

@@ -28,6 +28,8 @@
             <q-select
               v-model="form.status"
               :options="statusOptions"
+              emit-value
+              map-options
               label="Status *"
               outlined
               dense
@@ -113,7 +115,12 @@ const emit = defineEmits<{
   (e: 'save', payload: CreateWorkLogPayload): void;
 }>();
 
-const statusOptions = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD'] as const;
+const statusOptions = [
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Completed', value: 'COMPLETED' },
+] as const;
 
 function createToday() {
   return new Date().toISOString().split('T')[0] ?? '';

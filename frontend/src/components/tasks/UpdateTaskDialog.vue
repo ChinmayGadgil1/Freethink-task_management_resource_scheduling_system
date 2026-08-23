@@ -115,10 +115,10 @@ const statusOptions: {
   label: string;
   value: TaskStatus;
 }[] = [
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' },
 ];
 
 const form = reactive<{
@@ -128,7 +128,7 @@ const form = reactive<{
   workUpdate: string;
   description: string;
 }>({
-  status: 'PENDING',
+  status: 'SCHEDULED',
   progress: 0,
   hoursWorked: 0,
   workUpdate: '',

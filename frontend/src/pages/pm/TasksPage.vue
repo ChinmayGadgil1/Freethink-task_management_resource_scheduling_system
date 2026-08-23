@@ -27,14 +27,6 @@
         <q-btn
           unelevated
           no-caps
-          icon="person_add"
-          label="Assign Member"
-          class="action-btn-secondary"
-          @click="openAssignTaskMemberDialog(null)"
-        />
-        <q-btn
-          unelevated
-          no-caps
           icon="add"
           label="New Task"
           class="action-btn-primary"
@@ -95,13 +87,13 @@
 
       <q-card flat bordered class="stat-card">
         <q-card-section class="stat-section">
-          <q-avatar size="46px" class="stat-icon stat-orange-bg">
-            <q-icon name="pending_actions" size="22px" />
+          <q-avatar size="46px" class="stat-icon stat-purple">
+            <q-icon name="schedule" size="22px" />
           </q-avatar>
           <div class="stat-copy">
-            <div class="stat-label">Pending / On Hold</div>
-            <div class="stat-value">{{ pendingCount }}</div>
-            <div class="stat-note stat-orange">Awaiting start</div>
+            <div class="stat-label">Scheduled / Queued</div>
+            <div class="stat-value">{{ scheduledCount }}</div>
+            <div class="stat-note stat-purple-text">Ready to start</div>
           </div>
         </q-card-section>
       </q-card>
@@ -204,7 +196,8 @@
             <div
               v-for="task in tasksByStatus[col.id]"
               :key="task.task_id"
-              class="kanban-task-card"
+              class="kanban-task-card cursor-pointer"
+              @click="openTaskDetails(task)"
             >
               <!-- Card Top Row: Badges & 3-Dot Actions -->
               <div class="task-card-header row items-center justify-between no-wrap q-mb-xs">
@@ -307,7 +300,7 @@
                         :key="rId"
                         size="22px"
                         class="stack-avatar cursor-pointer"
-                        @click="confirmUnassignResource(task, rId)"
+                        @click.stop="confirmUnassignResource(task, rId)"
                       >
                         <span>{{ getResourceName(rId).charAt(0).toUpperCase() }}</span>
                         <q-tooltip>{{ getResourceName(rId) }} (Click to unassign)</q-tooltip>
@@ -328,7 +321,7 @@
                   <span
                     v-else
                     class="unassigned-btn cursor-pointer"
-                    @click="openAssignTaskMemberDialog(task.task_id)"
+                    @click.stop="openAssignTaskMemberDialog(task.task_id)"
                   >
                     <q-icon name="person_add" size="13px" class="q-mr-xs" />
                     Assign
@@ -366,6 +359,7 @@
         no-data-label="No tasks found matching criteria"
         :pagination="{ rowsPerPage: 10 }"
         class="tasks-table"
+        @row-click="(_evt, row) => openTaskDetails(row)"
       >
         <template #body-cell-title="props">
           <q-td :props="props" class="task-title-cell">
@@ -398,6 +392,7 @@
                 square
                 removable
                 class="resource-chip"
+                @click.stop
                 @remove="confirmUnassignResource(props.row, rId)"
               >
                 <q-avatar size="16px" class="avatar-purple q-mr-xs">
@@ -453,7 +448,7 @@
         </template>
 
         <template #body-cell-actions="props">
-          <q-td :props="props" auto-width>
+          <q-td :props="props" auto-width @click.stop>
             <div class="row items-center justify-center q-gutter-xs no-wrap">
               <q-btn
                 flat
@@ -493,6 +488,175 @@
         </template>
       </q-table>
     </q-card>
+
+    <!-- TASK DETAILS POPUP DIALOG -->
+    <q-dialog v-model="showTaskDetailsDialog">
+      <q-card v-if="selectedTaskDetails" class="details-popup-card" style="min-width: 480px; max-width: 95vw">
+        <q-card-section class="row items-center justify-between q-pb-none">
+          <div class="row items-center gap-xs">
+            <q-chip dense square :class="['priority-chip', getPriorityClass(selectedTaskDetails.priority)]">
+              {{ selectedTaskDetails.priority }}
+            </q-chip>
+            <q-chip dense square :class="['status-chip', getTaskStatusClass(selectedTaskDetails.status)]">
+              {{ formatStatus(selectedTaskDetails.status) }}
+            </q-chip>
+            <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 11px">
+              #{{ selectedTaskDetails.task_id }}
+            </q-chip>
+          </div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-card-section class="q-pt-sm">
+          <div class="popup-title text-h6 text-weight-bold text-dark">
+            {{ selectedTaskDetails.title }}
+          </div>
+          <div class="popup-project-row row items-center gap-xs q-mt-xs">
+            <q-icon name="folder" size="14px" color="primary" />
+            <span class="text-weight-bold text-primary">
+              {{ getProjectName(selectedTaskDetails.project_id) }}
+            </span>
+          </div>
+
+          <div class="popup-description q-mt-sm text-body2 text-grey-8">
+            {{ selectedTaskDetails.description || 'No description provided.' }}
+          </div>
+
+          <q-separator class="q-my-md" />
+
+          <!-- Details Grid -->
+          <div class="popup-details-grid">
+            <div class="detail-item">
+              <div class="detail-label">Start Date</div>
+              <div class="detail-val">{{ formatDate(selectedTaskDetails.start_date) }}</div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-label">Deadline</div>
+              <div
+                class="detail-val"
+                :class="{ 'text-negative font-bold': isTaskOverdue(selectedTaskDetails) }"
+              >
+                {{ formatDate(selectedTaskDetails.deadline) }}
+              </div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-label">Expected Effort</div>
+              <div class="detail-val">{{ selectedTaskDetails.expected_effort || 8 }} Hours</div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-label">Actual Effort</div>
+              <div class="detail-val">{{ selectedTaskDetails.actual_effort || 0 }} Hours</div>
+            </div>
+          </div>
+
+          <!-- Progress Section -->
+          <div class="q-mt-md">
+            <div class="row items-center justify-between text-caption q-mb-xs">
+              <span class="detail-label">Progress</span>
+              <span class="text-weight-bold text-primary">{{ Number(selectedTaskDetails.progress) || 0 }}%</span>
+            </div>
+            <q-linear-progress
+              rounded
+              size="7px"
+              :value="(Number(selectedTaskDetails.progress) || 0) / 100"
+              :color="selectedTaskDetails.status === 'COMPLETED' ? 'positive' : 'primary'"
+              track-color="grey-3"
+            />
+          </div>
+
+          <!-- Assignees List in Popup -->
+          <div class="popup-assignees-block q-mt-md">
+            <div class="row items-center justify-between q-mb-xs">
+              <div class="detail-label">Assigned Team Members</div>
+              <q-btn
+                flat
+                dense
+                no-caps
+                size="sm"
+                color="primary"
+                icon="person_add"
+                label="Assign Member"
+                @click="openAssignFromDetails"
+              />
+            </div>
+            <div
+              v-if="selectedTaskDetails.assigned_resource_ids && selectedTaskDetails.assigned_resource_ids.length > 0"
+              class="row q-gutter-xs wrap"
+            >
+              <q-chip
+                v-for="rId in selectedTaskDetails.assigned_resource_ids"
+                :key="rId"
+                dense
+                square
+                removable
+                class="resource-chip"
+                @remove="unassignFromDetails(rId)"
+              >
+                <q-avatar size="18px" class="avatar-purple q-mr-xs">
+                  {{ getResourceName(rId).charAt(0).toUpperCase() }}
+                </q-avatar>
+                {{ getResourceName(rId) }}
+                <q-tooltip>Click X to unassign {{ getResourceName(rId) }}</q-tooltip>
+              </q-chip>
+            </div>
+            <span v-else class="text-caption text-grey-5">No members currently assigned</span>
+          </div>
+
+          <!-- Dependencies in Popup -->
+          <div class="popup-dependencies-block q-mt-md">
+            <div class="row items-center justify-between q-mb-xs">
+              <div class="detail-label">Dependencies (Predecessors)</div>
+              <q-btn
+                flat
+                dense
+                no-caps
+                size="sm"
+                color="teal"
+                icon="account_tree"
+                label="Add Dependency"
+                @click="openDependencyFromDetails"
+              />
+            </div>
+            <div
+              v-if="selectedTaskDetails.predecessor_task_ids && selectedTaskDetails.predecessor_task_ids.length > 0"
+              class="row q-gutter-xs wrap"
+            >
+              <q-chip
+                v-for="pId in selectedTaskDetails.predecessor_task_ids"
+                :key="pId"
+                dense
+                square
+                color="teal-1"
+                text-color="teal-9"
+                style="font-size: 11px"
+              >
+                <q-icon name="account_tree" size="13px" class="q-mr-xs" color="teal" />
+                {{ getTaskTitle(pId) }} (#{{ pId }})
+              </q-chip>
+            </div>
+            <span v-else class="text-caption text-grey-5">No predecessor dependencies</span>
+          </div>
+        </q-card-section>
+
+        <q-separator class="q-mt-md" />
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat no-caps label="Close" color="grey-7" v-close-popup class="text-weight-medium" />
+          <q-btn
+            unelevated
+            no-caps
+            icon="edit"
+            label="Edit Task"
+            color="primary"
+            class="action-btn-primary"
+            @click="openEditFromDetails"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- 6. ASSIGN MEMBER TO TASK DIALOG (POST /api/tasks/:id/assign) -->
     <q-dialog v-model="showAssignTaskMemberDialog">
@@ -687,7 +851,7 @@
 
     <!-- 8. CREATE TASK DIALOG -->
     <q-dialog v-model="showCreateDialog">
-      <q-card class="dialog-card">
+      <q-card class="dialog-card" style="min-width: 520px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div class="text-subtitle1 text-weight-bold text-dark">Create New Task</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -740,6 +904,7 @@
                   dense
                   type="number"
                   label="Effort (Hours)"
+                  :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
                 />
               </div>
             </div>
@@ -766,6 +931,81 @@
                 />
               </div>
             </div>
+
+            <!-- Assign Members Field -->
+            <q-select
+              v-model="createForm.assigned_resource_ids"
+              outlined
+              dense
+              multiple
+              clearable
+              :display-value="
+                createForm.assigned_resource_ids.length
+                  ? `${createForm.assigned_resource_ids.length} member(s) selected`
+                  : ''
+              "
+              label="Assign Member(s) (Optional)"
+              :options="createMemberOptions"
+              emit-value
+              map-options
+              :disable="!createForm.project_id"
+              :hint="
+                !createForm.project_id
+                  ? 'Select a project first to assign members'
+                  : createForm.assigned_resource_ids.length
+                    ? 'Task will be created as SCHEDULED'
+                    : 'No members selected — task will be created as UNASSIGNED'
+              "
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps">
+                  <q-item-section side>
+                    <q-checkbox :model-value="selected" color="primary" @update:model-value="toggleOption(opt)" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ opt.label }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+
+            <!-- Dependencies Field -->
+            <q-select
+              v-model="createForm.predecessor_task_ids"
+              outlined
+              dense
+              multiple
+              clearable
+              :display-value="
+                createForm.predecessor_task_ids.length
+                  ? `${createForm.predecessor_task_ids.length} dependency/dependencies selected`
+                  : ''
+              "
+              label="Predecessor Dependencies (Optional)"
+              :options="createPredecessorOptions"
+              emit-value
+              map-options
+              :disable="!createForm.project_id"
+              :hint="
+                !createForm.project_id
+                  ? 'Select a project first to choose dependencies'
+                  : 'Select tasks that must be completed before this task'
+              "
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps">
+                  <q-item-section side>
+                    <q-checkbox :model-value="selected" color="primary" @update:model-value="toggleOption(opt)" />
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="account_tree" color="primary" size="18px" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ opt.label }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -818,7 +1058,7 @@
                   outlined
                   dense
                   label="Status"
-                  :options="['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD']"
+                  :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']"
                 />
               </div>
               <div class="col-6">
@@ -1026,7 +1266,7 @@ const taskToDelete = ref<Task | null>(null);
 // KANBAN COLUMN DEFINITION
 // ----------------------------------------------------
 interface KanbanColumn {
-  id: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  id: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   title: string;
   dotColor: string;
   headerBg: string;
@@ -1038,14 +1278,24 @@ interface KanbanColumn {
 
 const KANBAN_COLUMNS: KanbanColumn[] = [
   {
-    id: 'PENDING',
-    title: 'Pending',
+    id: 'UNASSIGNED',
+    title: 'Unassigned',
+    dotColor: '#64748b',
+    headerBg: 'rgba(100, 116, 139, 0.08)',
+    borderColor: 'rgba(100, 116, 139, 0.22)',
+    badgeBg: '#f1f5f9',
+    badgeColor: '#475569',
+    icon: 'person_off',
+  },
+  {
+    id: 'SCHEDULED',
+    title: 'Scheduled',
     dotColor: '#8b6fd8',
     headerBg: 'rgba(139, 111, 216, 0.08)',
     borderColor: 'rgba(139, 111, 216, 0.22)',
     badgeBg: '#f0ecfa',
     badgeColor: '#6d4ec4',
-    icon: 'hourglass_empty',
+    icon: 'calendar_month',
   },
   {
     id: 'IN_PROGRESS',
@@ -1067,19 +1317,9 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
     badgeColor: '#047857',
     icon: 'check_circle',
   },
-  {
-    id: 'ON_HOLD',
-    title: 'On Hold',
-    dotColor: '#ea580c',
-    headerBg: 'rgba(234, 88, 12, 0.08)',
-    borderColor: 'rgba(234, 88, 12, 0.22)',
-    badgeBg: '#fff7ed',
-    badgeColor: '#c2410c',
-    icon: 'pause_circle',
-  },
 ];
 
-function quickCreateInColumn(status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD') {
+function quickCreateInColumn(status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
   createForm.status = status;
   showCreateDialog.value = true;
 }
@@ -1117,6 +1357,46 @@ async function handleExecuteDeleteTask() {
   }
 }
 
+const showTaskDetailsDialog = ref(false);
+const selectedTaskDetails = ref<Task | null>(null);
+
+function openTaskDetails(task: Task) {
+  selectedTaskDetails.value = task;
+  showTaskDetailsDialog.value = true;
+}
+
+function openEditFromDetails() {
+  showTaskDetailsDialog.value = false;
+  if (selectedTaskDetails.value) {
+    openEditModal(selectedTaskDetails.value);
+  }
+}
+
+function openAssignFromDetails() {
+  showTaskDetailsDialog.value = false;
+  if (selectedTaskDetails.value) {
+    openAssignTaskMemberDialog(selectedTaskDetails.value.task_id);
+  }
+}
+
+function openDependencyFromDetails() {
+  showTaskDetailsDialog.value = false;
+  if (selectedTaskDetails.value) {
+    openDependencyDialog(selectedTaskDetails.value);
+  }
+}
+
+function unassignFromDetails(rId: number) {
+  if (selectedTaskDetails.value) {
+    confirmUnassignResource(selectedTaskDetails.value, rId);
+  }
+}
+
+function getTaskTitle(taskId: number): string {
+  const t = tasks.value.find((item) => item.task_id === taskId);
+  return t ? t.title : `Task #${taskId}`;
+}
+
 const showUnassignDialog = ref(false);
 const unassigning = ref(false);
 const unassignTarget = reactive({
@@ -1146,6 +1426,11 @@ async function handleExecuteUnassign() {
     });
     showUnassignDialog.value = false;
     await loadData();
+
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === unassignTarget.taskId) {
+      const updated = tasks.value.find((t) => t.task_id === unassignTarget.taskId);
+      selectedTaskDetails.value = updated || null;
+    }
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
@@ -1197,7 +1482,10 @@ function getResourceName(id: number): string {
 }
 
 const resourceMemberSelectOptions = computed(() => {
-  const source = assignTaskMemberForm.task_id ? taskProjectMembers.value : resources.value;
+  const source =
+    assignTaskMemberForm.task_id && taskProjectMembers.value.length > 0
+      ? taskProjectMembers.value
+      : resources.value;
   const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
   const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
 
@@ -1212,29 +1500,69 @@ const resourceMemberSelectOptions = computed(() => {
   });
 });
 
+const createProjectMembers = ref<ResourceUser[]>([]);
+
 const createForm = reactive<{
   project_id: number | null;
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   start_date: string;
   deadline: string;
+  assigned_resource_ids: number[];
+  predecessor_task_ids: number[];
 }>({
   project_id: null,
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'PENDING',
+  status: 'UNASSIGNED',
   expected_effort: 8,
   start_date: '',
   deadline: '',
+  assigned_resource_ids: [],
+  predecessor_task_ids: [],
+});
+
+watch(
+  () => createForm.project_id,
+  async (newProjectId) => {
+    createForm.assigned_resource_ids = [];
+    createForm.predecessor_task_ids = [];
+    if (newProjectId) {
+      const members = await getResourcesApi(newProjectId).catch(() => []);
+      createProjectMembers.value = members;
+    } else {
+      createProjectMembers.value = [];
+    }
+  },
+  { immediate: true },
+);
+
+const createMemberOptions = computed(() => {
+  const source =
+    createProjectMembers.value.length > 0 ? createProjectMembers.value : resources.value;
+  return source.map((r) => ({
+    label: r.name,
+    value: r.user_id,
+  }));
+});
+
+const createPredecessorOptions = computed(() => {
+  if (!createForm.project_id) return [];
+  return tasks.value
+    .filter((t) => t.project_id === createForm.project_id)
+    .map((t) => ({
+      label: `${t.title} (#${t.task_id})`,
+      value: t.task_id,
+    }));
 });
 
 const editForm = reactive<{
   title: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   progress: number;
   expected_effort: number;
@@ -1242,7 +1570,7 @@ const editForm = reactive<{
   deadline: string;
 }>({
   title: '',
-  status: 'PENDING',
+  status: 'UNASSIGNED',
   priority: 'MEDIUM',
   progress: 0,
   expected_effort: 8,
@@ -1252,10 +1580,10 @@ const editForm = reactive<{
 
 const statusFilterOptions = [
   { label: 'All Statuses', value: 'ALL' },
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Unassigned', value: 'UNASSIGNED' },
+  { label: 'Scheduled', value: 'SCHEDULED' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'Completed', value: 'COMPLETED' },
-  { label: 'On Hold', value: 'ON_HOLD' },
 ];
 
 const priorityFilterOptions = [
@@ -1344,7 +1672,7 @@ async function loadData() {
     tasks.value = tList;
     projects.value = pList;
     resources.value = rList;
-    if (pList.length > 0 && pList[0]) {
+    if (pList.length > 0 && pList[0] && !createForm.project_id) {
       createForm.project_id = pList[0].project_id;
     }
   } catch (error) {
@@ -1364,8 +1692,8 @@ const inProgressCount = computed(
 
 const completedCount = computed(() => tasks.value.filter((t) => t.status === 'COMPLETED').length);
 
-const pendingCount = computed(
-  () => tasks.value.filter((t) => t.status === 'PENDING' || t.status === 'ON_HOLD').length,
+const scheduledCount = computed(
+  () => tasks.value.filter((t) => t.status === 'SCHEDULED' || t.status === 'UNASSIGNED').length,
 );
 
 const filteredTasks = computed(() => {
@@ -1387,18 +1715,18 @@ const filteredTasks = computed(() => {
 });
 
 const tasksByStatus = computed(() => {
-  const map: Record<'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD', Task[]> = {
-    PENDING: [],
+  const map: Record<'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED', Task[]> = {
+    UNASSIGNED: [],
+    SCHEDULED: [],
     IN_PROGRESS: [],
     COMPLETED: [],
-    ON_HOLD: [],
   };
 
   for (const task of filteredTasks.value) {
     if (task.status in map) {
       map[task.status].push(task);
     } else {
-      map.PENDING.push(task);
+      map.UNASSIGNED.push(task);
     }
   }
 
@@ -1429,8 +1757,8 @@ function formatDate(dateStr: string | null | undefined): string {
 function getTaskStatusClass(status: string): string {
   if (status === 'COMPLETED') return 'chip-soft-green';
   if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'ON_HOLD') return 'chip-soft-orange';
-  return 'chip-soft-purple';
+  if (status === 'SCHEDULED') return 'chip-soft-purple';
+  return 'chip-soft-grey';
 }
 
 function getPriorityClass(priority: string): string {
@@ -1439,7 +1767,6 @@ function getPriorityClass(priority: string): string {
   if (priority === 'MEDIUM') return 'chip-soft-blue';
   return 'chip-soft-purple';
 }
-
 function openAssignTaskMemberDialog(taskId: number | null) {
   assignTaskMemberForm.task_id = taskId || (tasks.value[0]?.task_id ?? null);
   assignTaskMemberForm.user_ids = [];
@@ -1476,7 +1803,11 @@ async function handleAssignTaskMember() {
     });
     showAssignTaskMemberDialog.value = false;
     assignTaskMemberForm.user_ids = [];
-    void loadData();
+    await loadData();
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === assignTaskMemberForm.task_id) {
+      const updated = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
+      selectedTaskDetails.value = updated || null;
+    }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to assign members to task';
     $q.notify({
@@ -1540,7 +1871,11 @@ async function handleAddDependency() {
     showDependencyDialog.value = false;
     selectedDependencyTaskId.value = null;
     selectedPredecessorTaskIds.value = [];
-    void loadData();
+    await loadData();
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === taskId) {
+      const updated = tasks.value.find((t) => t.task_id === taskId);
+      selectedTaskDetails.value = updated || null;
+    }
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
@@ -1556,27 +1891,48 @@ async function handleCreateTask() {
 
   submitting.value = true;
   try {
-    await createTaskApi({
+    const newTask = await createTaskApi({
       project_id: createForm.project_id,
       title: createForm.title.trim(),
-      description: createForm.description || null,
+      description: createForm.description.trim() || null,
       priority: createForm.priority,
-      status: createForm.status,
       expected_effort: Number(createForm.expected_effort) || 8,
       start_date: createForm.start_date || null,
       deadline: createForm.deadline || null,
+      assigned_resource_ids: createForm.assigned_resource_ids,
     });
 
-    $q.notify({
-      type: 'positive',
-      message: 'Task created successfully',
-    });
+    const newTaskId = newTask?.task_id;
+    let depErrors = 0;
+
+    if (newTaskId && createForm.predecessor_task_ids.length > 0) {
+      for (const predId of createForm.predecessor_task_ids) {
+        try {
+          await addTaskDependencyApi(newTaskId, predId);
+        } catch {
+          depErrors++;
+        }
+      }
+    }
+
+    if (depErrors > 0) {
+      $q.notify({
+        type: 'warning',
+        message: `Task created, but ${depErrors} dependency/dependencies could not be linked`,
+      });
+    } else {
+      $q.notify({
+        type: 'positive',
+        message: 'Task created successfully',
+      });
+    }
 
     showCreateDialog.value = false;
     createForm.title = '';
     createForm.description = '';
-    createForm.status = 'PENDING';
-    void loadData();
+    createForm.assigned_resource_ids = [];
+    createForm.predecessor_task_ids = [];
+    await loadData();
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to create task';
     $q.notify({
@@ -1621,7 +1977,11 @@ async function handleUpdateTask() {
     });
 
     showEditDialog.value = false;
-    void loadData();
+    await loadData();
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === editingTaskId.value) {
+      const updated = tasks.value.find((t) => t.task_id === editingTaskId.value);
+      selectedTaskDetails.value = updated || null;
+    }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to update task';
     $q.notify({
@@ -2045,9 +2405,56 @@ async function handleUpdateTask() {
   white-space: nowrap;
 }
 
+.tasks-table :deep(tbody tr) {
+  cursor: pointer;
+}
+
 .dialog-card {
   min-width: 440px;
   border-radius: 14px;
   background: var(--wo-bg-card, #ffffff);
+}
+
+.details-popup-card {
+  min-width: 440px;
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+
+  .popup-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--wo-text-main, #1e293b);
+  }
+
+  .popup-description {
+    font-size: 12.5px;
+    color: var(--wo-text-muted, #64748b);
+    line-height: 1.4;
+  }
+
+  .popup-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .detail-item {
+    padding: 6px 0;
+  }
+
+  .detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--wo-text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .detail-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wo-text-main, #1e293b);
+    margin-top: 2px;
+  }
 }
 </style>
