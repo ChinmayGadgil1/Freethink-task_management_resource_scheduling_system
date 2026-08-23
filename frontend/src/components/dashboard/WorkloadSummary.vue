@@ -85,6 +85,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { getResourceWorkloadApi, type ResourceUser } from '@/services/api';
+import { getInitials } from '@/utils/formatters';
 
 const props = defineProps<{
   resources: ResourceUser[];
@@ -113,15 +114,6 @@ function goToResourceDetails(userId?: number) {
 
 function goToProjects() {
   void router.push('/pm/projects');
-}
-
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
 }
 
 function getWorkloadMeta(workload: number) {

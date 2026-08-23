@@ -46,57 +46,41 @@
 
     <!-- 2. STAT SUMMARY CARDS -->
     <div class="stats-grid q-mb-md">
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="46px" class="stat-icon stat-purple">
-            <q-icon name="task_alt" size="22px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Total Tasks</div>
-            <div class="stat-value">{{ tasks.length }}</div>
-            <div class="stat-note stat-purple-text">All managed tasks</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Total Tasks"
+        :value="tasks.length"
+        subtitle="All managed tasks"
+        icon="task_alt"
+        color="purple"
+        note-class="note-purple"
+      />
 
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="46px" class="stat-icon stat-blue-bg">
-            <q-icon name="autorenew" size="22px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">In Progress</div>
-            <div class="stat-value">{{ inProgressCount }}</div>
-            <div class="stat-note stat-blue">Active work</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="In Progress"
+        :value="inProgressCount"
+        subtitle="Active work"
+        icon="autorenew"
+        color="blue"
+        note-class="note-blue"
+      />
 
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="46px" class="stat-icon stat-green-bg">
-            <q-icon name="check_circle" size="22px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Completed</div>
-            <div class="stat-value">{{ completedCount }}</div>
-            <div class="stat-note stat-green">Done</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Completed"
+        :value="completedCount"
+        subtitle="Done"
+        icon="check_circle"
+        color="green"
+        note-class="note-green"
+      />
 
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="46px" class="stat-icon stat-purple">
-            <q-icon name="schedule" size="22px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Scheduled / Queued</div>
-            <div class="stat-value">{{ scheduledCount }}</div>
-            <div class="stat-note stat-purple-text">Ready to start</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Scheduled / Queued"
+        :value="scheduledCount"
+        subtitle="Ready to start"
+        icon="schedule"
+        color="purple"
+        note-class="note-purple"
+      />
     </div>
 
     <!-- 3. FILTER BAR -->
@@ -1224,6 +1208,9 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate, formatStatus } from '@/utils/formatters';
+import { getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
   assignTaskResourceApi,
   addTaskDependencyApi,
@@ -1738,35 +1725,6 @@ function getProjectName(projectId: number): string {
   return p ? p.name : `Project #${projectId}`;
 }
 
-function formatStatus(status: string): string {
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'TBD';
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
-
-function getTaskStatusClass(status: string): string {
-  if (status === 'COMPLETED') return 'chip-soft-green';
-  if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'SCHEDULED') return 'chip-soft-purple';
-  return 'chip-soft-grey';
-}
-
-function getPriorityClass(priority: string): string {
-  if (priority === 'CRITICAL') return 'chip-soft-red';
-  if (priority === 'HIGH') return 'chip-soft-orange';
-  if (priority === 'MEDIUM') return 'chip-soft-blue';
-  return 'chip-soft-purple';
-}
 function openAssignTaskMemberDialog(taskId: number | null) {
   assignTaskMemberForm.task_id = taskId || (tasks.value[0]?.task_id ?? null);
   assignTaskMemberForm.user_ids = [];

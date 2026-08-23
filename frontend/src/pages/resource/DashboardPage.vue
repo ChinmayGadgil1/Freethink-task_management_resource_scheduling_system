@@ -116,24 +116,17 @@
         <!-- 3. FOUR PASTEL STAT CARDS -->
         <section class="stat-cards-section">
           <div class="stat-cards-grid">
-            <div
+            <StatCard
               v-for="stat in pastelStatCards"
               :key="stat.title"
-              class="pastel-stat-card"
-              :class="stat.themeClass"
-            >
-              <div class="stat-card-top">
-                <div class="stat-icon-bubble">
-                  <q-icon :name="stat.icon" size="20px" />
-                </div>
-                <span class="stat-badge-pill">{{ stat.badge }}</span>
-              </div>
-              <div class="stat-card-bottom">
-                <div class="stat-card-value">{{ stat.value }}</div>
-                <div class="stat-card-title">{{ stat.title }}</div>
-                <div class="stat-card-subtitle">{{ stat.subtitle }}</div>
-              </div>
-            </div>
+              :title="stat.title"
+              :value="stat.value"
+              :subtitle="stat.subtitle"
+              :badge="stat.badge"
+              :icon="stat.icon"
+              :color="stat.color"
+              :negative="stat.negative"
+            />
           </div>
         </section>
 
@@ -528,10 +521,13 @@
               <div v-else-if="scheduleViewMode === 'gantt'" class="gantt-wrapper-container q-pa-sm">
                 <GanttChart
                   :tasks="filteredGanttTasks"
+                  mode="resource"
                   title="My Gantt Timeline"
                   subtitle="Visual timeline of your assigned task durations, progress and deadlines"
                   empty-title="No matching schedule items"
                   empty-subtitle="Adjust your filters to view tasks on the Gantt timeline."
+                  :show-assignees="false"
+                  @task-click="handleGanttTaskClick"
                 />
               </div>
 
@@ -628,6 +624,9 @@ import WorkloadCard from '@/components/resource/WorkloadCard.vue';
 import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
 import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
 import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate, formatStatus } from '@/utils/formatters';
+import { isOverdue, getTaskStatusClass, getPriorityClass, mapTaskToGanttTask } from '@/utils/taskHelpers';
 import {
   getTasksApi,
   getResourceWorkloadApi,
@@ -970,40 +969,8 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
   return results;
 });
 
-function normalizePriorityForGantt(p?: string): 'Low' | 'Medium' | 'High' | 'Critical' {
-  const up = (p || '').toUpperCase();
-  if (up === 'LOW') return 'Low';
-  if (up === 'HIGH') return 'High';
-  if (up === 'CRITICAL') return 'Critical';
-  return 'Medium';
-}
-
 const filteredGanttTasks = computed<GanttTask[]>(() => {
-  const today = new Date().toISOString().slice(0, 10);
-
-  return filteredTasksList.value.map((task) => {
-    const start = task.start_date ? (task.start_date.split('T')[0] ?? today) : today;
-    const end = task.deadline ? (task.deadline.split('T')[0] ?? start) : start;
-
-    return {
-      id: task.task_id,
-      name: task.title,
-      project: task.project_name || `Project #${task.project_id}`,
-      start,
-      end,
-      progress: Math.min(100, Math.max(0, Number(task.progress) || 0)),
-      status: task.status,
-      priority: normalizePriorityForGantt(task.priority),
-      expectedEffort: Number(task.expected_effort) || undefined,
-      actualEffort: Number(task.actual_effort) || 0,
-      actualStart: task.actual_start || null,
-      actualEnd: task.actual_end || null,
-      overdue: isOverdue(task),
-      isOverrun: task.pacing?.is_overrun,
-      isBehindSchedule: task.pacing?.is_behind_schedule,
-      pacingWarning: task.pacing?.warning || null,
-    };
-  });
+  return filteredTasksList.value.map((task) => mapTaskToGanttTask(task));
 });
 
 const scheduleTableColumns: QTableColumn<Task>[] = [
@@ -1014,27 +981,6 @@ const scheduleTableColumns: QTableColumn<Task>[] = [
   { name: 'dates', label: 'Start & Deadline', field: () => '', align: 'left' },
   { name: 'progress', label: 'Progress', field: (t) => Number(t.progress) || 0, align: 'left' },
 ];
-
-function formatStatus(status: string): string {
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function getTaskStatusClass(status: string): string {
-  if (status === 'COMPLETED') return 'chip-soft-green';
-  if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'SCHEDULED') return 'chip-soft-purple';
-  return 'chip-soft-grey';
-}
-
-function getPriorityClass(priority: string): string {
-  if (priority === 'CRITICAL') return 'chip-soft-red';
-  if (priority === 'HIGH') return 'chip-soft-orange';
-  if (priority === 'MEDIUM') return 'chip-soft-blue';
-  return 'chip-soft-purple';
-}
 
 async function loadDashboardData() {
   loading.value = true;
@@ -1061,19 +1007,6 @@ onMounted(() => {
   void loadDashboardData();
 });
 
-// Helper for dates
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'TBD';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'TBD';
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function isOverdue(task: Task): boolean {
-  if (!task.deadline || task.status === 'COMPLETED') return false;
-  return new Date(task.deadline) < new Date();
-}
-
 // Stats computations
 const activeTasksCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'SCHEDULED').length,
@@ -1094,7 +1027,8 @@ const pastelStatCards = computed(() => [
     subtitle: 'All assigned tasks',
     badge: 'Workspace',
     icon: 'task_alt',
-    themeClass: 'stat-theme-sky',
+    color: 'sky',
+    negative: false,
   },
   {
     title: 'In Progress',
@@ -1102,7 +1036,8 @@ const pastelStatCards = computed(() => [
     subtitle: 'Active work',
     badge: 'Ongoing',
     icon: 'sync',
-    themeClass: 'stat-theme-amber',
+    color: 'amber',
+    negative: false,
   },
   {
     title: 'Completed',
@@ -1110,7 +1045,8 @@ const pastelStatCards = computed(() => [
     subtitle: 'Done',
     badge: 'Delivered',
     icon: 'check_circle',
-    themeClass: 'stat-theme-mint',
+    color: 'mint',
+    negative: false,
   },
   {
     title: 'Delayed',
@@ -1118,7 +1054,8 @@ const pastelStatCards = computed(() => [
     subtitle: 'Need attention',
     badge: 'Urgent',
     icon: 'warning',
-    themeClass: 'stat-theme-rose',
+    color: 'rose',
+    negative: delayedTasksCount.value > 0,
   },
 ]);
 
@@ -1258,6 +1195,10 @@ function goToTaskDetails(id?: number) {
   } else {
     void router.push('/app/resource-dashboard/task-details');
   }
+}
+
+function handleGanttTaskClick(ganttTask: GanttTask) {
+  goToTaskDetails(ganttTask.id);
 }
 
 function goToProgress() {

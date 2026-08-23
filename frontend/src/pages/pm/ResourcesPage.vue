@@ -32,57 +32,41 @@
 
     <!-- STAT SUMMARY CARDS -->
     <div class="stats-grid q-mb-md">
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-purple">
-            <q-icon name="groups" size="24px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Assigned Resources</div>
-            <div class="stat-value">{{ resourceMap.length }}</div>
-            <div class="stat-note stat-purple-text">Active in backend</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Assigned Resources"
+        :value="resourceMap.length"
+        subtitle="Active in backend"
+        icon="groups"
+        color="purple"
+        note-class="note-purple"
+      />
 
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-blue-bg">
-            <q-icon name="task_alt" size="24px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Tasks Assigned by PM</div>
-            <div class="stat-value">{{ taskList.length }}</div>
-            <div class="stat-note stat-blue">Across projects</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Tasks Assigned by PM"
+        :value="taskList.length"
+        subtitle="Across projects"
+        icon="task_alt"
+        color="blue"
+        note-class="note-blue"
+      />
 
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-green-bg">
-            <q-icon name="schedule" size="24px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Total Effort Allocated</div>
-            <div class="stat-value">{{ totalEffortHours }}h</div>
-            <div class="stat-note stat-green">Expected effort hours</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Total Effort Allocated"
+        :value="`${totalEffortHours}h`"
+        subtitle="Expected effort hours"
+        icon="schedule"
+        color="green"
+        note-class="note-green"
+      />
 
-      <q-card flat bordered class="stat-card">
-        <q-card-section class="stat-section">
-          <q-avatar size="48px" class="stat-icon stat-orange-bg">
-            <q-icon name="folder" size="24px" />
-          </q-avatar>
-          <div class="stat-copy">
-            <div class="stat-label">Managed Projects</div>
-            <div class="stat-value">{{ projectList.length }}</div>
-            <div class="stat-note stat-orange">Active projects</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Managed Projects"
+        :value="projectList.length"
+        subtitle="Active projects"
+        icon="folder"
+        color="orange"
+        note-class="note-orange"
+      />
     </div>
 
     <!-- MAIN TABS: RESOURCE ALLOCATION VS TASKS ASSIGNED BY PM -->
@@ -727,6 +711,9 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate, formatStatus as formatTaskStatus, getInitials } from '@/utils/formatters';
+import { getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
   assignProjectMemberApi,
   createTaskApi,
@@ -1085,14 +1072,6 @@ const projectOptions = computed(() =>
   })),
 );
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-}
-
 function getUtilizationColor(util: number): string {
   if (util > 100) return 'negative';
   if (util >= 75) return 'warning';
@@ -1109,36 +1088,6 @@ function getWorkloadChipClass(status: string): string {
   if (status === 'OVERALLOCATED') return 'chip-soft-red';
   if (status === 'HIGH_LOAD') return 'chip-soft-orange';
   return 'chip-soft-green';
-}
-
-function formatTaskStatus(status: string): string {
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function getTaskStatusClass(status: string): string {
-  if (status === 'COMPLETED') return 'chip-soft-green';
-  if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'SCHEDULED') return 'chip-soft-purple';
-  return 'chip-soft-grey';
-}
-
-function getPriorityClass(priority: string): string {
-  if (priority === 'CRITICAL') return 'chip-soft-red';
-  if (priority === 'HIGH') return 'chip-soft-orange';
-  if (priority === 'MEDIUM') return 'chip-soft-blue';
-  return 'chip-soft-purple';
-}
-
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'TBD';
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
 }
 
 function goToDetails(id: number) {

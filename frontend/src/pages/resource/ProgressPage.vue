@@ -59,100 +59,54 @@
       <div class="row q-col-gutter-md q-mb-lg items-stretch">
         <!-- Overall -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="full-height">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center no-wrap">
-                <q-avatar size="38px" color="primary" text-color="white" icon="insights" />
-
-                <div class="q-ml-sm">
-                  <div class="text-caption text-grey-6">Overall Progress</div>
-
-                  <div class="text-h5 text-weight-bold">{{ overallProgress }}%</div>
-                </div>
-              </div>
-
-              <q-linear-progress
-                :value="overallProgress / 100"
-                color="primary"
-                rounded
-                size="7px"
-                class="q-mt-md"
-              />
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Overall Progress"
+            :value="`${overallProgress}%`"
+            icon="insights"
+            color="primary"
+            :progress="overallProgress"
+            :clickable="false"
+          />
         </div>
 
         <!-- Completed -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="full-height">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center no-wrap">
-                <q-avatar size="38px" color="positive" text-color="white" icon="check_circle" />
-
-                <div class="q-ml-sm">
-                  <div class="text-caption text-grey-6">Completed</div>
-
-                  <div class="text-h5 text-weight-bold">
-                    {{ completedTasks }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-caption text-grey-6 q-mt-md">
-                {{ completedTasks }} of {{ tasks.length }} tasks completed
-              </div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Completed"
+            :value="completedTasks"
+            :subtitle="`${completedTasks} of ${tasks.length} tasks completed`"
+            icon="check_circle"
+            color="positive"
+            note-class="stat-green"
+            :clickable="false"
+          />
         </div>
 
         <!-- Active -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="full-height">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center no-wrap">
-                <q-avatar size="38px" color="info" text-color="white" icon="autorenew" />
-
-                <div class="q-ml-sm">
-                  <div class="text-caption text-grey-6">Active Tasks</div>
-
-                  <div class="text-h5 text-weight-bold">
-                    {{ activeTasks }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="text-caption text-grey-6 q-mt-md">Tasks currently in progress</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Active Tasks"
+            :value="activeTasks"
+            subtitle="Tasks currently in progress"
+            icon="autorenew"
+            color="info"
+            note-class="stat-blue"
+            :clickable="false"
+          />
         </div>
 
         <!-- Remaining -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="full-height">
-            <q-card-section class="q-pa-md">
-              <div class="row items-center no-wrap">
-                <q-avatar size="38px" color="warning" text-color="white" icon="hourglass_empty" />
-
-                <div class="q-ml-sm">
-                  <div class="text-caption text-grey-6">Remaining Effort</div>
-
-                  <div class="text-h5 text-weight-bold">{{ actualHoursRemaining }}h</div>
-                </div>
-              </div>
-
-              <div class="q-mt-md">
-                <q-chip
-                  dense
-                  size="sm"
-                  :color="delayedTasks ? 'negative' : 'positive'"
-                  text-color="white"
-                  icon="schedule"
-                >
-                  {{ delayedTasks }} delayed
-                </q-chip>
-              </div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Remaining Effort"
+            :value="`${actualHoursRemaining}h`"
+            :subtitle="`${delayedTasks} delayed`"
+            icon="hourglass_empty"
+            color="warning"
+            :note-class="delayedTasks ? 'note-red' : 'note-green'"
+            :negative="delayedTasks > 0"
+            :clickable="false"
+          />
         </div>
       </div>
 
@@ -589,6 +543,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate } from '@/utils/formatters';
+import { isOverdue } from '@/utils/taskHelpers';
 
 import {
   getTasksApi,
@@ -642,18 +599,6 @@ onMounted(() => {
    GENERAL HELPERS
    ========================================================= */
 
-function isOverdue(task: Task): boolean {
-  if (task.status === 'COMPLETED' || !task.deadline) {
-    return false;
-  }
-
-  const today = new Date();
-
-  today.setHours(0, 0, 0, 0);
-
-  return new Date(task.deadline) < today;
-}
-
 function daysUntil(deadline: string): number {
   const today = new Date();
 
@@ -664,18 +609,6 @@ function daysUntil(deadline: string): number {
   d.setHours(0, 0, 0, 0);
 
   return Math.round((d.getTime() - today.getTime()) / 86400000);
-}
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return 'No deadline';
-  }
-
-  return new Date(date).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
 }
 
 /* =========================================================

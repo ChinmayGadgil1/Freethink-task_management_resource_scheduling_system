@@ -73,57 +73,42 @@
 
       <!-- 2. STAT SUMMARY CARDS -->
       <div class="stats-grid q-mb-md">
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-purple">
-              <q-icon name="task_alt" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">Total Tasks</div>
-              <div class="stat-value">{{ tasks.length }}</div>
-              <div class="stat-note stat-purple-text">All assigned tasks</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="Total Tasks"
+          :value="tasks.length"
+          subtitle="All assigned tasks"
+          icon="task_alt"
+          color="purple"
+          note-class="note-purple"
+        />
 
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-blue-bg">
-              <q-icon name="autorenew" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">In Progress</div>
-              <div class="stat-value">{{ tasks.filter((t) => t.status === 'IN_PROGRESS').length }}</div>
-              <div class="stat-note stat-blue">Active work</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="In Progress"
+          :value="tasks.filter((t) => t.status === 'IN_PROGRESS').length"
+          subtitle="Active work"
+          icon="autorenew"
+          color="blue"
+          note-class="note-blue"
+        />
 
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-green-bg">
-              <q-icon name="check_circle" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">Completed</div>
-              <div class="stat-value">{{ tasks.filter((t) => t.status === 'COMPLETED').length }}</div>
-              <div class="stat-note stat-green">Done</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="Completed"
+          :value="tasks.filter((t) => t.status === 'COMPLETED').length"
+          subtitle="Done"
+          icon="check_circle"
+          color="green"
+          note-class="note-green"
+        />
 
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-red-bg">
-              <q-icon name="warning_amber" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">Delayed</div>
-              <div class="stat-value">{{ tasks.filter(isOverdue).length }}</div>
-              <div class="stat-note stat-red">Need attention</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="Delayed"
+          :value="tasks.filter(isOverdue).length"
+          subtitle="Need attention"
+          icon="warning_amber"
+          color="red"
+          note-class="note-red"
+          :negative="tasks.filter(isOverdue).length > 0"
+        />
       </div>
 
       <!-- 3. FILTER TOOLBAR -->
@@ -972,6 +957,9 @@ import { useAuthStore } from '@/stores/auth';
 import type { ResourceTask } from '@/components/tasks/task-types';
 import DailyProgressDialog from '@/components/tasks/DailyProgressDialog.vue';
 import UpdateTaskDialog from '@/components/tasks/UpdateTaskDialog.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate } from '@/utils/formatters';
+import { isOverdue, isTaskOverdue } from '@/utils/taskHelpers';
 
 const authStore = useAuthStore();
 const viewMode = ref<'board' | 'table'>('board');
@@ -1175,21 +1163,6 @@ const tasksByStatus = computed(() => {
 
   return map;
 });
-
-function isOverdue(task: Task): boolean {
-  if (task.status === 'COMPLETED' || !task.deadline) {
-    return false;
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return new Date(task.deadline) < today;
-}
-
-function isTaskOverdue(task: Task) {
-  return isOverdue(task);
-}
 
 const canCreateTask = computed(() => {
   return (
@@ -1446,16 +1419,6 @@ async function saveDailyUpdate(payload: CreateWorkLogPayload) {
 }
 
 function formatHistoryDate(date: string) {
-  return new Date(date).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatDate(date: string | null | undefined) {
-  if (!date) return '—';
-
   return new Date(date).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: 'short',

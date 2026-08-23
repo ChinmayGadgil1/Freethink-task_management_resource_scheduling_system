@@ -17,7 +17,7 @@
       </div>
 
       <!-- Legend -->
-      <div v-if="tasks.length" class="row items-center q-gutter-md legend-row">
+      <div v-if="showLegend && tasks.length" class="row items-center q-gutter-md legend-row">
         <div v-for="priority in priorities" :key="priority" class="row items-center no-wrap">
           <q-badge
             rounded
@@ -35,8 +35,17 @@
 
     <q-separator />
 
+    <!-- Loading state -->
+    <q-card-section v-if="loading" class="q-pa-lg">
+      <div class="row q-col-gutter-sm">
+        <div v-for="n in 3" :key="n" class="col-12">
+          <q-skeleton type="rect" height="48px" style="border-radius: 8px" />
+        </div>
+      </div>
+    </q-card-section>
+
     <!-- Empty state -->
-    <q-card-section v-if="!tasks.length" class="flex flex-center column q-py-xl empty-section">
+    <q-card-section v-else-if="!tasks.length" class="flex flex-center column q-py-xl empty-section">
       <q-avatar size="64px" class="avatar-purple q-mb-md">
         <q-icon name="timeline" size="30px" />
       </q-avatar>
@@ -58,7 +67,7 @@
       <div
         class="gantt-grid"
         :style="{
-          gridTemplateColumns: `220px repeat(${days.length}, minmax(58px, 1fr))`,
+          gridTemplateColumns: `230px repeat(${days.length}, minmax(58px, 1fr))`,
         }"
       >
         <!-- Header -->
@@ -69,7 +78,7 @@
         <div
           v-for="(day, index) in days"
           :key="`header-${index}`"
-          class="gantt-cell header-cell day-col"
+          class="gantt-cell header-cell day-col column items-center justify-center"
           :class="{
             'is-today': isToday(day),
             'is-weekend': isWeekend(day),
@@ -89,11 +98,12 @@
         <template v-for="(task, rowIdx) in tasks" :key="task.id">
           <!-- Task information label cell -->
           <div
-            class="gantt-cell label-col task-label"
+            class="gantt-cell label-col task-label cursor-pointer"
             :class="{
               'task-overdue-label': isTaskOverdue(task),
             }"
             :style="{ gridRow: rowIdx + 2 }"
+            @click="emit('task-click', task)"
           >
             <div class="task-info">
               <div class="task-name ellipsis" :title="task.name">
@@ -104,7 +114,7 @@
                 {{ task.project }}
               </div>
 
-                <div class="row items-center q-gutter-xs q-mt-xs wrap">
+              <div class="row items-center q-gutter-xs q-mt-xs wrap">
                 <q-badge
                   dense
                   outline
@@ -139,6 +149,25 @@
                   :label="task.pacingWarning"
                 />
               </div>
+
+              <!-- Assignee chips (Shown in PM mode or when showAssignees is true) -->
+              <div
+                v-if="showAssignees && task.assignedResourceNames && task.assignedResourceNames.length"
+                class="row items-center q-gutter-xs q-mt-xs wrap"
+              >
+                <q-chip
+                  v-for="rName in task.assignedResourceNames"
+                  :key="rName"
+                  dense
+                  square
+                  class="gantt-resource-chip"
+                >
+                  <q-avatar size="14px" class="avatar-purple q-mr-xs">
+                    {{ rName.charAt(0).toUpperCase() }}
+                  </q-avatar>
+                  <span class="ellipsis" style="max-width: 85px">{{ rName }}</span>
+                </q-chip>
+              </div>
             </div>
           </div>
 
@@ -159,7 +188,7 @@
 
           <!-- Task bar -->
           <div
-            class="gantt-bar"
+            class="gantt-bar cursor-pointer"
             :class="[
               `priority-bar-${task.priority.toLowerCase()}`,
               {
@@ -170,6 +199,7 @@
             ]"
             :style="barStyle(task, rowIdx)"
             :title="taskTooltip(task)"
+            @click="emit('task-click', task)"
           >
             <div
               class="gantt-bar-fill"
@@ -235,25 +265,41 @@ export interface GanttTask {
   assignedResourceNames?: string[] | undefined;
 }
 
+export interface GanttChartProps {
+  tasks: GanttTask[];
+  title?: string;
+  subtitle?: string;
+  emptyTitle?: string;
+  emptySubtitle?: string;
+  mode?: 'pm' | 'resource';
+  loading?: boolean;
+  showLegend?: boolean;
+  showAssignees?: boolean;
+  maxWindowDays?: number;
+}
+
 const props = withDefaults(
-  defineProps<{
-    tasks: GanttTask[];
-    title?: string;
-    subtitle?: string;
-    emptyTitle?: string;
-    emptySubtitle?: string;
-  }>(),
+  defineProps<GanttChartProps>(),
   {
     title: 'Schedule Timeline',
     subtitle: '',
     emptyTitle: 'No scheduled tasks',
     emptySubtitle: 'Tasks will appear on the timeline once they have scheduling information.',
+    mode: 'pm',
+    loading: false,
+    showLegend: true,
+    showAssignees: true,
+    maxWindowDays: 21,
   },
 );
 
+const emit = defineEmits<{
+  (e: 'task-click', task: GanttTask): void;
+  (e: 'task-edit', task: GanttTask): void;
+}>();
+
 const priorities: GanttTask['priority'][] = ['Low', 'Medium', 'High', 'Critical'];
 
-const MAX_WINDOW_DAYS = 21;
 const DAY_MS = 86400000;
 
 function stripTime(date: Date): Date {
@@ -267,7 +313,7 @@ function stripTime(date: Date): Date {
  * but never starts after today.
  *
  * It ends at the latest task deadline,
- * but the visible range is capped at 21 days.
+ * but the visible range is capped at maxWindowDays (default 21).
  */
 const days = computed<Date[]>(() => {
   const today = stripTime(new Date());
@@ -296,8 +342,8 @@ const days = computed<Date[]>(() => {
 
   const totalDays = Math.round((rangeEnd.getTime() - rangeStart.getTime()) / DAY_MS) + 1;
 
-  if (totalDays > MAX_WINDOW_DAYS) {
-    rangeEnd = new Date(rangeStart.getTime() + (MAX_WINDOW_DAYS - 1) * DAY_MS);
+  if (totalDays > props.maxWindowDays) {
+    rangeEnd = new Date(rangeStart.getTime() + (props.maxWindowDays - 1) * DAY_MS);
   }
 
   const result: Date[] = [];
@@ -441,10 +487,14 @@ function taskTooltip(task: GanttTask): string {
     ? `Actual Start: ${formatDate(new Date(task.actualStart))}`
     : '';
   const warning = task.pacingWarning ? `Warning: ${task.pacingWarning}` : '';
+  const assignees = task.assignedResourceNames?.length
+    ? `Assignees: ${task.assignedResourceNames.join(', ')}`
+    : '';
 
   return [
     task.name,
     `Project: ${task.project}`,
+    assignees,
     `Planned: ${formatDate(new Date(task.start))} → ${formatDate(new Date(task.end))}`,
     actualDates,
     `Status: ${status}`,
@@ -487,7 +537,7 @@ function taskTooltip(task: GanttTask): string {
 
 .gantt-grid {
   display: grid;
-  grid-auto-rows: 64px;
+  grid-auto-rows: minmax(64px, auto);
   position: relative;
   width: max-content;
   min-width: 100%;
@@ -505,7 +555,7 @@ function taskTooltip(task: GanttTask): string {
   left: 0;
   z-index: 4;
   background: var(--wo-bg-card, #ffffff);
-  padding: 0 14px;
+  padding: 8px 14px;
   border-right: 1px solid var(--wo-border-subtle, #eaecf0);
 }
 
@@ -517,9 +567,6 @@ function taskTooltip(task: GanttTask): string {
 }
 
 .day-col {
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
   gap: 1px;
 }
 
@@ -583,6 +630,15 @@ function taskTooltip(task: GanttTask): string {
   box-shadow: inset 3px 0 0 #e15263;
 }
 
+.gantt-resource-chip {
+  background: #f4f0fd !important;
+  color: #6941c6 !important;
+  font-size: 10px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  margin: 0 !important;
+}
+
 .gantt-bar {
   position: relative;
   align-self: center;
@@ -595,6 +651,12 @@ function taskTooltip(task: GanttTask): string {
   z-index: 2;
   background: var(--wo-border-subtle, #eaecf0);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(16, 24, 40, 0.12);
+  }
 }
 
 .gantt-bar-fill {
@@ -656,11 +718,11 @@ function taskTooltip(task: GanttTask): string {
 
 @media (max-width: 700px) {
   .gantt-grid {
-    grid-auto-rows: 70px;
+    grid-auto-rows: minmax(70px, auto);
   }
 
   .label-col {
-    padding: 0 10px;
+    padding: 6px 10px;
   }
 }
 
@@ -701,6 +763,11 @@ body.body--dark {
 
   .gantt-bar {
     background: var(--wo-border-subtle, #1e2433);
+  }
+
+  .gantt-resource-chip {
+    background: rgba(139, 111, 216, 0.2) !important;
+    color: #c4b5fd !important;
   }
 }
 </style>

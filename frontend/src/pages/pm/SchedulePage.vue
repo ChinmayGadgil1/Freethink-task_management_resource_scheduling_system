@@ -364,10 +364,13 @@
     <div v-else-if="scheduleViewMode === 'gantt'" class="q-mb-lg">
       <GanttChart
         :tasks="filteredGanttTasks"
+        mode="pm"
         title="Gantt Timeline Roadmap"
         subtitle="Visual timeline of task durations, dependencies, and deadlines"
         empty-title="No matching schedule items"
         empty-subtitle="Adjust your filters or add tasks with scheduling dates to view them on the Gantt timeline."
+        :show-assignees="true"
+        @task-click="handleGanttTaskClick"
       />
     </div>
 
@@ -837,6 +840,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
+import { formatDate, formatStatus } from '@/utils/formatters';
+import { isTaskOverdue, getTaskStatusClass, getPriorityClass, mapTaskToGanttTask } from '@/utils/taskHelpers';
 import {
   getProjectsApi,
   getTasksApi,
@@ -1263,14 +1268,6 @@ const completedCount = computed(() => tasks.value.filter((t) => t.status === 'CO
 
 const overdueCount = computed(() => tasks.value.filter((t) => isTaskOverdue(t)).length);
 
-function isTaskOverdue(task: Task): boolean {
-  if (task.status === 'COMPLETED') return false;
-  if (!task.deadline) return false;
-  const deadlineDate = new Date(task.deadline).setHours(0, 0, 0, 0);
-  const today = new Date().setHours(0, 0, 0, 0);
-  return deadlineDate < today;
-}
-
 const filteredTasks = computed(() => {
   return tasks.value.filter((t) => {
     const q = searchQuery.value.trim().toLowerCase();
@@ -1293,74 +1290,25 @@ const filteredTasks = computed(() => {
   });
 });
 
-function normalizePriority(p: string): 'Low' | 'Medium' | 'High' | 'Critical' {
-  if (p === 'CRITICAL') return 'Critical';
-  if (p === 'HIGH') return 'High';
-  if (p === 'LOW') return 'Low';
-  return 'Medium';
-}
-
 const filteredGanttTasks = computed<GanttTask[]>(() => {
-  const today = new Date().toISOString().slice(0, 10);
-
-  return filteredTasks.value.map((task) => {
-    const start = task.start_date ? (task.start_date.split('T')[0] ?? today) : today;
-    const end = task.deadline ? (task.deadline.split('T')[0] ?? start) : start;
-
-    return {
-      id: task.task_id,
-      name: task.title,
-      project: getProjectName(task.project_id),
-      start,
-      end,
-      progress: Math.min(100, Math.max(0, Number(task.progress) || 0)),
-      status: task.status,
-      priority: normalizePriority(task.priority),
-      expectedEffort: Number(task.expected_effort) || undefined,
-      actualEffort: Number(task.actual_effort) || 0,
-      actualStart: task.actual_start || null,
-      actualEnd: task.actual_end || null,
-      overdue: isTaskOverdue(task),
-      isOverrun: task.pacing?.is_overrun,
-      isBehindSchedule: task.pacing?.is_behind_schedule,
-      pacingWarning: task.pacing?.warning || null,
-    };
-  });
+  return filteredTasks.value.map((task) =>
+    mapTaskToGanttTask(task, {
+      projectName: getProjectName(task.project_id),
+      assignedNames: task.assigned_resource_ids?.map((id) => getResourceName(id)),
+    }),
+  );
 });
+
+function handleGanttTaskClick(ganttTask: GanttTask) {
+  const originalTask = tasks.value.find((t) => t.task_id === ganttTask.id);
+  if (originalTask) {
+    openTaskDetailsDialog(originalTask);
+  }
+}
 
 function getProjectName(projectId: number): string {
   const p = projects.value.find((proj) => proj.project_id === projectId);
   return p ? p.name : `Project #${projectId}`;
-}
-
-function formatStatus(status: string): string {
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'TBD';
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(dateStr));
-}
-
-function getTaskStatusClass(status: string): string {
-  if (status === 'COMPLETED') return 'chip-soft-green';
-  if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'SCHEDULED') return 'chip-soft-purple';
-  return 'chip-soft-grey';
-}
-
-function getPriorityClass(priority: string): string {
-  if (priority === 'CRITICAL') return 'chip-soft-red';
-  if (priority === 'HIGH') return 'chip-soft-orange';
-  if (priority === 'MEDIUM') return 'chip-soft-blue';
-  return 'chip-soft-purple';
 }
 
 // ----------------------------------------------------

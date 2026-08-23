@@ -206,98 +206,67 @@
 
     <!-- 02 KPI METRIC CARDS -->
     <div class="kpi-grid q-mb-lg">
-      <q-card flat bordered class="kpi-card">
-        <q-card-section class="kpi-section">
-          <q-avatar size="46px" class="kpi-icon icon-purple">
-            <q-icon name="donut_large" size="22px" />
-          </q-avatar>
-          <div class="kpi-content">
-            <span class="kpi-label">Overall Progress</span>
-            <div class="kpi-value">{{ overallProgress }}%</div>
-            <span class="kpi-note note-green">
-              <q-icon name="trending_up" size="12px" />
-              {{ completedTasksCount }} completed
-            </span>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Overall Progress"
+        :value="`${overallProgress}%`"
+        :subtitle="`${completedTasksCount} completed`"
+        icon="donut_large"
+        color="purple"
+        note-class="note-green"
+      />
 
-      <q-card flat bordered class="kpi-card">
-        <q-card-section class="kpi-section">
-          <q-avatar size="46px" class="kpi-icon icon-teal">
-            <q-icon name="task_alt" size="22px" />
-          </q-avatar>
-          <div class="kpi-content">
-            <span class="kpi-label">Total Tasks</span>
-            <div class="kpi-value">{{ totalTasksCount }}</div>
-            <span class="kpi-note note-teal"> {{ inProgressTasksCount }} in progress </span>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Total Tasks"
+        :value="totalTasksCount"
+        :subtitle="`${inProgressTasksCount} in progress`"
+        icon="task_alt"
+        color="teal"
+        note-class="note-teal"
+      />
 
-      <q-card flat bordered class="kpi-card">
-        <q-card-section class="kpi-section">
-          <q-avatar size="46px" class="kpi-icon icon-green">
-            <q-icon name="check_circle" size="22px" />
-          </q-avatar>
-          <div class="kpi-content">
-            <span class="kpi-label">Completed Tasks</span>
-            <div class="kpi-value">{{ completedTasksCount }}</div>
-            <span class="kpi-note note-green"> {{ taskCompletionRate }}% done </span>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Completed Tasks"
+        :value="completedTasksCount"
+        :subtitle="`${taskCompletionRate}% done`"
+        icon="check_circle"
+        color="green"
+        note-class="note-green"
+      />
 
-      <q-card flat bordered class="kpi-card">
-        <q-card-section class="kpi-section">
-          <q-avatar size="46px" class="kpi-icon icon-red">
-            <q-icon name="schedule" size="22px" />
-          </q-avatar>
-          <div class="kpi-content">
-            <span class="kpi-label">Overdue Tasks</span>
-            <div class="kpi-value" :class="{ 'text-negative': overdueTasksCount > 0 }">
-              {{ overdueTasksCount }}
-            </div>
-            <span :class="['kpi-note', overdueTasksCount > 0 ? 'note-red' : 'note-green']">
-              {{ overdueTasksCount > 0 ? 'Requires attention' : 'All on schedule' }}
-            </span>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Overdue Tasks"
+        :value="overdueTasksCount"
+        :subtitle="overdueTasksCount > 0 ? 'Requires attention' : 'All on schedule'"
+        icon="schedule"
+        color="red"
+        :note-class="overdueTasksCount > 0 ? 'note-red' : 'note-green'"
+        :negative="overdueTasksCount > 0"
+      />
 
-      <q-card flat bordered class="kpi-card">
-        <q-card-section class="kpi-section">
-          <q-avatar size="46px" class="kpi-icon icon-orange">
-            <q-icon name="groups" size="22px" />
-          </q-avatar>
-          <div class="kpi-content">
-            <span class="kpi-label">Team Members</span>
-            <div class="kpi-value">{{ teamMembers.length }}</div>
-            <span class="kpi-note note-orange"> {{ activeAssigneesCount }} actively assigned </span>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Team Members"
+        :value="teamMembers.length"
+        :subtitle="`${activeAssigneesCount} actively assigned`"
+        icon="groups"
+        color="orange"
+        note-class="note-orange"
+      />
 
-      <q-card flat bordered class="kpi-card">
-        <q-card-section class="kpi-section">
-          <q-avatar size="46px" class="kpi-icon icon-blue">
-            <q-icon name="event_available" size="22px" />
-          </q-avatar>
-          <div class="kpi-content">
-            <span class="kpi-label">Days Remaining</span>
-            <div class="kpi-value" :class="{ 'text-negative': daysRemaining < 0 }">
-              {{
-                daysRemaining > 0
-                  ? daysRemaining
-                  : daysRemaining === 0
-                    ? 'Due today'
-                    : Math.abs(daysRemaining) + 'd ago'
-              }}
-            </div>
-            <span class="kpi-note note-blue"> Due {{ formatDate(project.deadline) }} </span>
-          </div>
-        </q-card-section>
-      </q-card>
+      <StatCard
+        title="Days Remaining"
+        :value="
+          daysRemaining > 0
+            ? daysRemaining
+            : daysRemaining === 0
+              ? 'Due today'
+              : Math.abs(daysRemaining) + 'd ago'
+        "
+        :subtitle="`Due ${formatDate(project.deadline)}`"
+        icon="event_available"
+        color="blue"
+        note-class="note-blue"
+        :negative="daysRemaining < 0"
+      />
     </div>
 
     <!-- 03 & 04 TWO-COLUMN SECTION: PROGRESS & MILESTONES -->
@@ -1513,6 +1482,9 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate, formatStatus } from '@/utils/formatters';
+import { isTaskOverdue } from '@/utils/taskHelpers';
 import {
   createTaskApi,
   deleteProjectApi,
@@ -1984,32 +1956,8 @@ const filteredTasks = computed(() => {
 // ==========================================
 // HELPERS
 // ==========================================
-function formatDate(date: string | null | undefined) {
-  if (!date) return 'No date set';
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(date));
-}
-
-function formatStatus(status: string | undefined) {
-  if (!status) return 'Active';
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function getTaskProgressNumber(progress: number | string | undefined): number {
   return Math.min(100, Math.max(0, Number(progress) || 0));
-}
-
-function isTaskOverdue(task: Task): boolean {
-  if (task.status === 'COMPLETED' || !task.deadline) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return new Date(task.deadline) < today;
 }
 
 function getPriorityIcon(priority: string) {

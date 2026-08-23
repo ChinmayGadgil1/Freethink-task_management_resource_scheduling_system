@@ -365,6 +365,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
+import { getInitials } from '@/utils/formatters';
 import {
   createTaskApi,
   getProjectsApi,
@@ -388,14 +389,6 @@ const activeTab = ref('tasks');
 const resourceInfo = ref<ResourceUser | null>(null);
 
 const resourceName = computed(() => resourceInfo.value?.name || 'Team Resource');
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-}
 
 const allTasks = ref<Task[]>([]);
 const allProjects = ref<Project[]>([]);

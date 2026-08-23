@@ -26,71 +26,44 @@
         </div>
       </div>
 
-      <!-- 2. SUMMARY / KPI STATS GRID (5 Widgets) -->
+      <!-- 2. SUMMARY / KPI STATS GRID (4 Widgets) -->
       <div class="stats-grid">
-        <!-- Total Projects -->
-        <q-card flat bordered class="kpi-widget-card">
-          <q-card-section class="kpi-section">
-            <div class="kpi-icon-wrap bg-purple-tint text-purple">
-              <q-icon name="folder" size="22px" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">Total Projects</div>
-              <div class="kpi-value">{{ totalProjects }}</div>
-              <div class="kpi-note note-purple">
-                <span>Active Workspace</span>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="Total Projects"
+          :value="totalProjects"
+          subtitle="Active Workspace"
+          icon="folder"
+          color="purple"
+          note-class="note-purple"
+        />
 
-        <!-- On Track -->
-        <q-card flat bordered class="kpi-widget-card">
-          <q-card-section class="kpi-section">
-            <div class="kpi-icon-wrap bg-green-tint text-green">
-              <q-icon name="check_circle" size="22px" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">On Track</div>
-              <div class="kpi-value">{{ onTrackProjects }}</div>
-              <div class="kpi-note note-green">
-                <span>{{ totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0 }}% of total</span>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="On Track"
+          :value="onTrackProjects"
+          :subtitle="`${totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0}% of total`"
+          icon="check_circle"
+          color="green"
+          note-class="note-green"
+        />
 
-        <!-- At Risk -->
-        <q-card flat bordered class="kpi-widget-card">
-          <q-card-section class="kpi-section">
-            <div class="kpi-icon-wrap bg-orange-tint text-orange">
-              <q-icon name="warning_amber" size="22px" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">At Risk</div>
-              <div class="kpi-value">{{ atRiskProjects }}</div>
-              <div class="kpi-note note-orange">
-                <span>{{ totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0 }}% of total</span>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="At Risk"
+          :value="atRiskProjects"
+          :subtitle="`${totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0}% of total`"
+          icon="warning_amber"
+          color="orange"
+          note-class="note-orange"
+        />
 
-        <!-- Delayed -->
-        <q-card flat bordered class="kpi-widget-card">
-          <q-card-section class="kpi-section">
-            <div class="kpi-icon-wrap bg-red-tint text-red">
-              <q-icon name="schedule" size="22px" />
-            </div>
-            <div class="kpi-content">
-              <div class="kpi-label">Delayed</div>
-              <div class="kpi-value">{{ delayedProjects }}</div>
-              <div class="kpi-note note-red">
-                <span>{{ totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0 }}% of total</span>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <StatCard
+          title="Delayed"
+          :value="delayedProjects"
+          :subtitle="`${totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0}% of total`"
+          icon="schedule"
+          color="red"
+          note-class="note-red"
+          :negative="delayedProjects > 0"
+        />
       </div>
 
       <!-- 3. TODAY'S FOCUS / FEATURED PROJECT HERO CARD (Visual Hero on Left + Text Overlay) -->
@@ -1069,6 +1042,8 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
+import StatCard from '@/components/dashboard/StatCard.vue';
+import { formatDate, formatStatus } from '@/utils/formatters';
 import {
   createProjectApi,
   deleteProjectApi,
@@ -1598,23 +1573,6 @@ function resetForm() {
   form.priority = 'MEDIUM';
   form.start_date = '';
   form.deadline = '';
-}
-
-function formatDate(date: string | null) {
-  if (!date) return 'No deadline';
-
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(date));
-}
-
-function formatStatus(status: string) {
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 onMounted(() => {
