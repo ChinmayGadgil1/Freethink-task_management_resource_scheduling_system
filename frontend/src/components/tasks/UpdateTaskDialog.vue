@@ -6,7 +6,7 @@
     <q-card style="width: 520px; max-width: 95vw">
       <q-card-section class="row items-center justify-between">
         <div>
-          <div class="text-subtitle1 text-weight-bold">Update Task</div>
+          <div class="text-subtitle1 text-weight-bold">Edit Task</div>
 
           <div v-if="task" class="text-caption text-grey-6">
             {{ task.name }} · {{ task.project }}
@@ -63,17 +63,6 @@
           rows="2"
           placeholder="Add or edit task description..."
         />
-
-        <div class="field-label q-mt-md">Work Update</div>
-
-        <q-input
-          v-model="form.workUpdate"
-          outlined
-          type="textarea"
-          autogrow
-          rows="3"
-          placeholder="What did you work on?"
-        />
       </q-card-section>
 
       <q-separator />
@@ -81,7 +70,7 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
 
-        <q-btn unelevated no-caps label="Save Update" color="primary" @click="save" />
+        <q-btn unelevated no-caps label="Save Changes" color="primary" @click="save" />
       </q-card-actions>
     </q-card>
   </q-dialog>
