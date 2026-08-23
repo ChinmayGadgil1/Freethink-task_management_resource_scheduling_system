@@ -990,50 +990,19 @@
       </q-card>
     </q-dialog>
 
-    <!-- DELETE PROJECT CONFIRMATION DIALOG (Existing Logic Preserved) -->
-    <q-dialog v-model="showDeleteDialog">
-      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="delete_forever"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div>
-            <div class="text-subtitle1 text-weight-bold text-dark">Delete Project</div>
-            <div class="text-caption text-grey-6">This action cannot be undone</div>
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to delete project
-          <strong>"{{ projectToDelete?.name }}"</strong>? All associated tasks, dependencies, and
-          team assignments will be permanently removed.
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Delete Project"
-            class="action-btn-primary"
-            :loading="deletingProject"
-            @click="handleExecuteDeleteProject"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <!-- DELETE PROJECT CONFIRMATION DIALOG -->
+    <ConfirmActionDialog
+      v-model="showDeleteDialog"
+      title="Delete Project"
+      subtitle="This action cannot be undone"
+      confirm-label="Delete Project"
+      :loading="deletingProject"
+      @confirm="handleExecuteDeleteProject"
+    >
+      Are you sure you want to delete project
+      <strong>"{{ projectToDelete?.name }}"</strong>? All associated tasks, dependencies, and
+      team assignments will be permanently removed.
+    </ConfirmActionDialog>
   </q-page>
 </template>
 
@@ -1043,6 +1012,7 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
+import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
 import {
   createProjectApi,

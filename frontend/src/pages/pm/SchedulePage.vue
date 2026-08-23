@@ -529,208 +529,28 @@
     </q-card>
 
     <!-- 8. TASK DETAILS POPUP DIALOG -->
-    <q-dialog v-model="showTaskDetailsDialog">
-      <q-card v-if="selectedTaskDetails" class="details-popup-card">
-        <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="row items-center gap-xs">
-            <q-chip dense square :class="['priority-chip', getPriorityClass(selectedTaskDetails.priority)]">
-              {{ selectedTaskDetails.priority }}
-            </q-chip>
-            <q-chip dense square :class="['status-chip', getTaskStatusClass(selectedTaskDetails.status)]">
-              {{ formatStatus(selectedTaskDetails.status) }}
-            </q-chip>
-          </div>
-          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm">
-          <div class="popup-title">{{ selectedTaskDetails.title }}</div>
-          <div class="popup-project-row row items-center gap-xs q-mt-xs">
-            <q-icon name="folder" size="14px" color="primary" />
-            <span class="font-bold text-primary">{{ getProjectName(selectedTaskDetails.project_id) }}</span>
-          </div>
-
-          <div v-if="selectedTaskDetails.description" class="popup-description q-mt-sm">
-            {{ selectedTaskDetails.description }}
-          </div>
-
-          <q-separator class="q-my-md" />
-
-          <!-- Details Grid -->
-          <div class="popup-details-grid">
-            <div class="detail-item">
-              <div class="detail-label">Start Date</div>
-              <div class="detail-val">{{ formatDate(selectedTaskDetails.start_date) }}</div>
-            </div>
-
-            <div class="detail-item">
-              <div class="detail-label">Deadline</div>
-              <div class="detail-val" :class="{ 'text-negative font-bold': isTaskOverdue(selectedTaskDetails) }">
-                {{ formatDate(selectedTaskDetails.deadline) }}
-              </div>
-            </div>
-
-            <div class="detail-item">
-              <div class="detail-label">Effort / Duration</div>
-              <div class="detail-val">{{ selectedTaskDetails.expected_effort || 8 }} Hours</div>
-            </div>
-
-            <div class="detail-item">
-              <div class="detail-label">Progress</div>
-              <div class="detail-val font-bold">{{ Number(selectedTaskDetails.progress) || 0 }}%</div>
-            </div>
-          </div>
-
-          <!-- Assignees List in Popup -->
-          <div class="popup-assignees-block q-mt-md">
-            <div class="detail-label q-mb-xs">Assigned Team Members</div>
-            <div
-              v-if="selectedTaskDetails.assigned_resource_ids && selectedTaskDetails.assigned_resource_ids.length > 0"
-              class="row q-gutter-xs wrap"
-            >
-              <q-chip
-                v-for="rId in selectedTaskDetails.assigned_resource_ids"
-                :key="rId"
-                dense
-                square
-                class="resource-chip"
-              >
-                <q-avatar size="18px" class="avatar-purple q-mr-xs">
-                  {{ getResourceName(rId).charAt(0).toUpperCase() }}
-                </q-avatar>
-                {{ getResourceName(rId) }}
-              </q-chip>
-            </div>
-            <span v-else class="text-caption text-grey-5">No members currently assigned</span>
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            flat
-            no-caps
-            label="Close"
-            color="grey-7"
-            v-close-popup
-          />
-          <q-btn
-            unelevated
-            no-caps
-            icon="edit"
-            label="Edit Task"
-            color="primary"
-            class="action-btn-primary"
-            @click="openEditFromDetails"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <TaskDetailsDialog
+      v-model="showTaskDetailsDialog"
+      :task="selectedTaskDetails"
+      :project-name="selectedTaskDetails ? getProjectName(selectedTaskDetails.project_id) : ''"
+      :resource-names-map="resourceNamesMap"
+      :allow-unassign="false"
+      :allow-assign-member="false"
+      :allow-add-dependency="false"
+      :show-dependencies="false"
+      @edit="openEditFromDetails"
+    />
 
     <!-- 9. CREATE TASK MODAL -->
-    <q-dialog v-model="showCreateDialog">
-      <q-card class="dialog-card">
-        <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="text-subtitle1 text-weight-bold text-dark">Schedule New Task</div>
-          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
-        </q-card-section>
-
-        <q-form @submit.prevent="handleCreateTask">
-          <q-card-section class="q-gutter-md q-pt-md">
-            <q-select
-              v-model="createForm.project_id"
-              outlined
-              dense
-              label="Project"
-              :options="projectSelectOptions"
-              emit-value
-              map-options
-              :rules="[(val) => !!val || 'Project is required']"
-            />
-
-            <q-input
-              v-model="createForm.title"
-              outlined
-              dense
-              label="Task Title"
-              :rules="[(val) => !!val.trim() || 'Title is required']"
-            />
-
-            <q-input
-              v-model="createForm.description"
-              outlined
-              dense
-              type="textarea"
-              label="Description"
-              autogrow
-            />
-
-            <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-select
-                  v-model="createForm.priority"
-                  outlined
-                  dense
-                  label="Priority"
-                  :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model.number="createForm.expected_effort"
-                  outlined
-                  dense
-                  type="number"
-                  label="Effort (Hours)"
-                />
-              </div>
-            </div>
-
-            <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-input
-                  v-model="createForm.start_date"
-                  outlined
-                  dense
-                  type="date"
-                  label="Start Date"
-                  stack-label
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model="createForm.deadline"
-                  outlined
-                  dense
-                  type="date"
-                  label="Deadline"
-                  stack-label
-                />
-              </div>
-            </div>
-          </q-card-section>
-
-          <q-card-actions align="right" class="q-pa-md q-pt-none">
-            <q-btn
-              v-close-popup
-              flat
-              no-caps
-              label="Cancel"
-              color="grey-7"
-              class="text-weight-medium"
-            />
-            <q-btn
-              type="submit"
-              unelevated
-              no-caps
-              color="primary"
-              label="Create Task"
-              class="action-btn-primary"
-              :loading="submitting"
-            />
-          </q-card-actions>
-        </q-form>
-      </q-card>
-    </q-dialog>
+    <CreateTaskDialog
+      v-model="showCreateDialog"
+      dialog-title="Schedule New Task"
+      :projects="projectSelectOptions"
+      :show-assignees="false"
+      :show-dependencies="false"
+      :loading="submitting"
+      @submit="handleCreateTask"
+    />
 
     <!-- 10. EDIT TASK MODAL -->
     <q-dialog v-model="showEditDialog">
@@ -840,6 +660,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
+import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
+import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
 import { isTaskOverdue, getTaskStatusClass, getPriorityClass, mapTaskToGanttTask } from '@/utils/taskHelpers';
 import {
@@ -1378,20 +1200,21 @@ function openCreateTaskDialog() {
   showCreateDialog.value = true;
 }
 
-async function handleCreateTask() {
-  if (!createForm.project_id || !createForm.title.trim()) return;
+async function handleCreateTask(formData?: CreateTaskFormData) {
+  const data = formData || createForm;
+  if (!data.project_id || !data.title.trim()) return;
 
   submitting.value = true;
   try {
     await createTaskApi({
-      project_id: createForm.project_id,
-      title: createForm.title.trim(),
-      description: createForm.description || null,
-      priority: createForm.priority,
-      status: createForm.status,
-      expected_effort: Number(createForm.expected_effort) || 8,
-      start_date: createForm.start_date || null,
-      deadline: createForm.deadline || null,
+      project_id: data.project_id,
+      title: data.title.trim(),
+      description: data.description || null,
+      priority: data.priority,
+      status: data.status,
+      expected_effort: Number(data.expected_effort) || 8,
+      start_date: data.start_date || null,
+      deadline: data.deadline || null,
     });
 
     $q.notify({

@@ -859,138 +859,16 @@
     </div>
 
     <!-- DIALOG: CREATE TASK -->
-    <q-dialog v-model="showCreateTaskDialog">
-      <q-card class="modal-dialog">
-        <q-card-section class="modal-header">
-          <div>
-            <div class="modal-eyebrow">NEW TASK</div>
-            <div class="modal-title">Create Task for {{ project.name }}</div>
-          </div>
-          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
-        </q-card-section>
-
-        <q-form @submit.prevent="handleCreateTask">
-          <q-card-section class="modal-form">
-            <q-input
-              v-model="newTaskForm.title"
-              outlined
-              dense
-              label="Task Title *"
-              placeholder="e.g. Design responsive navbar component"
-              :rules="[(val) => !!val.trim() || 'Task title is required']"
-            />
-
-            <q-input
-              v-model="newTaskForm.description"
-              outlined
-              dense
-              type="textarea"
-              label="Description"
-              placeholder="Task details and acceptance criteria..."
-              autogrow
-            />
-
-            <div class="modal-form-row">
-              <q-select
-                v-model="newTaskForm.priority"
-                outlined
-                dense
-                label="Priority"
-                :options="taskPriorityFormOptions"
-                emit-value
-                map-options
-                class="form-col"
-              />
-              <q-select
-                v-model="newTaskForm.status"
-                outlined
-                dense
-                label="Initial Status"
-                :options="taskStatusFormOptions"
-                emit-value
-                map-options
-                class="form-col"
-              />
-            </div>
-
-            <div class="modal-form-row">
-              <q-input
-                v-model="newTaskForm.start_date"
-                outlined
-                dense
-                type="date"
-                label="Start Date"
-                stack-label
-                class="form-col"
-              />
-              <q-input
-                v-model="newTaskForm.deadline"
-                outlined
-                dense
-                type="date"
-                label="Deadline"
-                stack-label
-                class="form-col"
-              />
-            </div>
-
-            <div class="modal-form-row">
-              <q-input
-                v-model.number="newTaskForm.expected_effort"
-                outlined
-                dense
-                type="number"
-                min="0.5"
-                step="0.5"
-                label="Expected Effort (Hours) *"
-                class="form-col"
-                :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
-              />
-              <q-select
-                v-model="newTaskForm.assigned_resources"
-                outlined
-                dense
-                multiple
-                clearable
-                :display-value="
-                  newTaskForm.assigned_resources.length
-                    ? `${newTaskForm.assigned_resources.length} selected`
-                    : ''
-                "
-                label="Assign Member(s)"
-                :options="createTaskAssigneeOptions"
-                emit-value
-                map-options
-                class="form-col"
-              >
-                <template #option="{ itemProps, opt, selected, toggleOption }">
-                  <q-item v-bind="itemProps">
-                    <q-item-section side>
-                      <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </div>
-          </q-card-section>
-
-          <q-card-actions align="right" class="modal-actions">
-            <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
-            <q-btn
-              type="submit"
-              no-caps
-              unelevated
-              label="Create Task"
-              color="primary"
-              :loading="taskCreating"
-            />
-          </q-card-actions>
-        </q-form>
-      </q-card>
-    </q-dialog>
+    <CreateTaskDialog
+      v-model="showCreateTaskDialog"
+      :fixed-project-id="project.project_id"
+      :fixed-project-name="project.name"
+      :member-options="createTaskAssigneeOptions"
+      :show-status="true"
+      :show-dependencies="false"
+      :loading="taskCreating"
+      @submit="handleCreateTask"
+    />
 
     <!-- DIALOG: ADD TASK DEPENDENCY -->
     <q-dialog v-model="showDependencyDialog">
@@ -1305,175 +1183,59 @@
     </q-dialog>
 
     <!-- DELETE PROJECT CONFIRMATION DIALOG -->
-    <q-dialog v-model="showDeleteProjectDialog">
-      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="delete_forever"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div>
-            <div class="text-subtitle1 text-weight-bold text-dark">Delete Project</div>
-            <div class="text-caption text-grey-6">This action cannot be undone</div>
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to delete project <strong>"{{ project.name }}"</strong>? All
-          associated tasks, dependencies, and team assignments will be permanently removed.
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Delete Project"
-            class="action-btn-primary"
-            :loading="deletingProject"
-            @click="handleExecuteDeleteProject"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showDeleteProjectDialog"
+      title="Delete Project"
+      subtitle="This action cannot be undone"
+      confirm-label="Delete Project"
+      :loading="deletingProject"
+      @confirm="handleExecuteDeleteProject"
+    >
+      Are you sure you want to delete project <strong>"{{ project.name }}"</strong>? All
+      associated tasks, dependencies, and team assignments will be permanently removed.
+    </ConfirmActionDialog>
 
     <!-- DELETE TASK CONFIRMATION DIALOG -->
-    <q-dialog v-model="showDeleteTaskDialog">
-      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="delete_forever"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div>
-            <div class="text-subtitle1 text-weight-bold text-dark">Delete Task</div>
-            <div class="text-caption text-grey-6">This action cannot be undone</div>
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>? All
-          associated dependencies and work logs will be removed.
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Delete Task"
-            class="action-btn-primary"
-            :loading="deletingTask"
-            @click="handleExecuteDeleteTask"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showDeleteTaskDialog"
+      title="Delete Task"
+      subtitle="This action cannot be undone"
+      confirm-label="Delete Task"
+      :loading="deletingTask"
+      @confirm="handleExecuteDeleteTask"
+    >
+      Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>? All
+      associated dependencies and work logs will be removed.
+    </ConfirmActionDialog>
 
     <!-- UNASSIGN TASK RESOURCE DIALOG -->
-    <q-dialog v-model="showUnassignTaskDialog">
-      <q-card class="dialog-card">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="person_remove"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div class="text-subtitle1 text-weight-bold text-dark">Unassign Resource from Task</div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to remove
-          <strong>{{ unassignTaskTarget.resourceName }}</strong> from task
-          <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Unassign"
-            class="action-btn-primary"
-            :loading="unassigningTask"
-            @click="handleExecuteUnassignTask"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showUnassignTaskDialog"
+      title="Unassign Resource from Task"
+      subtitle=""
+      icon="person_remove"
+      confirm-label="Unassign"
+      :loading="unassigningTask"
+      @confirm="handleExecuteUnassignTask"
+    >
+      Are you sure you want to remove
+      <strong>{{ unassignTaskTarget.resourceName }}</strong> from task
+      <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
+    </ConfirmActionDialog>
 
     <!-- REMOVE PROJECT MEMBER DIALOG -->
-    <q-dialog v-model="showRemoveMemberDialog">
-      <q-card class="dialog-card">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="person_remove"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div class="text-subtitle1 text-weight-bold text-dark">Remove Member from Project</div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to remove <strong>{{ memberToRemove?.name }}</strong> from this
-          project?
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Remove Member"
-            class="action-btn-primary"
-            :loading="removingMember"
-            @click="handleExecuteRemoveMember"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showRemoveMemberDialog"
+      title="Remove Member from Project"
+      subtitle=""
+      icon="person_remove"
+      confirm-label="Remove Member"
+      :loading="removingMember"
+      @confirm="handleExecuteRemoveMember"
+    >
+      Are you sure you want to remove <strong>{{ memberToRemove?.name }}</strong> from this
+      project?
+    </ConfirmActionDialog>
   </q-page>
 </template>
 
@@ -1483,6 +1245,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
+import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
+import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
 import { isTaskOverdue } from '@/utils/taskHelpers';
 import {
@@ -1747,13 +1511,6 @@ const assigneeOptions = computed(() => [
   { label: 'All Assignees', value: 'ALL' },
   ...teamMembers.value.map((m) => ({ label: m.name, value: String(m.id) })),
 ]);
-
-const taskPriorityFormOptions = [
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Critical', value: 'CRITICAL' },
-];
 
 const taskStatusFormOptions: {
   label: string;
@@ -2425,19 +2182,19 @@ async function handleAddDependency() {
   }
 }
 
-async function handleCreateTask() {
+async function handleCreateTask(formData?: CreateTaskFormData) {
   taskCreating.value = true;
   try {
     const payload: CreateTaskPayload = {
       project_id: project.project_id,
-      title: newTaskForm.title.trim(),
-      description: newTaskForm.description.trim() || null,
-      priority: newTaskForm.priority,
-      status: newTaskForm.status,
-      start_date: newTaskForm.start_date || null,
-      deadline: newTaskForm.deadline || null,
-      expected_effort: Number(newTaskForm.expected_effort) || 4,
-      assigned_resource_ids: newTaskForm.assigned_resources || [],
+      title: formData ? formData.title.trim() : newTaskForm.title.trim(),
+      description: formData ? (formData.description?.trim() || null) : (newTaskForm.description.trim() || null),
+      priority: formData ? formData.priority : newTaskForm.priority,
+      status: formData ? (formData.status as Task['status']) : newTaskForm.status,
+      start_date: formData ? (formData.start_date || null) : (newTaskForm.start_date || null),
+      deadline: formData ? (formData.deadline || null) : (newTaskForm.deadline || null),
+      expected_effort: formData ? (Number(formData.expected_effort) || 4) : (Number(newTaskForm.expected_effort) || 4),
+      assigned_resource_ids: formData ? formData.assigned_resource_ids : (newTaskForm.assigned_resources || []),
     };
 
     const created = await createTaskApi(payload);

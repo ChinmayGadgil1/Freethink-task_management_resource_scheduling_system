@@ -663,46 +663,19 @@
     </q-dialog>
 
     <!-- CONFIRM UNASSIGN TASK RESOURCE DIALOG -->
-    <q-dialog v-model="showUnassignTaskDialog">
-      <q-card class="dialog-card">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="person_remove"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div class="text-subtitle1 text-weight-bold text-dark">Unassign Resource from Task</div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to remove
-          <strong>{{ unassignTaskTarget.resourceName }}</strong> from the task
-          <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Unassign"
-            class="action-btn-primary"
-            :loading="unassigningTask"
-            @click="handleExecuteUnassignTask"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showUnassignTaskDialog"
+      title="Unassign Resource from Task"
+      subtitle=""
+      icon="person_remove"
+      confirm-label="Unassign"
+      :loading="unassigningTask"
+      @confirm="handleExecuteUnassignTask"
+    >
+      Are you sure you want to remove
+      <strong>{{ unassignTaskTarget.resourceName }}</strong> from the task
+      <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
+    </ConfirmActionDialog>
   </q-page>
 </template>
 
@@ -712,6 +685,7 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
+import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus as formatTaskStatus, getInitials } from '@/utils/formatters';
 import { getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {

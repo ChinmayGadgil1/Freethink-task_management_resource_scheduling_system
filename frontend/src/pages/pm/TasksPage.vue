@@ -474,173 +474,20 @@
     </q-card>
 
     <!-- TASK DETAILS POPUP DIALOG -->
-    <q-dialog v-model="showTaskDetailsDialog">
-      <q-card v-if="selectedTaskDetails" class="details-popup-card" style="min-width: 480px; max-width: 95vw">
-        <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="row items-center gap-xs">
-            <q-chip dense square :class="['priority-chip', getPriorityClass(selectedTaskDetails.priority)]">
-              {{ selectedTaskDetails.priority }}
-            </q-chip>
-            <q-chip dense square :class="['status-chip', getTaskStatusClass(selectedTaskDetails.status)]">
-              {{ formatStatus(selectedTaskDetails.status) }}
-            </q-chip>
-            <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 11px">
-              #{{ selectedTaskDetails.task_id }}
-            </q-chip>
-          </div>
-          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm">
-          <div class="popup-title text-h6 text-weight-bold text-dark">
-            {{ selectedTaskDetails.title }}
-          </div>
-          <div class="popup-project-row row items-center gap-xs q-mt-xs">
-            <q-icon name="folder" size="14px" color="primary" />
-            <span class="text-weight-bold text-primary">
-              {{ getProjectName(selectedTaskDetails.project_id) }}
-            </span>
-          </div>
-
-          <div class="popup-description q-mt-sm text-body2 text-grey-8">
-            {{ selectedTaskDetails.description || 'No description provided.' }}
-          </div>
-
-          <q-separator class="q-my-md" />
-
-          <!-- Details Grid -->
-          <div class="popup-details-grid">
-            <div class="detail-item">
-              <div class="detail-label">Start Date</div>
-              <div class="detail-val">{{ formatDate(selectedTaskDetails.start_date) }}</div>
-            </div>
-
-            <div class="detail-item">
-              <div class="detail-label">Deadline</div>
-              <div
-                class="detail-val"
-                :class="{ 'text-negative font-bold': isTaskOverdue(selectedTaskDetails) }"
-              >
-                {{ formatDate(selectedTaskDetails.deadline) }}
-              </div>
-            </div>
-
-            <div class="detail-item">
-              <div class="detail-label">Expected Effort</div>
-              <div class="detail-val">{{ selectedTaskDetails.expected_effort || 8 }} Hours</div>
-            </div>
-
-            <div class="detail-item">
-              <div class="detail-label">Actual Effort</div>
-              <div class="detail-val">{{ selectedTaskDetails.actual_effort || 0 }} Hours</div>
-            </div>
-          </div>
-
-          <!-- Progress Section -->
-          <div class="q-mt-md">
-            <div class="row items-center justify-between text-caption q-mb-xs">
-              <span class="detail-label">Progress</span>
-              <span class="text-weight-bold text-primary">{{ Number(selectedTaskDetails.progress) || 0 }}%</span>
-            </div>
-            <q-linear-progress
-              rounded
-              size="7px"
-              :value="(Number(selectedTaskDetails.progress) || 0) / 100"
-              :color="selectedTaskDetails.status === 'COMPLETED' ? 'positive' : 'primary'"
-              track-color="grey-3"
-            />
-          </div>
-
-          <!-- Assignees List in Popup -->
-          <div class="popup-assignees-block q-mt-md">
-            <div class="row items-center justify-between q-mb-xs">
-              <div class="detail-label">Assigned Team Members</div>
-              <q-btn
-                flat
-                dense
-                no-caps
-                size="sm"
-                color="primary"
-                icon="person_add"
-                label="Assign Member"
-                @click="openAssignFromDetails"
-              />
-            </div>
-            <div
-              v-if="selectedTaskDetails.assigned_resource_ids && selectedTaskDetails.assigned_resource_ids.length > 0"
-              class="row q-gutter-xs wrap"
-            >
-              <q-chip
-                v-for="rId in selectedTaskDetails.assigned_resource_ids"
-                :key="rId"
-                dense
-                square
-                removable
-                class="resource-chip"
-                @remove="unassignFromDetails(rId)"
-              >
-                <q-avatar size="18px" class="avatar-purple q-mr-xs">
-                  {{ getResourceName(rId).charAt(0).toUpperCase() }}
-                </q-avatar>
-                {{ getResourceName(rId) }}
-                <q-tooltip>Click X to unassign {{ getResourceName(rId) }}</q-tooltip>
-              </q-chip>
-            </div>
-            <span v-else class="text-caption text-grey-5">No members currently assigned</span>
-          </div>
-
-          <!-- Dependencies in Popup -->
-          <div class="popup-dependencies-block q-mt-md">
-            <div class="row items-center justify-between q-mb-xs">
-              <div class="detail-label">Dependencies (Predecessors)</div>
-              <q-btn
-                flat
-                dense
-                no-caps
-                size="sm"
-                color="teal"
-                icon="account_tree"
-                label="Add Dependency"
-                @click="openDependencyFromDetails"
-              />
-            </div>
-            <div
-              v-if="selectedTaskDetails.predecessor_task_ids && selectedTaskDetails.predecessor_task_ids.length > 0"
-              class="row q-gutter-xs wrap"
-            >
-              <q-chip
-                v-for="pId in selectedTaskDetails.predecessor_task_ids"
-                :key="pId"
-                dense
-                square
-                color="teal-1"
-                text-color="teal-9"
-                style="font-size: 11px"
-              >
-                <q-icon name="account_tree" size="13px" class="q-mr-xs" color="teal" />
-                {{ getTaskTitle(pId) }} (#{{ pId }})
-              </q-chip>
-            </div>
-            <span v-else class="text-caption text-grey-5">No predecessor dependencies</span>
-          </div>
-        </q-card-section>
-
-        <q-separator class="q-mt-md" />
-
-        <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat no-caps label="Close" color="grey-7" v-close-popup class="text-weight-medium" />
-          <q-btn
-            unelevated
-            no-caps
-            icon="edit"
-            label="Edit Task"
-            color="primary"
-            class="action-btn-primary"
-            @click="openEditFromDetails"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <TaskDetailsDialog
+      v-model="showTaskDetailsDialog"
+      :task="selectedTaskDetails"
+      :project-name="selectedTaskDetails ? getProjectName(selectedTaskDetails.project_id) : ''"
+      :resource-names-map="resourceNamesMap"
+      :predecessor-titles-map="taskTitlesMap"
+      :allow-unassign="true"
+      :allow-assign-member="true"
+      :allow-add-dependency="true"
+      @edit="openEditFromDetails"
+      @assign-member="openAssignFromDetails"
+      @add-dependency="openDependencyFromDetails"
+      @unassign-member="({ resourceId }) => unassignFromDetails(resourceId)"
+    />
 
     <!-- 6. ASSIGN MEMBER TO TASK DIALOG (POST /api/tasks/:id/assign) -->
     <q-dialog v-model="showAssignTaskMemberDialog">
@@ -834,186 +681,15 @@
     </q-dialog>
 
     <!-- 8. CREATE TASK DIALOG -->
-    <q-dialog v-model="showCreateDialog">
-      <q-card class="dialog-card" style="min-width: 520px; max-width: 95vw">
-        <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="text-subtitle1 text-weight-bold text-dark">Create New Task</div>
-          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
-        </q-card-section>
-
-        <q-form @submit.prevent="handleCreateTask">
-          <q-card-section class="q-gutter-md q-pt-md">
-            <q-select
-              v-model="createForm.project_id"
-              outlined
-              dense
-              label="Project"
-              :options="projectSelectOptions"
-              emit-value
-              map-options
-              :rules="[(val) => !!val || 'Project is required']"
-            />
-
-            <q-input
-              v-model="createForm.title"
-              outlined
-              dense
-              label="Task Title"
-              :rules="[(val) => !!val.trim() || 'Title is required']"
-            />
-
-            <q-input
-              v-model="createForm.description"
-              outlined
-              dense
-              type="textarea"
-              label="Description"
-              autogrow
-            />
-
-            <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-select
-                  v-model="createForm.priority"
-                  outlined
-                  dense
-                  label="Priority"
-                  :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model.number="createForm.expected_effort"
-                  outlined
-                  dense
-                  type="number"
-                  label="Effort (Hours)"
-                  :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
-                />
-              </div>
-            </div>
-
-            <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-input
-                  v-model="createForm.start_date"
-                  outlined
-                  dense
-                  type="date"
-                  label="Start Date"
-                  stack-label
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model="createForm.deadline"
-                  outlined
-                  dense
-                  type="date"
-                  label="Deadline"
-                  stack-label
-                />
-              </div>
-            </div>
-
-            <!-- Assign Members Field -->
-            <q-select
-              v-model="createForm.assigned_resource_ids"
-              outlined
-              dense
-              multiple
-              clearable
-              :display-value="
-                createForm.assigned_resource_ids.length
-                  ? `${createForm.assigned_resource_ids.length} member(s) selected`
-                  : ''
-              "
-              label="Assign Member(s) (Optional)"
-              :options="createMemberOptions"
-              emit-value
-              map-options
-              :disable="!createForm.project_id"
-              :hint="
-                !createForm.project_id
-                  ? 'Select a project first to assign members'
-                  : createForm.assigned_resource_ids.length
-                    ? 'Task will be created as SCHEDULED'
-                    : 'No members selected — task will be created as UNASSIGNED'
-              "
-            >
-              <template #option="{ itemProps, opt, selected, toggleOption }">
-                <q-item v-bind="itemProps">
-                  <q-item-section side>
-                    <q-checkbox :model-value="selected" color="primary" @update:model-value="toggleOption(opt)" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ opt.label }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
-
-            <!-- Dependencies Field -->
-            <q-select
-              v-model="createForm.predecessor_task_ids"
-              outlined
-              dense
-              multiple
-              clearable
-              :display-value="
-                createForm.predecessor_task_ids.length
-                  ? `${createForm.predecessor_task_ids.length} dependency/dependencies selected`
-                  : ''
-              "
-              label="Predecessor Dependencies (Optional)"
-              :options="createPredecessorOptions"
-              emit-value
-              map-options
-              :disable="!createForm.project_id"
-              :hint="
-                !createForm.project_id
-                  ? 'Select a project first to choose dependencies'
-                  : 'Select tasks that must be completed before this task'
-              "
-            >
-              <template #option="{ itemProps, opt, selected, toggleOption }">
-                <q-item v-bind="itemProps">
-                  <q-item-section side>
-                    <q-checkbox :model-value="selected" color="primary" @update:model-value="toggleOption(opt)" />
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-icon name="account_tree" color="primary" size="18px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ opt.label }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-            </q-select>
-          </q-card-section>
-
-          <q-card-actions align="right" class="q-pa-md q-pt-none">
-            <q-btn
-              v-close-popup
-              flat
-              no-caps
-              label="Cancel"
-              color="grey-7"
-              class="text-weight-medium"
-            />
-            <q-btn
-              type="submit"
-              unelevated
-              no-caps
-              color="primary"
-              label="Create Task"
-              class="action-btn-primary"
-              :loading="submitting"
-            />
-          </q-card-actions>
-        </q-form>
-      </q-card>
-    </q-dialog>
+    <CreateTaskDialog
+      v-model="showCreateDialog"
+      :projects="projectSelectOptions"
+      :member-options="createMemberOptions"
+      :predecessor-options="createPredecessorOptions"
+      :loading="submitting"
+      @submit="handleCreateTask"
+      @project-change="handleCreateProjectChange"
+    />
 
     <!-- 9. EDIT TASK DIALOG -->
     <q-dialog v-model="showEditDialog">
@@ -1117,90 +793,32 @@
     </q-dialog>
 
     <!-- 10. DELETE TASK CONFIRMATION DIALOG -->
-    <q-dialog v-model="showDeleteTaskDialog">
-      <q-card class="dialog-card" style="min-width: 380px; max-width: 90vw">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="delete_forever"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div>
-            <div class="text-subtitle1 text-weight-bold text-dark">Delete Task</div>
-            <div class="text-caption text-grey-6">This action cannot be undone</div>
-          </div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to delete task
-          <strong>"{{ taskToDelete?.title }}"</strong>? All associated dependencies and work logs
-          will be removed.
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Delete Task"
-            class="action-btn-primary"
-            :loading="deletingTask"
-            @click="handleExecuteDeleteTask"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showDeleteTaskDialog"
+      title="Delete Task"
+      subtitle="This action cannot be undone"
+      confirm-label="Delete Task"
+      :loading="deletingTask"
+      @confirm="handleExecuteDeleteTask"
+    >
+      Are you sure you want to delete task
+      <strong>"{{ taskToDelete?.title }}"</strong>? All associated dependencies and work logs
+      will be removed.
+    </ConfirmActionDialog>
 
     <!-- 11. UNASSIGN TASK RESOURCE DIALOG -->
-    <q-dialog v-model="showUnassignDialog">
-      <q-card class="dialog-card">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar
-            icon="person_remove"
-            color="negative"
-            text-color="white"
-            size="36px"
-            class="q-mr-sm"
-          />
-          <div class="text-subtitle1 text-weight-bold text-dark">Unassign Resource from Task</div>
-        </q-card-section>
-
-        <q-card-section class="q-pt-sm text-body2 text-grey-8">
-          Are you sure you want to remove <strong>{{ unassignTarget.resourceName }}</strong> from
-          task <strong>"{{ unassignTarget.taskTitle }}"</strong>?
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md q-pt-none">
-          <q-btn
-            v-close-popup
-            flat
-            no-caps
-            label="Cancel"
-            color="grey-7"
-            class="text-weight-medium"
-          />
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            label="Unassign"
-            class="action-btn-primary"
-            :loading="unassigning"
-            @click="handleExecuteUnassign"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmActionDialog
+      v-model="showUnassignDialog"
+      title="Unassign Resource from Task"
+      subtitle=""
+      icon="person_remove"
+      confirm-label="Unassign"
+      :loading="unassigning"
+      @confirm="handleExecuteUnassign"
+    >
+      Are you sure you want to remove <strong>{{ unassignTarget.resourceName }}</strong> from
+      task <strong>"{{ unassignTarget.taskTitle }}"</strong>?
+    </ConfirmActionDialog>
   </q-page>
 </template>
 
@@ -1209,6 +827,9 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
+import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
+import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
+import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
 import { getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
@@ -1379,10 +1000,13 @@ function unassignFromDetails(rId: number) {
   }
 }
 
-function getTaskTitle(taskId: number): string {
-  const t = tasks.value.find((item) => item.task_id === taskId);
-  return t ? t.title : `Task #${taskId}`;
-}
+const taskTitlesMap = computed<Record<number, string>>(() => {
+  const map: Record<number, string> = {};
+  for (const t of tasks.value) {
+    map[t.task_id] = t.title;
+  }
+  return map;
+});
 
 const showUnassignDialog = ref(false);
 const unassigning = ref(false);
@@ -1844,27 +1468,40 @@ async function handleAddDependency() {
   }
 }
 
-async function handleCreateTask() {
-  if (!createForm.project_id || !createForm.title.trim()) return;
+async function handleCreateProjectChange(newProjectId: number | null) {
+  createForm.project_id = newProjectId;
+  createForm.assigned_resource_ids = [];
+  createForm.predecessor_task_ids = [];
+  if (newProjectId) {
+    const members = await getResourcesApi(newProjectId).catch(() => []);
+    createProjectMembers.value = members;
+  } else {
+    createProjectMembers.value = [];
+  }
+}
+
+async function handleCreateTask(formData?: CreateTaskFormData) {
+  const data = formData || createForm;
+  if (!data.project_id || !data.title.trim()) return;
 
   submitting.value = true;
   try {
     const newTask = await createTaskApi({
-      project_id: createForm.project_id,
-      title: createForm.title.trim(),
-      description: createForm.description.trim() || null,
-      priority: createForm.priority,
-      expected_effort: Number(createForm.expected_effort) || 8,
-      start_date: createForm.start_date || null,
-      deadline: createForm.deadline || null,
-      assigned_resource_ids: createForm.assigned_resource_ids,
+      project_id: data.project_id,
+      title: data.title.trim(),
+      description: data.description?.trim() || null,
+      priority: data.priority,
+      expected_effort: Number(data.expected_effort) || 8,
+      start_date: data.start_date || null,
+      deadline: data.deadline || null,
+      assigned_resource_ids: data.assigned_resource_ids,
     });
 
     const newTaskId = newTask?.task_id;
     let depErrors = 0;
 
-    if (newTaskId && createForm.predecessor_task_ids.length > 0) {
-      for (const predId of createForm.predecessor_task_ids) {
+    if (newTaskId && data.predecessor_task_ids && data.predecessor_task_ids.length > 0) {
+      for (const predId of data.predecessor_task_ids) {
         try {
           await addTaskDependencyApi(newTaskId, predId);
         } catch {
