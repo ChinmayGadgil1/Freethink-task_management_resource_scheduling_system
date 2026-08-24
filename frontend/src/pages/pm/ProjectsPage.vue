@@ -2923,13 +2923,13 @@ onMounted(() => {
 .insight-label {
   font-size: 10.5px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--wo-text-muted, #64748b);
 }
 
 .insight-val {
   font-size: 19px;
   font-weight: 800;
-  color: #121620;
+  color: var(--wo-text-main, #121620);
   line-height: 1.1;
 }
 

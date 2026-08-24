@@ -185,12 +185,6 @@
             }}</q-tooltip>
           </q-btn>
 
-          <!-- Notifications -->
-          <q-btn flat round dense icon="notifications_none" color="grey-7" class="header-icon-btn">
-            <q-badge color="primary" floating rounded />
-            <q-tooltip>Notifications</q-tooltip>
-          </q-btn>
-
           <!-- User Profile Dropdown -->
           <div v-if="user" class="profile cursor-pointer">
             <q-avatar size="34px" class="profile-avatar">
@@ -535,13 +529,13 @@ body.body--dark .app-header {
 .profile-name {
   font-size: 12.5px;
   font-weight: 700;
-  color: #121620;
+  color: var(--wo-text-main, #121620);
   line-height: 1.2;
 }
 
 .profile-role {
   font-size: 10px;
-  color: #64748b;
+  color: var(--wo-text-muted, #64748b);
 }
 
 .app-page-container {

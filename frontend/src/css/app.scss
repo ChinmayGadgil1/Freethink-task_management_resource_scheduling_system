@@ -545,4 +545,61 @@ body.body--dark {
   ::-webkit-scrollbar-thumb:hover {
     background: #475569;
   }
+
+  /* Header profile text contrast in Dark Mode */
+  .profile-name {
+    color: #f8fafc !important;
+  }
+
+  .profile-role {
+    color: #cbd5e1 !important;
+  }
+
+  /* View Switcher QBtnToggle Contrast in Dark Mode */
+  .q-btn-toggle,
+  .view-toggle-btn,
+  .view-segmented-toggle {
+    background: #121622 !important;
+    border-color: #283042 !important;
+
+    .q-btn {
+      color: #94a3b8 !important;
+      background: transparent !important;
+
+      .q-icon,
+      .q-btn__content {
+        color: #94a3b8 !important;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #f8fafc !important;
+
+        .q-icon,
+        .q-btn__content {
+          color: #f8fafc !important;
+        }
+      }
+    }
+
+    .q-btn--active,
+    .q-btn.bg-primary {
+      background: var(--wo-primary, #9e84ec) !important;
+      color: #ffffff !important;
+
+      .q-icon,
+      .q-btn__content {
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  /* Insights & Stat cards contrast in Dark Mode */
+  .insight-label {
+    color: #94a3b8 !important;
+  }
+
+  .insight-val {
+    color: #f8fafc !important;
+  }
 }
