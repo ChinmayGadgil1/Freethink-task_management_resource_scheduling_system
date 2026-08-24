@@ -53,23 +53,6 @@
           </router-link>
         </div>
 
-        <!-- Bottom Slim Section: Dark Mode & User Avatar -->
-        <div class="column items-center gap-sm q-pb-md">
-          <button
-            class="rail-icon-btn"
-            :title="$q.dark.isActive ? 'Light Mode' : 'Dark Mode'"
-            @click="toggleDarkMode"
-          >
-            <q-icon :name="$q.dark.isActive ? 'dark_mode' : 'light_mode'" size="16px" />
-          </button>
-
-          <q-avatar size="32px" class="rail-avatar cursor-pointer" @click="handleLogout">
-            <span>{{ userInitial }}</span>
-            <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
-              {{ currentUser?.name || 'User' }} (Click to Logout)
-            </q-tooltip>
-          </q-avatar>
-        </div>
       </div>
 
       <!-- 2. EXPANDABLE MAIN SIDEBAR MENU (Hidden in Mini Mode) -->
@@ -128,48 +111,13 @@
             </nav>
           </div>
 
-          <!-- Workspaces Section -->
-          <div v-if="workspaces && workspaces.length > 0" class="menu-category-block q-mt-md">
-            <div class="row items-center justify-between no-wrap">
-              <span class="category-header-label">WORKSPACES</span>
-              <q-btn flat round dense icon="add" size="xs" color="grey-6" title="Add Workspace" />
-            </div>
 
-            <nav class="category-nav-list q-mt-xs">
-              <div
-                v-for="(ws, idx) in workspaces"
-                :key="`ws-${idx}`"
-                class="menu-sub-link cursor-pointer"
-                @click="goToRoute(ws.to)"
-              >
-                <q-icon name="folder_open" size="15px" class="q-mr-sm" :class="ws.iconColor" />
-                <span>{{ ws.title }}</span>
-              </div>
-            </nav>
-          </div>
 
           <!-- System Settings -->
           <div class="menu-category-block q-mt-md">
             <div class="category-header-label">SYSTEM</div>
 
             <div class="system-menu-list">
-              <div
-                class="system-item row items-center justify-between cursor-pointer"
-                @click="toggleDarkMode"
-              >
-                <div class="row items-center gap-xs">
-                  <q-icon name="dark_mode" size="16px" color="grey-7" />
-                  <span>Dark Mode</span>
-                </div>
-                <q-toggle
-                  :model-value="$q.dark.isActive"
-                  dense
-                  color="primary"
-                  size="xs"
-                  @update:model-value="toggleDarkMode"
-                />
-              </div>
-
               <div
                 class="system-item row items-center gap-xs cursor-pointer"
                 @click="goToRoute(homeRoute || '/')"
@@ -189,37 +137,13 @@
           </div>
         </div>
 
-        <!-- Lower Panel: User Profile Footer -->
-        <div class="sidebar-user-footer q-pa-sm">
-          <q-separator class="q-mb-sm" />
-          <div v-if="currentUser" class="user-profile-pill row items-center justify-between no-wrap">
-            <div class="row items-center gap-xs no-wrap">
-              <q-avatar size="32px" class="footer-avatar">
-                <span>{{ userInitial }}</span>
-              </q-avatar>
-              <div class="user-text-wrap">
-                <div class="user-name-line" :title="currentUser.name">{{ currentUser.name }}</div>
-                <div class="user-email-line">{{ currentUser.email || 'user@taskflow.com' }}</div>
-              </div>
-            </div>
-
-            <q-btn flat round dense icon="logout" size="sm" color="grey-6" title="Logout" @click="handleLogout">
-              <q-tooltip>Logout</q-tooltip>
-            </q-btn>
-          </div>
-        </div>
       </div>
     </div>
   </q-drawer>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import { useAuthStore } from '@/stores/auth';
-import { useThemeStore } from '@/stores/theme';
-import { getInitials } from '@/utils/formatters';
 
 export interface SidebarNavItem {
   title: string;
@@ -261,21 +185,11 @@ const emit = defineEmits<{
   (e: 'quickAction'): void;
 }>();
 
-const $q = useQuasar();
 const router = useRouter();
 const route = useRoute();
-const authStore = useAuthStore();
-const themeStore = useThemeStore();
-
-const currentUser = computed(() => authStore.user);
-const userInitial = computed(() => getInitials(currentUser.value?.name, 'U').charAt(0));
 
 function toggleMini() {
   emit('update:isMini', !props.isMini);
-}
-
-function toggleDarkMode() {
-  themeStore.toggleDarkMode();
 }
 
 function isLinkActive(path: string): boolean {
@@ -302,11 +216,6 @@ function handleQuickAction() {
   } else {
     emit('quickAction');
   }
-}
-
-function handleLogout() {
-  authStore.clearAuth();
-  void router.push('/auth/login');
 }
 </script>
 
