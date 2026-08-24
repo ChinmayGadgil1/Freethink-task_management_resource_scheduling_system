@@ -48,10 +48,10 @@
         </div>
 
         <!-- Right: Links Columns -->
-        <div class="col-12 col-md-6 links-col">
-          <div class="row q-col-gutter-lg">
+        <div class="col-12 col-md-5 links-col">
+          <div class="row q-col-gutter-lg justify-end">
             <!-- Product Column -->
-            <div class="col-6 col-sm-4">
+            <div class="col-6 col-sm-6">
               <h4 class="column-title">Product</h4>
               <ul class="footer-link-list">
                 <li><a href="#features" @click.prevent="scrollTo('features')">Features</a></li>
@@ -59,27 +59,15 @@
                   <a href="#how-it-works" @click.prevent="scrollTo('how-it-works')">How It Works</a>
                 </li>
                 <li><a href="#for-teams" @click.prevent="scrollTo('for-teams')">For Teams</a></li>
-                <li><a href="#features" @click.prevent="scrollTo('features')">Benefits</a></li>
               </ul>
             </div>
 
             <!-- Account Column -->
-            <div class="col-6 col-sm-4">
+            <div class="col-6 col-sm-6">
               <h4 class="column-title">Account</h4>
               <ul class="footer-link-list">
                 <li><a href="javascript:void(0)" @click.prevent="goToLogin">Log in</a></li>
                 <li><a href="javascript:void(0)" @click.prevent="goToSignup">Sign up</a></li>
-              </ul>
-            </div>
-
-            <!-- Resources / Legal Column -->
-            <div class="col-6 col-sm-4">
-              <h4 class="column-title">Resources</h4>
-              <ul class="footer-link-list">
-                <li><a href="javascript:void(0)">Help Center</a></li>
-                <li><a href="javascript:void(0)">Support</a></li>
-                <li><a href="javascript:void(0)">Privacy Policy</a></li>
-                <li><a href="javascript:void(0)">Terms of Service</a></li>
               </ul>
             </div>
           </div>
@@ -155,7 +143,7 @@ function scrollTo(sectionId: string) {
   color: #f1f5f9;
   position: relative;
   overflow: hidden;
-  padding: 90px 0 40px 0;
+  padding: 56px 0 32px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -173,7 +161,7 @@ function scrollTo(sectionId: string) {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 20px;
 }
 
 .brand {
@@ -199,28 +187,28 @@ function scrollTo(sectionId: string) {
 }
 
 .footer-cta-title {
-  font-size: 38px;
-  line-height: 1.15;
+  font-size: 32px;
+  line-height: 1.18;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.03em;
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
 }
 
 .footer-cta-desc {
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 14.5px;
+  line-height: 1.55;
   color: #94a3b8;
-  margin: 0 0 24px 0;
+  margin: 0 0 20px 0;
   max-width: 440px;
 }
 
 .footer-primary-btn {
   background: #8b6fd8;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
-  padding: 12px 28px;
+  padding: 10px 24px;
   border-radius: 10px;
   box-shadow: 0 4px 14px rgba(139, 111, 216, 0.35);
   transition: all 0.2s ease;
@@ -233,12 +221,12 @@ function scrollTo(sectionId: string) {
 }
 
 .column-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin: 0 0 18px 0;
+  margin: 0 0 14px 0;
 }
 
 .footer-link-list {
@@ -247,11 +235,11 @@ function scrollTo(sectionId: string) {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 
   li a {
     color: #94a3b8;
-    font-size: 14px;
+    font-size: 13.5px;
     text-decoration: none;
     transition: color 0.15s ease;
 
@@ -264,7 +252,7 @@ function scrollTo(sectionId: string) {
 .footer-divider-line {
   height: 1px;
   background: rgba(255, 255, 255, 0.08);
-  margin: 64px 0 28px 0;
+  margin: 36px 0 20px 0;
 }
 
 .copyright-text {

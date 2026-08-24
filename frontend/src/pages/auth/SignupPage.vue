@@ -1,14 +1,10 @@
 <template>
   <div class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md" style="width: 100%; max-width: 540px">
-    <q-card
-      elavted
-      class="bg-white q-pa-xl"
-      style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08)"
-    >
+    <q-card flat class="auth-card q-pa-xl">
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
-        <div class="text-h5 text-weight-bold">Create Account</div>
-        <div class="text-body2 text-grey-7 q-mt-sm">Create your account to get started</div>
+        <div class="text-h5 text-weight-bold auth-title">Create Account</div>
+        <div class="text-body2 auth-subtitle q-mt-sm">Create your account to get started</div>
       </q-card-section>
 
       <!-- Signup Form -->
@@ -24,10 +20,11 @@
             dense
             hide-bottom-space
             label="Full Name"
+            class="auth-input"
             :rules="[(val) => !!val || 'Name is required']"
           >
             <template #prepend>
-              <q-icon name="person_outline" />
+              <q-icon name="person_outline" class="auth-icon" />
             </template>
           </q-input>
 
@@ -39,13 +36,14 @@
             hide-bottom-space
             label="Enter Email-id"
             type="email"
+            class="auth-input"
             :rules="[
               (val) => !!val || 'Email is required',
               (val) => /.+@.+\..+/.test(val) || 'Enter a valid email',
             ]"
           >
             <template #prepend>
-              <q-icon name="mail_outline" />
+              <q-icon name="mail_outline" class="auth-icon" />
             </template>
           </q-input>
 
@@ -56,13 +54,15 @@
             dense
             hide-bottom-space
             label="Select Role"
+            class="auth-input"
+            popup-content-class="auth-select-popup"
             :options="roleOptions"
             emit-value
             map-options
             :rules="[(val) => !!val || 'Role is required']"
           >
             <template #prepend>
-              <q-icon name="badge" />
+              <q-icon name="badge" class="auth-icon" />
             </template>
           </q-select>
 
@@ -73,6 +73,7 @@
             dense
             hide-bottom-space
             label="Password"
+            class="auth-input"
             :type="showPassword ? 'text' : 'password'"
             :rules="[
               (val) => !!val || 'Password is required',
@@ -84,7 +85,7 @@
             ]"
           >
             <template #prepend>
-              <q-icon name="lock_outline" />
+              <q-icon name="lock_outline" class="auth-icon" />
             </template>
             <template #append>
               <q-btn
@@ -92,6 +93,7 @@
                 dense
                 no-caps
                 size="sm"
+                class="auth-show-btn"
                 :label="showPassword ? 'Hide' : 'Show'"
                 @click="showPassword = !showPassword"
               />
@@ -105,6 +107,7 @@
             dense
             hide-bottom-space
             label="Confirm Password"
+            class="auth-input"
             :type="showConfirmPassword ? 'text' : 'password'"
             :rules="[
               (val) => !!val || 'Please confirm your password',
@@ -112,7 +115,7 @@
             ]"
           >
             <template #prepend>
-              <q-icon name="lock_outline" />
+              <q-icon name="lock_outline" class="auth-icon" />
             </template>
             <template #append>
               <q-btn
@@ -120,6 +123,7 @@
                 dense
                 no-caps
                 size="sm"
+                class="auth-show-btn"
                 :label="showConfirmPassword ? 'Hide' : 'Show'"
                 @click="showConfirmPassword = !showConfirmPassword"
               />
@@ -134,7 +138,7 @@
             label="Create Account"
             color="deep-purple"
             text-color="white"
-            class="full-width rounded-borders q-mt-sm"
+            class="full-width rounded-borders auth-submit-btn q-mt-sm"
             size="md"
             :loading="loading"
           />
@@ -143,15 +147,14 @@
 
       <!-- Login Link -->
       <q-card-section class="text-center q-pt-sm">
-        <div class="text-caption text-grey-7">
+        <div class="text-caption auth-footer-text">
           Already have an account?
           <q-btn
             flat
             dense
             no-caps
             label="Sign in"
-            color="dark"
-            class="q-pa-none text-weight-bold"
+            class="q-pa-none text-weight-bold auth-login-link"
             @click="goToLogin"
           />
         </div>
@@ -233,3 +236,113 @@ const goToLogin = () => {
   void router.push('/login');
 };
 </script>
+
+<style scoped lang="scss">
+.auth-card {
+  border-radius: 20px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, rgba(0, 0, 0, 0.06));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  color: var(--wo-text-main, #1d2433);
+}
+
+.auth-title {
+  color: var(--wo-text-main, #1d2433);
+}
+
+.auth-subtitle {
+  color: var(--wo-text-muted, #667085);
+}
+
+.auth-input :deep(.q-field__control) {
+  border-radius: 8px;
+  background: var(--wo-bg-input, #ffffff);
+  min-height: 42px;
+}
+
+.auth-input :deep(.q-field__native),
+.auth-input :deep(.q-field__input) {
+  color: var(--wo-text-main, #1d2433);
+  font-size: 13.5px;
+}
+
+.auth-input :deep(.q-field__label) {
+  color: var(--wo-text-muted, #667085);
+  font-size: 13px;
+}
+
+.auth-icon {
+  color: var(--wo-text-muted, #667085);
+}
+
+.auth-show-btn {
+  color: var(--wo-text-muted, #667085);
+  background: transparent !important;
+}
+
+.auth-submit-btn {
+  background: #8b6fd8 !important;
+  border-radius: 8px;
+  font-weight: 700;
+  height: 42px;
+}
+
+.auth-footer-text {
+  color: var(--wo-text-muted, #667085);
+}
+
+.auth-login-link {
+  color: var(--wo-primary, #8b6fd8);
+}
+
+/* Dark mode specific fine-tuning */
+body.body--dark {
+  .auth-card {
+    background: var(--wo-bg-card, #181d28) !important;
+    border-color: var(--wo-border, #283042);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  }
+
+  .auth-input :deep(.q-field__control) {
+    background: var(--wo-bg-input, #121622) !important;
+    border-color: var(--wo-border, #283042);
+  }
+
+  .auth-input :deep(.q-field__control:before) {
+    border-color: var(--wo-border, #283042) !important;
+  }
+
+  .auth-input :deep(.q-field__control:hover:before) {
+    border-color: var(--wo-text-subtle, #64748b) !important;
+  }
+
+  .auth-input :deep(.q-field__native),
+  .auth-input :deep(.q-field__input) {
+    color: var(--wo-text-main, #f3f4f6) !important;
+  }
+
+  .auth-input :deep(.q-field__label) {
+    color: var(--wo-text-muted, #94a3b8) !important;
+  }
+
+  .auth-icon,
+  .auth-show-btn {
+    color: var(--wo-text-muted, #94a3b8) !important;
+    background: transparent !important;
+  }
+
+  .auth-title {
+    color: #f3f4f6;
+  }
+
+  .auth-subtitle,
+  .auth-footer-text {
+    color: #94a3b8;
+  }
+
+  .auth-login-link {
+    color: #a78bfa;
+  }
+}
+</style>
+

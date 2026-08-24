@@ -2,7 +2,7 @@
   <q-drawer
     :model-value="modelValue"
     :mini="isMini"
-    :width="290"
+    :width="250"
     :mini-width="72"
     show-if-above
     side="left"
@@ -10,139 +10,145 @@
     class="app-sidebar-drawer"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <div class="sidebar-dual-container row no-wrap full-height">
-      <!-- 1. SLIM LEFT ICON RAIL (Always Visible) -->
-      <div class="slim-icon-rail column items-center justify-between">
-        <!-- Top Section: Expand/Shrink & Quick Icons -->
-        <div class="column items-center gap-sm full-width q-pt-sm">
-          <!-- Toggle / Menu Button -->
-          <button
-            class="rail-icon-btn menu-toggle-btn"
-            :title="isMini ? 'Expand Sidebar (»)' : 'Shrink Sidebar («)'"
-            @click="toggleMini"
-          >
-            <q-icon :name="isMini ? 'keyboard_double_arrow_right' : 'more_horiz'" size="18px" />
-          </button>
+    <!-- 1. SLIM LEFT ICON RAIL (ONLY in Mini Mode) -->
+    <div v-if="isMini" class="slim-icon-rail column items-center justify-between full-height">
+      <!-- Top Section: Expand & Quick Icons -->
+      <div class="column items-center gap-sm full-width q-pt-sm">
+        <!-- Toggle / Expand Button (») -->
+        <button
+          class="rail-icon-btn menu-toggle-btn"
+          title="Expand Sidebar (»)"
+          @click="toggleMini"
+        >
+          <q-icon name="keyboard_double_arrow_right" size="18px" />
+        </button>
 
-          <!-- Quick Action Button (+) -->
-          <button
-            class="rail-quick-add-btn"
-            :title="quickActionTitle || 'Quick Action'"
-            @click="handleQuickAction"
-          >
-            <q-icon name="add" size="18px" />
-          </button>
+        <!-- Quick Action Button (+) -->
+        <button
+          class="rail-quick-add-btn"
+          :title="quickActionTitle || 'Quick Action'"
+          @click="handleQuickAction"
+        >
+          <q-icon name="add" size="18px" />
+        </button>
 
-          <div class="rail-divider" />
+        <div class="rail-divider" />
 
-          <!-- Core App Icons -->
-          <router-link
-            v-for="item in navItems"
-            :key="`rail-${item.to}`"
-            :to="item.to"
-            class="rail-icon-item"
-            :class="{ 'rail-item-active': isLinkActive(item.to) }"
-            :title="item.title"
-          >
-            <div class="rail-icon-box" :class="item.bgClass">
-              <q-icon :name="item.icon" size="18px" />
-            </div>
-            <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
-              {{ item.title }}
-            </q-tooltip>
-          </router-link>
-        </div>
+        <!-- Core App Icons -->
+        <router-link
+          v-for="item in navItems"
+          :key="`rail-${item.to}`"
+          :to="item.to"
+          class="rail-icon-item"
+          :class="{ 'rail-item-active': isLinkActive(item.to) }"
+          :title="item.title"
+        >
+          <div class="rail-icon-box" :class="item.bgClass">
+            <q-icon :name="item.icon" size="18px" />
+          </div>
+          <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
+            {{ item.title }}
+          </q-tooltip>
+        </router-link>
 
+        <!-- Help & Support (Mini Mode) -->
+        <router-link
+          :to="computedHelpRoute"
+          class="rail-icon-item"
+          :class="{ 'rail-item-active': isLinkActive(computedHelpRoute) }"
+          title="Help & Support"
+        >
+          <div class="rail-icon-box bg-teal-soft">
+            <q-icon name="help_outline" size="18px" />
+          </div>
+          <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
+            Help & Support
+          </q-tooltip>
+        </router-link>
       </div>
+    </div>
 
-      <!-- 2. EXPANDABLE MAIN SIDEBAR MENU (Hidden in Mini Mode) -->
-      <div v-show="!isMini" class="expandable-sidebar-body column justify-between col">
-        <!-- Upper Panel: Brand, Navigation Lists -->
-        <div class="scroll-content q-pa-sm">
-          <!-- Brand Header + Shrink Button -->
-          <div class="sidebar-brand-row row items-center justify-between no-wrap q-py-xs q-px-xs">
-            <div class="row items-center gap-xs cursor-pointer" @click="goToHome">
-              <div class="brand-badge-icon">
-                <span class="brand-sparkle">✦</span>
-              </div>
-              <div class="brand-title-wrap">
-                <span class="brand-title-text">TaskFlow</span>
-              </div>
+    <!-- 2. EXPANDED FULL SIDEBAR MENU (ONLY in Expanded Mode) -->
+    <div v-else class="expandable-sidebar-body column justify-between full-height">
+      <!-- Upper Panel: Brand, Navigation Lists -->
+      <div class="scroll-content q-pa-sm">
+        <!-- Brand Header + Shrink Button -->
+        <div class="sidebar-brand-row row items-center justify-between no-wrap q-py-xs q-px-xs">
+          <div class="row items-center gap-xs cursor-pointer" @click="goToHome">
+            <div class="brand-badge-icon">
+              <span class="brand-sparkle">✦</span>
             </div>
-
-            <!-- Shrink Button («) -->
-            <button
-              class="sidebar-shrink-btn"
-              title="Collapse Sidebar"
-              @click="$emit('update:isMini', true)"
-            >
-              <q-icon name="keyboard_double_arrow_left" size="16px" />
-            </button>
-          </div>
-
-          <q-separator class="q-my-sm" />
-
-          <!-- Main Menu Section -->
-          <div class="menu-category-block q-mt-xs">
-            <div class="category-header-label">MAIN MENU</div>
-
-            <nav class="category-nav-list">
-              <router-link
-                v-for="item in navItems"
-                :key="`menu-${item.to}`"
-                :to="item.to"
-                class="menu-nav-link"
-                :class="{ 'menu-nav-link-active': isLinkActive(item.to) }"
-              >
-                <q-icon :name="item.icon" size="17px" class="q-mr-sm" :class="item.colorClass" />
-                <span class="nav-text" :class="{ 'font-bold': isLinkActive(item.to) }">
-                  {{ item.title }}
-                </span>
-                <q-badge
-                  v-if="item.count !== undefined"
-                  color="grey-3"
-                  text-color="dark"
-                  class="count-pill"
-                >
-                  {{ item.count }}
-                </q-badge>
-                <span v-if="isLinkActive(item.to)" class="active-indicator-bar" />
-              </router-link>
-            </nav>
-          </div>
-
-
-
-          <!-- System Settings -->
-          <div class="menu-category-block q-mt-md">
-            <div class="category-header-label">SYSTEM</div>
-
-            <div class="system-menu-list">
-              <div
-                class="system-item row items-center gap-xs cursor-pointer"
-                @click="goToRoute(homeRoute || '/')"
-              >
-                <q-icon name="settings" size="16px" color="grey-7" />
-                <span>Settings</span>
-              </div>
-
-              <div
-                class="system-item row items-center gap-xs cursor-pointer"
-                @click="goToRoute(homeRoute || '/')"
-              >
-                <q-icon name="help_outline" size="16px" color="grey-7" />
-                <span>Help & Support</span>
-              </div>
+            <div class="brand-title-wrap">
+              <span class="brand-title-text">TaskFlow</span>
             </div>
           </div>
+
+          <!-- Shrink Button («) -->
+          <button
+            class="sidebar-shrink-btn"
+            title="Collapse Sidebar"
+            @click="$emit('update:isMini', true)"
+          >
+            <q-icon name="keyboard_double_arrow_left" size="16px" />
+          </button>
         </div>
 
+        <q-separator class="q-my-sm" />
+
+        <!-- Main Menu Section -->
+        <div class="menu-category-block q-mt-xs">
+          <div class="category-header-label">MAIN MENU</div>
+
+          <nav class="category-nav-list">
+            <router-link
+              v-for="item in navItems"
+              :key="`menu-${item.to}`"
+              :to="item.to"
+              class="menu-nav-link"
+              :class="{ 'menu-nav-link-active': isLinkActive(item.to) }"
+            >
+              <q-icon :name="item.icon" size="17px" class="q-mr-sm" :class="item.colorClass" />
+              <span class="nav-text" :class="{ 'font-bold': isLinkActive(item.to) }">
+                {{ item.title }}
+              </span>
+              <q-badge
+                v-if="item.count !== undefined"
+                color="grey-3"
+                text-color="dark"
+                class="count-pill"
+              >
+                {{ item.count }}
+              </q-badge>
+              <span v-if="isLinkActive(item.to)" class="active-indicator-bar" />
+            </router-link>
+          </nav>
+        </div>
+
+        <!-- System Section -->
+        <div class="menu-category-block q-mt-md">
+          <div class="category-header-label">SYSTEM</div>
+
+          <div class="system-menu-list">
+            <router-link
+              :to="computedHelpRoute"
+              class="menu-nav-link"
+              :class="{ 'menu-nav-link-active': isLinkActive(computedHelpRoute) }"
+            >
+              <q-icon name="help_outline" size="17px" class="q-mr-sm text-teal" />
+              <span class="nav-text" :class="{ 'font-bold': isLinkActive(computedHelpRoute) }">
+                Help & Support
+              </span>
+              <span v-if="isLinkActive(computedHelpRoute)" class="active-indicator-bar" />
+            </router-link>
+          </div>
+        </div>
       </div>
     </div>
   </q-drawer>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 export interface SidebarNavItem {
@@ -164,6 +170,7 @@ export interface AppSidebarProps {
   modelValue?: boolean;
   isMini?: boolean;
   homeRoute?: string;
+  helpRoute?: string;
   navItems: SidebarNavItem[];
   workspaces?: WorkspaceItem[];
   quickActionTitle?: string;
@@ -174,6 +181,7 @@ const props = withDefaults(defineProps<AppSidebarProps>(), {
   modelValue: true,
   isMini: false,
   homeRoute: '/pm/projects',
+  helpRoute: '',
   workspaces: () => [],
   quickActionTitle: 'Quick Action',
   quickActionRoute: '',
@@ -187,6 +195,14 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const route = useRoute();
+
+const computedHelpRoute = computed(() => {
+  if (props.helpRoute) return props.helpRoute;
+  if (props.homeRoute.includes('resource-dashboard') || route.path.includes('resource-dashboard')) {
+    return '/app/resource-dashboard/help';
+  }
+  return '/pm/help';
+});
 
 function toggleMini() {
   emit('update:isMini', !props.isMini);
@@ -204,10 +220,6 @@ function isLinkActive(path: string): boolean {
 
 function goToHome() {
   void router.push(props.homeRoute || '/');
-}
-
-function goToRoute(path: string) {
-  void router.push(path);
 }
 
 function handleQuickAction() {
@@ -237,7 +249,6 @@ function handleQuickAction() {
   width: 72px;
   flex: 0 0 72px;
   background: var(--wo-bg-subtle, #fcfcfd);
-  border-right: 1px solid var(--wo-border, #eaecef);
   padding: 8px 0;
   height: 100%;
 }
@@ -356,9 +367,9 @@ function handleQuickAction() {
   }
 }
 
-/* 2. EXPANDABLE MAIN SIDEBAR BODY */
+/* 2. EXPANDED MAIN SIDEBAR BODY */
 .expandable-sidebar-body {
-  width: 218px;
+  width: 100%;
   height: 100%;
   background: var(--wo-bg-card, #ffffff);
   overflow-y: auto;

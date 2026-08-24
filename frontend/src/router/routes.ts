@@ -75,6 +75,10 @@ const routes: RouteRecordRaw[] = [
         path: 'reports',
         redirect: '/pm/projects',
       },
+      {
+        path: 'help',
+        component: () => import('@/pages/help/HelpPage.vue'),
+      },
     ],
   },
 
@@ -99,6 +103,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'progress',
         component: () => import('@/pages/resource/ProgressPage.vue'),
+      },
+      {
+        path: 'help',
+        component: () => import('@/pages/help/HelpPage.vue'),
       },
     ],
   },

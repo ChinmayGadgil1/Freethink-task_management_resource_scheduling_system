@@ -24,19 +24,27 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
+import { useThemeStore } from '@/stores/theme';
 import LandingNavbar from '@/components/landing/LandingNavbar.vue';
 import HeroSection from '@/components/landing/HeroSection.vue';
 import AnnouncementStrip from '@/components/landing/AnnouncementStrip.vue';
 import ProductShowcaseSection from '@/components/landing/ProductShowcaseSection.vue';
 import RoleTestimonialSection from '@/components/landing/RoleTestimonialSection.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
+
+const themeStore = useThemeStore();
+
+onMounted(() => {
+  themeStore.initTheme();
+});
 </script>
 
 <style scoped lang="scss">
 .landing-page-root {
   min-height: 100vh;
-  background-color: #ffffff;
-  color: #121620;
+  background-color: var(--wo-bg-page, #ffffff);
+  color: var(--wo-text-main, #121620);
   font-family:
     'Manrope',
     -apple-system,
@@ -45,5 +53,13 @@ import LandingFooter from '@/components/landing/LandingFooter.vue';
     Roboto,
     sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+body.body--dark {
+  .landing-page-root {
+    background-color: #0b0f19;
+    color: #f3f4f6;
+  }
 }
 </style>

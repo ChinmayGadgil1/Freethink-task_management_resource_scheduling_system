@@ -5,10 +5,10 @@
       v-model="leftDrawerOpen"
       v-model:is-mini="isMini"
       home-route="/app/resource-dashboard"
+      help-route="/app/resource-dashboard/help"
       quick-action-route="/app/resource-dashboard/task-details"
       quick-action-title="Quick Action"
       :nav-items="resourceNavItems"
-      :workspaces="resourceWorkspaces"
     />
 
     <!-- TOP HEADER -->
@@ -19,11 +19,13 @@
             flat
             dense
             round
-            icon="menu"
-            aria-label="Menu"
-            class="drawer-toggle-btn lt-md"
-            @click="toggleDrawer"
-          />
+            :icon="isMini ? 'menu_open' : 'menu'"
+            aria-label="Toggle Sidebar"
+            class="drawer-toggle-btn"
+            @click="toggleMini"
+          >
+            <q-tooltip>{{ isMini ? 'Expand Sidebar' : 'Collapse Sidebar' }}</q-tooltip>
+          </q-btn>
           <div class="header-workspace-tag gt-xs">
             <span class="tag-spark">✦</span>
             <span>Resource Workspace</span>
@@ -108,7 +110,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import AppSidebar, { type SidebarNavItem, type WorkspaceItem } from '@/components/layout/AppSidebar.vue';
+import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 
@@ -144,14 +146,12 @@ const resourceNavItems: SidebarNavItem[] = [
   },
 ];
 
-const resourceWorkspaces: WorkspaceItem[] = [
-  { title: 'Sprint Deliverables', to: '/app/resource-dashboard', iconColor: 'text-teal' },
-  { title: 'Assigned Specs', to: '/app/resource-dashboard/task-details', iconColor: 'text-purple' },
-  { title: 'Work Logs', to: '/app/resource-dashboard/progress', iconColor: 'text-orange' },
-];
-
-function toggleDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
+function toggleMini() {
+  if ($q.screen.lt.md) {
+    leftDrawerOpen.value = !leftDrawerOpen.value;
+  } else {
+    isMini.value = !isMini.value;
+  }
 }
 
 function toggleDarkMode() {

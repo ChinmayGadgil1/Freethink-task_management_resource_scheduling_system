@@ -5,10 +5,10 @@
       v-model="leftDrawerOpen"
       v-model:is-mini="isMini"
       home-route="/pm/projects"
+      help-route="/pm/help"
       quick-action-route="/pm/projects"
       quick-action-title="Quick New Item"
       :nav-items="pmNavItems"
-      :workspaces="pmWorkspaces"
     />
 
     <!-- TOP HEADER -->
@@ -248,7 +248,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import AppSidebar, { type SidebarNavItem, type WorkspaceItem } from '@/components/layout/AppSidebar.vue';
+import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
 import {
   getProjectsApi,
   getTasksApi,
@@ -308,12 +308,6 @@ const pmNavItems = computed<SidebarNavItem[]>(() => [
     bgClass: 'bg-blue-soft',
   },
 ]);
-
-const pmWorkspaces: WorkspaceItem[] = [
-  { title: 'Sprint Deliverables', to: '/pm/projects', iconColor: 'text-teal' },
-  { title: 'Design Systems', to: '/pm/projects', iconColor: 'text-purple' },
-  { title: 'Brand Guidelines', to: '/pm/projects', iconColor: 'text-orange' },
-];
 
 const quickLinks = [
   { title: 'Projects Overview', icon: 'folder', route: '/pm/projects' },

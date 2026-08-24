@@ -31,12 +31,24 @@
           >How It Works</a
         >
         <a href="#for-teams" class="nav-link" @click.prevent="scrollTo('for-teams')">For Teams</a>
-        <a href="#features" class="nav-link" @click.prevent="scrollTo('features')">Benefits</a>
-        <a href="#pricing" class="nav-link" @click.prevent="scrollTo('pricing')">Pricing</a>
       </nav>
 
       <!-- Auth Actions -->
       <div class="nav-actions gt-sm">
+        <!-- Theme Toggle -->
+        <q-btn
+          flat
+          round
+          dense
+          :icon="themeStore.isDark ? 'light_mode' : 'dark_mode'"
+          :color="themeStore.isDark ? 'amber-5' : 'grey-8'"
+          aria-label="Toggle dark mode"
+          class="theme-toggle-btn"
+          @click="themeStore.toggleDarkMode"
+        >
+          <q-tooltip>{{ themeStore.isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode' }}</q-tooltip>
+        </q-btn>
+
         <q-btn flat no-caps label="Log in" class="login-btn" @click="goToLogin" />
         <q-btn
           unelevated
@@ -49,13 +61,22 @@
       </div>
 
       <!-- Mobile Menu Toggle Button -->
-      <div class="lt-md">
+      <div class="lt-md row items-center q-gutter-xs">
+        <q-btn
+          flat
+          round
+          dense
+          :icon="themeStore.isDark ? 'light_mode' : 'dark_mode'"
+          :color="themeStore.isDark ? 'amber-5' : 'grey-8'"
+          aria-label="Toggle dark mode"
+          @click="themeStore.toggleDarkMode"
+        />
         <q-btn
           flat
           round
           dense
           icon="menu"
-          color="dark"
+          :color="themeStore.isDark ? 'white' : 'dark'"
           aria-label="Toggle menu"
           @click="mobileDrawerOpen = !mobileDrawerOpen"
         />
@@ -111,22 +132,6 @@
             class="mobile-nav-link"
             @click="scrollToAndClose('for-teams')"
           />
-          <q-btn
-            flat
-            align="left"
-            no-caps
-            label="Benefits"
-            class="mobile-nav-link"
-            @click="scrollToAndClose('features')"
-          />
-          <q-btn
-            flat
-            align="left"
-            no-caps
-            label="Pricing"
-            class="mobile-nav-link"
-            @click="scrollToAndClose('pricing')"
-          />
         </div>
 
         <q-separator class="q-my-sm" />
@@ -158,8 +163,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useThemeStore } from '@/stores/theme';
 
 const router = useRouter();
+const themeStore = useThemeStore();
 const mobileDrawerOpen = ref(false);
 
 function goToRoot() {
@@ -302,5 +309,48 @@ function scrollToAndClose(sectionId: string) {
   color: #374151;
   padding: 10px 12px;
   border-radius: 8px;
+}
+
+body.body--dark {
+  .landing-navbar-wrapper {
+    background: rgba(11, 15, 25, 0.88);
+    border-bottom: 1px solid rgba(40, 48, 66, 0.8);
+  }
+
+  .brand-name {
+    color: #f3f4f6;
+  }
+
+  .nav-link {
+    color: #94a3b8;
+
+    &:hover {
+      color: #a78bfa;
+    }
+  }
+
+  .login-btn {
+    color: #f3f4f6;
+
+    &:hover {
+      background: #181d28;
+      color: #a78bfa;
+    }
+  }
+
+  .mobile-nav-card {
+    background: #181d28;
+    color: #f3f4f6;
+    border: 1px solid #283042;
+  }
+
+  .mobile-nav-link {
+    color: #94a3b8;
+
+    &:hover {
+      color: #f3f4f6;
+      background: #202636;
+    }
+  }
 }
 </style>
