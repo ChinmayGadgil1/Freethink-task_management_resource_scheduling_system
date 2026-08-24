@@ -602,4 +602,39 @@ body.body--dark {
   .insight-val {
     color: #f8fafc !important;
   }
+
+  .chip-soft-purple,
+  .status-scheduled {
+    background: rgba(139, 111, 216, 0.18) !important;
+    color: #b89bf8 !important;
+  }
+
+  .chip-soft-blue,
+  .status-in_progress {
+    background: rgba(46, 144, 250, 0.18) !important;
+    color: #60a5fa !important;
+  }
+
+  .chip-soft-green,
+  .status-completed {
+    background: rgba(39, 174, 96, 0.18) !important;
+    color: #4ade80 !important;
+  }
+
+  .chip-soft-grey,
+  .status-unassigned {
+    background: rgba(148, 163, 184, 0.18) !important;
+    color: #cbd5e1 !important;
+  }
+
+  .chip-soft-red,
+  .status-overdue {
+    background: rgba(239, 68, 68, 0.18) !important;
+    color: #f87171 !important;
+  }
+
+  .chip-soft-orange {
+    background: rgba(249, 115, 22, 0.18) !important;
+    color: #fb923c !important;
+  }
 }
