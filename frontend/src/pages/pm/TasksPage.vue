@@ -10,7 +10,7 @@
           </div>
         </div>
 
-        <div class="row items-center q-gutter-sm">
+        <div class="row items-center q-gutter-md">
           <!-- View Mode Switcher: Board / Table -->
           <q-btn-toggle
             v-model="viewMode"

@@ -1,7 +1,7 @@
 <template>
-  <q-card flat bordered class="dashboard-card gantt-card">
+  <div :class="embedded ? 'gantt-embedded-wrapper' : 'q-card flat bordered dashboard-card gantt-card'">
     <!-- Header -->
-    <q-card-section class="row items-center justify-between q-col-gutter-md">
+    <q-card-section v-if="!hideHeader" class="row items-center justify-between q-col-gutter-md">
       <div class="col">
         <div class="text-subtitle1 text-weight-bold text-dark">{{ title }}</div>
 
@@ -33,7 +33,7 @@
       </div>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="!hideHeader" />
 
     <!-- Loading state -->
     <q-card-section v-if="loading" class="q-pa-lg">
@@ -67,7 +67,7 @@
       <div
         class="gantt-grid"
         :style="{
-          gridTemplateColumns: `230px repeat(${days.length}, minmax(58px, 1fr))`,
+          gridTemplateColumns: `220px repeat(${days.length}, 60px)`,
         }"
       >
         <!-- Header -->
@@ -239,7 +239,7 @@
         {{ tasks.length === 1 ? 'task' : 'tasks' }}
       </div>
     </q-card-section>
-  </q-card>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -276,6 +276,8 @@ export interface GanttChartProps {
   showLegend?: boolean;
   showAssignees?: boolean;
   maxWindowDays?: number;
+  embedded?: boolean;
+  hideHeader?: boolean;
 }
 
 const props = withDefaults(
@@ -290,6 +292,8 @@ const props = withDefaults(
     showLegend: true,
     showAssignees: true,
     maxWindowDays: 21,
+    embedded: false,
+    hideHeader: false,
   },
 );
 
@@ -346,10 +350,11 @@ const days = computed<Date[]>(() => {
     rangeEnd = new Date(rangeStart.getTime() + (props.maxWindowDays - 1) * DAY_MS);
   }
 
+  const bufferEnd = new Date(rangeEnd.getTime() + 4 * DAY_MS);
   const result: Date[] = [];
   const cursor = new Date(rangeStart);
 
-  while (cursor <= rangeEnd) {
+  while (cursor <= bufferEnd) {
     result.push(new Date(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -512,9 +517,19 @@ function taskTooltip(task: GanttTask): string {
 
 <style scoped lang="scss">
 .gantt-card {
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #e5e7ec);
+  overflow: hidden;
+  max-width: 100%;
+  width: 100%;
+}
+
+.gantt-embedded-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .avatar-purple {
@@ -530,17 +545,61 @@ function taskTooltip(task: GanttTask): string {
 }
 
 .gantt-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 4px 0 12px;
+  padding: 4px 0 14px;
+  box-sizing: border-box;
+  display: block;
+
+  &::-webkit-scrollbar {
+    height: 9px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--wo-bg-page, #f1f5f9);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--wo-primary, #8b6fd8);
+    border-radius: 9999px;
+    border: 2px solid var(--wo-bg-page, #f1f5f9);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--wo-primary-dark, #7c3aed);
+  }
+}
+
+body.body--dark {
+  .gantt-scroll {
+    &::-webkit-scrollbar-track {
+      background: #0f1219;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #8b6fd8;
+      border-color: #0f1219;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: #a78bfa;
+    }
+  }
 }
 
 .gantt-grid {
   display: grid;
-  grid-auto-rows: minmax(64px, auto);
+  grid-auto-rows: minmax(46px, auto);
   position: relative;
   width: max-content;
-  min-width: 100%;
+  padding-right: 60px;
+  box-sizing: border-box;
+}
+
+.gantt-embedded-wrapper .gantt-grid {
+  grid-auto-rows: minmax(44px, auto);
 }
 
 .gantt-cell {
@@ -554,6 +613,10 @@ function taskTooltip(task: GanttTask): string {
   position: sticky;
   left: 0;
   z-index: 4;
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
+  overflow: hidden;
   background: var(--wo-bg-card, #ffffff);
   padding: 8px 14px;
   border-right: 1px solid var(--wo-border-subtle, #eaecf0);

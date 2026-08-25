@@ -1,23 +1,28 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
+  <q-page class="pm-page resource-dashboard-page">
     <div class="q-mx-auto" style="max-width: 1380px">
       <!-- 1. HEADER / GREETING SECTION -->
       <div class="row items-center justify-between q-mb-lg">
         <div>
-          <div class="text-h5 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+          <div class="row items-center gap-xs q-mb-xs">
+            <span class="role-context-badge bg-purple-soft text-purple text-weight-bold">
+              ✦ Resource Workspace
+            </span>
+          </div>
+          <div class="page-title">
             Welcome back{{ userFirstName ? `, ${userFirstName}` : '' }}!
           </div>
-          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-            Here's a real-time overview of your workload and schedule.
+          <div class="page-subtitle">
+            Here's a real-time overview of your workload, progress, and scheduled tasks.
           </div>
         </div>
 
         <q-btn
           outline
           no-caps
-          :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
           icon="refresh"
           label="Refresh"
+          class="action-btn-outline"
           :loading="loading"
           @click="loadDashboardData"
         />
@@ -42,42 +47,41 @@
       </q-banner>
 
       <!-- MAIN DASHBOARD BODY -->
-      <div v-else class="column q-gutter-y-lg">
+      <div v-else class="dashboard-body-container">
         <!-- 2. HERO ROW: TODAY'S FOCUS + PRODUCTIVITY OVERVIEW -->
-        <div class="row q-col-gutter-md">
+        <div class="row q-col-gutter-lg">
           <!-- Today's Focus Card -->
           <div class="col-12 col-md-7">
             <q-card
               flat
               bordered
-              :dark="$q.dark.isActive"
-              class="focus-hero-card rounded-borders text-white q-pa-lg column justify-between"
-              style="min-height: 220px"
+              class="focus-hero-card dashboard-card q-pa-lg column justify-between"
+              style="min-height: 220px; border-radius: 14px"
             >
               <div>
                 <q-chip
                   dense
                   square
-                  :color="$q.dark.isActive ? 'purple-10' : 'white'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'dark'"
+                  color="white"
+                  text-color="purple-9"
                   class="text-caption text-weight-bolder q-mb-sm"
                 >
                   ✦ TODAY'S FOCUS
                 </q-chip>
-                <div class="text-h5 text-weight-bold">Plan. Prioritize. Achieve.</div>
-                <div class="text-body2 opacity-90 q-mt-xs" style="max-width: 480px">
+                <div class="text-h5 text-weight-bold text-white">Plan. Prioritize. Achieve.</div>
+                <div class="text-body2 text-white-8 q-mt-xs" style="max-width: 480px">
                   Stay on top of active deliverables, monitor your deadlines, and log progress seamlessly.
                 </div>
               </div>
 
-              <div class="row items-center justify-between q-mt-md wrap q-gutter-y-sm">
-                <div class="row items-center q-gutter-xs gt-xs">
-                  <span class="text-caption text-weight-bold">Suggested:</span>
+              <div class="row items-center justify-between q-mt-md wrap gap-sm">
+                <div class="row items-center gap-xs gt-xs">
+                  <span class="text-caption text-weight-bold text-white-8">Quick links:</span>
                   <q-chip
                     clickable
                     dense
                     square
-                    color="rgba(255,255,255,0.2)"
+                    color="rgba(255,255,255,0.18)"
                     text-color="white"
                     icon="assignment"
                     class="text-caption text-weight-bold"
@@ -89,7 +93,7 @@
                     clickable
                     dense
                     square
-                    color="rgba(255,255,255,0.2)"
+                    color="rgba(255,255,255,0.18)"
                     text-color="white"
                     icon="trending_up"
                     class="text-caption text-weight-bold"
@@ -102,11 +106,12 @@
                 <q-btn
                   unelevated
                   no-caps
-                  color="primary"
-                  text-color="white"
+                  color="white"
+                  text-color="primary"
                   label="View Task Specs"
                   icon-right="arrow_forward"
                   class="text-weight-bold"
+                  style="border-radius: 8px"
                   @click="goToTaskDetails()"
                 />
               </div>
@@ -118,53 +123,59 @@
             <q-card
               flat
               bordered
-              :dark="$q.dark.isActive"
-              class="rounded-borders q-pa-lg column justify-between full-height"
+              class="dashboard-card q-pa-lg column justify-between full-height"
+              style="border-radius: 14px"
             >
               <div>
-                <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                <div class="text-subtitle1 text-weight-bold text-main">
                   Productivity & Overview
                 </div>
-                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                <div class="text-caption text-muted">
                   Workload & effort tracking
                 </div>
               </div>
 
-              <div class="row items-center q-gutter-md q-mt-sm">
-                <div
-                  class="column items-center justify-center text-center rounded-borders q-pa-sm"
-                  :style="{
-                    border: '3px solid #8b6fd8',
-                    width: '86px',
-                    height: '86px',
-                    borderRadius: '50%',
-                    background: $q.dark.isActive ? 'rgba(139,111,216,0.18)' : 'rgba(139,111,216,0.12)',
-                  }"
-                >
-                  <div class="text-h6 text-weight-bolder text-primary" style="line-height: 1">
-                    {{ workload.consumedPct }}%
-                  </div>
-                  <div class="text-caption text-weight-bold text-grey-5 q-mt-xs" style="font-size: 9px">
-                    CONSUMED
+              <div class="row items-center gap-md q-mt-sm">
+                <div class="productivity-ring-container">
+                  <svg viewBox="0 0 86 86" class="productivity-svg">
+                    <circle cx="43" cy="43" r="36" fill="none" stroke="var(--wo-border, #eef0f4)" stroke-width="7" />
+                    <circle
+                      cx="43"
+                      cy="43"
+                      r="36"
+                      fill="none"
+                      stroke="var(--wo-primary, #8b6fd8)"
+                      stroke-width="7"
+                      :stroke-dasharray="226.19"
+                      :stroke-dashoffset="226.19 * (1 - (workload.consumedPct / 100))"
+                      stroke-linecap="round"
+                      style="transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset 0.5s ease"
+                    />
+                  </svg>
+                  <div class="productivity-ring-center">
+                    <div class="text-subtitle1 text-weight-bolder text-primary" style="line-height: 1">
+                      {{ workload.consumedPct }}%
+                    </div>
+                    <div class="ring-sub-label">CONSUMED</div>
                   </div>
                 </div>
 
-                <div class="column q-gutter-xs">
-                  <div class="row items-center q-gutter-xs">
+                <div class="column gap-xs">
+                  <div class="row items-center gap-xs">
                     <q-badge rounded style="background: #8b6fd8; width: 8px; height: 8px" />
-                    <span class="text-body2" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                    <span class="text-body2 text-main">
                       <strong>{{ workload.activeTasks }}</strong> Active Tasks
                     </span>
                   </div>
-                  <div class="row items-center q-gutter-xs">
+                  <div class="row items-center gap-xs">
                     <q-badge rounded style="background: #3b82f6; width: 8px; height: 8px" />
-                    <span class="text-body2" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                    <span class="text-body2 text-main">
                       <strong>{{ workload.actualEffort }}h</strong> Actual Logged
                     </span>
                   </div>
-                  <div class="row items-center q-gutter-xs">
+                  <div class="row items-center gap-xs">
                     <q-badge rounded style="background: #10b981; width: 8px; height: 8px" />
-                    <span class="text-body2" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                    <span class="text-body2 text-main">
                       <strong>{{ workload.remainingEffort }}h</strong> Remaining
                     </span>
                   </div>
@@ -210,15 +221,15 @@
             <ProjectsBreakdownCard :projects="projectSummary" />
           </div>
 
-          <div class="col-12 col-md-6 column q-gutter-y-lg">
+          <div class="col-12 col-md-6 column gap-md">
             <!-- NEEDS ATTENTION -->
-            <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders">
+            <q-card flat bordered class="dashboard-card" style="border-radius: 14px">
               <q-card-section class="row items-center justify-between q-pa-md">
                 <div>
-                  <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                  <div class="text-subtitle1 text-weight-bold text-main">
                     Needs Attention
                   </div>
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div class="text-caption text-muted">
                     Tasks requiring urgent review or action
                   </div>
                 </div>
@@ -227,31 +238,31 @@
 
               <q-separator />
 
-              <div v-if="!attentionTasks.length" class="q-pa-lg text-center" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+              <div v-if="!attentionTasks.length" class="q-pa-lg text-center text-muted">
                 <q-icon name="check_circle" size="34px" color="positive" />
-                <div class="text-body2 q-mt-sm">You're on track — no tasks need immediate attention.</div>
+                <div class="text-body2 q-mt-sm text-main">You're on track — no tasks need immediate attention.</div>
               </div>
 
-              <q-list v-else separator :dark="$q.dark.isActive">
+              <q-list v-else separator>
                 <q-item v-for="t in attentionTasks" :key="t.task_id" clickable @click="goToTaskDetails(t.task_id)">
                   <q-item-section avatar>
                     <q-avatar
                       size="34px"
-                      :color="attentionMeta(t).color === 'negative' ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'orange-10' : 'orange-1')"
-                      :text-color="attentionMeta(t).color === 'negative' ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'orange-2' : 'deep-orange')"
+                      :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
+                      :text-color="attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'"
                       :icon="attentionMeta(t).icon"
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ t.title }}</q-item-label>
-                    <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ t.project_name || `Project #${t.project_id}` }}</q-item-label>
+                    <q-item-label class="text-weight-bold text-main">{{ t.title }}</q-item-label>
+                    <q-item-label caption class="text-muted">{{ t.project_name || `Project #${t.project_id}` }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-chip
                       dense
                       square
-                      :color="attentionMeta(t).color === 'negative' ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'orange-10' : 'orange-1')"
-                      :text-color="attentionMeta(t).color === 'negative' ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'orange-2' : 'deep-orange')"
+                      :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
+                      :text-color="attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'"
                       class="text-caption text-weight-bold"
                     >
                       {{ attentionMeta(t).label }}
@@ -262,40 +273,40 @@
             </q-card>
 
             <!-- SELF ASSIGNED TASKS -->
-            <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders">
+            <q-card flat bordered class="dashboard-card" style="border-radius: 14px">
               <q-card-section class="row items-center justify-between q-pa-md">
                 <div>
-                  <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
-                    Self-assigned tasks
+                  <div class="text-subtitle1 text-weight-bold text-main">
+                    Self-Assigned Tasks
                   </div>
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div class="text-caption text-muted">
                     Tasks created by you
                   </div>
                 </div>
-                <q-chip dense square :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" class="text-caption text-weight-bold">
+                <q-chip dense square color="purple-1" text-color="primary" class="text-caption text-weight-bold">
                   {{ selfAssignedTasks.length }} tasks
                 </q-chip>
               </q-card-section>
 
               <q-separator />
 
-              <div v-if="selfAssignedTasks.length === 0" class="q-pa-lg text-center" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                <q-avatar size="44px" :color="$q.dark.isActive ? 'grey-9' : 'grey-3'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'" icon="assignment_ind" />
-                <div class="text-body2 q-mt-sm">No self-assigned tasks yet.</div>
+              <div v-if="selfAssignedTasks.length === 0" class="q-pa-lg text-center text-muted">
+                <q-avatar size="44px" color="grey-2" text-color="grey-7" icon="assignment_ind" />
+                <div class="text-body2 q-mt-sm text-main">No self-assigned tasks yet.</div>
                 <div class="text-caption q-mt-xs">Tasks you create yourself will appear here.</div>
               </div>
 
-              <q-list v-else separator :dark="$q.dark.isActive">
+              <q-list v-else separator>
                 <q-item v-for="taskItem in selfAssignedTasks" :key="taskItem.task_id">
                   <q-item-section avatar>
-                    <q-avatar size="34px" :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" icon="assignment_ind" />
+                    <q-avatar size="34px" color="purple-1" text-color="primary" icon="assignment_ind" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ taskItem.title }}</q-item-label>
-                    <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ taskItem.project_name || `Project #${taskItem.project_id}` }}</q-item-label>
+                    <q-item-label class="text-weight-bold text-main">{{ taskItem.title }}</q-item-label>
+                    <q-item-label caption class="text-muted">{{ taskItem.project_name || `Project #${taskItem.project_id}` }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
-                    <div class="column items-end q-gutter-xs">
+                    <div class="column items-end gap-xs">
                       <q-chip
                         dense
                         square
@@ -305,7 +316,7 @@
                       >
                         {{ taskItem.status.replace('_', ' ') }}
                       </q-chip>
-                      <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                      <div class="text-caption text-weight-bold text-main">
                         {{ Number(taskItem.progress) || 0 }}%
                       </div>
                     </div>
@@ -318,7 +329,7 @@
 
         <!-- 6. SCHEDULE & GANTT ROADMAP SECTION -->
         <div>
-          <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
+          <q-card flat bordered class="dashboard-card schedule-roadmap-card">
             <q-card-section class="q-pa-md">
               <div class="row items-center justify-between wrap q-gutter-y-sm q-mb-sm">
                 <div>
@@ -378,7 +389,7 @@
               <div v-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'" class="calendar-scroll-wrapper">
                 <div
                   class="calendar-table-grid"
-                  :style="{ gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '360px' : '150px'}, 1fr))` }"
+                  :style="{ gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '280px' : displayedDays.length <= 7 ? '110px' : '60px'}, 1fr))` }"
                 >
                   <div class="cal-cell flex flex-center" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '48px' }">
                     <span class="text-caption text-weight-bold text-grey-5">TIME</span>
@@ -427,35 +438,37 @@
               </div>
 
               <!-- B. MONTH MATRIX VIEW -->
-              <div v-else-if="scheduleViewMode === 'month'">
-                <div class="row text-center border-bottom" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc' }">
-                  <div v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="wDay" class="col q-pa-xs text-caption text-weight-bold text-grey-5">
-                    {{ wDay }}
-                  </div>
-                </div>
-
-                <div class="month-days-matrix">
-                  <div
-                    v-for="mDay in monthMatrixDays"
-                    :key="mDay.date.toISOString()"
-                    class="month-day-cell column justify-between"
-                    :style="{ background: isSameDay(mDay.date, todayDate) ? ($q.dark.isActive ? 'rgba(139,111,216,0.1)' : 'rgba(139,111,216,0.04)') : !mDay.isCurrentMonth ? ($q.dark.isActive ? 'rgba(0,0,0,0.2)' : '#fafbfc') : 'transparent' }"
-                  >
-                    <div class="row items-center justify-between">
-                      <q-badge :color="isSameDay(mDay.date, todayDate) ? 'primary' : 'transparent'" :text-color="isSameDay(mDay.date, todayDate) ? 'white' : ($q.dark.isActive ? 'grey-4' : 'dark')" class="text-caption text-weight-bold">
-                        {{ mDay.date.getDate() }}
-                      </q-badge>
+              <div v-else-if="scheduleViewMode === 'month'" class="calendar-scroll-wrapper">
+                <div class="month-grid-container">
+                  <div class="row text-center border-bottom" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc' }">
+                    <div v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="wDay" class="col q-pa-xs text-caption text-weight-bold text-grey-5">
+                      {{ wDay }}
                     </div>
+                  </div>
 
-                    <div class="column q-gutter-xs overflow-auto" style="max-height: 65px;">
-                      <div
-                        v-for="t in getTasksOnDate(mDay.date)"
-                        :key="t.task_id"
-                        class="cursor-pointer ellipsis text-caption q-pa-xs rounded-borders"
-                        :style="getMonthTaskPillStyle(t)"
-                        @click.stop="goToTaskDetails(t.task_id)"
-                      >
-                        {{ t.title }}
+                  <div class="month-days-matrix">
+                    <div
+                      v-for="mDay in monthMatrixDays"
+                      :key="mDay.date.toISOString()"
+                      class="month-day-cell column justify-between"
+                      :style="{ background: isSameDay(mDay.date, todayDate) ? ($q.dark.isActive ? 'rgba(139,111,216,0.1)' : 'rgba(139,111,216,0.04)') : !mDay.isCurrentMonth ? ($q.dark.isActive ? 'rgba(0,0,0,0.2)' : '#fafbfc') : 'transparent' }"
+                    >
+                      <div class="row items-center justify-between">
+                        <q-badge :color="isSameDay(mDay.date, todayDate) ? 'primary' : 'transparent'" :text-color="isSameDay(mDay.date, todayDate) ? 'white' : ($q.dark.isActive ? 'grey-4' : 'dark')" class="text-caption text-weight-bold">
+                          {{ mDay.date.getDate() }}
+                        </q-badge>
+                      </div>
+
+                      <div class="column q-gutter-xs overflow-auto" style="max-height: 65px;">
+                        <div
+                          v-for="t in getTasksOnDate(mDay.date)"
+                          :key="t.task_id"
+                          class="cursor-pointer ellipsis text-caption q-pa-xs rounded-borders"
+                          :style="getMonthTaskPillStyle(t)"
+                          @click.stop="goToTaskDetails(t.task_id)"
+                        >
+                          {{ t.title }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -463,22 +476,22 @@
               </div>
 
               <!-- C. GANTT ROADMAP VIEW -->
-              <div v-else-if="scheduleViewMode === 'gantt'" class="q-pa-sm">
+              <div v-else-if="scheduleViewMode === 'gantt'" class="calendar-scroll-wrapper">
                 <GanttChart
                   :tasks="filteredGanttTasks"
                   mode="resource"
-                  title="My Gantt Timeline"
-                  subtitle="Visual timeline of your assigned task durations, progress and deadlines"
                   empty-title="No matching schedule items"
                   empty-subtitle="Adjust your filters to view tasks on the Gantt timeline."
-                  :show-assignees="true"
-                  :max-window-days="30"
+                  :show-assignees="false"
+                  :max-window-days="60"
+                  :embedded="true"
+                  :hide-header="true"
                   @task-click="handleGanttTaskClick"
                 />
               </div>
 
               <!-- D. LIST TABLE VIEW -->
-              <div v-else-if="scheduleViewMode === 'table'">
+              <div v-else-if="scheduleViewMode === 'table'" class="calendar-scroll-wrapper">
                 <q-table
                   flat
                   :dark="$q.dark.isActive"
@@ -1270,15 +1283,113 @@ function goToProgress() {
   }
 }
 
+.productivity-ring-container {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 86px;
+}
+
+.productivity-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.productivity-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.ring-sub-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--wo-text-muted, #94a3b8);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.resource-dashboard-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.dashboard-body-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  > div {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+.schedule-roadmap-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  :deep(.q-card__section) {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
 .calendar-scroll-wrapper {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  box-sizing: border-box;
+  padding-bottom: 8px;
+
+  &::-webkit-scrollbar {
+    height: 9px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--wo-bg-page, #f1f5f9);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--wo-primary, #8b6fd8);
+    border-radius: 9999px;
+    border: 2px solid var(--wo-bg-page, #f1f5f9);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--wo-primary-dark, #7c3aed);
+  }
 }
 
 .calendar-table-grid {
   display: grid;
   position: relative;
-  min-width: 850px;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
 }
 
 .cal-cell {
@@ -1298,14 +1409,22 @@ function goToProgress() {
   overflow: hidden;
 }
 
+.month-grid-container {
+  width: 100%;
+  min-width: 650px;
+}
+
 .month-days-matrix {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  width: 100%;
   min-height: 460px;
 }
 
 .month-day-cell {
   min-height: 90px;
+  min-width: 0;
+  overflow: hidden;
   border-right: 1px solid var(--wo-border-subtle, #f0f2f5);
   border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
   padding: 6px;

@@ -30,7 +30,7 @@
           <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Track, organize, and manage all your assigned task specifications.</div>
         </div>
 
-        <div class="row items-center q-gutter-sm">
+        <div class="row items-center q-gutter-md">
           <!-- View Mode Switcher -->
           <q-btn-toggle
             v-model="viewMode"
@@ -41,7 +41,6 @@
             dense
             rounded
             unelevated
-            class="q-mr-xs"
             :options="[
               { label: 'Board', value: 'board', icon: 'view_kanban' },
               { label: 'List', value: 'table', icon: 'view_list' },
@@ -71,46 +70,50 @@
 
       <!-- 2. STAT SUMMARY CARDS -->
       <div class="row q-col-gutter-md q-mb-md">
-        <StatCard
-          class="col-12 col-sm-6 col-md-3"
-          title="Total Tasks"
-          :value="tasks.length"
-          subtitle="All assigned tasks"
-          icon="task_alt"
-          color="purple"
-          note-class="note-purple"
-        />
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Total Tasks"
+            :value="tasks.length"
+            subtitle="All assigned tasks"
+            icon="task_alt"
+            color="purple"
+            note-class="note-purple"
+          />
+        </div>
 
-        <StatCard
-          class="col-12 col-sm-6 col-md-3"
-          title="In Progress"
-          :value="tasks.filter((t) => t.status === 'IN_PROGRESS').length"
-          subtitle="Active work"
-          icon="autorenew"
-          color="blue"
-          note-class="note-blue"
-        />
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="In Progress"
+            :value="tasks.filter((t) => t.status === 'IN_PROGRESS').length"
+            subtitle="Active work"
+            icon="autorenew"
+            color="blue"
+            note-class="note-blue"
+          />
+        </div>
 
-        <StatCard
-          class="col-12 col-sm-6 col-md-3"
-          title="Completed"
-          :value="tasks.filter((t) => t.status === 'COMPLETED').length"
-          subtitle="Done"
-          icon="check_circle"
-          color="green"
-          note-class="note-green"
-        />
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Completed"
+            :value="tasks.filter((t) => t.status === 'COMPLETED').length"
+            subtitle="Done"
+            icon="check_circle"
+            color="green"
+            note-class="note-green"
+          />
+        </div>
 
-        <StatCard
-          class="col-12 col-sm-6 col-md-3"
-          title="Delayed"
-          :value="tasks.filter(isOverdue).length"
-          subtitle="Need attention"
-          icon="warning_amber"
-          color="red"
-          note-class="note-red"
-          :negative="tasks.filter(isOverdue).length > 0"
-        />
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Delayed"
+            :value="tasks.filter(isOverdue).length"
+            subtitle="Need attention"
+            icon="warning_amber"
+            color="red"
+            note-class="note-red"
+            :negative="tasks.filter(isOverdue).length > 0"
+          />
+        </div>
       </div>
 
       <!-- 3. FILTER TOOLBAR -->
