@@ -134,16 +134,14 @@
             </div>
 
             <!-- Right Side: Structured Metadata Panel -->
-            <div class="col-12 col-md-5 q-pa-lg row column justify-between" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+            <div class="col-12 col-md-5 q-pa-lg row column justify-between featured-details-panel">
               <div>
                 <div class="row items-center justify-between q-mb-sm">
                   <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
                   <q-chip
                     dense
                     square
-                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                    class="text-weight-bold"
+                    class="text-weight-bold featured-health-chip"
                   >
                     {{ getHealthLabel(featuredProject) }}
                   </q-chip>
@@ -152,7 +150,7 @@
                 <!-- 4-Box Metadata Grid -->
                 <div class="row q-col-gutter-xs q-mb-md">
                   <div class="col-6 q-pa-xs">
-                    <div class="q-pa-xs rounded-borders" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
+                    <div class="detail-sub-box">
                       <div class="text-caption text-grey-6">HEALTH</div>
                       <div class="text-weight-bold" :class="`text-${getProjectHealth(featuredProject).toLowerCase()}`">
                         {{ getHealthLabel(featuredProject) }}
@@ -160,19 +158,19 @@
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
-                    <div class="q-pa-xs rounded-borders" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
+                    <div class="detail-sub-box">
                       <div class="text-caption text-grey-6">STATUS</div>
                       <div class="text-weight-bold">{{ formatStatus(featuredProject.status) }}</div>
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
-                    <div class="q-pa-xs rounded-borders" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
+                    <div class="detail-sub-box">
                       <div class="text-caption text-grey-6">DEADLINE</div>
                       <div class="text-weight-bold">{{ formatDate(featuredProject.deadline) }}</div>
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
-                    <div class="q-pa-xs rounded-borders" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
+                    <div class="detail-sub-box">
                       <div class="text-caption text-grey-6">PRIORITY</div>
                       <div class="text-weight-bold">{{ featuredProject.priority }}</div>
                     </div>
@@ -190,7 +188,7 @@
                     size="8px"
                     :value="Math.min(100, Math.max(0, Number(featuredProject.progress) || 0)) / 100"
                     color="primary"
-                    :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+                    class="project-progress-track"
                   />
                 </div>
               </div>
@@ -1052,6 +1050,7 @@ function getHealthLabel(project: Project) {
   return 'On Track';
 }
 
+
 const filteredProjects = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
 
@@ -1278,7 +1277,51 @@ onMounted(() => {
 .hover-bg-light:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
-.hover-bg-dark:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+.featured-details-panel {
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-main, #1d2433);
+  border-left: 1px solid var(--wo-border, #eaecef);
+}
+
+.detail-sub-box {
+  background: var(--wo-bg-subtle, #f8fafc);
+  border: 1px solid var(--wo-border, #eaecef);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.featured-health-chip {
+  background: var(--wo-primary-light, #eee9fb);
+  color: var(--wo-primary, #8b6fd8);
+}
+
+.project-progress-track {
+  :deep(.q-linear-progress__track) {
+    background: var(--wo-border, #e5e7ec) !important;
+  }
+}
+
+body.body--dark {
+  .featured-details-panel {
+    background: var(--wo-bg-card, #181d28);
+    color: var(--wo-text-main, #f3f4f6);
+    border-color: var(--wo-border, #1e2433);
+  }
+
+  .detail-sub-box {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .featured-health-chip {
+    background: rgba(139, 111, 216, 0.2);
+    color: #b89bf8;
+  }
+
+  .project-progress-track {
+    :deep(.q-linear-progress__track) {
+      background: var(--wo-border-subtle, #1e2433) !important;
+    }
+  }
 }
 </style>

@@ -91,6 +91,54 @@ body {
 }
 
 /* ===================================================
+   Flex Gap Utilities
+   =================================================== */
+.gap-xs {
+  gap: 8px;
+}
+
+.gap-sm {
+  gap: 12px;
+}
+
+.gap-md {
+  gap: 16px;
+}
+
+.gap-lg {
+  gap: 24px;
+}
+
+.gap-xl {
+  gap: 32px;
+}
+
+/* ===================================================
+   Global QAvatar & Icon Flex Centering
+   =================================================== */
+.q-avatar {
+  .q-avatar__content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    text-align: center;
+
+    > span,
+    > div,
+    > i,
+    > .q-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      margin: 0;
+      padding: 0;
+    }
+  }
+}
+
+/* ===================================================
    TaskFlow Shared PM Page Design System
    =================================================== */
 
@@ -360,6 +408,25 @@ body.body--dark {
   .q-dialog .q-card {
     background: var(--wo-bg-card) !important;
     color: var(--wo-text-main) !important;
+  }
+
+  .featured-details-panel {
+    background: var(--wo-bg-card, #181d28) !important;
+    color: var(--wo-text-main, #f3f4f6) !important;
+    border-color: var(--wo-border, #1e2433) !important;
+
+    .detail-sub-box {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .text-grey-6 {
+      color: var(--wo-text-muted, #94a3b8) !important;
+    }
+
+    .text-weight-bold {
+      color: #f3f4f6 !important;
+    }
   }
 
   .q-page.bg-grey-1,

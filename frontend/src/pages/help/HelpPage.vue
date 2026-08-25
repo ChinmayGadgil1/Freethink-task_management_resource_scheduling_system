@@ -16,8 +16,7 @@
             <q-tooltip>Go Back</q-tooltip>
           </q-btn>
           <div>
-            <div class="row items-center gap-xs">
-              <span class="help-badge-pill">✦ Knowledge Base</span>
+            <div class="row items-center gap-xs q-mb-xs">
               <q-badge :color="isResourceRole ? 'teal' : 'primary'" class="role-context-badge">
                 {{ isResourceRole ? 'Resource Workspace' : 'Project Manager Workspace' }}
               </q-badge>

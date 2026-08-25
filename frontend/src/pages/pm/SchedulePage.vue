@@ -374,8 +374,8 @@
       />
     </div>
 
-    <!-- 7. DETAILED BREAKDOWN TABLE (Default or List View) -->
-    <q-card flat bordered class="table-card">
+    <!-- 7. DETAILED BREAKDOWN TABLE (List View) -->
+    <q-card v-else-if="scheduleViewMode === 'table'" flat bordered class="table-card">
       <q-card-section class="row items-center justify-between q-pb-sm">
         <div>
           <div class="text-subtitle1 text-weight-bold text-dark">Schedule Breakdown</div>

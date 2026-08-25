@@ -289,6 +289,16 @@ body.body--dark .app-header {
   font-weight: 700;
   font-size: 13px;
   border: 2px solid var(--wo-bg-card, #ffffff);
+
+  :deep(.q-avatar__content),
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .profile-info {

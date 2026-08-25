@@ -215,15 +215,6 @@
 
                 <q-separator />
 
-                <q-item clickable v-close-popup @click="goToRoute('/pm/projects')">
-                  <q-item-section avatar>
-                    <q-icon name="folder" color="primary" />
-                  </q-item-section>
-                  <q-item-section>Projects Overview</q-item-section>
-                </q-item>
-
-                <q-separator />
-
                 <q-item clickable v-close-popup @click="handleLogout">
                   <q-item-section avatar>
                     <q-icon name="logout" color="negative" />
@@ -514,6 +505,16 @@ body.body--dark .app-header {
   font-weight: 700;
   font-size: 13px;
   border: 2px solid var(--wo-bg-card, #ffffff);
+
+  :deep(.q-avatar__content),
+  .profile-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .profile-info {
