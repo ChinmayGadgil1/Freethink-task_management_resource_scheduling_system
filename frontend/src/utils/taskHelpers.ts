@@ -1,6 +1,3 @@
-import type { Task } from '@/services/api';
-import type { GanttTask } from '@/components/gantt/GanttChart.vue';
-
 /**
  * Check whether a task is past its deadline and not yet completed.
  */
@@ -54,39 +51,4 @@ export function normalizePriority(
   if (up === 'HIGH') return 'High';
   if (up === 'LOW') return 'Low';
   return 'Medium';
-}
-
-/**
- * Map a canonical Task model into a GanttTask for GanttChart rendering.
- */
-export function mapTaskToGanttTask(
-  task: Task,
-  options?: {
-    projectName?: string | undefined;
-    assignedNames?: string[] | undefined;
-  },
-): GanttTask {
-  const today = new Date().toISOString().slice(0, 10);
-  const start = task.start_date ? (task.start_date.split('T')[0] ?? today) : today;
-  const end = task.deadline ? (task.deadline.split('T')[0] ?? start) : start;
-
-  return {
-    id: task.task_id,
-    name: task.title,
-    project: options?.projectName || task.project_name || `Project #${task.project_id}`,
-    start,
-    end,
-    progress: Math.min(100, Math.max(0, Number(task.progress) || 0)),
-    status: task.status,
-    priority: normalizePriority(task.priority),
-    expectedEffort: Number(task.expected_effort) || undefined,
-    actualEffort: Number(task.actual_effort) || 0,
-    actualStart: task.actual_start || null,
-    actualEnd: task.actual_end || null,
-    overdue: isTaskOverdue(task),
-    isOverrun: task.pacing?.is_overrun,
-    isBehindSchedule: task.pacing?.is_behind_schedule,
-    pacingWarning: task.pacing?.warning || null,
-    assignedResourceNames: options?.assignedNames,
-  };
 }

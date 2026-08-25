@@ -27,16 +27,16 @@
         </div>
       </div>
 
-      <!-- 2. SUMMARY / KPI STATS GRID (4 Widgets) -->
+      <!-- 2. SUMMARY / KPI STATS GRID (4 Widgets matching Resource Dashboard) -->
       <div class="row q-col-gutter-md q-mb-lg">
         <div class="col-12 col-sm-6 col-md-3">
           <StatCard
             title="Total Projects"
             :value="totalProjects"
             subtitle="Active Workspace"
+            badge="WORKSPACE"
             icon="folder"
             color="purple"
-            note-class="note-purple"
           />
         </div>
 
@@ -45,9 +45,9 @@
             title="On Track"
             :value="onTrackProjects"
             :subtitle="`${totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0}% of total`"
+            badge="ON TRACK"
             icon="check_circle"
             color="green"
-            note-class="note-green"
           />
         </div>
 
@@ -56,9 +56,9 @@
             title="At Risk"
             :value="atRiskProjects"
             :subtitle="`${totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0}% of total`"
+            badge="AT RISK"
             icon="warning_amber"
             color="orange"
-            note-class="note-orange"
           />
         </div>
 
@@ -67,9 +67,9 @@
             title="Delayed"
             :value="delayedProjects"
             :subtitle="`${totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0}% of total`"
+            badge="URGENT"
             icon="schedule"
             color="red"
-            note-class="note-red"
             :negative="delayedProjects > 0"
           />
         </div>
@@ -488,7 +488,7 @@
                   <q-chip dense size="sm" color="purple-1" text-color="primary">{{ group.projects.length }}</q-chip>
                 </div>
 
-                <div class="row q-col-gutter-md">
+                <div class="row q-col-gutter-lg">
                   <div
                     v-for="(project, index) in group.projects"
                     :key="project.project_id"
@@ -498,28 +498,25 @@
                       flat
                       bordered
                       :dark="$q.dark.isActive"
-                      class="rounded-borders cursor-pointer full-height row column justify-between"
+                      class="project-grid-card cursor-pointer full-height row column justify-between"
                       @click="goToProject(project.project_id)"
                     >
-                      <!-- Card Header with Project Image & Theme Gradient Overlay -->
+                      <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
                       <div
-                        class="q-pa-md text-white"
+                        class="project-card-header text-white"
                         :style="{
-                          backgroundImage: `${getProjectTheme(project, index).gradient}, url('${getProjectTheme(project, index).image}')`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          minHeight: '120px'
+                          background: getProjectTheme(project, index).gradient,
                         }"
                       >
-                        <div class="row items-center justify-between q-mb-xs">
-                          <q-avatar size="24px" color="white" text-color="primary">
-                            <q-icon :name="getProjectTheme(project, index).iconName" size="14px" />
+                        <div class="row items-center justify-between no-wrap q-mb-sm">
+                          <q-avatar size="32px" color="white" :text-color="getProjectTheme(project, index).accent" class="shadow-1">
+                            <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
                           </q-avatar>
 
-                          <div class="row items-center q-gutter-xs">
-                            <q-badge color="black" text-color="white">
+                          <div class="row items-center q-gutter-xs no-wrap">
+                            <span class="priority-frosted-pill">
                               {{ project.priority || 'Medium' }}
-                            </q-badge>
+                            </span>
                             <q-btn flat round dense icon="more_vert" color="white" size="sm" @click.stop>
                               <q-menu auto-close>
                                 <q-list style="min-width: 150px">
@@ -537,36 +534,65 @@
                           </div>
                         </div>
 
-                        <div class="text-subtitle1 text-weight-bold ellipsis" :title="project.name">{{ project.name }}</div>
-                        <div class="text-caption text-white-8 ellipsis-2-lines">
+                        <div class="text-subtitle1 text-weight-bold ellipsis text-white" :title="project.name">
+                          {{ project.name }}
+                        </div>
+                        <div class="text-caption text-white-8 ellipsis-2-lines q-mt-xs" style="line-height: 1.35">
                           {{ project.description || 'Sprint deliverables, task assignments, and progress tracking.' }}
                         </div>
                       </div>
 
                       <!-- Card Body -->
-                      <q-card-section class="q-pa-md">
-                        <div class="row items-center justify-between text-caption q-mb-sm">
-                          <span class="text-grey-6">Status: <strong class="text-dark" :class="{ 'text-white': $q.dark.isActive }">{{ formatStatus(project.status) }}</strong></span>
-                          <span class="text-grey-6">Due: <strong class="text-dark" :class="{ 'text-white': $q.dark.isActive }">{{ formatDate(project.deadline) }}</strong></span>
+                      <q-card-section class="q-pa-md column justify-between col">
+                        <!-- Dual Pill Info Badges (like Image 4) -->
+                        <div class="row q-col-gutter-xs q-mb-md">
+                          <div class="col-6">
+                            <div class="project-stat-pill">
+                              <q-icon name="assignment" size="13px" color="grey-6" />
+                              <div class="ellipsis">
+                                <span>Status: </span>
+                                <strong>{{ formatStatus(project.status) }}</strong>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="project-stat-pill">
+                              <q-icon name="event" size="13px" color="grey-6" />
+                              <div class="ellipsis">
+                                <span>Due: </span>
+                                <strong>{{ formatDate(project.deadline) }}</strong>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
-                        <div class="q-mb-sm">
+                        <!-- Progress Bar with matching theme color -->
+                        <div class="q-mb-md">
                           <div class="row items-center justify-between text-caption q-mb-xs">
-                            <span class="text-grey-6">Progress</span>
-                            <span class="text-weight-bold">{{ Number(project.progress) || 0 }}%</span>
+                            <span class="text-grey-6 text-weight-medium">Progress</span>
+                            <span class="text-weight-bold" :style="{ color: getProjectTheme(project, index).accent }">
+                              {{ Number(project.progress) || 0 }}%
+                            </span>
                           </div>
                           <q-linear-progress
                             rounded
                             size="6px"
                             :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
-                            color="primary"
-                            :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+                            :style="{ color: getProjectTheme(project, index).accent }"
+                            :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                           />
                         </div>
 
+                        <!-- Health Footer -->
                         <div class="row items-center justify-between">
-                          <span class="text-caption text-grey-6">Health:</span>
-                          <q-chip dense square :color="$q.dark.isActive ? 'purple-10' : 'purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'">
+                          <span class="text-caption text-grey-6">Health</span>
+                          <q-chip
+                            dense
+                            square
+                            :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                            :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                            class="text-weight-bold"
+                          >
                             {{ getHealthLabel(project) }}
                           </q-chip>
                         </div>
@@ -965,54 +991,56 @@ export interface ProjectCardTheme {
   accent: string;
   bgTint: string;
   iconName: string;
-  image: string;
 }
 
 const PROJECT_THEMES: ProjectCardTheme[] = [
   {
-    id: 'lavender',
-    name: 'Lavender Purple',
-    gradient: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 100%)',
-    accent: '#8b6fd8',
-    bgTint: '#f5f3ff',
-    iconName: 'auto_awesome',
-    image: '/projects/website.jpg',
-  },
-  {
     id: 'sky',
-    name: 'Sky Blue',
-    gradient: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 100%)',
+    name: 'Product Blue',
+    gradient: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
     accent: '#0284c7',
     bgTint: '#f0f9ff',
-    iconName: 'layers',
-    image: '/projects/mobile.jpg',
+    iconName: 'web',
   },
   {
-    id: 'peach',
-    name: 'Peach Coral',
-    gradient: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 100%)',
+    id: 'rose',
+    name: 'Rose Pink',
+    gradient: 'linear-gradient(135deg, #db2777 0%, #f43f5e 100%)',
+    accent: '#db2777',
+    bgTint: '#fdf2f8',
+    iconName: 'auto_awesome',
+  },
+  {
+    id: 'amber',
+    name: 'Golden Orange',
+    gradient: 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)',
     accent: '#ea580c',
     bgTint: '#fff7ed',
-    iconName: 'wb_sunny',
-    image: '/projects/marketing.jpg',
+    iconName: 'diamond',
   },
   {
-    id: 'mint',
-    name: 'Mint Green',
-    gradient: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 100%)',
+    id: 'purple',
+    name: 'Lavender Purple',
+    gradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+    accent: '#7c3aed',
+    bgTint: '#f5f3ff',
+    iconName: 'groups',
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Mint',
+    gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
     accent: '#059669',
     bgTint: '#ecfdf5',
     iconName: 'spa',
-    image: '/projects/tools.jpg',
   },
   {
-    id: 'portal',
-    name: 'Portal Blue',
-    gradient: 'linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 100%)',
+    id: 'indigo',
+    name: 'Indigo Blue',
+    gradient: 'linear-gradient(135deg, #4f46e5 0%, #818cf8 100%)',
     accent: '#4f46e5',
     bgTint: '#eef2ff',
-    iconName: 'door_sliding',
-    image: '/projects/portal.jpg',
+    iconName: 'layers',
   },
 ];
 
@@ -1277,6 +1305,58 @@ onMounted(() => {
 .hover-bg-light:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
+
+.project-grid-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--wo-border, #eaecef);
+  background: var(--wo-bg-card, #ffffff);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    border-color: var(--wo-primary, #8b6fd8);
+  }
+}
+
+.project-card-header {
+  padding: 18px 18px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.priority-frosted-pill {
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.project-stat-pill {
+  background: var(--wo-bg-subtle, #f8fafc);
+  border: 1px solid var(--wo-border, #eef2f6);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  color: var(--wo-text-muted, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+
+  strong {
+    color: var(--wo-text-main, #1e293b);
+  }
+}
+
 .featured-details-panel {
   background: var(--wo-bg-card, #ffffff);
   color: var(--wo-text-main, #1d2433);
@@ -1302,6 +1382,21 @@ onMounted(() => {
 }
 
 body.body--dark {
+  .project-grid-card {
+    border-color: var(--wo-border, #1e2433);
+    background: var(--wo-bg-card, #181d28);
+  }
+
+  .project-stat-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+
+    strong {
+      color: #f1f5f9;
+    }
+  }
+
   .featured-details-panel {
     background: var(--wo-bg-card, #181d28);
     color: var(--wo-text-main, #f3f4f6);

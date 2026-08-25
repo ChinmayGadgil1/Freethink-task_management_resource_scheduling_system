@@ -123,7 +123,7 @@
                 </div>
               </div>
 
-              <!-- Real GanttChart Component Showcase -->
+              <!-- Landing Gantt Preview Showcase -->
               <div class="hero-gantt-wrapper">
                 <LandingGanttPreview />
               </div>

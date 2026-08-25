@@ -475,18 +475,12 @@
                 </div>
               </div>
 
-              <!-- C. GANTT ROADMAP VIEW -->
-              <div v-else-if="scheduleViewMode === 'gantt'" class="calendar-scroll-wrapper">
-                <GanttChart
-                  :tasks="filteredGanttTasks"
-                  mode="resource"
-                  empty-title="No matching schedule items"
-                  empty-subtitle="Adjust your filters to view tasks on the Gantt timeline."
-                  :show-assignees="false"
-                  :max-window-days="60"
-                  :embedded="true"
-                  :hide-header="true"
-                  @task-click="handleGanttTaskClick"
+              <!-- C. GANTT ROADMAP VIEW (POWERED BY SHARED DHTMLX GANTT) -->
+              <div v-else-if="scheduleViewMode === 'gantt'" class="q-py-xs">
+                <DhtmlxGanttTimeline
+                  :tasks="filteredTasksList"
+                  title="My Schedule & Roadmap"
+                  @task-click="(task) => goToTaskDetails(task.task_id)"
                 />
               </div>
 
@@ -577,11 +571,10 @@ import { useRouter } from 'vue-router';
 import { useQuasar, type QTableColumn } from 'quasar';
 import WorkloadCard from '@/components/resource/WorkloadCard.vue';
 import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
-import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
-import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
+import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { isOverdue, mapTaskToGanttTask } from '@/utils/taskHelpers';
+import { isOverdue } from '@/utils/taskHelpers';
 import {
   getTasksApi,
   getResourceWorkloadApi,
@@ -600,11 +593,6 @@ const workloadData = ref<ResourceWorkload | null>(null);
 
 const currentUserId = computed(() => authStore.user?.user_id ?? null);
 const userFirstName = computed(() => authStore.user?.name?.split(' ')[0] ?? '');
-
-function isSelfAssigned(item: Task | null | undefined): boolean {
-  if (!item || !authStore.user?.user_id) return false;
-  return Number(item.created_by) === Number(authStore.user.user_id);
-}
 
 const scheduleViewMode = ref<'week' | 'day' | 'month' | 'gantt' | 'table'>('week');
 const currentAnchorDate = ref<Date>(new Date());
@@ -916,13 +904,7 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
   return results;
 });
 
-const filteredGanttTasks = computed<GanttTask[]>(() => {
-  return filteredTasksList.value.map((task) =>
-    mapTaskToGanttTask(task, {
-      assignedNames: isSelfAssigned(task) ? ['Self-assigned'] : undefined,
-    }),
-  );
-});
+
 
 const scheduleTableColumns: QTableColumn<Task>[] = [
   { name: 'title', label: 'Task Title', field: (t) => t.title, align: 'left' },
@@ -1247,9 +1229,7 @@ function goToTaskDetails(id?: number) {
   }
 }
 
-function handleGanttTaskClick(ganttTask: GanttTask) {
-  goToTaskDetails(ganttTask.id);
-}
+
 
 function goToProgress() {
   void router.push('/app/resource-dashboard/progress');

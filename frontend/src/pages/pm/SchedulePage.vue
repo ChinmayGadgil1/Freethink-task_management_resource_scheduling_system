@@ -360,17 +360,14 @@
       </div>
     </q-card>
 
-    <!-- 6. GANTT ROADMAP VIEW -->
+    <!-- 6. GANTT ROADMAP VIEW (POWERED BY DHTMLX GANTT) -->
     <div v-else-if="scheduleViewMode === 'gantt'" class="q-mb-lg">
-      <GanttChart
-        :tasks="filteredGanttTasks"
-        mode="pm"
+      <DhtmlxGanttTimeline
+        :tasks="filteredTasks"
+        :projects="projects"
+        :resources="resources"
         title="Gantt Timeline Roadmap"
-        subtitle="Visual timeline of task durations, dependencies, and deadlines"
-        empty-title="No matching schedule items"
-        empty-subtitle="Adjust your filters or add tasks with scheduling dates to view them on the Gantt timeline."
-        :show-assignees="true"
-        @task-click="handleGanttTaskClick"
+        @task-click="openTaskDetailsDialog"
       />
     </div>
 
@@ -659,11 +656,11 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
-import GanttChart, { type GanttTask } from '@/components/gantt/GanttChart.vue';
+import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { isTaskOverdue, getTaskStatusClass, getPriorityClass, mapTaskToGanttTask } from '@/utils/taskHelpers';
+import { isTaskOverdue, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
   getProjectsApi,
   getTasksApi,
@@ -1112,21 +1109,7 @@ const filteredTasks = computed(() => {
   });
 });
 
-const filteredGanttTasks = computed<GanttTask[]>(() => {
-  return filteredTasks.value.map((task) =>
-    mapTaskToGanttTask(task, {
-      projectName: getProjectName(task.project_id),
-      assignedNames: task.assigned_resource_ids?.map((id) => getResourceName(id)),
-    }),
-  );
-});
 
-function handleGanttTaskClick(ganttTask: GanttTask) {
-  const originalTask = tasks.value.find((t) => t.task_id === ganttTask.id);
-  if (originalTask) {
-    openTaskDetailsDialog(originalTask);
-  }
-}
 
 function getProjectName(projectId: number): string {
   const p = projects.value.find((proj) => proj.project_id === projectId);
