@@ -5,6 +5,7 @@ const AUTH_BASE_URL = `${API_BASE_URL}/auth`;
 
 export interface SignupPayload {
   name: string;
+  username: string;
   email: string;
   password: string;
   role: 'PROJECT_MANAGER' | 'RESOURCE';

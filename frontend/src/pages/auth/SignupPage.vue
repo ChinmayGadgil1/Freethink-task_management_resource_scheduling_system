@@ -28,6 +28,25 @@
             </template>
           </q-input>
 
+          <!-- Username -->
+          <q-input
+            v-model="form.username"
+            outlined
+            dense
+            hide-bottom-space
+            label="Username"
+            class="auth-input"
+            :rules="[
+              (val) => !!val || 'Username is required',
+              (val) => val.length >= 3 || 'Username must be at least 3 characters',
+              (val) => val.length <= 50 || 'Username must be at most 50 characters',
+            ]"
+          >
+            <template #prepend>
+              <q-icon name="account_circle" class="auth-icon" />
+            </template>
+          </q-input>
+
           <!-- Email -->
           <q-input
             v-model="form.email"
@@ -59,6 +78,7 @@
             :options="roleOptions"
             emit-value
             map-options
+            :dark="$q.dark.isActive"
             :rules="[(val) => !!val || 'Role is required']"
           >
             <template #prepend>
@@ -174,6 +194,7 @@ const router = useRouter();
 
 type SignupForm = {
   name: string;
+  username: string;
   email: string;
   role: 'RESOURCE' | 'PROJECT_MANAGER';
   password: string;
@@ -182,6 +203,7 @@ type SignupForm = {
 
 const form = reactive<SignupForm>({
   name: '',
+  username: '',
   email: '',
   role: 'RESOURCE',
   password: '',
@@ -210,6 +232,7 @@ const handleSignup = async () => {
   try {
     const data = await signupApi({
       name: form.name,
+      username: form.username,
       email: form.email,
       password: form.password,
       role: form.role,
@@ -342,6 +365,49 @@ body.body--dark {
 
   .auth-login-link {
     color: #a78bfa;
+  }
+}
+</style>
+
+<!-- Global style for teleported select popup menu -->
+<style lang="scss">
+.auth-select-popup {
+  background: #ffffff !important;
+  color: #1d2433 !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18) !important;
+  z-index: 9999 !important;
+
+  .q-item {
+    font-size: 13.5px;
+    border-radius: 6px;
+    margin: 2px 4px;
+    min-height: 40px;
+    color: #1d2433 !important;
+
+    &:hover,
+    &.q-manual-focusable--focused,
+    &.q-item--active {
+      background: #f4f0fd !important;
+      color: #8b6fd8 !important;
+    }
+  }
+}
+
+body.body--dark .auth-select-popup {
+  background: #181d28 !important;
+  border: 1px solid #283042 !important;
+
+  .q-item {
+    color: #f3f4f6 !important;
+
+    &:hover,
+    &.q-manual-focusable--focused,
+    &.q-item--active {
+      background: #232a3b !important;
+      color: #a78bfa !important;
+    }
   }
 }
 </style>

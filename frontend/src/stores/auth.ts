@@ -3,6 +3,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia';
 export interface User {
   user_id: number;
   name: string;
+  username?: string;
   email: string;
   role: 'PROJECT_MANAGER' | 'RESOURCE';
   token?: string;

@@ -42,7 +42,7 @@
         </div>
 
         <!-- Centered Container for Auth Pages -->
-        <div class="auth-content-container relative-position z-top flex flex-center full-width q-pa-md">
+        <div class="auth-content-container relative-position flex flex-center full-width q-pa-md" style="z-index: 5">
           <router-view />
         </div>
       </q-page>
