@@ -389,7 +389,7 @@
                   :color="$q.dark.isActive ? 'grey-9' : 'white'"
                   :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
                   dense
-                  rounded
+                  
                   unelevated
                   :options="[
                     { label: 'Week', value: 'week', icon: 'view_week' },

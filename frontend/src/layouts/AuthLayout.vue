@@ -2,6 +2,23 @@
   <q-layout view="hHh lpR fFf" class="auth-layout-root">
     <q-page-container>
       <q-page class="auth-page-wrapper flex flex-center relative-position overflow-hidden">
+        <!-- Toggle Button in Top-Right Corner -->
+        <div class="absolute-top-right q-pa-md" style="z-index: 10">
+          <q-btn
+            flat
+            round
+            dense
+            :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'"
+            :color="$q.dark.isActive ? 'amber-5' : 'grey-7'"
+            class="header-icon-btn"
+            :aria-label="$q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'"
+            @click="toggleDarkMode"
+          >
+            <q-tooltip>{{
+              $q.dark.isActive ? 'Switch to light mode' : 'Switch to dark mode'
+            }}</q-tooltip>
+          </q-btn>
+        </div>
         <!-- Light Mode Background (Image + Lavender Base) -->
         <div class="auth-bg-light absolute-full">
           <q-img
@@ -59,6 +76,10 @@ import backgroundImage from '@/assets/image.png';
 import { useThemeStore } from '@/stores/theme';
 
 const themeStore = useThemeStore();
+
+function toggleDarkMode() {
+  themeStore.toggleDarkMode();
+}
 
 onMounted(() => {
   themeStore.initTheme();
@@ -168,6 +189,11 @@ onMounted(() => {
     bottom: 16%;
     right: 25%;
   }
+}
+
+.header-icon-btn {
+  width: 36px;
+  height: 36px;
 }
 
 /* When dark mode is active on body */

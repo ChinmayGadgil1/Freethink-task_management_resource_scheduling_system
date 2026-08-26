@@ -56,7 +56,7 @@
             flat
             round
             dense
-            :icon="$q.dark.isActive ? 'dark_mode' : 'light_mode'"
+            :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'"
             :color="$q.dark.isActive ? 'amber-5' : 'grey-7'"
             class="header-icon-btn"
             @click="toggleDarkMode"

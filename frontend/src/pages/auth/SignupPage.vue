@@ -1,6 +1,6 @@
 <template>
-  <div class="col-12 col-sm-9 col-md-6 col-lg-5 q-px-md" style="width: 100%; max-width: 540px">
-    <q-card flat class="auth-card q-pa-xl">
+  <div class="q-px-md" style="width: 100%; max-width: 480px">
+    <q-card class="auth-card q-pa-xl">
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold auth-title">Create Account</div>
