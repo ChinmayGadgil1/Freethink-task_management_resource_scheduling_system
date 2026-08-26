@@ -234,6 +234,13 @@ const resourceNavItems: SidebarNavItem[] = [
     bgClass: 'bg-teal-soft',
   },
   {
+    title: 'Schedule',
+    to: '/app/resource-dashboard/schedule',
+    icon: 'calendar_month',
+    colorClass: 'text-blue',
+    bgClass: 'bg-blue-soft',
+  },
+  {
     title: 'Progress',
     to: '/app/resource-dashboard/progress',
     icon: 'insights',

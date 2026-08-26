@@ -101,6 +101,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/resource/TaskDetailsPage.vue'),
       },
       {
+        path: 'schedule',
+        component: () => import('@/pages/resource/SchedulePage.vue'),
+      },
+      {
         path: 'progress',
         component: () => import('@/pages/resource/ProgressPage.vue'),
       },
