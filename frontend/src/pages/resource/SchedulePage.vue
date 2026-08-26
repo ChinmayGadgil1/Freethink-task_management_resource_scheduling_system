@@ -385,6 +385,30 @@
                   >
                     {{ props.row.description }}
                   </div>
+                  <div v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk" class="row items-center gap-xs q-mt-xs">
+                    <q-chip
+                      v-if="props.row.is_deadline_at_risk"
+                      dense
+                      square
+                      color="red-1"
+                      text-color="red-9"
+                      icon="warning"
+                      style="font-size: 10px; height: 18px"
+                    >
+                      Deadline Risk
+                    </q-chip>
+                    <q-chip
+                      v-if="props.row.is_schedule_at_risk"
+                      dense
+                      square
+                      color="amber-1"
+                      text-color="amber-9"
+                      icon="schedule"
+                      style="font-size: 10px; height: 18px"
+                    >
+                      Schedule Risk
+                    </q-chip>
+                  </div>
                 </div>
               </q-td>
             </template>
@@ -631,8 +655,8 @@ const positionedCalendarTasks = computed(() => {
   const totalHours = endHour - startHour;
 
   filteredTasks.value.forEach((task, idx) => {
-    const startDate = task.start_date || task.actual_start;
-    const endDate = task.deadline || task.actual_end;
+    const startDate = task.planned_start || task.actual_start || task.start_date;
+    const endDate = task.planned_end || task.deadline || task.actual_end;
     if (!startDate) return;
 
     const s = new Date(startDate);
@@ -725,7 +749,7 @@ function goToToday() {
 
 function getTasksOnDate(date: Date): Task[] {
   return filteredTasks.value.filter((t) => {
-    const s = t.start_date || t.actual_start;
+    const s = t.planned_start || t.actual_start || t.start_date;
     if (!s) return false;
     return isSameDay(new Date(s), date);
   });
@@ -812,7 +836,7 @@ async function loadData() {
     ]);
     tasks.value = tasksRes || [];
     projects.value = projectsRes || [];
-  } catch (err) {
+  } catch {
     $q.notify({
       type: 'negative',
       message: 'Failed to load schedule data',

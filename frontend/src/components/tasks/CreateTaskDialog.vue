@@ -12,7 +12,7 @@
       </q-card-section>
 
       <q-form @submit.prevent="handleSubmit">
-        <q-card-section class="q-gutter-md q-pt-md">
+        <q-card-section class="column q-gutter-md q-pt-md">
           <!-- Project Selection (if not in fixed project mode) -->
           <q-select
             v-if="!fixedProjectId"
@@ -91,45 +91,28 @@
             </div>
           </div>
 
-          <!-- Dates Row -->
-          <div class="row q-col-gutter-sm">
-            <div class="col-6">
-              <q-input
-                v-model="form.start_date"
-                outlined
-                dense
-                type="date"
-                label="Start Date"
-                stack-label
-              />
-            </div>
-            <div class="col-6">
-              <q-input
-                v-model="form.deadline"
-                outlined
-                dense
-                type="date"
-                label="Deadline"
-                stack-label
-              />
-            </div>
-          </div>
+          <!-- Deadline -->
+          <q-input
+            v-model="form.deadline"
+            outlined
+            dense
+            type="date"
+            label="Deadline"
+            stack-label
+          />
 
           <!-- Effort (if showStatus is enabled) -->
-          <div v-if="showStatus" class="row q-col-gutter-sm">
-            <div class="col-12">
-              <q-input
-                v-model.number="form.expected_effort"
-                outlined
-                dense
-                type="number"
-                min="0.5"
-                step="0.5"
-                label="Expected Effort (Hours) *"
-                :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
-              />
-            </div>
-          </div>
+          <q-input
+            v-if="showStatus"
+            v-model.number="form.expected_effort"
+            outlined
+            dense
+            type="number"
+            min="0.5"
+            step="0.5"
+            label="Expected Effort (Hours) *"
+            :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
+          />
 
           <!-- Assign Members Field -->
           <q-select
@@ -251,7 +234,6 @@ export interface CreateTaskFormData {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
-  start_date: string;
   deadline: string;
   assigned_resource_ids: number[];
   predecessor_task_ids: number[];
@@ -302,10 +284,6 @@ const headerTitle = computed(() => {
 
 const activeProjectId = computed(() => props.fixedProjectId || form.project_id);
 
-function getTodayString(): string {
-  return new Date().toISOString().split('T')[0] ?? '';
-}
-
 const form = reactive<CreateTaskFormData>({
   project_id: null,
   title: '',
@@ -313,7 +291,6 @@ const form = reactive<CreateTaskFormData>({
   priority: 'MEDIUM',
   status: 'SCHEDULED',
   expected_effort: 8,
-  start_date: getTodayString(),
   deadline: '',
   assigned_resource_ids: [],
   predecessor_task_ids: [],
@@ -330,7 +307,6 @@ function resetForm() {
   form.priority = 'MEDIUM';
   form.status = 'SCHEDULED';
   form.expected_effort = 8;
-  form.start_date = getTodayString();
   form.deadline = '';
   form.assigned_resource_ids = [];
   form.predecessor_task_ids = [];

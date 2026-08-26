@@ -86,7 +86,7 @@
         <div class="col-12 col-sm-6 col-md-3">
           <StatCard
             title="Remaining Effort"
-            :value="`${actualHoursRemaining}h`"
+            :value="formatHours(actualHoursRemaining)"
             :subtitle="`${delayedTasks} delayed`"
             icon="hourglass_empty"
             color="warning"
@@ -238,7 +238,7 @@
                         class="text-h6 text-weight-bold"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                       >
-                        {{ expectedEffort }}h
+                        {{ formatHours(expectedEffort) }}
                       </div>
                     </q-card-section>
                   </q-card>
@@ -259,7 +259,7 @@
                         class="text-h6 text-weight-bold"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                       >
-                        {{ actualEffort }}h
+                        {{ formatHours(actualEffort) }}
                       </div>
                     </q-card-section>
                   </q-card>
@@ -280,7 +280,7 @@
                         class="text-h6 text-weight-bold"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                       >
-                        {{ progressBasedRemainingEffort }}h
+                        {{ formatHours(progressBasedRemainingEffort) }}
                       </div>
                     </q-card-section>
                   </q-card>
@@ -301,7 +301,7 @@
                         class="text-h6 text-weight-bold"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                       >
-                        {{ actualHoursRemaining }}h
+                        {{ formatHours(actualHoursRemaining) }}
                       </div>
                     </q-card-section>
                   </q-card>
@@ -502,10 +502,10 @@
                 class="text-caption q-mt-xs"
                 :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
               >
-                {{ p.expectedEffort }}h est
+                {{ formatHours(p.expectedEffort) }} est
               </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
-                {{ p.actualEffort }}h logged
+                {{ formatHours(p.actualEffort) }} logged
               </div>
             </q-item-section>
           </q-item>
@@ -723,7 +723,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
-import { formatDate } from '@/utils/formatters';
+import { formatDate, formatHours } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 
 import {

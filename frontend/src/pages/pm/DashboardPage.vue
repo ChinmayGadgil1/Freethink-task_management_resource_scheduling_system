@@ -483,18 +483,7 @@
                 </div>
               </div>
               <div class="row q-col-gutter-sm">
-                <div class="col-6">
-                  <q-input
-                    v-model="newTaskForm.start_date"
-                    label="Start Date"
-                    type="date"
-                    outlined
-                    dense
-                    stack-label
-                    :dark="$q.dark.isActive"
-                  />
-                </div>
-                <div class="col-6">
+                <div class="col-12">
                   <q-input
                     v-model="newTaskForm.deadline"
                     label="Deadline"
@@ -780,7 +769,6 @@ const newTaskForm = reactive({
   description: '',
   priority: 'MEDIUM',
   status: 'UNASSIGNED',
-  start_date: '',
   deadline: '',
   expected_effort: 8,
 });
@@ -907,7 +895,6 @@ function openAddTaskDialog() {
   newTaskForm.description = '';
   newTaskForm.priority = 'MEDIUM';
   newTaskForm.status = 'UNASSIGNED';
-  newTaskForm.start_date = '';
   newTaskForm.deadline = '';
   newTaskForm.expected_effort = 8;
   showAddTaskModal.value = true;
@@ -923,7 +910,6 @@ async function handleCreateTask() {
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
       status: newTaskForm.status as TaskStatus,
-      start_date: newTaskForm.start_date || null,
       deadline: newTaskForm.deadline || null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
       assigned_resource_ids: newTaskForm.assigned_resource_ids,
@@ -1044,8 +1030,9 @@ const positionedTimelineRows = computed(() => {
   const totalRangeMs = Math.max(1, lastDayMs - firstDayMs);
 
   return tasks.value.slice(0, 10).map((t) => {
-    const startStr = t.start_date ? t.start_date.slice(0, 10) : days[0]!.key;
-    const endStr = t.deadline ? t.deadline.slice(0, 10) : days[days.length - 1]!.key;
+    const rawStart = t.planned_start || t.actual_start || t.start_date;
+    const startStr = rawStart ? rawStart.slice(0, 10) : days[0]!.key;
+    const endStr = t.planned_end ? t.planned_end.slice(0, 10) : (t.deadline ? t.deadline.slice(0, 10) : days[days.length - 1]!.key);
 
     const startMs = new Date(startStr).getTime();
     const endMs = new Date(endStr).getTime();

@@ -10,7 +10,6 @@ export interface ResourceTask {
   status: TaskStatus;
   progress: number;
   deadline: string | null;
-  startDate: string | null;
   hoursWorked: number;
   estimatedHours: number;
   workUpdate: string;

@@ -1,6 +1,6 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
-    <q-card v-if="task" class="details-popup-card" style="min-width: 480px; max-width: 95vw">
+    <q-card v-if="task" class="details-popup-card" :dark="$q.dark.isActive" style="min-width: 480px; max-width: 95vw">
       <q-card-section class="row items-center justify-between q-pb-none">
         <div class="row items-center gap-xs">
           <q-chip dense square :class="['priority-chip', getPriorityClass(task.priority)]">
@@ -12,12 +12,37 @@
           <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 11px">
             #{{ task.task_id }}
           </q-chip>
+          <q-chip
+            v-if="task.is_deadline_at_risk"
+            dense
+            square
+            color="red-1"
+            text-color="red-9"
+            icon="warning"
+            style="font-size: 11px; font-weight: 600"
+          >
+            Deadline Risk
+          </q-chip>
+          <q-chip
+            v-if="task.is_schedule_at_risk"
+            dense
+            square
+            color="amber-1"
+            text-color="amber-9"
+            icon="schedule"
+            style="font-size: 11px; font-weight: 600"
+          >
+            Schedule Risk
+          </q-chip>
         </div>
         <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
       </q-card-section>
 
       <q-card-section class="q-pt-sm">
-        <div class="popup-title text-h6 text-weight-bold text-dark">
+        <div
+          class="popup-title text-h6 text-weight-bold"
+          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+        >
           {{ task.title }}
         </div>
         <div class="popup-project-row row items-center gap-xs q-mt-xs">
@@ -27,7 +52,10 @@
           </span>
         </div>
 
-        <div class="popup-description q-mt-sm text-body2 text-grey-8">
+        <div
+          class="popup-description q-mt-sm text-body2"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'"
+        >
           {{ task.description || 'No description provided.' }}
         </div>
 
@@ -35,11 +63,6 @@
 
         <!-- Details Grid -->
         <div class="popup-details-grid">
-          <div class="detail-item">
-            <div class="detail-label">Start Date</div>
-            <div class="detail-val">{{ formatDate(task.start_date) }}</div>
-          </div>
-
           <div class="detail-item">
             <div class="detail-label">Deadline</div>
             <div class="detail-val" :class="{ 'text-negative font-bold': isTaskOverdue(task) }">
@@ -49,12 +72,12 @@
 
           <div class="detail-item">
             <div class="detail-label">Expected Effort</div>
-            <div class="detail-val">{{ task.expected_effort || 8 }} Hours</div>
+            <div class="detail-val">{{ formatNumber(task.expected_effort || 8) }} Hours</div>
           </div>
 
           <div class="detail-item">
             <div class="detail-label">Actual Effort</div>
-            <div class="detail-val">{{ task.actual_effort || 0 }} Hours</div>
+            <div class="detail-val">{{ formatNumber(task.actual_effort || 0) }} Hours</div>
           </div>
         </div>
 
@@ -149,6 +172,83 @@
           </div>
           <span v-else class="text-caption text-grey-5">No predecessor dependencies</span>
         </div>
+
+        <!-- Work Logs / Daily Updates History in Popup -->
+        <div class="popup-worklogs-block q-mt-md">
+          <div class="row items-center justify-between q-mb-xs">
+            <div class="detail-label">Work Log & Progress History</div>
+            <span v-if="workLogs.length > 0" class="text-caption text-grey-6 text-weight-medium">
+              {{ workLogs.length }} update{{ workLogs.length === 1 ? '' : 's' }}
+            </span>
+          </div>
+
+          <div v-if="loadingLogs" class="row items-center justify-center q-pa-md">
+            <q-spinner color="primary" size="20px" />
+            <span class="text-caption text-grey-6 q-ml-sm">Loading work history...</span>
+          </div>
+
+          <div v-else-if="workLogs.length === 0" class="text-caption text-grey-5 q-py-xs">
+            No work logs recorded for this task yet.
+          </div>
+
+          <q-list
+            v-else
+            bordered
+            separator
+            class="rounded-borders q-mt-xs"
+            style="max-height: 220px; overflow-y: auto"
+          >
+            <q-item v-for="log in workLogs" :key="log.log_id" dense class="q-py-sm">
+              <q-item-section avatar top style="min-width: 32px">
+                <q-avatar size="24px" class="avatar-purple">
+                  {{ getInitials(log.author_name || resolveResourceName(log.user_id), 'U').charAt(0).toUpperCase() }}
+                </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                <div class="row items-center justify-between no-wrap">
+                  <div class="text-weight-bold text-caption text-dark ellipsis">
+                    {{ log.author_name || resolveResourceName(log.user_id) }}
+                  </div>
+                  <div class="text-caption text-grey-6 text-weight-medium">
+                    {{ formatDate(log.log_date) }}
+                  </div>
+                </div>
+
+                <div class="row items-center gap-xs q-mt-xs text-caption text-grey-7">
+                  <span class="text-weight-medium">{{ formatHours(log.hours_logged) }} worked</span>
+                  <span>·</span>
+                  <span class="text-weight-medium text-primary">{{ Number(log.progress_logged) }}% progress</span>
+                  <q-chip
+                    v-if="log.status"
+                    dense
+                    square
+                    :class="['status-chip q-ml-xs', getTaskStatusClass(log.status)]"
+                    style="font-size: 10px; height: 16px"
+                  >
+                    {{ formatStatus(log.status) }}
+                  </q-chip>
+                </div>
+
+                <div
+                  v-if="log.notes"
+                  class="text-caption text-grey-8 q-mt-xs"
+                  style="white-space: pre-wrap; word-break: break-word"
+                >
+                  {{ log.notes }}
+                </div>
+
+                <div
+                  v-if="log.blockers"
+                  class="row items-center text-caption text-negative q-mt-xs text-weight-medium"
+                >
+                  <q-icon name="warning_amber" size="13px" class="q-mr-xs" />
+                  <span>Blocker: {{ log.blockers }}</span>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
       </q-card-section>
 
       <q-separator class="q-mt-md" />
@@ -170,9 +270,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { Task } from '@/services/api';
-import { formatDate, formatStatus, getInitials } from '@/utils/formatters';
+import { computed, ref, watch } from 'vue';
+import { getWorkLogsApi, type Task, type WorkLog } from '@/services/api';
+import { formatDate, formatStatus, formatHours, formatNumber, getInitials } from '@/utils/formatters';
 import { isTaskOverdue, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 
 export interface TaskDetailsDialogProps {
@@ -208,6 +308,34 @@ const emit = defineEmits<{
   (e: 'assignMember', taskId: number): void;
   (e: 'addDependency', taskId: number): void;
 }>();
+
+const workLogs = ref<WorkLog[]>([]);
+const loadingLogs = ref(false);
+
+async function fetchTaskWorkLogs(taskId: number) {
+  loadingLogs.value = true;
+  try {
+    const logs = await getWorkLogsApi(taskId);
+    workLogs.value = logs || [];
+  } catch (err) {
+    console.error('Failed to load task work logs:', err);
+    workLogs.value = [];
+  } finally {
+    loadingLogs.value = false;
+  }
+}
+
+watch(
+  () => [props.modelValue, props.task?.task_id],
+  ([isOpen, taskId]) => {
+    if (isOpen && taskId) {
+      void fetchTaskWorkLogs(Number(taskId));
+    } else {
+      workLogs.value = [];
+    }
+  },
+  { immediate: true },
+);
 
 const resolvedProjectName = computed(() => {
   if (props.projectName) return props.projectName;
@@ -255,6 +383,7 @@ function handleUnassignClick(resourceId: number) {
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--wo-bg-subtle, #f9fafb);
+  border: 1px solid var(--wo-border-subtle, transparent);
 }
 
 .detail-label {
@@ -288,5 +417,30 @@ function handleUnassignClick(resourceId: number) {
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
+}
+
+body.body--dark {
+  .details-popup-card {
+    background: var(--wo-bg-card, #181d28);
+    border: 1px solid var(--wo-border, #283042);
+  }
+
+  .detail-item {
+    background: var(--wo-bg-tag, #222938);
+    border-color: var(--wo-border, #283042);
+  }
+
+  .detail-label {
+    color: var(--wo-text-muted, #94a3b8);
+  }
+
+  .detail-val {
+    color: var(--wo-text-main, #f3f4f6);
+  }
+
+  .resource-chip {
+    background: var(--wo-bg-tag, #222938);
+    color: var(--wo-text-main, #f3f4f6);
+  }
 }
 </style>

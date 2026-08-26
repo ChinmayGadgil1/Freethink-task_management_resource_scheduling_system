@@ -198,13 +198,13 @@
                       <div class="row items-center gap-xs">
                         <q-badge rounded style="background: #3b82f6; width: 8px; height: 8px" />
                         <span class="text-body2 text-main">
-                          <strong>{{ workload.actualEffort }}h</strong> Actual Logged
+                          <strong>{{ formatHours(workload.actualEffort) }}</strong> Actual Logged
                         </span>
                       </div>
                       <div class="row items-center gap-xs">
                         <q-badge rounded style="background: #10b981; width: 8px; height: 8px" />
                         <span class="text-body2 text-main">
-                          <strong>{{ workload.remainingEffort }}h</strong> Remaining
+                          <strong>{{ formatHours(workload.remainingEffort) }}</strong> Remaining
                         </span>
                       </div>
                     </div>
@@ -212,7 +212,7 @@
                 </div>
 
                 <div class="row items-center justify-between q-mt-md q-pt-sm text-caption text-muted border-top-subtle">
-                  <span>Capacity Allocated: {{ workload.expectedEffort }}h</span>
+                  <span>Capacity Allocated: {{ formatHours(workload.expectedEffort) }}</span>
                   <span class="text-weight-bold" :class="workload.consumedPct > 100 ? 'text-negative' : 'text-positive'">
                     {{ workload.consumedPct > 100 ? 'Over Allocated' : 'On Track' }}
                   </span>
@@ -401,7 +401,7 @@ import WorkloadCard from '@/components/resource/WorkloadCard.vue';
 import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
 import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
-import { formatDate } from '@/utils/formatters';
+import { formatDate, formatHours } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 import {
   getTasksApi,

@@ -274,7 +274,7 @@
                     <span
                       class="text-caption"
                       :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
-                      >{{ item.expected_effort || 0 }}h effort</span
+                      >{{ formatHours(item.expected_effort) }} effort</span
                     >
                   </div>
                   <q-linear-progress
@@ -524,6 +524,14 @@
                 <span :class="['task-priority-pill', `priority-${task.priority.toLowerCase()}`]">
                   {{ task.priority }}
                 </span>
+                <span v-if="task.is_deadline_at_risk" class="task-priority-pill priority-critical" style="background: rgba(239, 68, 68, 0.15); color: #ef4444">
+                  <q-icon name="warning" size="12px" class="q-mr-xs" />
+                  Deadline Risk
+                </span>
+                <span v-if="task.is_schedule_at_risk" class="task-priority-pill priority-high" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b">
+                  <q-icon name="schedule" size="12px" class="q-mr-xs" />
+                  Schedule Risk
+                </span>
                 <span v-if="isSelfAssigned(task)" class="task-self-pill">
                   <q-icon name="person" size="12px" class="q-mr-xs" />
                   Self-assigned
@@ -552,36 +560,10 @@
               </div>
             </div>
 
-            <!-- Right Column: Start Date & Deadline (Stacked & Compact, Aligned at Top Right) + Action Buttons -->
+            <!-- Right Column: Deadline (Compact, Aligned at Top Right) + Action Buttons -->
             <div class="col-12 col-md-5 column items-end justify-start">
-              <!-- Stacked Dates Container -->
+              <!-- Dates Container -->
               <div class="column gap-xs q-mb-xs full-width" style="max-width: 320px">
-                <!-- Start Date Card -->
-                <q-card flat bordered :dark="$q.dark.isActive" class="q-pa-xs">
-                  <q-item dense>
-                    <q-item-section avatar style="min-width: 32px">
-                      <div class="hero-date-avatar avatar-purple">
-                        <q-icon name="play_circle_outline" size="16px" />
-                      </div>
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label
-                        caption
-                        class="text-weight-bold"
-                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                      >
-                        START DATE
-                      </q-item-label>
-                      <q-item-label
-                        class="text-weight-bold"
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      >
-                        {{ formatDate(task.start_date) }}
-                      </q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </q-card>
-
                 <!-- Deadline Card -->
                 <q-card flat bordered :dark="$q.dark.isActive" class="q-pa-xs">
                   <q-item dense>
@@ -622,6 +604,28 @@
 
               <!-- Action Buttons -->
               <div class="row items-center q-gutter-xs q-mt-xs">
+                <q-btn
+                  v-if="!activeSession"
+                  unelevated
+                  no-caps
+                  color="positive"
+                  icon="play_arrow"
+                  label="Start Session"
+                  class="text-weight-bold"
+                  :loading="sessionLoading"
+                  @click="handleStartSession(task.task_id)"
+                />
+                <q-btn
+                  v-else
+                  unelevated
+                  no-caps
+                  color="negative"
+                  icon="stop"
+                  label="Stop Session"
+                  class="text-weight-bold"
+                  :loading="sessionLoading"
+                  @click="promptStopSession"
+                />
                 <q-btn
                   outline
                   no-caps
@@ -720,7 +724,7 @@
                       class="text-h6 text-weight-bolder"
                       :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                      {{ task.expected_effort }}
+                      {{ formatNumber(task.expected_effort) }}
                       <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
@@ -746,7 +750,7 @@
                       class="text-h6 text-weight-bolder"
                       :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                      {{ task.actual_effort }}
+                      {{ formatNumber(task.actual_effort) }}
                       <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
@@ -772,7 +776,7 @@
                       class="text-h6 text-weight-bolder"
                       :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                      {{ remainingHours }} <span class="text-caption text-weight-bold">hrs</span>
+                      {{ formatNumber(remainingHours) }} <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
                 </q-card-section>
@@ -876,7 +880,7 @@
                   class="q-mt-xs"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                 >
-                  {{ Number(log.hours_logged) }}h worked · {{ Number(log.progress_logged) }}%
+                  {{ formatHours(log.hours_logged) }} worked · {{ Number(log.progress_logged) }}%
                   progress
                 </q-item-label>
 
@@ -926,6 +930,56 @@
     </div>
 
     <DailyProgressDialog v-model="updateDialog" :task="task" @save="saveDailyUpdate" />
+
+    <!-- STOP SESSION DIALOG -->
+    <q-dialog v-model="showStopSessionDialog" persistent>
+      <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 92vw">
+        <q-card-section class="row items-center justify-between">
+          <div class="text-subtitle1 text-weight-bold">Stop Working Session</div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+        <q-separator />
+        <q-card-section class="q-gutter-md">
+          <q-input
+            v-model.number="stopSessionForm.progress_logged"
+            type="number"
+            min="0"
+            max="100"
+            label="Progress (%) *"
+            outlined
+            dense
+          />
+          <q-input
+            v-model="stopSessionForm.notes"
+            type="textarea"
+            label="Session Notes / Summary *"
+            outlined
+            dense
+            rows="3"
+          />
+          <q-input
+            v-model="stopSessionForm.blockers"
+            type="textarea"
+            label="Blockers (optional)"
+            outlined
+            dense
+            rows="2"
+          />
+        </q-card-section>
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+          <q-btn
+            unelevated
+            no-caps
+            color="negative"
+            label="Stop & Log Work"
+            :loading="sessionLoading"
+            :disable="!stopSessionForm.notes.trim()"
+            @click="confirmStopSession"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <UpdateTaskDialog
       v-model="updateTaskDialog"
@@ -1025,21 +1079,7 @@
             </q-select>
 
             <div class="row q-col-gutter-md date-row">
-              <div class="col-12 col-sm-6">
-                <q-input
-                  v-model="createForm.start_date"
-                  label="Start Date"
-                  type="date"
-                  outlined
-                  dense
-                >
-                  <template #prepend>
-                    <q-icon name="event" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-                  </template>
-                </q-input>
-              </div>
-
-              <div class="col-12 col-sm-6">
+              <div class="col-12">
                 <q-input v-model="createForm.deadline" label="Deadline" type="date" outlined dense>
                   <template #prepend>
                     <q-icon
@@ -1107,7 +1147,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import {
@@ -1117,9 +1157,12 @@ import {
   getTasksApi,
   getWorkLogsApi,
   updateTaskApi,
+  startTaskSessionApi,
+  stopTaskSessionApi,
   type CreateWorkLogPayload,
   type Project,
   type Task,
+  type TaskSession,
   type WorkLog,
 } from '@/services/api';
 
@@ -1130,7 +1173,7 @@ import type { ResourceTask } from '@/components/tasks/task-types';
 import DailyProgressDialog from '@/components/tasks/DailyProgressDialog.vue';
 import UpdateTaskDialog from '@/components/tasks/UpdateTaskDialog.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
-import { formatDate } from '@/utils/formatters';
+import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
 import { isOverdue, isTaskOverdue } from '@/utils/taskHelpers';
 
 const $q = useQuasar();
@@ -1262,7 +1305,6 @@ interface CreateTaskForm {
   title: string;
   description: string;
   priority: Task['priority'];
-  start_date: string;
   deadline: string;
   expected_effort: number;
 }
@@ -1272,7 +1314,6 @@ const createForm = ref<CreateTaskForm>({
   title: '',
   description: '',
   priority: 'MEDIUM',
-  start_date: '',
   deadline: '',
   expected_effort: 0,
 });
@@ -1351,10 +1392,80 @@ function resetCreateForm() {
     title: '',
     description: '',
     priority: 'MEDIUM',
-    start_date: '',
     deadline: '',
     expected_effort: 0,
   };
+}
+
+const activeSession = ref<TaskSession | null>(null);
+const sessionLoading = ref(false);
+const showStopSessionDialog = ref(false);
+const stopSessionForm = reactive({
+  progress_logged: 0,
+  notes: '',
+  blockers: '',
+});
+
+async function handleStartSession(tId: number) {
+  sessionLoading.value = true;
+  try {
+    const res = await startTaskSessionApi(tId);
+    activeSession.value = res.session;
+    Notify.create({
+      type: 'positive',
+      message: 'Session started successfully.',
+      position: 'top-right',
+    });
+    await loadTasks();
+  } catch (err) {
+    Notify.create({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to start session.',
+      position: 'top-right',
+    });
+  } finally {
+    sessionLoading.value = false;
+  }
+}
+
+function promptStopSession() {
+  if (task.value) {
+    stopSessionForm.progress_logged = Number(task.value.progress) || 0;
+    stopSessionForm.notes = '';
+    stopSessionForm.blockers = '';
+  }
+  showStopSessionDialog.value = true;
+}
+
+async function confirmStopSession() {
+  if (!task.value) return;
+  sessionLoading.value = true;
+  try {
+    await stopTaskSessionApi(task.value.task_id, {
+      progress_logged: Math.min(100, Math.max(0, Number(stopSessionForm.progress_logged) || 0)),
+      notes: stopSessionForm.notes.trim(),
+      blockers: stopSessionForm.blockers.trim() || null,
+    });
+    activeSession.value = null;
+    showStopSessionDialog.value = false;
+    Notify.create({
+      type: 'positive',
+      message: 'Session stopped and work logged successfully.',
+      position: 'top-right',
+    });
+    await loadTasks();
+    if (task.value) {
+      await loadHistory(task.value.task_id);
+    }
+  } catch (err) {
+    Notify.create({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to stop session.',
+      position: 'top-right',
+    });
+  } finally {
+    sessionLoading.value = false;
+  }
 }
 
 async function openCreateDialog() {
@@ -1403,7 +1514,6 @@ async function createTask() {
       title: createForm.value.title.trim(),
       description: createForm.value.description.trim(),
       priority: createForm.value.priority,
-      start_date: createForm.value.start_date || null,
       deadline: createForm.value.deadline || null,
       expected_effort: Number(createForm.value.expected_effort),
     });
@@ -1489,7 +1599,6 @@ function mapToResourceTask(item: Task): ResourceTask {
     status: item.status,
     progress: Number(item.progress) || 0,
     deadline: item.deadline,
-    startDate: item.start_date,
     hoursWorked: Number(item.actual_effort) || 0,
     estimatedHours: Number(item.expected_effort) || 0,
     workUpdate: '',

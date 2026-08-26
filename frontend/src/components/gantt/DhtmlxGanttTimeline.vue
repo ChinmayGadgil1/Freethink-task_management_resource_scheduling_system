@@ -536,15 +536,17 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   let maxTime = -Infinity;
 
   visibleTasks.forEach((t) => {
-    if (t.start_date) {
-      const d = parseIsoToDate(t.start_date).getTime();
+    const rawStart = t.planned_start || t.actual_start || t.start_date;
+    if (rawStart) {
+      const d = parseIsoToDate(rawStart).getTime();
       if (!isNaN(d)) {
         if (d < minTime) minTime = d;
         if (d > maxTime) maxTime = d;
       }
     }
-    if (t.deadline) {
-      const d = parseIsoToDate(t.deadline).getTime();
+    const rawEnd = t.planned_end || t.deadline || t.actual_end;
+    if (rawEnd) {
+      const d = parseIsoToDate(rawEnd).getTime();
       if (!isNaN(d)) {
         if (d < minTime) minTime = d;
         if (d > maxTime) maxTime = d;
@@ -649,9 +651,11 @@ function buildGanttDataset() {
       let totalDuration = 0;
 
       projectTasks.forEach((t) => {
-        const tStart = t.start_date ? parseIsoToDate(t.start_date) : new Date();
-        const tEnd = t.deadline
-          ? parseIsoToDate(t.deadline)
+        const rawStart = t.planned_start || t.actual_start || t.start_date;
+        const rawEnd = t.planned_end || t.deadline || t.actual_end;
+        const tStart = rawStart ? parseIsoToDate(rawStart) : new Date();
+        const tEnd = rawEnd
+          ? parseIsoToDate(rawEnd)
           : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
         const dur = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)));
         const prog = Number(t.progress) || 0;
@@ -693,9 +697,11 @@ function buildGanttDataset() {
 
       // 4. Add Child Task Rows
       projectTasks.forEach((t) => {
-        const tStart = t.start_date ? parseIsoToDate(t.start_date) : new Date();
-        const tEnd = t.deadline
-          ? parseIsoToDate(t.deadline)
+        const rawStart = t.planned_start || t.actual_start || t.start_date;
+        const rawEnd = t.planned_end || t.deadline || t.actual_end;
+        const tStart = rawStart ? parseIsoToDate(rawStart) : new Date();
+        const tEnd = rawEnd
+          ? parseIsoToDate(rawEnd)
           : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
         const durationDays = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)));
 
@@ -721,9 +727,11 @@ function buildGanttDataset() {
   } else {
     // Flat task list
     filteredTasks.forEach((t) => {
-      const tStart = t.start_date ? parseIsoToDate(t.start_date) : new Date();
-      const tEnd = t.deadline
-        ? parseIsoToDate(t.deadline)
+      const rawStart = t.planned_start || t.actual_start || t.start_date;
+      const rawEnd = t.planned_end || t.deadline || t.actual_end;
+      const tStart = rawStart ? parseIsoToDate(rawStart) : new Date();
+      const tEnd = rawEnd
+        ? parseIsoToDate(rawEnd)
         : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
       const durationDays = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)));
 

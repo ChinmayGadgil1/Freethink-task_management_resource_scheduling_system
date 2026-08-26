@@ -177,7 +177,7 @@
 
               <div class="row items-center justify-between text-caption text-grey-5 q-mt-xs">
                 <span>{{ completedTasksCount }} of {{ totalTasksCount }} tasks done</span>
-                <span>{{ totalEffortLogged }}h / {{ totalEffortExpected }}h effort</span>
+                <span>{{ formatHours(totalEffortLogged) }} / {{ formatHours(totalEffortExpected) }} effort</span>
               </div>
             </q-card>
 
@@ -758,8 +758,8 @@
                 class="text-caption text-weight-bold"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
-                {{ Number(props.row.actual_effort) || 0 }}h /
-                {{ Number(props.row.expected_effort) || 0 }}h
+                {{ formatHours(props.row.actual_effort) }} /
+                {{ formatHours(props.row.expected_effort) }}
               </span>
             </q-td>
           </template>
@@ -1318,7 +1318,7 @@ import { useQuasar, type QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
-import { formatDate, formatStatus } from '@/utils/formatters';
+import { formatDate, formatStatus, formatHours } from '@/utils/formatters';
 import { isTaskOverdue } from '@/utils/taskHelpers';
 
 import {
@@ -1906,7 +1906,7 @@ async function loadProjectTasks() {
 
 function updateDerivedMilestones() {
   milestones.value = tasks.value
-    .filter((task) => task.start_date || task.deadline)
+    .filter((task) => task.planned_start || task.actual_start || task.start_date || task.deadline)
     .map((task) => {
       const progress = getTaskProgressNumber(task.progress);
       const status: Milestone['status'] =
@@ -1955,7 +1955,7 @@ async function updateActivityLogs() {
       activityLogs.value = projectLogs.slice(0, 10).map((log) => ({
         id: log.log_id,
         user: log.author_name || currentPmName.value,
-        message: `Logged ${log.hours_logged}h (${log.progress_logged}% progress) on "${log.task_title || 'Task'}": ${log.notes}`,
+        message: `Logged ${formatHours(log.hours_logged)} (${log.progress_logged}% progress) on "${log.task_title || 'Task'}": ${log.notes}`,
         time: formatRelativeTime(log.created_at || log.log_date),
         type: log.status === 'COMPLETED' ? 'complete' : 'update',
         icon: log.status === 'COMPLETED' ? 'check_circle' : 'edit_note',
@@ -2213,7 +2213,6 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       description: formData ? formData.description?.trim() || null : null,
       priority: formData ? formData.priority : 'MEDIUM',
       status: formData ? (formData.status as Task['status']) : 'UNASSIGNED',
-      start_date: formData ? formData.start_date || null : null,
       deadline: formData ? formData.deadline || null : null,
       expected_effort: formData ? Number(formData.expected_effort) || 4 : 4,
       assigned_resource_ids: formData ? formData.assigned_resource_ids : [],

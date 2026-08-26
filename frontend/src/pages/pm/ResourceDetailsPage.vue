@@ -75,7 +75,7 @@
             <div>
               <div class="text-caption text-grey-6">Workload Utilization</div>
               <div class="text-h6 text-weight-bold text-primary">{{ utilization }}%</div>
-              <div class="text-caption text-grey-7">{{ totalEffort }}h / 40h</div>
+              <div class="text-caption text-grey-7">{{ formatHours(totalEffort) }} / 40h</div>
             </div>
 
             <div>
@@ -235,12 +235,12 @@
                     </div>
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Allocated Task Effort</span>
-                      <strong class="text-primary">{{ totalEffort }} Hours</strong>
+                      <strong class="text-primary">{{ formatNumber(totalEffort) }} Hours</strong>
                     </div>
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Remaining Capacity</span>
                       <strong :class="40 - totalEffort < 0 ? 'text-negative' : 'text-positive'">
-                        {{ Math.max(0, 40 - totalEffort) }} Hours
+                        {{ formatNumber(Math.max(0, 40 - totalEffort)) }} Hours
                       </strong>
                     </div>
                     <q-separator />
@@ -365,7 +365,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
-import { getInitials } from '@/utils/formatters';
+import { getInitials, formatHours, formatNumber } from '@/utils/formatters';
 import {
   createTaskApi,
   getProjectsApi,

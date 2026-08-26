@@ -52,7 +52,7 @@
 
       <StatCard
         title="Total Effort Allocated"
-        :value="`${totalEffortHours}h`"
+        :value="formatHours(totalEffortHours)"
         subtitle="Expected effort hours"
         icon="schedule"
         color="green"
@@ -222,7 +222,7 @@
                     <div class="row justify-between text-caption q-mb-xs">
                       <span class="text-grey-7 text-weight-medium">Workload Effort</span>
                       <span class="text-weight-bold text-dark"
-                        >{{ res.totalEffort }}h ({{ res.utilization }}%)</span
+                        >{{ formatHours(res.totalEffort) }} ({{ res.utilization }}%)</span
                       >
                     </div>
                     <q-linear-progress
@@ -357,7 +357,7 @@
                   <div style="min-width: 130px">
                     <div class="row justify-between text-caption progress-label-row">
                       <span class="text-weight-bold">{{ props.row.utilization }}%</span>
-                      <span class="text-grey-6">({{ props.row.totalEffort }}h)</span>
+                      <span class="text-grey-6">({{ formatHours(props.row.totalEffort) }})</span>
                     </div>
                     <q-linear-progress
                       rounded
@@ -690,7 +690,7 @@ import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
-import { formatDate, formatStatus as formatTaskStatus, getInitials } from '@/utils/formatters';
+import { formatDate, formatStatus as formatTaskStatus, formatHours, formatNumber, getInitials } from '@/utils/formatters';
 import { getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
   assignProjectMemberApi,
@@ -815,7 +815,7 @@ const tableColumns: QTableColumn<ResourceAggregate>[] = [
   { name: 'name', label: 'Resource Member', field: (r) => r.name, align: 'left' },
   { name: 'tasks', label: 'Assigned Tasks', field: (r) => r.tasks.length, align: 'center' },
   { name: 'projects', label: 'Projects Working On', field: (r) => r.projectsCount, align: 'left' },
-  { name: 'effort', label: 'Allocated Hours', field: (r) => r.totalEffort, align: 'center' },
+  { name: 'effort', label: 'Allocated Hours', field: (r) => formatNumber(r.totalEffort), align: 'center' },
   { name: 'utilization', label: 'Utilization', field: (r) => r.utilization, align: 'left' },
   { name: 'status', label: 'Status', field: (r) => r.status, align: 'center' },
   { name: 'actions', label: 'Actions', field: () => '', align: 'center' },
@@ -835,7 +835,7 @@ const pmTaskColumns: QTableColumn<Task>[] = [
   {
     name: 'effort',
     label: 'Effort (Hrs)',
-    field: (t) => Number(t.expected_effort) || 0,
+    field: (t) => formatNumber(t.expected_effort || 0),
     align: 'center',
   },
   {

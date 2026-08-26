@@ -276,7 +276,7 @@
                 <div class="q-mt-xs">
                   <div class="row items-center justify-between text-caption q-mb-xs">
                     <span class="text-weight-bold">{{ Number(task.progress) || 0 }}%</span>
-                    <span class="text-grey-6">{{ task.expected_effort || 8 }}h effort</span>
+                    <span class="text-grey-6">{{ formatHours(task.expected_effort || 8) }} effort</span>
                   </div>
                   <q-linear-progress
                     rounded
@@ -422,7 +422,7 @@
               <div style="min-width: 100px">
                 <div class="row items-center justify-between text-caption q-mb-xs">
                   <span class="text-weight-bold">{{ props.row.progress || 0 }}%</span>
-                  <span class="text-grey-6">{{ props.row.expected_effort || 0 }}h</span>
+                  <span class="text-grey-6">{{ formatHours(props.row.expected_effort || 0) }}</span>
                 </div>
                 <q-linear-progress
                   rounded
@@ -704,18 +704,7 @@
               </div>
 
               <div class="row q-col-gutter-sm">
-                <div class="col-6">
-                  <q-input
-                    v-model="editForm.start_date"
-                    outlined
-                    dense
-                    type="date"
-                    label="Start Date"
-                    stack-label
-                    :dark="$q.dark.isActive"
-                  />
-                </div>
-                <div class="col-6">
+                <div class="col-12">
                   <q-input
                     v-model="editForm.deadline"
                     outlined
@@ -782,7 +771,7 @@ import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
-import { formatDate, formatStatus } from '@/utils/formatters';
+import { formatDate, formatStatus, formatHours } from '@/utils/formatters';
 import {
   assignTaskResourceApi,
   addTaskDependencyApi,
@@ -1048,7 +1037,6 @@ const createForm = reactive<{
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
-  start_date: string;
   deadline: string;
   assigned_resource_ids: number[];
   predecessor_task_ids: number[];
@@ -1059,7 +1047,6 @@ const createForm = reactive<{
   priority: 'MEDIUM',
   status: 'UNASSIGNED',
   expected_effort: 8,
-  start_date: '',
   deadline: '',
   assigned_resource_ids: [],
   predecessor_task_ids: [],
@@ -1105,7 +1092,6 @@ const editForm = reactive<{
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   progress: number;
   expected_effort: number;
-  start_date: string;
   deadline: string;
 }>({
   title: '',
@@ -1113,7 +1099,6 @@ const editForm = reactive<{
   priority: 'MEDIUM',
   progress: 0,
   expected_effort: 8,
-  start_date: '',
   deadline: '',
 });
 
@@ -1423,7 +1408,6 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       description: data.description?.trim() || null,
       priority: data.priority,
       expected_effort: Number(data.expected_effort) || 8,
-      start_date: data.start_date || null,
       deadline: data.deadline || null,
       assigned_resource_ids: data.assigned_resource_ids,
     });
@@ -1477,7 +1461,6 @@ function openEditModal(task: Task) {
   editForm.priority = task.priority;
   editForm.progress = Number(task.progress) || 0;
   editForm.expected_effort = Number(task.expected_effort) || 8;
-  editForm.start_date = task.start_date?.split('T')[0] ?? '';
   editForm.deadline = task.deadline?.split('T')[0] ?? '';
   showEditDialog.value = true;
 }
@@ -1493,7 +1476,6 @@ async function handleUpdateTask() {
       priority: editForm.priority,
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
-      start_date: editForm.start_date || null,
       deadline: editForm.deadline || null,
     });
 

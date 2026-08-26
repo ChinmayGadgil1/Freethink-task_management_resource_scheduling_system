@@ -63,11 +63,30 @@ export function formatPercent(value: number | string | null | undefined, fallbac
 }
 
 /**
- * Format hours with 'h' suffix (e.g., 40 -> '40h').
+ * Format a numeric value to at most N decimal places without trailing zeroes.
+ * e.g., 61.01000000000005 -> 61.01, 15.000000000000002 -> 15, 50 -> 50, 50.5 -> 50.5.
+ */
+export function formatNumber(
+  val: number | string | null | undefined,
+  fallback = 0,
+  maxDecimals = 2,
+): number {
+  if (val === null || val === undefined || val === '') return fallback;
+  const num = Number(val);
+  if (isNaN(num)) return fallback;
+  const factor = Math.pow(10, maxDecimals);
+  return Math.round((num + Number.EPSILON) * factor) / factor;
+}
+
+/**
+ * Format hours with 'h' suffix, rounding to at most 2 decimal places and stripping trailing zeros.
+ * e.g., 61.01000000000005 -> '61.01h', 50 -> '50h', 15.000000000000002 -> '15h', 50.5 -> '50.5h', 0 -> '0h'.
  */
 export function formatHours(hours: number | string | null | undefined, fallback = '0h'): string {
   if (hours === null || hours === undefined || hours === '') return fallback;
   const num = Number(hours);
   if (isNaN(num)) return fallback;
-  return `${num}h`;
+  const rounded = formatNumber(num, 0, 2);
+  return `${rounded}h`;
 }
+

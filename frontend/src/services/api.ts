@@ -73,13 +73,17 @@ export interface Task {
   description: string | null;
   priority: TaskPriority;
   status: TaskStatus;
-  start_date: string | null;
+  start_date?: string | null;
   deadline: string | null;
+  planned_start?: string | null;
+  planned_end?: string | null;
   actual_start?: string | null;
   actual_end?: string | null;
   expected_effort: number | string;
   actual_effort: number | string;
   progress: number | string;
+  is_schedule_at_risk?: boolean;
+  is_deadline_at_risk?: boolean;
   created_at?: string;
   updated_at?: string;
   assigned_resource_ids?: number[];
@@ -293,11 +297,17 @@ export interface ResourceWorkloadTask {
   title: string;
   priority: TaskPriority;
   status: TaskStatus;
-  start_date: string | null;
+  start_date?: string | null;
   deadline: string | null;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  actual_start?: string | null;
+  actual_end?: string | null;
   expected_effort: number | string;
   actual_effort: number | string;
   progress: number | string;
+  is_schedule_at_risk?: boolean;
+  is_deadline_at_risk?: boolean;
 }
 
 export interface ResourceWorkload {
@@ -330,7 +340,6 @@ export interface CreateTaskPayload {
   description?: string | null;
   priority?: TaskPriority;
   status?: TaskStatus;
-  start_date?: string | null;
   deadline?: string | null;
   expected_effort: number;
   assigned_resource_ids?: number[];
@@ -386,7 +395,6 @@ export interface UpdateTaskPayload {
   description?: string | null;
   priority?: TaskPriority;
   status?: TaskStatus;
-  start_date?: string | null;
   deadline?: string | null;
   expected_effort?: number;
   actual_effort?: number;
@@ -681,6 +689,86 @@ export async function resetPasswordApi(params: ResetPasswordParams): Promise<{ m
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to reset password');
+  }
+
+  return data;
+}
+
+export interface TaskSession {
+  session_id: number;
+  task_id: number;
+  user_id?: number;
+  start_time: string;
+  end_time?: string | null;
+  is_active?: boolean;
+}
+
+export interface StopSessionPayload {
+  progress_logged: number;
+  notes: string;
+  blockers?: string | null;
+}
+
+/**
+ * Start a working session for a task (RESOURCE role)
+ * POST /api/tasks/:id/session/start
+ */
+export async function startTaskSessionApi(
+  taskId: number,
+): Promise<{ message: string; session: TaskSession }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/session/start`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to start session');
+  }
+
+  return data;
+}
+
+/**
+ * Stop the active working session for the user and log work
+ * POST /api/tasks/:id/session/stop
+ */
+export async function stopTaskSessionApi(
+  taskId: number,
+  payload: StopSessionPayload,
+): Promise<{ message: string; log: WorkLog }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/session/stop`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to stop session');
+  }
+
+  return data;
+}
+
+/**
+ * Manually trigger scheduling engine recalculation for a project
+ * POST /api/scheduler/project/:projectId/recalculate
+ */
+export async function recalculateProjectScheduleApi(
+  projectId: number,
+): Promise<{ message: string; project_id: number }> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/scheduler/project/${projectId}/recalculate`,
+    {
+      method: 'POST',
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to recalculate project schedule');
   }
 
   return data;

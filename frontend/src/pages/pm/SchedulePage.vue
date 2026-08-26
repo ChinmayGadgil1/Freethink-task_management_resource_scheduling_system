@@ -473,10 +473,36 @@
 
         <template #body-cell-dates="props">
           <q-td :props="props" class="date-cell">
-            <div class="row items-center no-wrap">
-              <span>{{ formatDate(props.row.start_date) }}</span>
-              <span class="q-mx-xs text-grey-5">→</span>
-              <span>{{ formatDate(props.row.deadline) }}</span>
+            <div class="column">
+              <div class="row items-center no-wrap">
+                <span>{{ formatDate(props.row.planned_start || props.row.actual_start || props.row.start_date) }}</span>
+                <span class="q-mx-xs text-grey-5">→</span>
+                <span>{{ formatDate(props.row.planned_end || props.row.deadline) }}</span>
+              </div>
+              <div v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk" class="row items-center gap-xs q-mt-xs">
+                <q-chip
+                  v-if="props.row.is_deadline_at_risk"
+                  dense
+                  square
+                  color="red-1"
+                  text-color="red-9"
+                  icon="warning"
+                  style="font-size: 10px; height: 18px"
+                >
+                  Deadline Risk
+                </q-chip>
+                <q-chip
+                  v-if="props.row.is_schedule_at_risk"
+                  dense
+                  square
+                  color="amber-1"
+                  text-color="amber-9"
+                  icon="schedule"
+                  style="font-size: 10px; height: 18px"
+                >
+                  Schedule Risk
+                </q-chip>
+              </div>
             </div>
           </q-td>
         </template>
@@ -616,16 +642,7 @@
             </div>
 
             <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-input
-                  v-model="editForm.start_date"
-                  outlined
-                  dense
-                  type="date"
-                  label="Start Date"
-                />
-              </div>
-              <div class="col-6">
+              <div class="col-12">
                 <q-input v-model="editForm.deadline" outlined dense type="date" label="Deadline" />
               </div>
             </div>
@@ -870,8 +887,12 @@ const monthMatrixDays = computed(() => {
 function getTasksOnDate(date: Date): Task[] {
   const targetDateStr = date.toISOString().slice(0, 10);
   return filteredTasks.value.filter((t) => {
-    const startStr = t.start_date ? t.start_date.slice(0, 10) : '';
-    const endStr = t.deadline ? t.deadline.slice(0, 10) : startStr;
+    const startStr = (t.planned_start || t.actual_start || t.start_date)
+      ? (t.planned_start || t.actual_start || t.start_date)!.slice(0, 10)
+      : '';
+    const endStr = (t.planned_end || t.deadline)
+      ? (t.planned_end || t.deadline)!.slice(0, 10)
+      : startStr;
 
     if (!startStr && !endStr) return false;
     if (startStr && !endStr) return startStr === targetDateStr;
@@ -914,8 +935,12 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
   }
 
   filteredTasks.value.forEach((task) => {
-    const taskStartStr = task.start_date ? task.start_date.slice(0, 10) : '';
-    const taskEndStr = task.deadline ? task.deadline.slice(0, 10) : taskStartStr;
+    const taskStartStr = (task.planned_start || task.actual_start || task.start_date)
+      ? (task.planned_start || task.actual_start || task.start_date)!.slice(0, 10)
+      : '';
+    const taskEndStr = (task.planned_end || task.deadline)
+      ? (task.planned_end || task.deadline)!.slice(0, 10)
+      : taskStartStr;
 
     days.forEach((dayObj, colIdx) => {
       const curDateStr = dayObj.toISOString().slice(0, 10);
@@ -941,8 +966,9 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
       let durationHours = Math.min(4, Math.max(1, effortNum / 3));
 
       // Parse time if present in ISO string
-      if (task.start_date && task.start_date.includes('T')) {
-        const timePart = task.start_date.split('T')[1];
+      const rawStart = task.planned_start || task.actual_start || task.start_date;
+      if (rawStart && rawStart.includes('T')) {
+        const timePart = rawStart.split('T')[1];
         if (timePart) {
           const [hh, mm] = timePart.split(':').map(Number);
           if (hh !== undefined && !Number.isNaN(hh)) {
@@ -1152,7 +1178,6 @@ const createForm = reactive<{
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
-  start_date: string;
   deadline: string;
 }>({
   project_id: null,
@@ -1161,7 +1186,6 @@ const createForm = reactive<{
   priority: 'MEDIUM',
   status: 'UNASSIGNED',
   expected_effort: 8,
-  start_date: '',
   deadline: '',
 });
 
@@ -1171,7 +1195,6 @@ const editForm = reactive<{
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   progress: number;
   expected_effort: number;
-  start_date: string;
   deadline: string;
 }>({
   title: '',
@@ -1179,7 +1202,6 @@ const editForm = reactive<{
   priority: 'MEDIUM',
   progress: 0,
   expected_effort: 8,
-  start_date: '',
   deadline: '',
 });
 
@@ -1188,7 +1210,6 @@ function openCreateTaskDialog() {
   createForm.description = '';
   createForm.priority = 'MEDIUM';
   createForm.status = 'UNASSIGNED';
-  createForm.start_date = currentAnchorDate.value.toISOString().slice(0, 10);
   createForm.deadline = '';
   if (projects.value.length > 0 && projects.value[0]) {
     createForm.project_id = projects.value[0].project_id;
@@ -1209,7 +1230,6 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       priority: data.priority,
       status: data.status,
       expected_effort: Number(data.expected_effort) || 8,
-      start_date: data.start_date || null,
       deadline: data.deadline || null,
     });
 
@@ -1238,7 +1258,6 @@ function openEditModal(task: Task) {
   editForm.priority = task.priority;
   editForm.progress = Number(task.progress) || 0;
   editForm.expected_effort = Number(task.expected_effort) || 8;
-  editForm.start_date = task.start_date?.split('T')[0] ?? '';
   editForm.deadline = task.deadline?.split('T')[0] ?? '';
   showEditDialog.value = true;
 }
@@ -1254,7 +1273,6 @@ async function handleUpdateTask() {
       priority: editForm.priority,
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
-      start_date: editForm.start_date || null,
       deadline: editForm.deadline || null,
     });
 

@@ -53,7 +53,7 @@
               <div class="task-meta-row row items-center gap-xs">
                 <span class="project-pill">{{ task.project }}</span>
                 <span class="effort-pill"
-                  >{{ task.actualEffort }}h / {{ task.expectedEffort }}h</span
+                  >{{ formatHours(task.actualEffort) }} / {{ formatHours(task.expectedEffort) }}</span
                 >
               </div>
             </div>
@@ -109,6 +109,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatHours } from '@/utils/formatters';
+
 interface TimelineDay {
   weekday: string;
   dayNum: number;
