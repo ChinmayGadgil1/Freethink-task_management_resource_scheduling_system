@@ -588,3 +588,45 @@ export async function removeTaskDependencyController(req: AuthRequest, res: Resp
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
+
+export async function startSessionController(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        if (req.user?.role !== "RESOURCE") {
+            return res.status(403).json({ message: "Only resources can start a session" });
+        }
+        const taskId = Number(req.params.id);
+        const { startSession } = await import("../services/workLogService.js");
+        const session = await startSession(taskId, req.user.user_id);
+        return res.status(201).json({ message: "Session started", session });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+const stopSessionSchema = z.object({
+    progress_logged: z.number().min(0).max(100),
+    notes: z.string().min(1),
+    blockers: z.string().nullable().optional()
+});
+
+export async function stopSessionController(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        if (req.user?.role !== "RESOURCE") {
+            return res.status(403).json({ message: "Only resources can stop a session" });
+        }
+        const parsed = stopSessionSchema.parse(req.body);
+        const { stopSession } = await import("../services/workLogService.js");
+        const log = await stopSession(
+            req.user.user_id,
+            parsed.progress_logged,
+            parsed.notes,
+            parsed.blockers ?? null
+        );
+        return res.status(200).json({ message: "Session stopped and work logged", log });
+    } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ message: "Validation error", errors: error.issues });
+        }
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}

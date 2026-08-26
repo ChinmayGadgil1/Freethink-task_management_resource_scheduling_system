@@ -174,3 +174,91 @@ export async function getRecentWorkLogsForManager(projectManagerId: number, limi
 
     return logs;
 }
+
+export async function startSession(taskId: number, userId: number) {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // Ensure user has no other active sessions
+        const [activeSessions] = await connection.query<RowDataPacket[]>(
+            "SELECT session_id, task_id FROM task_sessions WHERE user_id = ? AND is_active = TRUE",
+            [userId]
+        );
+
+        if (activeSessions.length > 0) {
+            throw new Error(`User already has an active session for task ${activeSessions[0]!.task_id}`);
+        }
+
+        const [result] = await connection.query<ResultSetHeader>(
+            "INSERT INTO task_sessions (task_id, user_id, start_time, is_active) VALUES (?, ?, NOW(), TRUE)",
+            [taskId, userId]
+        );
+
+        await connection.commit();
+        return { session_id: result.insertId, task_id: taskId, start_time: new Date() };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+export async function getActiveSession(userId: number) {
+    const pool = getPool();
+    const [sessions] = await pool.query<RowDataPacket[]>(
+        "SELECT * FROM task_sessions WHERE user_id = ? AND is_active = TRUE LIMIT 1",
+        [userId]
+    );
+    return sessions.length > 0 ? sessions[0] : null;
+}
+
+export async function stopSession(userId: number, progressLogged: number, notes: string, blockers: string | null) {
+    const pool = getPool();
+    
+    // Get active session
+    const activeSession = await getActiveSession(userId);
+    if (!activeSession) {
+        throw new Error("No active session found for this user");
+    }
+
+    const taskId = activeSession.task_id;
+    const startTime = new Date(activeSession.start_time);
+    const endTime = new Date();
+    
+    // Calculate hours logged
+    const diffMs = endTime.getTime() - startTime.getTime();
+    let hoursLogged = diffMs / (1000 * 60 * 60);
+    
+    // Ensure at least a small amount of time is logged if they start and stop immediately
+    if (hoursLogged < 0.01) hoursLogged = 0.01;
+
+    // First mark session as inactive
+    await pool.query(
+        "UPDATE task_sessions SET end_time = NOW(), is_active = FALSE WHERE session_id = ?",
+        [activeSession.session_id]
+    );
+
+    // Call createWorkLog
+    const logDate = endTime.toISOString().split('T')[0]!;
+    
+    // Fetch task current status
+    const [tasks] = await pool.query<RowDataPacket[]>("SELECT status FROM tasks WHERE task_id = ?", [taskId]);
+    const currentStatus = tasks[0]?.status || 'IN_PROGRESS';
+    
+    const workLog = await createWorkLog(
+        taskId,
+        userId,
+        hoursLogged,
+        progressLogged,
+        currentStatus,
+        notes,
+        blockers,
+        logDate
+    );
+    
+    return workLog;
+}

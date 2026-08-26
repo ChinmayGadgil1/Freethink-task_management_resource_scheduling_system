@@ -137,15 +137,34 @@ export async function getTasksList(filters: {
     query += " GROUP BY t.task_id ORDER BY t.created_at DESC";
 
     const [tasks] = await pool.query<RowDataPacket[]>(query, params);
-    return tasks.map(t => ({
-        ...t,
-        assigned_resource_ids: t.assigned_resource_ids
-            ? t.assigned_resource_ids.split(",").map(Number)
-            : [],
-        predecessor_task_ids: t.predecessor_task_ids
-        ? t.predecessor_task_ids.split(",").map(Number)
-        : []
-    }));
+    return tasks.map(t => {
+        const remainingEffort = Math.max(0, Number(t.expected_effort) - Number(t.actual_effort));
+        const remainingDays = Math.ceil(remainingEffort / 8);
+        const projectedEnd = new Date();
+        projectedEnd.setDate(projectedEnd.getDate() + remainingDays);
+
+        let is_schedule_at_risk = false;
+        let is_deadline_at_risk = false;
+
+        if (t.planned_end && projectedEnd > new Date(t.planned_end)) {
+            is_schedule_at_risk = true;
+        }
+        if (t.deadline && projectedEnd > new Date(t.deadline)) {
+            is_deadline_at_risk = true;
+        }
+
+        return {
+            ...t,
+            is_schedule_at_risk,
+            is_deadline_at_risk,
+            assigned_resource_ids: t.assigned_resource_ids
+                ? t.assigned_resource_ids.split(",").map(Number)
+                : [],
+            predecessor_task_ids: t.predecessor_task_ids
+                ? t.predecessor_task_ids.split(",").map(Number)
+                : []
+        };
+    });
 }
 
 export async function getTaskById(taskId: number) {
@@ -172,8 +191,25 @@ export async function getTaskById(taskId: number) {
     if (!task) {
         return null;
     }
+    const remainingEffort = Math.max(0, Number(task.expected_effort) - Number(task.actual_effort));
+    const remainingDays = Math.ceil(remainingEffort / 8);
+    const projectedEnd = new Date();
+    projectedEnd.setDate(projectedEnd.getDate() + remainingDays);
+
+    let is_schedule_at_risk = false;
+    let is_deadline_at_risk = false;
+
+    if (task.planned_end && projectedEnd > new Date(task.planned_end)) {
+        is_schedule_at_risk = true;
+    }
+    if (task.deadline && projectedEnd > new Date(task.deadline)) {
+        is_deadline_at_risk = true;
+    }
+
     return {
         ...task,
+        is_schedule_at_risk,
+        is_deadline_at_risk,
         assigned_resource_ids: task.assigned_resource_ids
             ? task.assigned_resource_ids.split(",").map(Number)
             : [],
