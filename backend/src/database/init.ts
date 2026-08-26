@@ -144,6 +144,21 @@ export async function initializeDatabase() {
     console.log("Work logs table created successfully.");
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS task_sessions (
+            session_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            task_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            start_time TIMESTAMP NOT NULL,
+            end_time TIMESTAMP NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    `);
+
+    console.log("Task sessions table created successfully.");
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS task_schedules (
             schedule_id BIGINT AUTO_INCREMENT PRIMARY KEY,
             task_id BIGINT NOT NULL,
