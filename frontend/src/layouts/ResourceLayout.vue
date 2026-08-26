@@ -86,6 +86,12 @@
                   </q-item-section>
                 </q-item>
                 <q-separator />
+                <q-item clickable v-close-popup @click="openResetPasswordDialog">
+                  <q-item-section avatar>
+                    <q-icon name="lock_reset" color="primary" />
+                  </q-item-section>
+                  <q-item-section>Reset Password</q-item-section>
+                </q-item>
                 <q-item clickable v-close-popup @click="logout">
                   <q-item-section avatar>
                     <q-icon name="logout" color="negative" />
@@ -103,6 +109,95 @@
     <q-page-container class="resource-page-container">
       <router-view />
     </q-page-container>
+    <!-- Reset Password Dialog -->
+    <q-dialog v-model="resetPasswordDialog" persistent>
+      <q-card style="min-width: 350px; border-radius: 12px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-weight-bold">Reset Password</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-md">
+          <q-form @submit.prevent="handleResetPasswordSubmit" class="q-gutter-md">
+            <q-input
+              v-model="resetForm.oldPassword"
+              :type="showOldPassword ? 'text' : 'password'"
+              label="Current Password"
+              outlined
+              dense
+              lazy-rules
+              :rules="[val => !!val || 'Current password is required']"
+            >
+              <template #append>
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  :label="showOldPassword ? 'Hide' : 'Show'"
+                  @click="showOldPassword = !showOldPassword"
+                />
+              </template>
+            </q-input>
+            <q-input
+              v-model="resetForm.newPassword"
+              :type="showNewPassword ? 'text' : 'password'"
+              label="New Password"
+              outlined
+              dense
+              lazy-rules
+              :rules="[
+                val => !!val || 'New password is required',
+                val => val.length >= 6 || 'New password must be at least 6 characters',
+                val => /^[A-Z]/.test(val) || 'New password must start with a capital letter',
+                val => /[0-9]/.test(val) || 'New password must contain at least one number',
+                val => /[^A-Za-z0-9]/.test(val) || 'New password must contain at least one special character'
+              ]"
+            >
+              <template #append>
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  :label="showNewPassword ? 'Hide' : 'Show'"
+                  @click="showNewPassword = !showNewPassword"
+                />
+              </template>
+            </q-input>
+            <q-input
+              v-model="resetForm.confirmNewPassword"
+              :type="showConfirmNewPassword ? 'text' : 'password'"
+              label="Confirm New Password"
+              outlined
+              dense
+              lazy-rules
+              :rules="[
+                val => !!val || 'Please confirm your new password',
+                val => val === resetForm.newPassword || 'New passwords do not match'
+              ]"
+            >
+              <template #append>
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  :label="showConfirmNewPassword ? 'Hide' : 'Show'"
+                  @click="showConfirmNewPassword = !showConfirmNewPassword"
+                />
+              </template>
+            </q-input>
+
+            <div class="row justify-end q-mt-md">
+              <q-btn label="Cancel" flat v-close-popup class="q-mr-sm" />
+              <q-btn label="Reset Password" color="primary" type="submit" :loading="resetLoading" />
+            </div>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-layout>
 </template>
 
@@ -113,6 +208,7 @@ import { useQuasar } from 'quasar';
 import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
+import { resetPasswordApi } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -161,6 +257,55 @@ function toggleDarkMode() {
 onMounted(() => {
   themeStore.initTheme();
 });
+
+const resetPasswordDialog = ref(false);
+const resetLoading = ref(false);
+const resetForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmNewPassword: '',
+});
+
+const showOldPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmNewPassword = ref(false);
+
+function openResetPasswordDialog() {
+  resetForm.value = {
+    oldPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  };
+  showOldPassword.value = false;
+  showNewPassword.value = false;
+  showConfirmNewPassword.value = false;
+  resetPasswordDialog.value = true;
+}
+
+async function handleResetPasswordSubmit() {
+  if (!authStore.user?.email) return;
+  resetLoading.value = true;
+  try {
+    await resetPasswordApi({
+      email: authStore.user.email,
+      oldPassword: resetForm.value.oldPassword,
+      newPassword: resetForm.value.newPassword,
+    });
+    $q.notify({
+      type: 'positive',
+      message: 'Password reset successfully',
+    });
+    resetPasswordDialog.value = false;
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to reset password',
+    });
+  } finally {
+    resetLoading.value = false;
+  }
+}
 
 const user = computed(() => authStore.user);
 const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCase());
