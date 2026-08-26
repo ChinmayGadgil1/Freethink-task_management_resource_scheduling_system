@@ -1,9 +1,9 @@
 <template>
   <header class="landing-navbar-wrapper">
-    <div class="landing-navbar container">
+    <div class="landing-navbar container row items-center justify-between">
       <!-- Brand Logo -->
-      <div class="brand" @click="goToRoot">
-        <div class="brand-icon">
+      <div class="brand row items-center gap-xs cursor-pointer" @click="goToRoot">
+        <div class="brand-icon flex flex-center">
           <svg
             width="24"
             height="24"
@@ -25,7 +25,7 @@
       </div>
 
       <!-- Desktop Navigation Links -->
-      <nav class="nav-links gt-sm">
+      <nav class="nav-links gt-sm row items-center">
         <a href="#features" class="nav-link" @click.prevent="scrollTo('features')">Features</a>
         <a href="#how-it-works" class="nav-link" @click.prevent="scrollTo('how-it-works')"
           >How It Works</a
@@ -34,7 +34,7 @@
       </nav>
 
       <!-- Auth Actions -->
-      <div class="nav-actions gt-sm">
+      <div class="nav-actions gt-sm row items-center gap-sm">
         <!-- Theme Toggle -->
         <q-btn
           flat
@@ -87,8 +87,8 @@
     <q-dialog v-model="mobileDrawerOpen" position="top" class="mobile-nav-dialog">
       <q-card class="mobile-nav-card q-pa-md">
         <div class="row items-center justify-between q-pb-sm">
-          <div class="brand" @click="goToRoot">
-            <div class="brand-icon">
+          <div class="brand row items-center gap-xs cursor-pointer" @click="goToRoot">
+            <div class="brand-icon flex flex-center">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <rect width="24" height="24" rx="6" fill="#8B6FD8" />
                 <path
@@ -214,23 +214,10 @@ function scrollToAndClose(sectionId: string) {
 
 .landing-navbar {
   height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
   user-select: none;
-}
-
-.brand-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .brand-name {
@@ -241,8 +228,6 @@ function scrollToAndClose(sectionId: string) {
 }
 
 .nav-links {
-  display: flex;
-  align-items: center;
   gap: 32px;
 }
 
@@ -257,12 +242,6 @@ function scrollToAndClose(sectionId: string) {
   &:hover {
     color: #8b6fd8;
   }
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
 }
 
 .login-btn {

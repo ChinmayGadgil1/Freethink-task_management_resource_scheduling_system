@@ -1,13 +1,13 @@
 <template>
-  <div class="task-row cursor-pointer" @click="handleRowClick">
+  <div class="task-row row items-center gap-xs cursor-pointer" @click="handleRowClick">
     <q-avatar size="26px" class="task-avatar">
       <img v-if="avatar" :src="avatar" :alt="title" />
       <span v-else>{{ initials }}</span>
     </q-avatar>
 
-    <div class="task-info">
-      <div class="task-title" :title="title">{{ title }}</div>
-      <div class="task-project">{{ project }}</div>
+    <div class="task-info col">
+      <div class="task-title ellipsis" :title="title">{{ title }}</div>
+      <div class="task-project ellipsis">{{ project }}</div>
     </div>
 
     <div class="task-date">{{ date }}</div>
@@ -63,9 +63,6 @@ function goToProjects() {
 <style scoped lang="scss">
 .task-row {
   min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 6px 4px;
   border-top: 1px solid #f2f4f7;
   transition: background-color 0.15s ease;
@@ -98,26 +95,19 @@ function goToProjects() {
 
 .task-info {
   min-width: 0;
-  flex: 1;
 }
 
 .task-title {
-  overflow: hidden;
   color: var(--wo-text-main, #1d2433);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.3;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .task-project {
   margin-top: 1px;
-  overflow: hidden;
   color: var(--wo-text-subtle, #98a2b3);
   font-size: 10px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .task-date {

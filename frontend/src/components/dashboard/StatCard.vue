@@ -13,9 +13,9 @@
     <q-card-section class="stat-card-inner">
       <!-- Badge layout: Top row with Icon on left and Badge Pill on right -->
       <template v-if="badge">
-        <div class="stat-card-top-row">
+        <div class="stat-card-top-row row items-center justify-between q-mb-sm">
           <div
-            class="stat-icon-wrapper"
+            class="stat-icon-wrapper flex flex-center"
             :style="{ backgroundColor: resolvedBgColor, color: resolvedColor }"
           >
             <q-icon :name="icon" size="20px" />
@@ -31,7 +31,7 @@
           </span>
         </div>
 
-        <div class="stat-badge-bottom">
+        <div class="stat-badge-bottom column">
           <div class="stat-value" :class="{ 'text-negative': isNegative }">{{ value }}</div>
           <div class="stat-title">{{ title }}</div>
           <div v-if="subtitle" class="stat-meta" :class="[noteClass, { negative: isNegative }]">
@@ -42,15 +42,15 @@
 
       <!-- Standard layout: Horizontal icon on left, content on right -->
       <template v-else>
-        <div class="stat-standard-layout">
+        <div class="stat-standard-layout row items-center gap-sm">
           <div
-            class="stat-icon-wrapper"
+            class="stat-icon-wrapper flex flex-center"
             :style="{ backgroundColor: resolvedBgColor, color: resolvedColor }"
           >
             <q-icon :name="icon" size="22px" />
           </div>
 
-          <div class="stat-content">
+          <div class="stat-content column col">
             <div class="stat-title ellipsis" :title="title">{{ title }}</div>
             <div class="stat-value ellipsis" :class="{ 'text-negative': isNegative }">
               {{ value }}
@@ -178,27 +178,15 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 }
 
 /* Standard horizontal layout */
-.stat-standard-layout {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
 .stat-icon-wrapper {
   width: 44px;
   height: 44px;
   flex: 0 0 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 10px;
 }
 
 .stat-content {
   min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 }
 
 .stat-title {
@@ -236,13 +224,6 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   justify-content: space-between;
 }
 
-.stat-card-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
 .stat-badge-pill {
   font-size: 10px;
   font-weight: 700;
@@ -253,9 +234,6 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 }
 
 .stat-badge-bottom {
-  display: flex;
-  flex-direction: column;
-
   .stat-value {
     font-size: 26px;
     margin-top: 0;

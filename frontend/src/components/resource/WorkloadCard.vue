@@ -11,7 +11,7 @@
         <q-badge color="primary" label="Allocated Effort" class="load-badge" />
       </div>
 
-      <div class="effort-hero-display q-mt-md">
+      <div class="effort-hero-display column q-mt-md">
         <div class="effort-big-number">{{ allocatedHours }}<span class="unit-text">h</span></div>
         <div class="effort-progress-block q-mt-xs">
           <div class="row justify-between q-mb-xs">
@@ -91,11 +91,6 @@ const consumedPct = computed(() =>
   font-size: 10.5px;
   font-weight: 700;
   background: var(--wo-primary, #8b6fd8) !important;
-}
-
-.effort-hero-display {
-  display: flex;
-  flex-direction: column;
 }
 
 .effort-big-number {

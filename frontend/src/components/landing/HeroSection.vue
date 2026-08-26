@@ -42,7 +42,7 @@
           </div>
 
           <!-- Value Prop Badges -->
-          <div class="hero-indicators-row row items-center q-gutter-x-md q-gutter-y-xs">
+          <div class="hero-indicators-row row wrap items-center q-gutter-x-md q-gutter-y-xs">
             <div class="indicator-item">
               <span class="indicator-icon">✦</span>
               <span>Smart Scheduling</span>
@@ -63,9 +63,9 @@
           <div class="mockup-frame-wrapper">
             <div class="mockup-device-card">
               <!-- Top Device Bar -->
-              <div class="device-header">
-                <div class="header-left">
-                  <div class="brand-avatar-mini">
+              <div class="device-header row items-center justify-between">
+                <div class="header-left row items-center gap-xs">
+                  <div class="brand-avatar-mini flex flex-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                       <rect width="24" height="24" rx="6" fill="#8B6FD8" />
                       <path
@@ -269,12 +269,6 @@ function scrollToFeatures() {
   }
 }
 
-.hero-indicators-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
 .indicator-item {
   display: inline-flex;
   align-items: center;
@@ -322,23 +316,8 @@ function scrollToFeatures() {
 }
 
 .device-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding-bottom: 8px;
   border-bottom: 1px solid #f1f5f9;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.brand-avatar-mini {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .device-user-title {

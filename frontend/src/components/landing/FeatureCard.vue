@@ -1,10 +1,10 @@
 <template>
-  <div class="feature-card">
-    <div class="feature-icon-wrapper" :style="{ background: iconBg, color: iconColor }">
+  <div class="feature-card column gap-md">
+    <div class="feature-icon-wrapper flex flex-center no-shrink" :style="{ background: iconBg, color: iconColor }">
       <q-icon :name="icon" size="24px" />
     </div>
 
-    <div class="feature-body">
+    <div class="feature-body column gap-xs">
       <h3 class="feature-title">{{ title }}</h3>
       <p class="feature-description">{{ description }}</p>
     </div>
@@ -27,9 +27,6 @@ defineProps<{
   border: 1px solid #edf0f5;
   border-radius: 16px;
   padding: 28px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
   height: 100%;
@@ -45,21 +42,11 @@ defineProps<{
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
   transition: transform 0.2s ease;
 }
 
 .feature-card:hover .feature-icon-wrapper {
   transform: scale(1.05);
-}
-
-.feature-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .feature-title {

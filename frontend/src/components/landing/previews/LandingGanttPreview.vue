@@ -92,7 +92,7 @@
                 <span
                   v-for="(assignee, aIdx) in task.assignees"
                   :key="aIdx"
-                  class="assignee-avatar-pill"
+                  class="assignee-avatar-pill flex flex-center"
                   :title="assignee"
                 >
                   {{ assignee.charAt(0) }}
@@ -413,9 +413,6 @@ const previewTasks: PreviewGanttTask[] = [
   color: #1e293b;
   font-size: 9.5px;
   font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border: 1px solid rgba(0, 0, 0, 0.1);
   margin-left: -4px;
 

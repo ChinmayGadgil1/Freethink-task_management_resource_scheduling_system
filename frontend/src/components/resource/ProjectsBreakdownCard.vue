@@ -20,12 +20,12 @@
 
     <div v-else class="projects-list-body">
       <div v-for="(row, idx) in projects" :key="row.project" class="project-row">
-        <div class="project-info-col">
-          <div class="project-icon-box" :class="getProjectThemeClass(idx)">
+        <div class="project-info-col row items-center gap-sm">
+          <div class="project-icon-box flex flex-center no-shrink" :class="getProjectThemeClass(idx)">
             <q-icon :name="getProjectIcon(idx)" size="18px" />
           </div>
           <div class="project-text-wrap">
-            <div class="project-name">{{ row.project }}</div>
+            <div class="project-name ellipsis">{{ row.project }}</div>
             <div class="project-meta-caption">
               {{ row.tasks }} assigned tasks · Due {{ row.deadline }}
             </div>
@@ -43,7 +43,7 @@
           />
         </div>
 
-        <div class="project-side-col">
+        <div class="project-side-col row items-center justify-end gap-xs">
           <span class="status-pill" :class="statusClass(row.status)">{{ row.status }}</span>
           <span class="progress-pct-label">{{ row.progress }}%</span>
         </div>
@@ -133,9 +133,6 @@ function getProjectIcon(idx: number): string {
 }
 
 .project-info-col {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   min-width: 0;
 }
 
@@ -143,10 +140,6 @@ function getProjectIcon(idx: number): string {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 
   &.theme-purple {
     background: rgba(139, 111, 216, 0.14);
@@ -174,9 +167,6 @@ function getProjectIcon(idx: number): string {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--wo-text-main, #1e293b);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .project-meta-caption {
@@ -191,13 +181,6 @@ function getProjectIcon(idx: number): string {
 
 .project-progress-bar {
   border-radius: 4px;
-}
-
-.project-side-col {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: flex-end;
 }
 
 .progress-pct-label {

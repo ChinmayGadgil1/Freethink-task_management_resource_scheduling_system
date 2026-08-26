@@ -6,12 +6,12 @@
     </q-card-section>
     <q-separator />
 
-    <div v-if="tasks.length === 0" class="empty-block">
+    <div v-if="tasks.length === 0" class="empty-block q-pa-lg text-center">
       <q-icon name="event_available" size="28px" color="grey-5" />
       <div class="text-caption text-grey-6 q-mt-sm">Nothing coming up — you're all caught up.</div>
     </div>
 
-    <div v-for="task in tasks" :key="task.id" class="task-row">
+    <div v-for="task in tasks" :key="task.id" class="task-row row items-center justify-between gap-sm">
       <div class="task-info">
         <div class="task-title">{{ task.name }}</div>
         <div class="task-project">{{ task.project }}</div>
@@ -25,7 +25,7 @@
           style="max-width: 200px"
         />
       </div>
-      <div class="task-side">
+      <div class="task-side text-right no-shrink">
         <span class="priority-pill" :class="`priority-${task.priority.toLowerCase()}`">{{
           task.priority
         }}</span>
@@ -52,14 +52,9 @@ defineEmits<{ (e: 'view-all'): void }>();
 <style scoped lang="scss">
 .empty-block {
   padding: 32px 16px;
-  text-align: center;
 }
 
 .task-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   padding: 14px 16px;
   border-top: 1px solid var(--wo-border-subtle, #f0f2f5);
 }
@@ -81,10 +76,6 @@ defineEmits<{ (e: 'view-all'): void }>();
   color: var(--wo-text-subtle, #98a2b3);
 }
 
-.task-side {
-  text-align: right;
-  flex-shrink: 0;
-}
 .task-due {
   margin-top: 6px;
   font-size: 11px;

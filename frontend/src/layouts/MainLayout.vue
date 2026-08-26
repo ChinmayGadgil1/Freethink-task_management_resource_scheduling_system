@@ -186,7 +186,7 @@
           </q-btn>
 
           <!-- User Profile Dropdown -->
-          <div v-if="user" class="profile cursor-pointer">
+          <div v-if="user" class="profile row items-center gap-xs cursor-pointer">
             <q-avatar size="34px" class="profile-avatar">
               <span class="profile-initial">
                 {{ user.name.charAt(0).toUpperCase() }}
@@ -487,9 +487,6 @@ body.body--dark .app-header {
 }
 
 .profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 4px 8px;
   border-radius: 12px;
   transition: background 0.15s ease;

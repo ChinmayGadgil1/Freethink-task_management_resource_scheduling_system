@@ -11,20 +11,20 @@
     <div class="card-divider" />
 
     <div class="projects-list-body">
-      <div v-for="(row, idx) in showcaseProjects" :key="row.project" class="project-row">
-        <div class="project-info-col">
-          <div class="project-icon-box" :class="getProjectThemeClass(idx)">
+      <div v-for="(row, idx) in showcaseProjects" :key="row.project" class="project-row row items-center gap-md">
+        <div class="project-info-col row items-center gap-sm">
+          <div class="project-icon-box flex flex-center no-shrink" :class="getProjectThemeClass(idx)">
             <q-icon :name="getProjectIcon(idx)" size="18px" />
           </div>
           <div class="project-text-wrap">
-            <div class="project-name">{{ row.project }}</div>
-            <div class="project-meta-caption">
+            <div class="project-name ellipsis">{{ row.project }}</div>
+            <div class="project-meta-caption ellipsis">
               {{ row.tasks }} assigned tasks · Due {{ row.deadline }}
             </div>
           </div>
         </div>
 
-        <div class="project-progress-col">
+        <div class="project-progress-col col">
           <div class="progress-track">
             <div
               class="progress-fill"
@@ -34,7 +34,7 @@
           </div>
         </div>
 
-        <div class="project-side-col">
+        <div class="project-side-col row items-center gap-xs">
           <span class="status-pill" :class="getStatusClass(row.status)">{{ row.status }}</span>
           <span class="progress-pct-label">{{ row.progress }}%</span>
         </div>
@@ -152,9 +152,6 @@ function getProjectIcon(idx: number): string {
 }
 
 .project-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
   padding: 11px 0;
   border-bottom: 1px solid #f8fafc;
 
@@ -164,9 +161,6 @@ function getProjectIcon(idx: number): string {
 }
 
 .project-info-col {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   width: 230px;
   flex-shrink: 0;
 }
@@ -175,10 +169,6 @@ function getProjectIcon(idx: number): string {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 
   &.theme-purple {
     background: #f3e8ff;
@@ -206,22 +196,15 @@ function getProjectIcon(idx: number): string {
   font-size: 13px;
   font-weight: 700;
   color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .project-meta-caption {
   font-size: 11px;
   color: #64748b;
   margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .project-progress-col {
-  flex: 1;
   min-width: 80px;
 }
 
@@ -249,9 +232,6 @@ function getProjectIcon(idx: number): string {
 }
 
 .project-side-col {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -310,11 +290,34 @@ body.body--dark {
     background: #283042;
   }
 
+  .projects-list-body {
+    background: #181d28;
+  }
+
   .project-row {
     border-bottom-color: #283042;
 
     &:hover {
       background: #202636;
+    }
+  }
+
+  .project-icon-box {
+    &.theme-purple {
+      background: rgba(139, 111, 216, 0.18);
+      color: #a78bfa;
+    }
+    &.theme-blue {
+      background: rgba(2, 132, 199, 0.18);
+      color: #38bdf8;
+    }
+    &.theme-orange {
+      background: rgba(234, 88, 12, 0.18);
+      color: #fb923c;
+    }
+    &.theme-teal {
+      background: rgba(13, 148, 136, 0.18);
+      color: #2dd4bf;
     }
   }
 

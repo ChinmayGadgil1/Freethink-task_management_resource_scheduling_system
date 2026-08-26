@@ -4,7 +4,7 @@
       <article
         v-for="project in projects"
         :key="project.name"
-        class="project-card cursor-pointer"
+        class="project-card column cursor-pointer"
         @click="goToProject(project.project_id)"
       >
         <!-- Project Cover Image -->
@@ -13,8 +13,8 @@
           <div class="cover-overlay" />
         </div>
 
-        <div class="project-body">
-          <div class="project-top">
+        <div class="project-body column col">
+          <div class="project-top row items-start justify-between gap-xs">
             <div class="project-name">{{ project.name }}</div>
             <span
               class="project-percent"
@@ -35,8 +35,8 @@
             <span>{{ project.deadline }}</span>
           </div>
 
-          <div class="project-bottom">
-            <div class="avatars-stack">
+          <div class="project-bottom row items-center justify-between">
+            <div class="avatars-stack row items-center">
               <q-avatar
                 v-for="(member, idx) in project.members ?? []"
                 :key="idx"
@@ -45,7 +45,7 @@
               >
                 <img :src="member.avatar" :alt="member.name" />
               </q-avatar>
-              <div v-if="project.extraMembers" class="project-avatar-extra">
+              <div v-if="project.extraMembers" class="project-avatar-extra flex flex-center">
                 +{{ project.extraMembers }}
               </div>
             </div>
@@ -148,8 +148,6 @@ const projects = computed<ProjectCard[]>(() =>
 
 .project-card {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
   border: 1px solid var(--wo-border, #eaecef);
   border-radius: 10px;
   background: var(--wo-bg-card, #ffffff);
@@ -189,16 +187,6 @@ const projects = computed<ProjectCard[]>(() =>
 
 .project-body {
   padding: 12px 12px 12px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.project-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
 }
 
 .project-name {
@@ -239,16 +227,8 @@ const projects = computed<ProjectCard[]>(() =>
 }
 
 .project-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-top: 10px;
   padding-top: 6px;
-}
-
-.avatars-stack {
-  display: flex;
-  align-items: center;
 }
 
 .project-avatar {
@@ -265,9 +245,6 @@ const projects = computed<ProjectCard[]>(() =>
   margin-left: -5px;
   width: 22px;
   height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border: 1.5px solid var(--wo-bg-card, #ffffff);
   border-radius: 50%;
   background: var(--wo-bg-tag, #f4f0fd);

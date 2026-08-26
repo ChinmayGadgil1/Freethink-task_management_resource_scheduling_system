@@ -67,7 +67,7 @@
             }}</q-tooltip>
           </q-btn>
 
-          <div v-if="user" class="profile">
+          <div v-if="user" class="profile row items-center gap-xs cursor-pointer">
             <q-avatar size="34px" class="profile-avatar">
               <span>{{ userInitial }}</span>
             </q-avatar>
@@ -270,12 +270,8 @@ body.body--dark .app-header {
 }
 
 .profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 4px 8px;
   border-radius: 12px;
-  cursor: pointer;
   transition: background 0.15s ease;
 
   &:hover {

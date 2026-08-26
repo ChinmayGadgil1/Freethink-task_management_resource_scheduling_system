@@ -16,7 +16,7 @@
       <div class="column items-center gap-sm full-width q-pt-sm">
         <!-- Toggle / Expand Button (») -->
         <button
-          class="rail-icon-btn menu-toggle-btn"
+          class="rail-icon-btn menu-toggle-btn flex flex-center"
           title="Expand Sidebar (»)"
           @click="toggleMini"
         >
@@ -25,7 +25,7 @@
 
         <!-- Quick Action Button (+) -->
         <button
-          class="rail-quick-add-btn"
+          class="rail-quick-add-btn flex flex-center"
           :title="quickActionTitle || 'Quick Action'"
           @click="handleQuickAction"
         >
@@ -39,11 +39,11 @@
           v-for="item in navItems"
           :key="`rail-${item.to}`"
           :to="item.to"
-          class="rail-icon-item"
+          class="rail-icon-item flex flex-center"
           :class="{ 'rail-item-active': isLinkActive(item.to) }"
           :title="item.title"
         >
-          <div class="rail-icon-box" :class="item.bgClass">
+          <div class="rail-icon-box flex flex-center" :class="item.bgClass">
             <q-icon :name="item.icon" size="18px" />
           </div>
           <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
@@ -54,11 +54,11 @@
         <!-- Help & Support (Mini Mode) -->
         <router-link
           :to="computedHelpRoute"
-          class="rail-icon-item"
+          class="rail-icon-item flex flex-center"
           :class="{ 'rail-item-active': isLinkActive(computedHelpRoute) }"
           title="Help & Support"
         >
-          <div class="rail-icon-box bg-teal-soft">
+          <div class="rail-icon-box flex flex-center bg-teal-soft">
             <q-icon name="help_outline" size="18px" />
           </div>
           <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
@@ -75,7 +75,7 @@
         <!-- Brand Header + Shrink Button -->
         <div class="sidebar-brand-row row items-center justify-between no-wrap q-py-xs q-px-xs">
           <div class="row items-center gap-xs cursor-pointer" @click="goToHome">
-            <div class="brand-badge-icon">
+            <div class="brand-badge-icon flex flex-center">
               <span class="brand-sparkle">✦</span>
             </div>
             <div class="brand-title-wrap">
@@ -85,7 +85,7 @@
 
           <!-- Shrink Button («) -->
           <button
-            class="sidebar-shrink-btn"
+            class="sidebar-shrink-btn flex flex-center"
             title="Collapse Sidebar"
             @click="$emit('update:isMini', true)"
           >
@@ -99,7 +99,7 @@
         <div class="menu-category-block q-mt-xs">
           <div class="category-header-label">MAIN MENU</div>
 
-          <nav class="category-nav-list">
+          <nav class="category-nav-list column gap-xs">
             <router-link
               v-for="item in navItems"
               :key="`menu-${item.to}`"
@@ -128,7 +128,7 @@
         <div class="menu-category-block q-mt-md">
           <div class="category-header-label">SYSTEM</div>
 
-          <div class="system-menu-list">
+          <div class="system-menu-list column gap-xs">
             <router-link
               :to="computedHelpRoute"
               class="menu-nav-link"
@@ -256,9 +256,6 @@ function handleQuickAction() {
 .rail-icon-btn {
   width: 40px;
   height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 10px;
   border: none;
   background: transparent;
@@ -275,9 +272,6 @@ function handleQuickAction() {
 .rail-quick-add-btn {
   width: 40px;
   height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 12px;
   border: none;
   background: var(--wo-primary, #8b6fd8);
@@ -302,9 +296,6 @@ function handleQuickAction() {
 .rail-icon-item {
   width: 44px;
   height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 10px;
   margin-bottom: 6px;
   text-decoration: none;
@@ -323,9 +314,6 @@ function handleQuickAction() {
 .rail-icon-box {
   width: 34px;
   height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 8px;
   transition: all 0.2s ease;
 }
@@ -384,9 +372,6 @@ function handleQuickAction() {
   height: 28px;
   border-radius: 8px;
   background: linear-gradient(135deg, #8b6fd8 0%, #6f4fc7 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(139, 111, 216, 0.3);
 }
@@ -406,9 +391,6 @@ function handleQuickAction() {
 .sidebar-shrink-btn {
   width: 28px;
   height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 6px;
   border: 1px solid var(--wo-border, #eaecef);
   background: transparent;
@@ -429,12 +411,6 @@ function handleQuickAction() {
   letter-spacing: 0.05em;
   padding: 0 8px;
   margin-bottom: 6px;
-}
-
-.category-nav-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .menu-nav-link {
@@ -483,8 +459,6 @@ function handleQuickAction() {
 }
 
 .menu-sub-link {
-  display: flex;
-  align-items: center;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 12.5px;
@@ -495,12 +469,6 @@ function handleQuickAction() {
     background: var(--wo-bg-hover, #f4f5f8);
     color: var(--wo-text-main, #1d2433);
   }
-}
-
-.system-menu-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .system-item {

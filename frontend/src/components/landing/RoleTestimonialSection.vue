@@ -24,19 +24,19 @@
       <div class="role-cards-grid row q-col-gutter-md q-pt-md">
         <!-- Card 1: Project Managers -->
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="role-card">
-            <div class="role-card-media media-pm">
-              <div class="media-badge">
+          <div class="role-card column">
+            <div class="role-card-media flex flex-center media-pm">
+              <div class="media-badge row items-center">
                 <q-icon name="assignment" size="14px" class="q-mr-xs" />
                 <span>Planning & Control</span>
               </div>
               <div class="role-avatar-illustration">
-                <div class="avatar-circle av-pm">
+                <div class="avatar-circle flex flex-center av-pm">
                   <q-icon name="person" size="30px" />
                 </div>
               </div>
             </div>
-            <div class="role-card-content">
+            <div class="role-card-content column col gap-xs">
               <h3 class="role-name">Project Managers</h3>
               <span class="role-title-tag">Project & Milestone Leads</span>
               <p class="role-quote">
@@ -49,19 +49,19 @@
 
         <!-- Card 2: Team Members -->
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="role-card">
-            <div class="role-card-media media-member">
-              <div class="media-badge">
+          <div class="role-card column">
+            <div class="role-card-media flex flex-center media-member">
+              <div class="media-badge row items-center">
                 <q-icon name="check_circle" size="14px" class="q-mr-xs" />
                 <span>Daily Execution</span>
               </div>
               <div class="role-avatar-illustration">
-                <div class="avatar-circle av-member">
+                <div class="avatar-circle flex flex-center av-member">
                   <q-icon name="person_outline" size="30px" />
                 </div>
               </div>
             </div>
-            <div class="role-card-content">
+            <div class="role-card-content column col gap-xs">
               <h3 class="role-name">Team Members</h3>
               <span class="role-title-tag">Assigned Work & Progress</span>
               <p class="role-quote">
@@ -74,8 +74,8 @@
 
         <!-- Card 3: Dark CTA Action Card -->
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="role-card dark-cta-card" @click="goToSignup">
-            <div class="dark-cta-inner">
+          <div class="role-card dark-cta-card column" @click="goToSignup">
+            <div class="dark-cta-inner column justify-between gap-md">
               <div class="dark-cta-top">
                 <h3 class="dark-cta-title">
                   Explore TaskFlow<br />
@@ -85,8 +85,8 @@
                 <p class="dark-cta-desc">Join now and experience clarity across every milestone.</p>
               </div>
 
-              <div class="dark-cta-arrow-row">
-                <div class="arrow-circle">
+              <div class="dark-cta-arrow-row row justify-end">
+                <div class="arrow-circle flex flex-center">
                   <q-icon name="arrow_outward" size="22px" />
                 </div>
               </div>
@@ -155,8 +155,6 @@ function goToSignup() {
   border-radius: 16px;
   overflow: hidden;
   height: 100%;
-  display: flex;
-  flex-direction: column;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
 
@@ -170,9 +168,6 @@ function goToSignup() {
 .role-card-media {
   height: 110px;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 12px;
 
   &.media-pm {
@@ -197,17 +192,12 @@ function goToSignup() {
   font-size: 9.5px;
   font-weight: 700;
   color: #334155;
-  display: flex;
-  align-items: center;
 }
 
 .avatar-circle {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
 
   &.av-pm {
@@ -226,10 +216,6 @@ function goToSignup() {
 
 .role-card-content {
   padding: 14px 16px 18px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
 }
 
 .role-name {
@@ -277,10 +263,6 @@ function goToSignup() {
 .dark-cta-inner {
   padding: 20px 18px;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
 }
 
 .dark-cta-title {
@@ -299,11 +281,6 @@ function goToSignup() {
   margin: 0;
 }
 
-.dark-cta-arrow-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .arrow-circle {
   width: 44px;
   height: 44px;
@@ -311,9 +288,6 @@ function goToSignup() {
   background: #1c2230;
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #63c7c1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: all 0.25s ease;
 }
 

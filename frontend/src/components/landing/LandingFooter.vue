@@ -8,8 +8,8 @@
       <div class="footer-top-row row q-col-gutter-xl items-start justify-between">
         <!-- Left: Brand & Large CTA Heading -->
         <div class="col-12 col-md-5 brand-cta-col">
-          <div class="brand" @click="scrollToTop">
-            <div class="brand-icon">
+          <div class="brand row items-center gap-xs cursor-pointer" @click="scrollToTop">
+            <div class="brand-icon flex flex-center">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <rect width="24" height="24" rx="7" fill="#8B6FD8" />
                 <path
@@ -84,24 +84,24 @@
 
         <!-- Social Pills Strip matching reference design -->
         <div class="col-12 col-sm-auto">
-          <div class="social-pills-row row items-center justify-center q-gutter-xs">
-            <a href="javascript:void(0)" class="social-pill-btn" aria-label="Instagram">
+          <div class="social-pills-row row wrap items-center justify-center gap-xs">
+            <a href="javascript:void(0)" class="social-pill-btn row inline items-center gap-xs" aria-label="Instagram">
               <span class="pill-dot teal-dot" />
               <span>Instagram</span>
             </a>
-            <a href="javascript:void(0)" class="social-pill-btn" aria-label="Facebook">
+            <a href="javascript:void(0)" class="social-pill-btn row inline items-center gap-xs" aria-label="Facebook">
               <span class="pill-dot blue-dot" />
               <span>Facebook</span>
             </a>
-            <a href="javascript:void(0)" class="social-pill-btn active-brand-pill" aria-label="TaskFlow">
+            <a href="javascript:void(0)" class="social-pill-btn active-brand-pill row inline items-center gap-xs" aria-label="TaskFlow">
               <span class="pill-dot purple-dot" />
               <span>TaskFlow</span>
             </a>
-            <a href="javascript:void(0)" class="social-pill-btn" aria-label="Twitter">
+            <a href="javascript:void(0)" class="social-pill-btn row inline items-center gap-xs" aria-label="Twitter">
               <span class="pill-dot amber-dot" />
               <span>Twitter</span>
             </a>
-            <a href="javascript:void(0)" class="social-pill-btn" aria-label="YouTube">
+            <a href="javascript:void(0)" class="social-pill-btn row inline items-center gap-xs" aria-label="YouTube">
               <span class="pill-dot pink-dot" />
               <span>YouTube</span>
             </a>
@@ -165,18 +165,8 @@ function scrollTo(sectionId: string) {
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
   margin-bottom: 20px;
   user-select: none;
-}
-
-.brand-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .brand-name {
@@ -261,17 +251,7 @@ function scrollTo(sectionId: string) {
   margin: 0;
 }
 
-/* Social Pills Styling */
-.social-pills-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .social-pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   background: #181d28;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 9999px;

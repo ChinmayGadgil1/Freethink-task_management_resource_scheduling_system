@@ -1,14 +1,14 @@
 <template>
   <div class="landing-stat-card">
-    <div class="stat-inner">
-      <div class="stat-icon-wrap" :class="iconBgClass">
+    <div class="stat-inner row items-center gap-sm">
+      <div class="stat-icon-wrap flex flex-center no-shrink" :class="iconBgClass">
         <q-icon :name="icon" size="20px" :class="iconColorClass" />
       </div>
 
-      <div class="stat-content">
-        <div class="stat-title">{{ title }}</div>
+      <div class="stat-content col">
+        <div class="stat-title ellipsis">{{ title }}</div>
         <div class="stat-value">{{ value }}</div>
-        <div v-if="subtitle" class="stat-subtitle" :class="subtitleColorClass">
+        <div v-if="subtitle" class="stat-subtitle ellipsis" :class="subtitleColorClass">
           {{ subtitle }}
         </div>
       </div>
@@ -107,24 +107,13 @@ const progressFillColor = computed(() => {
   }
 }
 
-.stat-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .stat-icon-wrap {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 .stat-content {
-  flex: 1;
   min-width: 0;
 }
 
@@ -133,9 +122,6 @@ const progressFillColor = computed(() => {
   font-weight: 600;
   color: #64748b;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .stat-value {
@@ -150,9 +136,6 @@ const progressFillColor = computed(() => {
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 
   &.sub-default {
     color: #64748b;

@@ -1,8 +1,8 @@
 <template>
   <div class="task-center">
-    <div v-for="column in columns" :key="column.title" class="task-column">
-      <div class="column-header" :class="column.className">
-        <span class="column-title">
+    <div v-for="column in columns" :key="column.title" class="task-column column">
+      <div class="column-header row items-center justify-between" :class="column.className">
+        <span class="column-title row items-center gap-xs">
           <q-icon :name="column.icon" size="14px" />
           {{ column.title }}
         </span>
@@ -114,8 +114,6 @@ const columns = computed(() => {
   min-width: 0;
   padding: 0 10px 8px;
   border-right: 1px solid var(--wo-border-subtle);
-  display: flex;
-  flex-direction: column;
 }
 
 .task-column:last-child {
@@ -126,9 +124,6 @@ const columns = computed(() => {
   min-height: 38px;
   margin: 0 -10px;
   padding: 0 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   background: var(--wo-bg-card-hover);
   border-bottom: 1px solid var(--wo-border-subtle);
   font-size: 11px;
@@ -136,9 +131,6 @@ const columns = computed(() => {
 }
 
 .column-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   color: var(--wo-text-main);
 }
 

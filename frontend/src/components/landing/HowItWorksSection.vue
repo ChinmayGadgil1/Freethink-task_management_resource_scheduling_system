@@ -15,9 +15,9 @@
       <!-- 3 Step Cards -->
       <div class="steps-grid row q-col-gutter-lg">
         <div v-for="step in steps" :key="step.number" class="col-12 col-md-4">
-          <div class="step-card">
+          <div class="step-card column gap-sm">
             <div class="step-badge">{{ step.number }}</div>
-            <div class="step-icon-box" :style="{ background: step.iconBg, color: step.iconColor }">
+            <div class="step-icon-box flex flex-center" :style="{ background: step.iconBg, color: step.iconColor }">
               <q-icon :name="step.icon" size="26px" />
             </div>
             <h3 class="step-title">{{ step.title }}</h3>
@@ -126,9 +126,6 @@ function goToSignup() {
   border-radius: 18px;
   padding: 36px 28px 30px 28px;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
   transition: all 0.25s ease;
   box-shadow: 0 2px 6px rgba(16, 24, 40, 0.03);
 
@@ -154,9 +151,6 @@ function goToSignup() {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .step-title {

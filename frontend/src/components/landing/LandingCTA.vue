@@ -5,7 +5,7 @@
         <div class="row items-center q-col-gutter-xl">
           <!-- Left Illustration -->
           <div class="col-12 col-md-5 illustration-col flex flex-center">
-            <div class="vector-illustration-box">
+            <div class="vector-illustration-box flex flex-center">
               <svg
                 width="340"
                 height="240"
@@ -120,7 +120,7 @@
           </div>
 
           <!-- Right Content -->
-          <div class="col-12 col-md-7 content-col">
+          <div class="col-12 col-md-7 content-col column gap-md">
             <h2 class="cta-title">Built for teams. Designed for productivity.</h2>
             <p class="cta-subtitle">
               Whether you're a startup or an enterprise, TaskFlow adapts to your workflow and grows
@@ -137,11 +137,11 @@
               />
 
               <div class="badges-row row items-center q-gutter-x-md">
-                <div class="trust-badge">
+                <div class="trust-badge row items-center">
                   <q-icon name="check" size="14px" color="positive" class="q-mr-xs" />
                   <span>No credit card required</span>
                 </div>
-                <div class="trust-badge">
+                <div class="trust-badge row items-center">
                   <q-icon name="check" size="14px" color="positive" class="q-mr-xs" />
                   <span>14-day free trial</span>
                 </div>
@@ -187,20 +187,11 @@ function goToSignup() {
 .vector-illustration-box {
   width: 100%;
   max-width: 340px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .team-illustration-svg {
   width: 100%;
   height: auto;
-}
-
-.content-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .cta-title {
@@ -238,8 +229,6 @@ function goToSignup() {
 }
 
 .trust-badge {
-  display: flex;
-  align-items: center;
   font-size: 13.5px;
   font-weight: 500;
   color: #475467;

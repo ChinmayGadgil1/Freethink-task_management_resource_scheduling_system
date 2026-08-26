@@ -47,7 +47,7 @@
     </div>
 
     <!-- Quick Navigation Category Tabs -->
-    <div class="category-pills-row row items-center q-gutter-xs q-mb-lg">
+    <div class="category-pills-row row wrap items-center q-gutter-xs q-mb-lg">
       <button
         class="category-pill"
         :class="{ 'category-pill-active': activeTab === 'all' }"
@@ -95,7 +95,7 @@
         <!-- SECTION 1: GETTING STARTED GUIDES -->
         <div v-show="activeTab === 'all' || activeTab === 'guides'" class="help-section q-mb-xl">
           <div class="section-title-row row items-center gap-xs q-mb-md">
-            <div class="section-icon-box bg-purple-soft">
+            <div class="section-icon-box flex flex-center bg-purple-soft">
               <q-icon name="menu_book" size="18px" color="primary" />
             </div>
             <div>
@@ -112,7 +112,7 @@
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
-                    <div class="guide-icon-pill bg-purple-soft">
+                    <div class="guide-icon-pill flex flex-center bg-purple-soft">
                       <q-icon name="folder" size="16px" color="primary" />
                     </div>
                     <div class="guide-title">Projects Management</div>
@@ -139,7 +139,7 @@
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
-                    <div class="guide-icon-pill bg-teal-soft">
+                    <div class="guide-icon-pill flex flex-center bg-teal-soft">
                       <q-icon name="task_alt" size="16px" color="teal" />
                     </div>
                     <div class="guide-title">Tasks & Deliverables</div>
@@ -161,7 +161,7 @@
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
-                    <div class="guide-icon-pill bg-orange-soft">
+                    <div class="guide-icon-pill flex flex-center bg-orange-soft">
                       <q-icon name="groups" size="16px" color="orange-9" />
                     </div>
                     <div class="guide-title">Resource Assignment</div>
@@ -180,7 +180,7 @@
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
-                    <div class="guide-icon-pill bg-blue-soft">
+                    <div class="guide-icon-pill flex flex-center bg-blue-soft">
                       <q-icon name="calendar_month" size="16px" color="blue-8" />
                     </div>
                     <div class="guide-title">Scheduling & Gantt</div>
@@ -199,7 +199,7 @@
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
-                    <div class="guide-icon-pill bg-green-soft">
+                    <div class="guide-icon-pill flex flex-center bg-green-soft">
                       <q-icon name="insights" size="16px" color="green-8" />
                     </div>
                     <div class="guide-title">Progress & Work Logs</div>
@@ -218,7 +218,7 @@
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
-                    <div class="guide-icon-pill bg-purple-soft">
+                    <div class="guide-icon-pill flex flex-center bg-purple-soft">
                       <q-icon name="pie_chart" size="16px" color="primary" />
                     </div>
                     <div class="guide-title">Workload & Capacity</div>
@@ -237,7 +237,7 @@
         <!-- SECTION 2: FREQUENTLY ASKED QUESTIONS -->
         <div v-show="activeTab === 'all' || activeTab === 'faqs'" class="help-section q-mb-xl">
           <div class="section-title-row row items-center gap-xs q-mb-md">
-            <div class="section-icon-box bg-teal-soft">
+            <div class="section-icon-box flex flex-center bg-teal-soft">
               <q-icon name="help_outline" size="18px" color="teal" />
             </div>
             <div>
@@ -288,7 +288,7 @@
           <q-card class="contact-support-card">
             <q-card-section class="q-pb-xs">
               <div class="row items-center gap-xs q-mb-xs">
-                <div class="guide-icon-pill bg-purple-soft">
+                <div class="guide-icon-pill flex flex-center bg-purple-soft">
                   <q-icon name="support_agent" size="16px" color="primary" />
                 </div>
                 <h3 class="support-card-title">Contact Support</h3>
@@ -388,7 +388,7 @@
           <q-card class="about-card">
             <q-card-section>
               <div class="row items-center gap-xs q-mb-xs">
-                <div class="brand-badge-mini">
+                <div class="brand-badge-mini flex flex-center">
                   <span>✦</span>
                 </div>
                 <h3 class="about-title">About TaskFlow</h3>
@@ -618,11 +618,6 @@ const filteredFaqs = computed(() => {
   }
 }
 
-.category-pills-row {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .category-pill {
   border: 1px solid var(--wo-border, #eaecef);
   background: var(--wo-bg-card, #ffffff);
@@ -653,9 +648,6 @@ const filteredFaqs = computed(() => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .section-main-title {
@@ -690,9 +682,6 @@ const filteredFaqs = computed(() => {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .guide-title {
@@ -822,9 +811,6 @@ const filteredFaqs = computed(() => {
   border-radius: 6px;
   background: #8b6fd8;
   color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 11px;
 }
 

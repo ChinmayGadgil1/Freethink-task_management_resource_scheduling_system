@@ -25,7 +25,7 @@
             <!-- Highlights List -->
             <div class="highlights-stack column q-gutter-y-sm">
               <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box orange-box">
+                <div class="highlight-icon-box flex flex-center no-shrink orange-box">
                   <q-icon name="flag" size="18px" />
                 </div>
                 <div class="highlight-text-wrap">
@@ -41,7 +41,7 @@
               </div>
 
               <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box purple-box">
+                <div class="highlight-icon-box flex flex-center no-shrink purple-box">
                   <q-icon name="task_alt" size="18px" />
                 </div>
                 <div class="highlight-text-wrap">
@@ -54,7 +54,7 @@
               </div>
 
               <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box teal-box">
+                <div class="highlight-icon-box flex flex-center no-shrink teal-box">
                   <q-icon name="view_kanban" size="18px" />
                 </div>
                 <div class="highlight-text-wrap">
@@ -134,7 +134,7 @@
             <!-- Highlights List -->
             <div class="highlights-stack column q-gutter-y-sm">
               <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box blue-box">
+                <div class="highlight-icon-box flex flex-center no-shrink blue-box">
                   <q-icon name="pie_chart" size="18px" />
                 </div>
                 <div class="highlight-text-wrap">
@@ -147,7 +147,7 @@
               </div>
 
               <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box green-box">
+                <div class="highlight-icon-box flex flex-center no-shrink green-box">
                   <q-icon name="donut_large" size="18px" />
                 </div>
                 <div class="highlight-text-wrap">
@@ -160,7 +160,7 @@
               </div>
 
               <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box orange-box">
+                <div class="highlight-icon-box flex flex-center no-shrink orange-box">
                   <q-icon name="assignment_turned_in" size="18px" />
                 </div>
                 <div class="highlight-text-wrap">
@@ -254,11 +254,7 @@ import LandingStatCard from '@/components/landing/previews/LandingStatCard.vue';
 .highlight-icon-box {
   width: 36px;
   height: 36px;
-  flex-shrink: 0;
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   &.orange-box {
     background: #fff7ed;

@@ -24,14 +24,14 @@
       </div>
 
       <!-- Status Legend List -->
-      <div class="status-list q-mt-md">
-        <div v-for="item in items" :key="item.label" class="status-row">
+      <div class="status-list column gap-sm q-mt-md">
+        <div v-for="item in items" :key="item.label" class="status-row row items-center justify-between">
           <div class="row items-center no-wrap">
             <span class="status-dot" :style="{ background: item.color }" />
             <span class="status-item-label">{{ item.label }}</span>
           </div>
           <div class="row items-center no-wrap gap-xs">
-            <span class="status-item-val">{{ item.value }}</span>
+            <span class="status-item-val text-right">{{ item.value }}</span>
             <span class="status-item-pct">
               ({{ totalTasks ? Math.round((item.value / totalTasks) * 100) : 0 }}%)
             </span>
@@ -101,16 +101,7 @@ const totalTasks = computed(() => props.items.reduce((sum, item) => sum + item.v
   }
 }
 
-.status-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 .status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 6px 10px;
   border-radius: 10px;
   transition: background 0.15s ease;
@@ -139,7 +130,6 @@ const totalTasks = computed(() => props.items.reduce((sum, item) => sum + item.v
   font-weight: 700;
   color: var(--wo-text-main, #1e293b);
   min-width: 18px;
-  text-align: right;
 }
 
 .status-item-pct {

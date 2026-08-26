@@ -4,10 +4,10 @@
       <div
         v-for="(resource, index) in resources"
         :key="resource.user_id"
-        class="resource-card cursor-pointer"
+        class="resource-card column cursor-pointer"
         @click="goToResourceDetails(resource.user_id)"
       >
-        <div class="resource-top">
+        <div class="resource-top row items-center justify-between">
           <q-avatar size="36px" class="resource-avatar">
             {{ resource.initials }}
           </q-avatar>
@@ -35,7 +35,7 @@
         <div class="resource-role">{{ resource.role }}</div>
         <div
           v-if="resource.projectNames && resource.projectNames.length > 0"
-          class="resource-projects"
+          class="resource-projects row wrap gap-xs"
         >
           <span v-for="pName in resource.projectNames" :key="pName" class="project-tag">
             <q-icon name="folder" size="10px" class="q-mr-xs" />{{ pName }}
@@ -266,8 +266,6 @@ watch(
   min-width: 0;
   padding: 4px 14px 8px;
   border-right: 1px solid var(--wo-border-subtle, #f0f2f5);
-  display: flex;
-  flex-direction: column;
 }
 
 .resource-card:first-child {
@@ -277,12 +275,6 @@ watch(
 .resource-card:last-child {
   padding-right: 0;
   border-right: none;
-}
-
-.resource-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .resource-avatar {
@@ -325,9 +317,6 @@ watch(
 }
 
 .resource-projects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
   margin-top: 4px;
 }
 

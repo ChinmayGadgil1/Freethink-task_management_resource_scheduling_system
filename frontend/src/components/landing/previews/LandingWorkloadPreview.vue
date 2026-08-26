@@ -11,7 +11,7 @@
           <span class="badge-pill bg-purple-pill">Allocated Effort</span>
         </div>
 
-        <div class="effort-hero-display q-mt-sm">
+        <div class="effort-hero-display column q-mt-sm">
           <div class="effort-big-number">40<span class="unit-text">h</span></div>
 
           <div class="effort-progress-block q-mt-xs">
@@ -27,15 +27,15 @@
 
         <div class="stat-cells-grid q-mt-md">
           <div class="stat-cell stat-purple">
-            <div class="cell-label">Active tasks</div>
+            <div class="cell-label ellipsis">Active tasks</div>
             <div class="cell-value">6</div>
           </div>
           <div class="stat-cell stat-blue">
-            <div class="cell-label">Actual effort</div>
+            <div class="cell-label ellipsis">Actual effort</div>
             <div class="cell-value">28h</div>
           </div>
           <div class="stat-cell stat-mint">
-            <div class="cell-label">Remaining effort</div>
+            <div class="cell-label ellipsis">Remaining effort</div>
             <div class="cell-value">12h</div>
           </div>
         </div>
@@ -219,9 +219,6 @@
     font-size: 10px;
     font-weight: 600;
     color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .cell-value {
