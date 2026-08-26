@@ -9,7 +9,6 @@ export async function createTask(
     description: string | null,
     priority: TaskPriority,
     status: TaskStatus,
-    startDate: string | null,
     deadline: string | null,
     expectedEffort: number,
     assignedResourceIds?: number[]
@@ -31,11 +30,11 @@ export async function createTask(
         const [result] = await connection.query<ResultSetHeader>(
             `
         INSERT INTO tasks
-            (project_id, created_by, title, description, priority, status, start_date, deadline, expected_effort, progress)
+            (project_id, created_by, title, description, priority, status, deadline, expected_effort, progress)
         VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            (?, ?, ?, ?, ?, ?, ?, ?, 0)
             `,
-            [projectId, createdBy, title, description, priority, initialStatus, startDate, deadline, expectedEffort]
+            [projectId, createdBy, title, description, priority, initialStatus, deadline, expectedEffort]
         );
 
         const taskId = result.insertId;
@@ -76,7 +75,6 @@ export async function createTask(
             description,
             priority,
             status: initialStatus,
-            start_date: startDate,
             deadline,
             expected_effort: expectedEffort,
             actual_effort: 0,

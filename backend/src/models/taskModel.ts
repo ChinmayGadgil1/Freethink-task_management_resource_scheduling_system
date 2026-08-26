@@ -9,7 +9,6 @@ export interface Task {
     description: string | null;
     priority: TaskPriority;
     status: TaskStatus;
-    start_date: string | null; // ISO Date string (YYYY-MM-DD)
     deadline: string | null;   // ISO Date string (YYYY-MM-DD)
     actual_start: string | null; // ISO Date string (YYYY-MM-DD)
     actual_end: string | null;   // ISO Date string (YYYY-MM-DD)

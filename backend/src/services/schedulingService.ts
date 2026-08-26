@@ -9,7 +9,6 @@ interface TaskWorkload {
     title: string;
     priority: string;
     status: string;
-    start_date: string | null;
     deadline: string | null;
     expected_effort: number;
     actual_effort: number;
@@ -30,7 +29,7 @@ export async function getResourceWorkload(resourceId: number) {
         JOIN projects p ON t.project_id = p.project_id
         JOIN task_assignments ta ON t.task_id = ta.task_id
         WHERE ta.user_id = ? AND t.status IN ('PENDING', 'IN_PROGRESS', 'ON_HOLD')
-        ORDER BY t.start_date ASC
+        ORDER BY t.deadline ASC
         `,
         [resourceId]
     );
@@ -50,7 +49,6 @@ export async function getResourceWorkload(resourceId: number) {
             title: task.title,
             priority: task.priority,
             status: task.status,
-            start_date: task.start_date,
             deadline: task.deadline,
             expected_effort: Number(task.expected_effort),
             actual_effort: Number(task.actual_effort),
@@ -90,12 +88,6 @@ export async function propagateScheduleChanges(taskId: number, shiftDays: number
         const succId = Number(succ.task_id);
         const updates: Record<string, any> = {};
 
-        if (succ.start_date) {
-            const newStart = new Date(succ.start_date);
-            newStart.setDate(newStart.getDate() + shiftDays);
-            updates.start_date = newStart.toISOString().split("T")[0];
-        }
-
         if (succ.deadline) {
             const newDeadline = new Date(succ.deadline);
             newDeadline.setDate(newDeadline.getDate() + shiftDays);
@@ -115,13 +107,12 @@ export async function propagateScheduleChanges(taskId: number, shiftDays: number
  */
 export async function checkSchedulingImpact(
     resourceId: number,
-    startDateStr: string,
     deadlineStr: string,
     priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
     expectedEffort: number
 ) {
     const workloadInfo = await getResourceWorkload(resourceId);
-    const start = new Date(startDateStr);
+    const start = new Date();
     const end = new Date(deadlineStr);
     const durationDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
     const taskDailyLoad = expectedEffort / durationDays;
@@ -130,8 +121,8 @@ export async function checkSchedulingImpact(
     let overlapDailyLoad = 0;
 
     for (const t of workloadInfo.tasks) {
-        if (!t.start_date || !t.deadline) continue;
-        const tStart = new Date(t.start_date);
+        if (!t.deadline) continue;
+        const tStart = new Date();
         const tEnd = new Date(t.deadline);
 
         // Check if date ranges overlap
@@ -156,7 +147,6 @@ export async function checkSchedulingImpact(
             task_id: t.task_id,
             title: t.title,
             priority: t.priority,
-            start_date: t.start_date,
             deadline: t.deadline,
             expected_effort: t.expected_effort
         })),

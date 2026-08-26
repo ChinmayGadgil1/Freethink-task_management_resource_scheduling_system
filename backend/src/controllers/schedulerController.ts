@@ -98,7 +98,6 @@ export async function getProjectScheduleData(req: AuthRequest<{ projectId: strin
                 description: t.description,
                 priority: t.priority,
                 status: t.status,
-                start_date: t.start_date,
                 deadline: t.deadline,
                 actual_start: t.actual_start ?? null,
                 actual_end: t.actual_end ?? null,

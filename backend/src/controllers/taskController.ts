@@ -13,7 +13,6 @@ const createTaskSchema = z.object({
     description: z.string().nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).default("MEDIUM"),
     status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
-    start_date: z.string().nullable().optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive("Expected effort must be positive"),
     assigned_resource_ids: z.array(z.number().int().positive()).optional()
@@ -24,10 +23,6 @@ export async function create(req: AuthRequest, res: Response) {
         const userRole = req.user?.role;
         const userId = req.user?.user_id;
         const parsed = createTaskSchema.parse(req.body);
-
-        if (parsed.start_date && parsed.deadline && parsed.start_date > parsed.deadline) {
-            return res.status(400).json({ message: "Deadline cannot be before start date" });
-        }
 
         const project = await getProjectById(parsed.project_id);
         if (!project) {
@@ -62,7 +57,6 @@ export async function create(req: AuthRequest, res: Response) {
             parsed.description ?? null,
             parsed.priority,
             taskStatus as any,
-            parsed.start_date ?? null,
             parsed.deadline ?? null,
             parsed.expected_effort,
             resourceIds
@@ -142,7 +136,6 @@ const updateTaskSchema = z.object({
     description: z.string().nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
     status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
-    start_date: z.string().nullable().optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive().optional(),
     actual_effort: z.number().nonnegative().optional(),
@@ -154,7 +147,6 @@ const dependencySchema = z.object({
 });
 
 const checkImpactSchema = z.object({
-    start_date: z.string().min(1),
     deadline: z.string().min(1),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).default("MEDIUM"),
     expected_effort: z.number().positive()
@@ -185,18 +177,13 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
             }
         }
 
-        if (parsed.start_date && parsed.deadline && parsed.start_date > parsed.deadline) {
-            return res.status(400).json({ message: "Deadline cannot be before start date" });
-        }
-
         await updateTask(taskId, parsed);
 
-        // Hook SchedulingEngine.recalculate when priority, effort, deadline, start_date, or status updates
+        // Hook SchedulingEngine.recalculate when priority, effort, deadline, or status updates
         if (
             parsed.priority !== undefined ||
             parsed.expected_effort !== undefined ||
             parsed.deadline !== undefined ||
-            parsed.start_date !== undefined ||
             parsed.status !== undefined
         ) {
             try {
@@ -308,7 +295,6 @@ export async function checkImpactController(req: AuthRequest<{ resourceId?: stri
         const parsed = checkImpactSchema.parse(req.body);
         const impact = await checkSchedulingImpact(
             resourceId,
-            parsed.start_date,
             parsed.deadline,
             parsed.priority,
             parsed.expected_effort
