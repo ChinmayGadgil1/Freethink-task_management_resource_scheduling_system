@@ -14,8 +14,8 @@
         </div>
         <div class="col-12 col-md-5">
           <p class="section-subtext">
-            TaskFlow brings transparent coordination across project managers and team members
-            under one unified, real-time platform.
+            TaskFlow brings transparent coordination across project managers and team members under
+            one unified, real-time platform.
           </p>
         </div>
       </div>
@@ -332,13 +332,25 @@ body.body--dark {
 
   .role-card-media {
     &.media-pm {
-      background: linear-gradient(135deg, rgba(139, 111, 216, 0.22) 0%, rgba(139, 111, 216, 0.06) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(139, 111, 216, 0.22) 0%,
+        rgba(139, 111, 216, 0.06) 100%
+      );
     }
     &.media-member {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(59, 130, 246, 0.06) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(59, 130, 246, 0.22) 0%,
+        rgba(59, 130, 246, 0.06) 100%
+      );
     }
     &.media-resource {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.06) 100%);
+      background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.22) 0%,
+        rgba(16, 185, 129, 0.06) 100%
+      );
     }
   }
 

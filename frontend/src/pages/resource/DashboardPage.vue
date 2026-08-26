@@ -9,9 +9,7 @@
               ✦ Resource Workspace
             </span>
           </div>
-          <div class="page-title">
-            Welcome back{{ userFirstName ? `, ${userFirstName}` : '' }}!
-          </div>
+          <div class="page-title">Welcome back{{ userFirstName ? `, ${userFirstName}` : '' }}!</div>
           <div class="page-subtitle">
             Here's a real-time overview of your workload, progress, and scheduled tasks.
           </div>
@@ -70,7 +68,8 @@
                 </q-chip>
                 <div class="text-h5 text-weight-bold text-white">Plan. Prioritize. Achieve.</div>
                 <div class="text-body2 text-white-8 q-mt-xs" style="max-width: 480px">
-                  Stay on top of active deliverables, monitor your deadlines, and log progress seamlessly.
+                  Stay on top of active deliverables, monitor your deadlines, and log progress
+                  seamlessly.
                 </div>
               </div>
 
@@ -127,18 +126,21 @@
               style="border-radius: 14px"
             >
               <div>
-                <div class="text-subtitle1 text-weight-bold text-main">
-                  Productivity & Overview
-                </div>
-                <div class="text-caption text-muted">
-                  Workload & effort tracking
-                </div>
+                <div class="text-subtitle1 text-weight-bold text-main">Productivity & Overview</div>
+                <div class="text-caption text-muted">Workload & effort tracking</div>
               </div>
 
               <div class="row items-center gap-md q-mt-sm">
                 <div class="productivity-ring-container">
                   <svg viewBox="0 0 86 86" class="productivity-svg">
-                    <circle cx="43" cy="43" r="36" fill="none" stroke="var(--wo-border, #eef0f4)" stroke-width="7" />
+                    <circle
+                      cx="43"
+                      cy="43"
+                      r="36"
+                      fill="none"
+                      stroke="var(--wo-border, #eef0f4)"
+                      stroke-width="7"
+                    />
                     <circle
                       cx="43"
                       cy="43"
@@ -147,13 +149,20 @@
                       stroke="var(--wo-primary, #8b6fd8)"
                       stroke-width="7"
                       :stroke-dasharray="226.19"
-                      :stroke-dashoffset="226.19 * (1 - (workload.consumedPct / 100))"
+                      :stroke-dashoffset="226.19 * (1 - workload.consumedPct / 100)"
                       stroke-linecap="round"
-                      style="transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset 0.5s ease"
+                      style="
+                        transform: rotate(-90deg);
+                        transform-origin: center;
+                        transition: stroke-dashoffset 0.5s ease;
+                      "
                     />
                   </svg>
                   <div class="productivity-ring-center">
-                    <div class="text-subtitle1 text-weight-bolder text-primary" style="line-height: 1">
+                    <div
+                      class="text-subtitle1 text-weight-bolder text-primary"
+                      style="line-height: 1"
+                    >
                       {{ workload.consumedPct }}%
                     </div>
                     <div class="ring-sub-label">CONSUMED</div>
@@ -226,43 +235,57 @@
             <q-card flat bordered class="dashboard-card" style="border-radius: 14px">
               <q-card-section class="row items-center justify-between q-pa-md">
                 <div>
-                  <div class="text-subtitle1 text-weight-bold text-main">
-                    Needs Attention
-                  </div>
-                  <div class="text-caption text-muted">
-                    Tasks requiring urgent review or action
-                  </div>
+                  <div class="text-subtitle1 text-weight-bold text-main">Needs Attention</div>
+                  <div class="text-caption text-muted">Tasks requiring urgent review or action</div>
                 </div>
-                <q-badge v-if="attentionTasks.length" color="negative" outline :label="`${attentionTasks.length} items`" />
+                <q-badge
+                  v-if="attentionTasks.length"
+                  color="negative"
+                  outline
+                  :label="`${attentionTasks.length} items`"
+                />
               </q-card-section>
 
               <q-separator />
 
               <div v-if="!attentionTasks.length" class="q-pa-lg text-center text-muted">
                 <q-icon name="check_circle" size="34px" color="positive" />
-                <div class="text-body2 q-mt-sm text-main">You're on track — no tasks need immediate attention.</div>
+                <div class="text-body2 q-mt-sm text-main">
+                  You're on track — no tasks need immediate attention.
+                </div>
               </div>
 
               <q-list v-else separator>
-                <q-item v-for="t in attentionTasks" :key="t.task_id" clickable @click="goToTaskDetails(t.task_id)">
+                <q-item
+                  v-for="t in attentionTasks"
+                  :key="t.task_id"
+                  clickable
+                  @click="goToTaskDetails(t.task_id)"
+                >
                   <q-item-section avatar>
                     <q-avatar
                       size="34px"
                       :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
-                      :text-color="attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'"
+                      :text-color="
+                        attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
+                      "
                       :icon="attentionMeta(t).icon"
                     />
                   </q-item-section>
                   <q-item-section>
                     <q-item-label class="text-weight-bold text-main">{{ t.title }}</q-item-label>
-                    <q-item-label caption class="text-muted">{{ t.project_name || `Project #${t.project_id}` }}</q-item-label>
+                    <q-item-label caption class="text-muted">{{
+                      t.project_name || `Project #${t.project_id}`
+                    }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <q-chip
                       dense
                       square
                       :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
-                      :text-color="attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'"
+                      :text-color="
+                        attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
+                      "
                       class="text-caption text-weight-bold"
                     >
                       {{ attentionMeta(t).label }}
@@ -276,14 +299,16 @@
             <q-card flat bordered class="dashboard-card" style="border-radius: 14px">
               <q-card-section class="row items-center justify-between q-pa-md">
                 <div>
-                  <div class="text-subtitle1 text-weight-bold text-main">
-                    Self-Assigned Tasks
-                  </div>
-                  <div class="text-caption text-muted">
-                    Tasks created by you
-                  </div>
+                  <div class="text-subtitle1 text-weight-bold text-main">Self-Assigned Tasks</div>
+                  <div class="text-caption text-muted">Tasks created by you</div>
                 </div>
-                <q-chip dense square color="purple-1" text-color="primary" class="text-caption text-weight-bold">
+                <q-chip
+                  dense
+                  square
+                  color="purple-1"
+                  text-color="primary"
+                  class="text-caption text-weight-bold"
+                >
                   {{ selfAssignedTasks.length }} tasks
                 </q-chip>
               </q-card-section>
@@ -299,11 +324,20 @@
               <q-list v-else separator>
                 <q-item v-for="taskItem in selfAssignedTasks" :key="taskItem.task_id">
                   <q-item-section avatar>
-                    <q-avatar size="34px" color="purple-1" text-color="primary" icon="assignment_ind" />
+                    <q-avatar
+                      size="34px"
+                      color="purple-1"
+                      text-color="primary"
+                      icon="assignment_ind"
+                    />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-weight-bold text-main">{{ taskItem.title }}</q-item-label>
-                    <q-item-label caption class="text-muted">{{ taskItem.project_name || `Project #${taskItem.project_id}` }}</q-item-label>
+                    <q-item-label class="text-weight-bold text-main">{{
+                      taskItem.title
+                    }}</q-item-label>
+                    <q-item-label caption class="text-muted">{{
+                      taskItem.project_name || `Project #${taskItem.project_id}`
+                    }}</q-item-label>
                   </q-item-section>
                   <q-item-section side>
                     <div class="column items-end gap-xs">
@@ -333,11 +367,18 @@
             <q-card-section class="q-pa-md">
               <div class="row items-center justify-between wrap q-gutter-y-sm q-mb-sm">
                 <div>
-                  <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                  <div
+                    class="text-subtitle1 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     Schedule & Gantt Roadmap
                   </div>
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                    Interactive timeline of your assigned work across projects, dates, and milestones.
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Interactive timeline of your assigned work across projects, dates, and
+                    milestones.
                   </div>
                 </div>
 
@@ -363,21 +404,82 @@
               <!-- Toolbar Controls -->
               <div class="row items-center justify-between wrap q-gutter-y-sm q-py-sm">
                 <div class="row items-center q-gutter-xs">
-                  <q-btn flat round dense icon="chevron_left" size="sm" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="navigateDate(-1)" />
-                  <q-btn flat round dense icon="chevron_right" size="sm" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="navigateDate(1)" />
-                  <q-btn outline dense no-caps label="Today" :color="$q.dark.isActive ? 'grey-4' : 'grey-8'" class="q-px-sm" @click="goToToday" />
-                  <div class="text-subtitle2 text-weight-bold q-ml-xs" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="chevron_left"
+                    size="sm"
+                    :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                    @click="navigateDate(-1)"
+                  />
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="chevron_right"
+                    size="sm"
+                    :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                    @click="navigateDate(1)"
+                  />
+                  <q-btn
+                    outline
+                    dense
+                    no-caps
+                    label="Today"
+                    :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+                    class="q-px-sm"
+                    @click="goToToday"
+                  />
+                  <div
+                    class="text-subtitle2 text-weight-bold q-ml-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     {{ formattedDateRangeHeader }}
                   </div>
                 </div>
 
                 <div class="row items-center q-gutter-xs wrap">
-                  <q-input v-model="ganttSearchQuery" outlined dense clearable placeholder="Search..." style="width: 140px">
+                  <q-input
+                    v-model="ganttSearchQuery"
+                    outlined
+                    dense
+                    clearable
+                    placeholder="Search..."
+                    style="width: 140px"
+                  >
                     <template #prepend><q-icon name="search" size="16px" /></template>
                   </q-input>
-                  <q-select v-model="ganttProjectFilter" outlined dense emit-value map-options :options="ganttProjectFilterOptions" label="Project" style="width: 125px" />
-                  <q-select v-model="ganttStatusFilter" outlined dense emit-value map-options :options="ganttStatusFilterOptions" label="Status" style="width: 125px" />
-                  <q-select v-model="ganttPriorityFilter" outlined dense emit-value map-options :options="ganttPriorityFilterOptions" label="Priority" style="width: 125px" />
+                  <q-select
+                    v-model="ganttProjectFilter"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    :options="ganttProjectFilterOptions"
+                    label="Project"
+                    style="width: 125px"
+                  />
+                  <q-select
+                    v-model="ganttStatusFilter"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    :options="ganttStatusFilterOptions"
+                    label="Status"
+                    style="width: 125px"
+                  />
+                  <q-select
+                    v-model="ganttPriorityFilter"
+                    outlined
+                    dense
+                    emit-value
+                    map-options
+                    :options="ganttPriorityFilterOptions"
+                    label="Priority"
+                    style="width: 125px"
+                  />
                 </div>
               </div>
             </q-card-section>
@@ -386,12 +488,23 @@
 
             <q-card-section class="q-pa-none">
               <!-- A. WEEK / DAY TIME-GRID VIEW -->
-              <div v-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'" class="calendar-scroll-wrapper">
+              <div
+                v-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'"
+                class="calendar-scroll-wrapper"
+              >
                 <div
                   class="calendar-table-grid"
-                  :style="{ gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '280px' : displayedDays.length <= 7 ? '110px' : '60px'}, 1fr))` }"
+                  :style="{
+                    gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '280px' : displayedDays.length <= 7 ? '110px' : '60px'}, 1fr))`,
+                  }"
                 >
-                  <div class="cal-cell flex flex-center" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '48px' }">
+                  <div
+                    class="cal-cell flex flex-center"
+                    :style="{
+                      background: $q.dark.isActive ? '#181d28' : '#fafbfc',
+                      height: '48px',
+                    }"
+                  >
                     <span class="text-caption text-weight-bold text-grey-5">TIME</span>
                   </div>
 
@@ -399,23 +512,61 @@
                     v-for="day in displayedDays"
                     :key="day.toISOString()"
                     class="cal-cell row items-center justify-center q-gutter-xs q-pa-xs"
-                    :style="{ background: isSameDay(day, todayDate) ? ($q.dark.isActive ? '#25203a' : 'rgba(139,111,216,0.08)') : ($q.dark.isActive ? '#181d28' : '#fafbfc'), height: '48px' }"
+                    :style="{
+                      background: isSameDay(day, todayDate)
+                        ? $q.dark.isActive
+                          ? '#25203a'
+                          : 'rgba(139,111,216,0.08)'
+                        : $q.dark.isActive
+                          ? '#181d28'
+                          : '#fafbfc',
+                      height: '48px',
+                    }"
                   >
-                    <span class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ formatWeekdayName(day) }}</span>
-                    <q-badge :color="isSameDay(day, todayDate) ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" :text-color="isSameDay(day, todayDate) ? 'white' : ($q.dark.isActive ? 'grey-3' : 'dark')" class="text-weight-bold">
+                    <span
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                      >{{ formatWeekdayName(day) }}</span
+                    >
+                    <q-badge
+                      :color="
+                        isSameDay(day, todayDate)
+                          ? 'primary'
+                          : $q.dark.isActive
+                            ? 'grey-9'
+                            : 'grey-3'
+                      "
+                      :text-color="
+                        isSameDay(day, todayDate) ? 'white' : $q.dark.isActive ? 'grey-3' : 'dark'
+                      "
+                      class="text-weight-bold"
+                    >
                       {{ day.getDate() }}
                     </q-badge>
                   </div>
 
                   <template v-for="hour in TIME_HOURS" :key="hour">
-                    <div class="cal-cell flex flex-center" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '54px' }">
+                    <div
+                      class="cal-cell flex flex-center"
+                      :style="{
+                        background: $q.dark.isActive ? '#181d28' : '#fafbfc',
+                        height: '54px',
+                      }"
+                    >
                       <span class="text-caption text-grey-5">{{ hour }}</span>
                     </div>
                     <div
                       v-for="day in displayedDays"
                       :key="`${day.toISOString()}-${hour}`"
                       class="cal-cell"
-                      :style="{ background: isSameDay(day, todayDate) ? ($q.dark.isActive ? 'rgba(139,111,216,0.06)' : 'rgba(139,111,216,0.02)') : 'transparent', height: '54px' }"
+                      :style="{
+                        background: isSameDay(day, todayDate)
+                          ? $q.dark.isActive
+                            ? 'rgba(139,111,216,0.06)'
+                            : 'rgba(139,111,216,0.02)'
+                          : 'transparent',
+                        height: '54px',
+                      }"
                     />
                   </template>
 
@@ -427,12 +578,28 @@
                     :style="item.style"
                     @click="goToTaskDetails(item.task.task_id)"
                   >
-                    <div class="row items-center justify-between no-wrap text-caption text-weight-bold">
-                      <span style="font-size: 9.5px; opacity: 0.9;">{{ item.timeRange }}</span>
-                      <q-badge rounded :color="item.task.priority === 'CRITICAL' ? 'negative' : item.task.priority === 'HIGH' ? 'warning' : 'primary'" style="width:6px;height:6px;" />
+                    <div
+                      class="row items-center justify-between no-wrap text-caption text-weight-bold"
+                    >
+                      <span style="font-size: 9.5px; opacity: 0.9">{{ item.timeRange }}</span>
+                      <q-badge
+                        rounded
+                        :color="
+                          item.task.priority === 'CRITICAL'
+                            ? 'negative'
+                            : item.task.priority === 'HIGH'
+                              ? 'warning'
+                              : 'primary'
+                        "
+                        style="width: 6px; height: 6px"
+                      />
                     </div>
-                    <div class="text-subtitle2 text-weight-bold ellipsis" :title="item.task.title">{{ item.task.title }}</div>
-                    <div class="text-caption ellipsis" style="font-size: 10px; opacity: 0.85;">{{ item.task.project_name }}</div>
+                    <div class="text-subtitle2 text-weight-bold ellipsis" :title="item.task.title">
+                      {{ item.task.title }}
+                    </div>
+                    <div class="text-caption ellipsis" style="font-size: 10px; opacity: 0.85">
+                      {{ item.task.project_name }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -440,8 +607,15 @@
               <!-- B. MONTH MATRIX VIEW -->
               <div v-else-if="scheduleViewMode === 'month'" class="calendar-scroll-wrapper">
                 <div class="month-grid-container">
-                  <div class="row text-center border-bottom" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc' }">
-                    <div v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="wDay" class="col q-pa-xs text-caption text-weight-bold text-grey-5">
+                  <div
+                    class="row text-center border-bottom"
+                    :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc' }"
+                  >
+                    <div
+                      v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']"
+                      :key="wDay"
+                      class="col q-pa-xs text-caption text-weight-bold text-grey-5"
+                    >
                       {{ wDay }}
                     </div>
                   </div>
@@ -451,15 +625,35 @@
                       v-for="mDay in monthMatrixDays"
                       :key="mDay.date.toISOString()"
                       class="month-day-cell column justify-between"
-                      :style="{ background: isSameDay(mDay.date, todayDate) ? ($q.dark.isActive ? 'rgba(139,111,216,0.1)' : 'rgba(139,111,216,0.04)') : !mDay.isCurrentMonth ? ($q.dark.isActive ? 'rgba(0,0,0,0.2)' : '#fafbfc') : 'transparent' }"
+                      :style="{
+                        background: isSameDay(mDay.date, todayDate)
+                          ? $q.dark.isActive
+                            ? 'rgba(139,111,216,0.1)'
+                            : 'rgba(139,111,216,0.04)'
+                          : !mDay.isCurrentMonth
+                            ? $q.dark.isActive
+                              ? 'rgba(0,0,0,0.2)'
+                              : '#fafbfc'
+                            : 'transparent',
+                      }"
                     >
                       <div class="row items-center justify-between">
-                        <q-badge :color="isSameDay(mDay.date, todayDate) ? 'primary' : 'transparent'" :text-color="isSameDay(mDay.date, todayDate) ? 'white' : ($q.dark.isActive ? 'grey-4' : 'dark')" class="text-caption text-weight-bold">
+                        <q-badge
+                          :color="isSameDay(mDay.date, todayDate) ? 'primary' : 'transparent'"
+                          :text-color="
+                            isSameDay(mDay.date, todayDate)
+                              ? 'white'
+                              : $q.dark.isActive
+                                ? 'grey-4'
+                                : 'dark'
+                          "
+                          class="text-caption text-weight-bold"
+                        >
                           {{ mDay.date.getDate() }}
                         </q-badge>
                       </div>
 
-                      <div class="column q-gutter-xs overflow-auto" style="max-height: 65px;">
+                      <div class="column q-gutter-xs overflow-auto" style="max-height: 65px">
                         <div
                           v-for="t in getTasksOnDate(mDay.date)"
                           :key="t.task_id"
@@ -497,15 +691,32 @@
                   <template #body-cell-title="props">
                     <q-td :props="props">
                       <div class="cursor-pointer" @click="goToTaskDetails(props.row.task_id)">
-                        <div class="text-weight-bold ellipsis" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ props.row.title }}</div>
-                        <div v-if="props.row.description" class="text-caption ellipsis" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ props.row.description }}</div>
+                        <div
+                          class="text-weight-bold ellipsis"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ props.row.title }}
+                        </div>
+                        <div
+                          v-if="props.row.description"
+                          class="text-caption ellipsis"
+                          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                        >
+                          {{ props.row.description }}
+                        </div>
                       </div>
                     </q-td>
                   </template>
 
                   <template #body-cell-project="props">
                     <q-td :props="props">
-                      <q-chip dense square :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" class="text-caption text-weight-bold">
+                      <q-chip
+                        dense
+                        square
+                        :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'"
+                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                        class="text-caption text-weight-bold"
+                      >
                         <q-icon name="folder" size="12px" class="q-mr-xs" />
                         {{ props.row.project_name || `Project #${props.row.project_id}` }}
                       </q-chip>
@@ -514,7 +725,13 @@
 
                   <template #body-cell-priority="props">
                     <q-td :props="props">
-                      <q-chip dense square :color="priorityColor(props.row.priority)" :text-color="priorityTextColor(props.row.priority)" class="text-caption text-weight-bold">
+                      <q-chip
+                        dense
+                        square
+                        :color="priorityColor(props.row.priority)"
+                        :text-color="priorityTextColor(props.row.priority)"
+                        class="text-caption text-weight-bold"
+                      >
                         {{ props.row.priority }}
                       </q-chip>
                     </q-td>
@@ -522,7 +739,13 @@
 
                   <template #body-cell-status="props">
                     <q-td :props="props">
-                      <q-chip dense square :color="statusColor(props.row.status)" :text-color="statusTextColor(props.row.status)" class="text-caption text-weight-bold">
+                      <q-chip
+                        dense
+                        square
+                        :color="statusColor(props.row.status)"
+                        :text-color="statusTextColor(props.row.status)"
+                        class="text-caption text-weight-bold"
+                      >
                         {{ formatStatus(props.row.status) }}
                       </q-chip>
                     </q-td>
@@ -530,7 +753,10 @@
 
                   <template #body-cell-dates="props">
                     <q-td :props="props">
-                      <div class="row items-center no-wrap text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                      <div
+                        class="row items-center no-wrap text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                      >
                         <span>{{ formatDate(props.row.start_date) }}</span>
                         <span class="q-mx-xs">→</span>
                         <span>{{ formatDate(props.row.deadline) }}</span>
@@ -542,14 +768,24 @@
                     <q-td :props="props">
                       <div class="q-gutter-xs">
                         <div class="row justify-between text-caption">
-                          <span class="text-weight-bold">{{ Number(props.row.progress) || 0 }}%</span>
-                          <span v-if="isOverdue(props.row)" class="text-negative text-weight-bold">Overdue</span>
+                          <span class="text-weight-bold"
+                            >{{ Number(props.row.progress) || 0 }}%</span
+                          >
+                          <span v-if="isOverdue(props.row)" class="text-negative text-weight-bold"
+                            >Overdue</span
+                          >
                         </div>
                         <q-linear-progress
                           rounded
                           size="6px"
                           :value="(Number(props.row.progress) || 0) / 100"
-                          :color="isOverdue(props.row) ? 'negative' : props.row.status === 'COMPLETED' ? 'positive' : 'primary'"
+                          :color="
+                            isOverdue(props.row)
+                              ? 'negative'
+                              : props.row.status === 'COMPLETED'
+                                ? 'positive'
+                                : 'primary'
+                          "
                           :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                         />
                       </div>
@@ -709,12 +945,20 @@ const formattedDateRangeHeader = computed<string>(() => {
     const first = displayedDays.value[0];
     const last = displayedDays.value[6];
     if (first && last) {
-      const fStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(first);
-      const lStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(last);
+      const fStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(
+        first,
+      );
+      const lStr = new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(last);
       return `${fStr} – ${lStr}`;
     }
   }
-  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(currentAnchorDate.value);
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(
+    currentAnchorDate.value,
+  );
 });
 
 const monthMatrixDays = computed(() => {
@@ -805,8 +1049,10 @@ const filteredTasksList = computed<Task[]>(() => {
       (task.description || '').toLowerCase().includes(q);
 
     const matchesProject = ganttProjectFilter.value === 'ALL' || pName === ganttProjectFilter.value;
-    const matchesStatus = ganttStatusFilter.value === 'ALL' || task.status === ganttStatusFilter.value;
-    const matchesPriority = ganttPriorityFilter.value === 'ALL' || task.priority === ganttPriorityFilter.value;
+    const matchesStatus =
+      ganttStatusFilter.value === 'ALL' || task.status === ganttStatusFilter.value;
+    const matchesPriority =
+      ganttPriorityFilter.value === 'ALL' || task.priority === ganttPriorityFilter.value;
 
     return matchesSearch && matchesProject && matchesStatus && matchesPriority;
   });
@@ -908,7 +1154,12 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
 
 const scheduleTableColumns: QTableColumn<Task>[] = [
   { name: 'title', label: 'Task Title', field: (t) => t.title, align: 'left' },
-  { name: 'project', label: 'Project', field: (t) => t.project_name || t.project_id, align: 'left' },
+  {
+    name: 'project',
+    label: 'Project',
+    field: (t) => t.project_name || t.project_id,
+    align: 'left',
+  },
   { name: 'priority', label: 'Priority', field: (t) => t.priority, align: 'center' },
   { name: 'status', label: 'Status', field: (t) => t.status, align: 'center' },
   { name: 'dates', label: 'Start & Deadline', field: () => '', align: 'left' },

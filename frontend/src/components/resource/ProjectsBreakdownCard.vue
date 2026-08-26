@@ -8,7 +8,12 @@
             Your assigned work grouped by project
           </div>
         </div>
-        <q-badge color="grey-3" text-color="dark" :label="`${projects.length} Projects`" class="projects-badge" />
+        <q-badge
+          color="grey-3"
+          text-color="dark"
+          :label="`${projects.length} Projects`"
+          class="projects-badge"
+        />
       </div>
     </q-card-section>
     <q-separator />

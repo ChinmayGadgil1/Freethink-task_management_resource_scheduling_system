@@ -53,7 +53,9 @@ onMounted(() => {
     Roboto,
     sans-serif;
   overflow-x: hidden;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 body.body--dark {

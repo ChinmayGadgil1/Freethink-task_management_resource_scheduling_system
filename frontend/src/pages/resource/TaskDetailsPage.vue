@@ -8,7 +8,9 @@
     <!-- Error -->
     <div v-else-if="error" class="text-center q-pa-xl">
       <q-icon name="error_outline" size="50px" color="negative" />
-      <div class="text-body1 q-mt-md" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ error }}</div>
+      <div class="text-body1 q-mt-md" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+        {{ error }}
+      </div>
 
       <q-btn
         flat
@@ -26,8 +28,15 @@
       <!-- 1. PAGE HEADER -->
       <div class="row items-end justify-between q-mb-lg q-col-gutter-md">
         <div>
-          <div class="text-h5 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Task Specs</div>
-          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Track, organize, and manage all your assigned task specifications.</div>
+          <div
+            class="text-h5 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Task Specs
+          </div>
+          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+            Track, organize, and manage all your assigned task specifications.
+          </div>
         </div>
 
         <div class="row items-center q-gutter-md">
@@ -185,8 +194,14 @@
               :style="{ background: col.headerBg, borderBottom: `1px solid ${col.borderColor}` }"
             >
               <div class="row items-center q-gutter-xs no-wrap">
-                <q-badge rounded :style="{ background: col.dotColor, width: '8px', height: '8px' }" />
-                <span class="text-subtitle2 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                <q-badge
+                  rounded
+                  :style="{ background: col.dotColor, width: '8px', height: '8px' }"
+                />
+                <span
+                  class="text-subtitle2 text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
                   {{ col.title }}
                 </span>
                 <q-badge
@@ -231,20 +246,36 @@
                 </div>
 
                 <!-- Task Title -->
-                <div class="text-subtitle2 text-weight-medium ellipsis-2-lines q-mb-xs" :class="$q.dark.isActive ? 'text-white' : 'text-dark'" :title="item.title">
+                <div
+                  class="text-subtitle2 text-weight-medium ellipsis-2-lines q-mb-xs"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  :title="item.title"
+                >
                   {{ item.title }}
                 </div>
 
                 <!-- Task Description -->
-                <div v-if="item.description" class="text-caption ellipsis-2-lines q-mb-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                <div
+                  v-if="item.description"
+                  class="text-caption ellipsis-2-lines q-mb-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
                   {{ item.description }}
                 </div>
 
                 <!-- Progress & Effort Bar -->
                 <div class="q-mt-sm">
                   <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
-                    <span class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">{{ Number(item.progress) || 0 }}%</span>
-                    <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">{{ item.expected_effort || 0 }}h effort</span>
+                    <span
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                      >{{ Number(item.progress) || 0 }}%</span
+                    >
+                    <span
+                      class="text-caption"
+                      :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                      >{{ item.expected_effort || 0 }}h effort</span
+                    >
                   </div>
                   <q-linear-progress
                     rounded
@@ -297,9 +328,14 @@
                 bordered
                 :dark="$q.dark.isActive"
                 class="column items-center justify-center q-pa-lg text-center rounded-borders"
-                style="border-style: dashed;"
+                style="border-style: dashed"
               >
-                <q-icon :name="col.icon" size="26px" :color="$q.dark.isActive ? 'grey-6' : 'grey-4'" class="q-mb-xs" />
+                <q-icon
+                  :name="col.icon"
+                  size="26px"
+                  :color="$q.dark.isActive ? 'grey-6' : 'grey-4'"
+                  class="q-mb-xs"
+                />
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
                   No {{ col.title.toLowerCase() }} tasks
                 </div>
@@ -324,13 +360,21 @@
           <template #body-cell-task="props">
             <q-td :props="props">
               <div class="row items-center q-gutter-xs wrap">
-                <div class="text-weight-medium ellipsis" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ props.row.title }}</div>
+                <div
+                  class="text-weight-medium ellipsis"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  {{ props.row.title }}
+                </div>
                 <span v-if="isSelfAssigned(props.row)" class="task-self-pill">
                   <q-icon name="person" size="11px" class="q-mr-xs" />
                   Self-assigned
                 </span>
               </div>
-              <div class="text-caption q-mt-xs ellipsis" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+              <div
+                class="text-caption q-mt-xs ellipsis"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+              >
                 {{ props.row.project_name || `Project #${props.row.project_id}` }}
               </div>
             </q-td>
@@ -365,7 +409,11 @@
               <div class="q-gutter-xs">
                 <div class="row items-center justify-between q-mb-xs">
                   <span class="text-caption text-weight-medium">Progress</span>
-                  <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ Number(props.row.progress) }}%</span>
+                  <span
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                    >{{ Number(props.row.progress) }}%</span
+                  >
                 </div>
 
                 <q-linear-progress
@@ -406,8 +454,17 @@
           </template>
         </q-table>
 
-        <div v-else-if="tasks.length" class="q-pa-xl text-center" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-          <q-avatar size="56px" :color="$q.dark.isActive ? 'purple-10' : 'blue-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" icon="manage_search" />
+        <div
+          v-else-if="tasks.length"
+          class="q-pa-xl text-center"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+        >
+          <q-avatar
+            size="56px"
+            :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+            :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+            icon="manage_search"
+          />
           <div class="text-body1 text-weight-medium q-mt-md">
             No tasks match the current filters.
           </div>
@@ -416,8 +473,17 @@
           </div>
         </div>
 
-        <div v-else class="q-pa-xl text-center" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-          <q-avatar size="56px" :color="$q.dark.isActive ? 'grey-9' : 'grey-2'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'" icon="task_alt" />
+        <div
+          v-else
+          class="q-pa-xl text-center"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+        >
+          <q-avatar
+            size="56px"
+            :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+            :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
+            icon="task_alt"
+          />
           <div class="text-body1 text-weight-medium q-mt-md">No tasks assigned to you.</div>
           <div class="text-caption q-mt-xs">Your task specs will appear here once assigned.</div>
         </div>
@@ -427,7 +493,12 @@
     <!-- SINGLE TASK SPEC DETAIL VIEW -->
     <div v-else-if="task" class="q-mx-auto" style="max-width: 1200px">
       <!-- 1. HERO / TOP HEADER CARD -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-mb-lg overflow-hidden">
+      <q-card
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders q-mb-lg overflow-hidden"
+      >
         <q-card-section class="q-pa-md">
           <!-- Back Button -->
           <q-btn
@@ -446,9 +517,7 @@
             <div class="col-12 col-md-7">
               <!-- Top Row Chips (Task ID, Status, Priority, Self-assigned) -->
               <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-sm">
-                <span class="task-project-pill">
-                  #{{ task.task_id }}
-                </span>
+                <span class="task-project-pill"> #{{ task.task_id }} </span>
                 <span :class="['status-chip', `status-${task.status.toLowerCase()}`]">
                   {{ statusLabel(task.status) }}
                 </span>
@@ -461,15 +530,24 @@
                 </span>
               </div>
 
-              <div class="text-h4 text-weight-bolder" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+              <div
+                class="text-h4 text-weight-bolder"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
                 {{ task.title }}
               </div>
-              <div class="text-subtitle2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+              <div
+                class="text-subtitle2 q-mt-xs"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              >
                 <q-icon name="folder" size="14px" color="primary" class="q-mr-xs" />
                 <span>Belongs to {{ task.project_name || `Project #${task.project_id}` }}</span>
               </div>
 
-              <div class="text-body1 q-mt-md" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+              <div
+                class="text-body1 q-mt-md"
+                :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+              >
                 {{ task.description || 'No description provided.' }}
               </div>
             </div>
@@ -487,10 +565,17 @@
                       </div>
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label caption class="text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                      <q-item-label
+                        caption
+                        class="text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                      >
                         START DATE
                       </q-item-label>
-                      <q-item-label class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                      <q-item-label
+                        class="text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
                         {{ formatDate(task.start_date) }}
                       </q-item-label>
                     </q-item-section>
@@ -501,15 +586,33 @@
                 <q-card flat bordered :dark="$q.dark.isActive" class="q-pa-xs">
                   <q-item dense>
                     <q-item-section avatar style="min-width: 32px">
-                      <div :class="['hero-date-avatar', isTaskOverdue(task) ? 'avatar-red' : 'avatar-blue']">
+                      <div
+                        :class="[
+                          'hero-date-avatar',
+                          isTaskOverdue(task) ? 'avatar-red' : 'avatar-blue',
+                        ]"
+                      >
                         <q-icon name="event_available" size="16px" />
                       </div>
                     </q-item-section>
                     <q-item-section>
-                      <q-item-label caption class="text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                      <q-item-label
+                        caption
+                        class="text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                      >
                         DEADLINE
                       </q-item-label>
-                      <q-item-label class="text-weight-bold" :class="isTaskOverdue(task) ? 'text-negative' : ($q.dark.isActive ? 'text-white' : 'text-dark')">
+                      <q-item-label
+                        class="text-weight-bold"
+                        :class="
+                          isTaskOverdue(task)
+                            ? 'text-negative'
+                            : $q.dark.isActive
+                              ? 'text-white'
+                              : 'text-dark'
+                        "
+                      >
                         {{ formatDate(task.deadline) }}
                       </q-item-label>
                     </q-item-section>
@@ -544,14 +647,22 @@
       </q-card>
 
       <!-- 2. TASK PROGRESS & EFFORT BREAKDOWN CARD (PM-style Progress Card) -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-mb-lg overflow-hidden">
+      <q-card
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders q-mb-lg overflow-hidden"
+      >
         <q-card-section class="row items-center justify-between q-pa-md">
           <div class="row items-center">
             <div class="hero-date-avatar avatar-purple q-mr-sm">
               <q-icon name="insights" size="18px" />
             </div>
             <div>
-              <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+              <div
+                class="text-subtitle1 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
                 Task Progress & Effort
               </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
@@ -570,10 +681,15 @@
           <!-- Main Progress Bar -->
           <div class="q-mb-lg">
             <div class="row items-center justify-between q-mb-xs">
-              <span class="text-subtitle2 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+              <span
+                class="text-subtitle2 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
                 Overall Completion Progress
               </span>
-              <span class="text-h6 text-primary text-weight-bolder">{{ Number(task.progress) }}%</span>
+              <span class="text-h6 text-primary text-weight-bolder"
+                >{{ Number(task.progress) }}%</span
+              >
             </div>
             <q-linear-progress
               :value="Number(task.progress) / 100"
@@ -594,11 +710,18 @@
                     <q-icon name="schedule" size="20px" />
                   </div>
                   <div class="q-ml-md">
-                    <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                    <div
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    >
                       ESTIMATED EFFORT
                     </div>
-                    <div class="text-h6 text-weight-bolder" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
-                      {{ task.expected_effort }} <span class="text-caption text-weight-bold">hrs</span>
+                    <div
+                      class="text-h6 text-weight-bolder"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
+                      {{ task.expected_effort }}
+                      <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
                 </q-card-section>
@@ -613,11 +736,18 @@
                     <q-icon name="timer" size="20px" />
                   </div>
                   <div class="q-ml-md">
-                    <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                    <div
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    >
                       ACTUAL EFFORT LOGGED
                     </div>
-                    <div class="text-h6 text-weight-bolder" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
-                      {{ task.actual_effort }} <span class="text-caption text-weight-bold">hrs</span>
+                    <div
+                      class="text-h6 text-weight-bolder"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
+                      {{ task.actual_effort }}
+                      <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
                 </q-card-section>
@@ -632,10 +762,16 @@
                     <q-icon name="hourglass_empty" size="20px" />
                   </div>
                   <div class="q-ml-md">
-                    <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                    <div
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    >
                       REMAINING EFFORT
                     </div>
-                    <div class="text-h6 text-weight-bolder" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                    <div
+                      class="text-h6 text-weight-bolder"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
                       {{ remainingHours }} <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
@@ -654,7 +790,10 @@
               <q-icon name="history" size="18px" />
             </div>
             <div>
-              <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+              <div
+                class="text-subtitle1 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
                 Daily Updates History
               </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
@@ -669,7 +808,12 @@
         <q-card-section class="q-pa-md">
           <div v-if="historyLoading" class="column items-center q-pa-xl">
             <q-spinner color="primary" size="32px" />
-            <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Loading updates...</div>
+            <div
+              class="text-caption q-mt-sm"
+              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+            >
+              Loading updates...
+            </div>
           </div>
 
           <q-banner v-else-if="historyError" class="bg-negative text-white" rounded>
@@ -679,10 +823,24 @@
             </template>
           </q-banner>
 
-          <q-card v-else-if="workLogs.length === 0" flat bordered :dark="$q.dark.isActive" class="rounded-borders">
+          <q-card
+            v-else-if="workLogs.length === 0"
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="rounded-borders"
+          >
             <q-card-section class="column items-center q-pa-xl">
-              <q-avatar size="52px" :color="$q.dark.isActive ? 'grey-9' : 'grey-3'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'" icon="event_note" />
-              <div class="text-body2 q-mt-md" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+              <q-avatar
+                size="52px"
+                :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
+                icon="event_note"
+              />
+              <div
+                class="text-body2 q-mt-md"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+              >
                 No daily updates recorded for this task yet.
               </div>
               <q-btn
@@ -706,19 +864,34 @@
               </q-item-section>
 
               <q-item-section>
-                <q-item-label class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                <q-item-label
+                  class="text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
                   {{ formatHistoryDate(log.log_date) }}
                 </q-item-label>
 
-                <q-item-label caption class="q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-                  {{ Number(log.hours_logged) }}h worked · {{ Number(log.progress_logged) }}% progress
+                <q-item-label
+                  caption
+                  class="q-mt-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
+                  {{ Number(log.hours_logged) }}h worked · {{ Number(log.progress_logged) }}%
+                  progress
                 </q-item-label>
 
-                <q-item-label class="q-mt-sm text-body2" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                <q-item-label
+                  class="q-mt-sm text-body2"
+                  :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                >
                   {{ log.notes }}
                 </q-item-label>
 
-                <q-item-label v-if="log.blockers" caption class="text-negative q-mt-xs text-weight-medium">
+                <q-item-label
+                  v-if="log.blockers"
+                  caption
+                  class="text-negative q-mt-xs text-weight-medium"
+                >
                   <q-icon name="warning_amber" size="15px" class="q-mr-xs" />
                   {{ log.blockers }}
                 </q-item-label>
@@ -738,7 +911,9 @@
     <!-- Task ID exists but task doesn't -->
     <div v-else class="text-center q-pa-xl">
       <q-icon name="search_off" size="50px" :color="$q.dark.isActive ? 'grey-6' : 'grey-5'" />
-      <div class="text-h6 q-mt-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Task not found</div>
+      <div class="text-h6 q-mt-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+        Task not found
+      </div>
 
       <q-btn
         flat
@@ -766,15 +941,30 @@
             <q-avatar size="42px" color="primary" text-color="white" icon="add_task" />
 
             <div class="q-ml-md">
-              <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Create Task</div>
-              <div class="text-caption q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+              <div
+                class="text-h6 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Create Task
+              </div>
+              <div
+                class="text-caption q-mt-xs"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+              >
                 Add a task directly from the task specs page.
               </div>
             </div>
 
             <q-space />
 
-            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="createDialog = false" />
+            <q-btn
+              flat
+              round
+              dense
+              icon="close"
+              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+              @click="createDialog = false"
+            />
           </div>
         </q-card-section>
 
@@ -852,7 +1042,10 @@
               <div class="col-12 col-sm-6">
                 <q-input v-model="createForm.deadline" label="Deadline" type="date" outlined dense>
                   <template #prepend>
-                    <q-icon name="event_available" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+                    <q-icon
+                      name="event_available"
+                      :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                    />
                   </template>
                 </q-input>
               </div>
@@ -872,7 +1065,12 @@
               </template>
             </q-input>
 
-            <q-banner v-if="!canCreateTask" dense rounded :class="$q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-blue-1 text-primary'">
+            <q-banner
+              v-if="!canCreateTask"
+              dense
+              rounded
+              :class="$q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-blue-1 text-primary'"
+            >
               <template #avatar>
                 <q-icon name="info" />
               </template>
@@ -884,7 +1082,13 @@
         <q-separator />
 
         <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat no-caps label="Cancel" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="createDialog = false" />
+          <q-btn
+            flat
+            no-caps
+            label="Cancel"
+            :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+            @click="createDialog = false"
+          />
 
           <q-btn
             color="primary"
@@ -1123,7 +1327,7 @@ const tasksByStatus = computed(() => {
   };
 
   filteredTasks.value.forEach((item) => {
-    const s = item.status && (item.status in map) ? item.status : 'SCHEDULED';
+    const s = item.status && item.status in map ? item.status : 'SCHEDULED';
     const arr = map[s];
     if (arr) {
       arr.push(item);
@@ -1396,12 +1600,14 @@ function formatHistoryDate(date: string) {
 }
 
 function statusLabel(status: Task['status']) {
-  return {
-    UNASSIGNED: 'Unassigned',
-    SCHEDULED: 'Scheduled',
-    IN_PROGRESS: 'In Progress',
-    COMPLETED: 'Completed',
-  }[status] || status;
+  return (
+    {
+      UNASSIGNED: 'Unassigned',
+      SCHEDULED: 'Scheduled',
+      IN_PROGRESS: 'In Progress',
+      COMPLETED: 'Completed',
+    }[status] || status
+  );
 }
 
 onMounted(() => {

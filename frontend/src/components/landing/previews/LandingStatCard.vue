@@ -19,7 +19,10 @@
       <div class="stat-progress-track">
         <div
           class="stat-progress-fill"
-          :style="{ width: `${Math.min(100, Math.max(0, progress))}%`, backgroundColor: progressFillColor }"
+          :style="{
+            width: `${Math.min(100, Math.max(0, progress))}%`,
+            backgroundColor: progressFillColor,
+          }"
         />
       </div>
     </div>
@@ -98,7 +101,9 @@ const progressFillColor = computed(() => {
   border-radius: 12px;
   padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   height: 100%;
 
   &:hover {

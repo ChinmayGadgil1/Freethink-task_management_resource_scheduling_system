@@ -1,17 +1,8 @@
 <template>
-  <q-dialog
-    :model-value="modelValue"
-    @update:model-value="(val) => emit('update:modelValue', val)"
-  >
+  <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
     <q-card class="dialog-card" :style="{ minWidth: minWidth, maxWidth: '90vw' }">
       <q-card-section class="row items-center q-pb-none">
-        <q-avatar
-          :icon="icon"
-          :color="iconColor"
-          text-color="white"
-          size="36px"
-          class="q-mr-sm"
-        />
+        <q-avatar :icon="icon" :color="iconColor" text-color="white" size="36px" class="q-mr-sm" />
         <div>
           <div class="text-subtitle1 text-weight-bold text-dark">{{ title }}</div>
           <div v-if="subtitle" class="text-caption text-grey-6">{{ subtitle }}</div>

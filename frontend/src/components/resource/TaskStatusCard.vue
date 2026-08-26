@@ -8,7 +8,12 @@
             Status distribution of your assigned tasks
           </div>
         </div>
-        <q-badge color="grey-3" text-color="dark" :label="`${totalTasks} Total`" class="total-badge" />
+        <q-badge
+          color="grey-3"
+          text-color="dark"
+          :label="`${totalTasks} Total`"
+          class="total-badge"
+        />
       </div>
 
       <!-- Segmented bar: one glance at the full distribution -->
@@ -18,7 +23,10 @@
             v-for="item in items"
             :key="item.label"
             class="segment"
-            :style="{ width: `${totalTasks ? (item.value / totalTasks) * 100 : 0}%`, background: item.color }"
+            :style="{
+              width: `${totalTasks ? (item.value / totalTasks) * 100 : 0}%`,
+              background: item.color,
+            }"
           />
         </div>
       </div>

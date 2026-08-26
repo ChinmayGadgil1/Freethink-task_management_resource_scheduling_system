@@ -517,11 +517,15 @@
               emit-value
               map-options
               :display-value="
-                projectMemberForm.user_ids.length ? `${projectMemberForm.user_ids.length} selected` : ''
+                projectMemberForm.user_ids.length
+                  ? `${projectMemberForm.user_ids.length} selected`
+                  : ''
               "
               label="Select Resource Member(s)"
               :options="resourceMemberSelectOptions"
-              :rules="[(val) => (val && val.length > 0) || 'At least one Resource Member is required']"
+              :rules="[
+                (val) => (val && val.length > 0) || 'At least one Resource Member is required',
+              ]"
             >
               <template #option="{ itemProps, opt, selected, toggleOption }">
                 <q-item v-bind="itemProps" :disable="opt.alreadyMember">
@@ -918,7 +922,9 @@ watch(
         projectMemberForm.project_id = projectList.value[0]!.project_id;
       }
       if (projectMemberForm.project_id) {
-        projectMemberFormExistingMembers.value = await getResourcesApi(projectMemberForm.project_id).catch(() => []);
+        projectMemberFormExistingMembers.value = await getResourcesApi(
+          projectMemberForm.project_id,
+        ).catch(() => []);
       }
       projectMemberForm.user_ids = [];
     }
@@ -927,7 +933,9 @@ watch(
 
 const resourceMemberSelectOptions = computed(() => {
   const existingIds = new Set(
-    projectMemberFormExistingMembers.value.map((m) => Number(m.user_id)).filter((id) => !isNaN(id) && id > 0),
+    projectMemberFormExistingMembers.value
+      .map((m) => Number(m.user_id))
+      .filter((id) => !isNaN(id) && id > 0),
   );
   return resourceList.value.map((r) => {
     const rId = Number(r.user_id);

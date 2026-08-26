@@ -1,8 +1,5 @@
 <template>
-  <q-dialog
-    :model-value="modelValue"
-    @update:model-value="(val) => emit('update:modelValue', val)"
-  >
+  <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
     <q-card v-if="task" class="details-popup-card" style="min-width: 480px; max-width: 95vw">
       <q-card-section class="row items-center justify-between q-pb-none">
         <div class="row items-center gap-xs">
@@ -45,10 +42,7 @@
 
           <div class="detail-item">
             <div class="detail-label">Deadline</div>
-            <div
-              class="detail-val"
-              :class="{ 'text-negative font-bold': isTaskOverdue(task) }"
-            >
+            <div class="detail-val" :class="{ 'text-negative font-bold': isTaskOverdue(task) }">
               {{ formatDate(task.deadline) }}
             </div>
           </div>
@@ -112,7 +106,9 @@
                 {{ getResourceInitial(rId) }}
               </q-avatar>
               {{ resolveResourceName(rId) }}
-              <q-tooltip v-if="allowUnassign">Click X to unassign {{ resolveResourceName(rId) }}</q-tooltip>
+              <q-tooltip v-if="allowUnassign"
+                >Click X to unassign {{ resolveResourceName(rId) }}</q-tooltip
+              >
             </q-chip>
           </div>
           <span v-else class="text-caption text-grey-5">No members currently assigned</span>
@@ -205,7 +201,10 @@ const props = withDefaults(defineProps<TaskDetailsDialogProps>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void;
   (e: 'edit', task: Task): void;
-  (e: 'unassignMember', payload: { taskId: number; resourceId: number; resourceName: string }): void;
+  (
+    e: 'unassignMember',
+    payload: { taskId: number; resourceId: number; resourceName: string },
+  ): void;
   (e: 'assignMember', taskId: number): void;
   (e: 'addDependency', taskId: number): void;
 }>();

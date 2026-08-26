@@ -5,10 +5,7 @@
 /**
  * Format a date string or Date object to standard short date (e.g., 'Oct 24, 2026').
  */
-export function formatDate(
-  date: string | Date | null | undefined,
-  fallback = '-',
-): string {
+export function formatDate(date: string | Date | null | undefined, fallback = '-'): string {
   if (!date) return fallback;
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return typeof date === 'string' ? date : fallback;
@@ -22,10 +19,7 @@ export function formatDate(
 /**
  * Format a date string or Date object to compact month/day (e.g., 'Oct 24').
  */
-export function formatDateShort(
-  date: string | Date | null | undefined,
-  fallback = '-',
-): string {
+export function formatDateShort(date: string | Date | null | undefined, fallback = '-'): string {
   if (!date) return fallback;
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return typeof date === 'string' ? date : fallback;

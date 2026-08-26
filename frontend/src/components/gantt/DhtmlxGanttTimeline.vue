@@ -1671,4 +1671,264 @@ defineExpose({
     }
   }
 }
+
+/* ----------------------------------------------------
+   Dark Mode Overrides for DHTMLX Gantt
+   ---------------------------------------------------- */
+body.body--dark {
+  .dhtmlx-roadmap-card {
+    border-color: var(--wo-border, #1e2433);
+    background: var(--wo-bg-card, #181d28);
+
+    .gantt-header-row {
+      background: var(--wo-bg-card, #181d28);
+      .gantt-title-text {
+        color: #ffffff;
+      }
+      .gantt-date-range-sub {
+        color: #94a3b8;
+      }
+      .gantt-search-input {
+        .q-field__control {
+          background: #111827;
+        }
+        .q-field__native {
+          color: #f1f5f9;
+        }
+      }
+      .scale-toggle-group {
+        background: #111827;
+        border-color: #1e293b;
+        .scale-btn {
+          color: #94a3b8;
+          &:hover:not(.active) {
+            color: #ffffff;
+          }
+        }
+      }
+      .ctrl-pill-btn {
+        border-color: #1e293b;
+        background: #1e293b;
+        color: #cbd5e1;
+        &:hover {
+          background: #334155;
+          border-color: #475569;
+        }
+        &.is-active-pill, &.links-active {
+          border-color: #7c3aed;
+          background: rgba(124, 58, 237, 0.2);
+          color: #a78bfa;
+        }
+      }
+      .ctrl-icon-pill-btn {
+        border-color: #1e293b;
+        background: #1e293b;
+        color: #cbd5e1;
+        &:hover {
+          background: #334155;
+          border-color: #475569;
+        }
+      }
+    }
+
+    .gantt-legend-row {
+      background: var(--wo-bg-card, #181d28);
+      border-top-color: #1e2433;
+      .legend-label, .legend-item {
+        color: #94a3b8;
+      }
+    }
+
+    .header-divider {
+      background: #1e2433;
+    }
+
+    .gantt-canvas-wrapper {
+      background: #181d28;
+      
+      .gantt-no-data-overlay {
+        background: rgba(24, 29, 40, 0.95);
+        .text-dark {
+          color: #ffffff !important;
+        }
+      }
+    }
+
+    .gantt-footer-row {
+      background: var(--wo-bg-card, #181d28);
+      border-top-color: #1e2433;
+    }
+
+    /* Gantt chart elements */
+    .gantt_container,
+    .gantt_data_area,
+    .gantt_task_bg,
+    .gantt_grid {
+      background: transparent !important;
+      background-color: transparent !important;
+    }
+
+    .gantt_grid_scale,
+    .gantt_task_scale {
+      background: #1e2433;
+      color: #cbd5e1;
+      border-bottom-color: #1e293b;
+    }
+
+    .gantt_grid_head_cell {
+      color: #f1f5f9;
+      border-right-color: #1e293b;
+    }
+
+    .gantt_scale_cell {
+      color: #94a3b8;
+      border-right-color: #1e293b;
+    }
+
+    .gantt_row,
+    .gantt_task_row {
+      background: #181d28;
+      border-bottom-color: #1e2433;
+
+      &:hover {
+        background: #1e2433 !important;
+      }
+
+      &.gantt_selected {
+        background: rgba(124, 58, 237, 0.15) !important;
+      }
+    }
+
+    .dhtmlx-grid-row-project {
+      background: #1e2433 !important;
+      border-bottom-color: #1e293b !important;
+      .gantt_cell {
+        color: #ffffff;
+      }
+    }
+
+    .gantt_cell {
+      color: #cbd5e1;
+      border-right-color: #1e2433;
+    }
+
+    .gantt_task_cell {
+      border-right-color: #1e2433;
+    }
+
+    .gantt-col-project {
+      .project-title {
+        color: #ffffff;
+      }
+      .task-count-pill {
+        background: #2e1065;
+        color: #c084fc;
+      }
+    }
+
+    .gantt-col-task {
+      .task-title {
+        color: #cbd5e1;
+      }
+    }
+
+    .dhtmlx-weekend-cell {
+      background-color: #121620;
+    }
+
+    .gantt_resizer {
+      background-color: #1e2433 !important;
+    }
+
+    .status-badge {
+      &.s-completed {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+      }
+      &.s-in-progress {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+      }
+      &.s-scheduled {
+        background: rgba(139, 92, 246, 0.15);
+        color: #a78bfa;
+      }
+      &.s-unassigned {
+        background: rgba(148, 163, 184, 0.15);
+        color: #94a3b8;
+      }
+    }
+
+    .priority-badge {
+      &.p-critical {
+        background: rgba(244, 63, 94, 0.15);
+        color: #f43f5e;
+      }
+      &.p-high {
+        background: rgba(249, 115, 22, 0.15);
+        color: #f97316;
+      }
+      &.p-medium {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+      }
+      &.p-low {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+      }
+    }
+
+    .duration-badge {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+
+      &.project-dur-badge {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+      }
+    }
+
+    /* Today marker boundary/accent */
+    .gantt_link_point {
+      border-color: #181d28 !important;
+    }
+  }
+}
+
+/* Tooltip Popup in Dark Mode */
+body.body--dark {
+  .gantt_tooltip {
+    .gantt-tooltip-card {
+      background: #1e2433;
+      border-color: #334155;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+      .tooltip-header {
+        border-bottom-color: #334155;
+        .tooltip-title {
+          color: #ffffff;
+        }
+        .tooltip-project-tag {
+          color: #94a3b8;
+        }
+      }
+
+      .tooltip-body {
+        .tooltip-row {
+          .tooltip-k {
+            color: #94a3b8;
+          }
+          .tooltip-v {
+            color: #ffffff;
+          }
+          .tooltip-progress-box {
+            .tooltip-bar {
+              background: #334155;
+            }
+          }
+        }
+      }
+    }
+  }
+}
 </style>

@@ -6,7 +6,12 @@
         <q-avatar size="42px" color="primary" text-color="white" icon="analytics" />
 
         <div>
-          <div class="text-h5 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Progress</div>
+          <div
+            class="text-h5 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Progress
+          </div>
           <div class="text-body2" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
             Track your work, effort, deadlines and task progress.
           </div>
@@ -99,10 +104,23 @@
           <q-card flat bordered :dark="$q.dark.isActive" class="full-height rounded-borders">
             <q-card-section>
               <div class="row items-center">
-                <q-avatar size="36px" :color="$q.dark.isActive ? 'purple-10' : 'blue-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" icon="donut_large" />
+                <q-avatar
+                  size="36px"
+                  :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="donut_large"
+                />
                 <div class="q-ml-sm">
-                  <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Status Distribution</div>
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div
+                    class="text-subtitle1 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    Status Distribution
+                  </div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
                     Current breakdown of your assigned tasks.
                   </div>
                 </div>
@@ -113,7 +131,10 @@
 
             <q-card-section>
               <!-- Segmented Bar using Quasar flex row -->
-              <div class="row no-wrap rounded-borders overflow-hidden q-mb-md" style="height: 12px; background: rgba(200, 200, 200, 0.2);">
+              <div
+                class="row no-wrap rounded-borders overflow-hidden q-mb-md"
+                style="height: 12px; background: rgba(200, 200, 200, 0.2)"
+              >
                 <div
                   v-for="seg in statusDistribution"
                   :key="seg.label"
@@ -126,8 +147,11 @@
 
               <q-list separator :dark="$q.dark.isActive">
                 <q-item v-for="seg in statusDistribution" :key="seg.label" dense class="q-py-xs">
-                  <q-item-section avatar style="min-width: 24px;">
-                    <q-badge rounded :style="{ background: seg.color, width: '8px', height: '8px' }" />
+                  <q-item-section avatar style="min-width: 24px">
+                    <q-badge
+                      rounded
+                      :style="{ background: seg.color, width: '8px', height: '8px' }"
+                    />
                   </q-item-section>
 
                   <q-item-section :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
@@ -138,8 +162,24 @@
                     <q-chip
                       dense
                       square
-                      :color="seg.label === 'Overdue' ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'grey-9' : 'grey-2')"
-                      :text-color="seg.label === 'Overdue' ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'grey-4' : 'grey-8')"
+                      :color="
+                        seg.label === 'Overdue'
+                          ? $q.dark.isActive
+                            ? 'red-10'
+                            : 'red-1'
+                          : $q.dark.isActive
+                            ? 'grey-9'
+                            : 'grey-2'
+                      "
+                      :text-color="
+                        seg.label === 'Overdue'
+                          ? $q.dark.isActive
+                            ? 'red-2'
+                            : 'negative'
+                          : $q.dark.isActive
+                            ? 'grey-4'
+                            : 'grey-8'
+                      "
                       class="text-caption text-weight-bold"
                     >
                       {{ seg.value }}
@@ -156,10 +196,23 @@
           <q-card flat bordered :dark="$q.dark.isActive" class="full-height rounded-borders">
             <q-card-section>
               <div class="row items-center">
-                <q-avatar size="36px" :color="$q.dark.isActive ? 'orange-10' : 'orange-1'" :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'" icon="timer" />
+                <q-avatar
+                  size="36px"
+                  :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
+                  :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'"
+                  icon="timer"
+                />
                 <div class="q-ml-sm">
-                  <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Effort Analysis</div>
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div
+                    class="text-subtitle1 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    Effort Analysis
+                  </div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
                     Compare planned effort, actual hours and remaining work.
                   </div>
                 </div>
@@ -175,8 +228,18 @@
                   <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
                     <q-card-section class="q-pa-md">
                       <q-icon name="schedule" color="primary" size="22px" />
-                      <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Expected</div>
-                      <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ expectedEffort }}h</div>
+                      <div
+                        class="text-caption q-mt-sm"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                      >
+                        Expected
+                      </div>
+                      <div
+                        class="text-h6 text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ expectedEffort }}h
+                      </div>
                     </q-card-section>
                   </q-card>
                 </div>
@@ -186,8 +249,18 @@
                   <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
                     <q-card-section class="q-pa-md">
                       <q-icon name="timer" color="info" size="22px" />
-                      <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Actual</div>
-                      <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ actualEffort }}h</div>
+                      <div
+                        class="text-caption q-mt-sm"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                      >
+                        Actual
+                      </div>
+                      <div
+                        class="text-h6 text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ actualEffort }}h
+                      </div>
                     </q-card-section>
                   </q-card>
                 </div>
@@ -197,8 +270,18 @@
                   <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
                     <q-card-section class="q-pa-md">
                       <q-icon name="hourglass_bottom" color="warning" size="22px" />
-                      <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Remaining</div>
-                      <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ progressBasedRemainingEffort }}h</div>
+                      <div
+                        class="text-caption q-mt-sm"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                      >
+                        Remaining
+                      </div>
+                      <div
+                        class="text-h6 text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ progressBasedRemainingEffort }}h
+                      </div>
                     </q-card-section>
                   </q-card>
                 </div>
@@ -208,8 +291,18 @@
                   <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
                     <q-card-section class="q-pa-md">
                       <q-icon name="access_time" color="positive" size="22px" />
-                      <div class="text-caption q-mt-sm" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Hours Left</div>
-                      <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ actualHoursRemaining }}h</div>
+                      <div
+                        class="text-caption q-mt-sm"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                      >
+                        Hours Left
+                      </div>
+                      <div
+                        class="text-h6 text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ actualHoursRemaining }}h
+                      </div>
                     </q-card-section>
                   </q-card>
                 </div>
@@ -217,8 +310,19 @@
                 <!-- Work Progress -->
                 <div class="col-12 q-mt-sm">
                   <div class="row items-center justify-between q-mb-xs">
-                    <span class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Work Progress</span>
-                    <q-chip dense square color="primary" text-color="white" class="text-caption text-weight-bold">{{ overallProgress }}%</q-chip>
+                    <span
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                      >Work Progress</span
+                    >
+                    <q-chip
+                      dense
+                      square
+                      color="primary"
+                      text-color="white"
+                      class="text-caption text-weight-bold"
+                      >{{ overallProgress }}%</q-chip
+                    >
                   </div>
                   <q-linear-progress
                     :value="overallProgress / 100"
@@ -232,7 +336,11 @@
                 <!-- Effort -->
                 <div class="col-12">
                   <div class="row items-center justify-between q-mb-xs">
-                    <span class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">Effort Consumed</span>
+                    <span
+                      class="text-caption text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                      >Effort Consumed</span
+                    >
                     <q-chip
                       dense
                       square
@@ -261,9 +369,19 @@
       <q-card flat bordered :dark="$q.dark.isActive" class="q-mb-lg rounded-borders">
         <q-card-section>
           <div class="row items-center">
-            <q-avatar size="36px" :color="$q.dark.isActive ? 'orange-10' : 'orange-1'" :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'" icon="event" />
+            <q-avatar
+              size="36px"
+              :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
+              :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'"
+              icon="event"
+            />
             <div class="q-ml-sm">
-              <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Deadline Performance</div>
+              <div
+                class="text-subtitle1 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Deadline Performance
+              </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                 Overview of your upcoming and overdue deadlines.
               </div>
@@ -281,8 +399,18 @@
                   <div class="row items-center no-wrap">
                     <q-avatar size="34px" :color="d.color" text-color="white" :icon="d.icon" />
                     <div class="q-ml-sm">
-                      <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ d.label }}</div>
-                      <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ d.value }}</div>
+                      <div
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                      >
+                        {{ d.label }}
+                      </div>
+                      <div
+                        class="text-h6 text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ d.value }}
+                      </div>
                     </div>
                   </div>
                 </q-card-section>
@@ -297,14 +425,32 @@
         <q-card-section>
           <div class="row items-center justify-between">
             <div class="row items-center">
-              <q-avatar size="36px" :color="$q.dark.isActive ? 'purple-10' : 'blue-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" icon="folder" />
+              <q-avatar
+                size="36px"
+                :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                icon="folder"
+              />
               <div class="q-ml-sm">
-                <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Project Progress</div>
-                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Your tasks grouped by project.</div>
+                <div
+                  class="text-subtitle1 text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  Project Progress
+                </div>
+                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  Your tasks grouped by project.
+                </div>
               </div>
             </div>
 
-            <q-chip dense square :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" class="text-caption text-weight-bold">
+            <q-chip
+              dense
+              square
+              :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              class="text-caption text-weight-bold"
+            >
               {{ projectProgress.length }} projects
             </q-chip>
           </div>
@@ -315,11 +461,20 @@
         <q-list v-if="projectProgress.length" separator :dark="$q.dark.isActive">
           <q-item v-for="p in projectProgress" :key="p.project" class="q-py-md">
             <q-item-section avatar>
-              <q-avatar size="38px" :color="$q.dark.isActive ? 'purple-10' : 'blue-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" icon="folder" />
+              <q-avatar
+                size="38px"
+                :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                icon="folder"
+              />
             </q-item-section>
 
             <q-item-section>
-              <q-item-label class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ p.project }}</q-item-label>
+              <q-item-label
+                class="text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >{{ p.project }}</q-item-label
+              >
               <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                 {{ p.completed }}/{{ p.tasks }} completed · {{ p.active }} active
               </q-item-label>
@@ -335,15 +490,38 @@
             </q-item-section>
 
             <q-item-section side>
-              <q-chip dense square color="primary" text-color="white" class="text-caption text-weight-bold">{{ p.progress }}%</q-chip>
-              <div class="text-caption q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ p.expectedEffort }}h est</div>
-              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">{{ p.actualEffort }}h logged</div>
+              <q-chip
+                dense
+                square
+                color="primary"
+                text-color="white"
+                class="text-caption text-weight-bold"
+                >{{ p.progress }}%</q-chip
+              >
+              <div
+                class="text-caption q-mt-xs"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+              >
+                {{ p.expectedEffort }}h est
+              </div>
+              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+                {{ p.actualEffort }}h logged
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
 
-        <div v-else class="column items-center q-pa-xl" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-          <q-avatar size="48px" :color="$q.dark.isActive ? 'grey-9' : 'grey-3'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'" icon="folder_off" />
+        <div
+          v-else
+          class="column items-center q-pa-xl"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+        >
+          <q-avatar
+            size="48px"
+            :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+            :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
+            icon="folder_off"
+          />
           <div class="text-caption q-mt-sm">No projects to show yet.</div>
         </div>
       </q-card>
@@ -352,9 +530,19 @@
       <q-card flat bordered :dark="$q.dark.isActive" class="q-mb-lg rounded-borders">
         <q-card-section>
           <div class="row items-center">
-            <q-avatar size="36px" :color="$q.dark.isActive ? 'amber-10' : 'amber-1'" :text-color="$q.dark.isActive ? 'amber-2' : 'amber-9'" icon="lightbulb" />
+            <q-avatar
+              size="36px"
+              :color="$q.dark.isActive ? 'amber-10' : 'amber-1'"
+              :text-color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
+              icon="lightbulb"
+            />
             <div class="q-ml-sm">
-              <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Work Insights</div>
+              <div
+                class="text-subtitle1 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Work Insights
+              </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                 Computed from your current tasks and progress.
               </div>
@@ -367,7 +555,12 @@
         <q-list v-if="insights.length" separator :dark="$q.dark.isActive">
           <q-item v-for="(insight, i) in insights" :key="i" class="q-py-md">
             <q-item-section avatar>
-              <q-avatar size="32px" :color="$q.dark.isActive ? 'purple-10' : 'blue-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" icon="lightbulb" />
+              <q-avatar
+                size="32px"
+                :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                icon="lightbulb"
+              />
             </q-item-section>
 
             <q-item-section :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
@@ -376,8 +569,17 @@
           </q-item>
         </q-list>
 
-        <div v-else class="column items-center q-pa-xl" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-          <q-avatar size="48px" :color="$q.dark.isActive ? 'grey-9' : 'grey-3'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'" icon="task_alt" />
+        <div
+          v-else
+          class="column items-center q-pa-xl"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+        >
+          <q-avatar
+            size="48px"
+            :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+            :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
+            icon="task_alt"
+          />
           <div class="text-caption q-mt-sm">Nothing to flag right now.</div>
         </div>
       </q-card>
@@ -388,14 +590,25 @@
           <div class="row items-center">
             <q-avatar size="36px" color="primary" text-color="white" icon="checklist" />
             <div class="q-ml-sm">
-              <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Task Progress</div>
+              <div
+                class="text-subtitle1 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Task Progress
+              </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                 Every assigned task with progress, effort and deadline details.
               </div>
             </div>
           </div>
 
-          <q-chip dense square color="primary" text-color="white" class="text-caption text-weight-bold">
+          <q-chip
+            dense
+            square
+            color="primary"
+            text-color="white"
+            class="text-caption text-weight-bold"
+          >
             {{ tasks.length }} tasks
           </q-chip>
         </q-card-section>
@@ -451,7 +664,10 @@
                   style="min-width: 60px"
                   :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                 />
-                <span class="text-caption text-weight-bold q-ml-sm" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                <span
+                  class="text-caption text-weight-bold q-ml-sm"
+                  :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                >
                   {{ props.row.progress }}%
                 </span>
               </div>
@@ -484,8 +700,17 @@
           </template>
         </q-table>
 
-        <div v-else class="column items-center q-pa-xl" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-          <q-avatar size="48px" :color="$q.dark.isActive ? 'grey-9' : 'grey-3'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'" icon="task_alt" />
+        <div
+          v-else
+          class="column items-center q-pa-xl"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+        >
+          <q-avatar
+            size="48px"
+            :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+            :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
+            icon="task_alt"
+          />
           <div class="text-body2 q-mt-sm">No tasks assigned to you.</div>
         </div>
       </q-card>
@@ -915,12 +1140,14 @@ function statusTextColor(status: Task['status']): string {
 }
 
 function statusLabel(status: Task['status']) {
-  return {
-    UNASSIGNED: 'Unassigned',
-    SCHEDULED: 'Scheduled',
-    IN_PROGRESS: 'In Progress',
-    COMPLETED: 'Completed',
-  }[status] || status;
+  return (
+    {
+      UNASSIGNED: 'Unassigned',
+      SCHEDULED: 'Scheduled',
+      IN_PROGRESS: 'In Progress',
+      COMPLETED: 'Completed',
+    }[status] || status
+  );
 }
 
 function openTask(taskId: number) {

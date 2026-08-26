@@ -4,12 +4,17 @@
       <!-- 1. PAGE HEADER & GREETING -->
       <div class="row items-center justify-between q-mb-lg">
         <div>
-          <div class="row items-center q-gutter-xs text-caption text-weight-bold text-primary q-mb-xs">
+          <div
+            class="row items-center q-gutter-xs text-caption text-weight-bold text-primary q-mb-xs"
+          >
             <span>✦</span>
             <span>Project Management</span>
           </div>
           <h1 class="text-h4 text-weight-bolder q-ma-none">Hey, {{ currentPmName }}!</h1>
-          <p class="text-subtitle2 q-mt-xs q-mb-none" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+          <p
+            class="text-subtitle2 q-mt-xs q-mb-none"
+            :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+          >
             Plan, track, and manage everything your team is working on with complete clarity.
           </p>
         </div>
@@ -86,7 +91,7 @@
                 backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.3) 100%), url('/projects/todays_focus_hero.jpg')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                minHeight: '280px'
+                minHeight: '280px',
               }"
             >
               <div>
@@ -105,11 +110,17 @@
                   />
                 </div>
 
-                <h2 class="text-h5 text-weight-bold q-ma-none q-mb-xs" :title="featuredProject.name">
+                <h2
+                  class="text-h5 text-weight-bold q-ma-none q-mb-xs"
+                  :title="featuredProject.name"
+                >
                   {{ featuredProject.name }}
                 </h2>
                 <p class="text-body2 text-white-8 q-mb-md">
-                  {{ featuredProject.description || 'Deliver project milestones on schedule, coordinate with assigned resources, and review open deliverables.' }}
+                  {{
+                    featuredProject.description ||
+                    'Deliver project milestones on schedule, coordinate with assigned resources, and review open deliverables.'
+                  }}
                 </p>
               </div>
 
@@ -138,11 +149,7 @@
               <div>
                 <div class="row items-center justify-between q-mb-sm">
                   <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
-                  <q-chip
-                    dense
-                    square
-                    class="text-weight-bold featured-health-chip"
-                  >
+                  <q-chip dense square class="text-weight-bold featured-health-chip">
                     {{ getHealthLabel(featuredProject) }}
                   </q-chip>
                 </div>
@@ -152,7 +159,10 @@
                   <div class="col-6 q-pa-xs">
                     <div class="detail-sub-box">
                       <div class="text-caption text-grey-6">HEALTH</div>
-                      <div class="text-weight-bold" :class="`text-${getProjectHealth(featuredProject).toLowerCase()}`">
+                      <div
+                        class="text-weight-bold"
+                        :class="`text-${getProjectHealth(featuredProject).toLowerCase()}`"
+                      >
                         {{ getHealthLabel(featuredProject) }}
                       </div>
                     </div>
@@ -179,7 +189,9 @@
 
                 <!-- Completion Progress Bar -->
                 <div>
-                  <div class="row items-center justify-between text-caption text-weight-bold q-mb-xs">
+                  <div
+                    class="row items-center justify-between text-caption text-weight-bold q-mb-xs"
+                  >
                     <span>Project Completion</span>
                     <span>{{ Number(featuredProject.progress) || 0 }}%</span>
                   </div>
@@ -206,7 +218,9 @@
               <q-icon name="folder_open" size="30px" />
             </q-avatar>
             <div class="text-h6 text-weight-bold">No projects available</div>
-            <p class="text-caption text-grey-6">Create your first project to start planning your team's workflow and focus.</p>
+            <p class="text-caption text-grey-6">
+              Create your first project to start planning your team's workflow and focus.
+            </p>
             <q-btn
               unelevated
               no-caps
@@ -229,7 +243,11 @@
                 <div class="text-subtitle1 text-weight-bold">Project Health</div>
                 <div class="text-caption text-grey-6">Delivery status balance</div>
               </div>
-              <q-chip dense :color="$q.dark.isActive ? 'grey-9' : 'grey-2'" :text-color="$q.dark.isActive ? 'white' : 'dark'">
+              <q-chip
+                dense
+                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                :text-color="$q.dark.isActive ? 'white' : 'dark'"
+              >
                 {{ totalProjects }} Total
               </q-chip>
             </q-card-section>
@@ -237,8 +255,18 @@
             <q-card-section class="row items-center justify-around">
               <!-- SVG Donut Chart -->
               <div style="position: relative; width: 120px; height: 120px">
-                <svg viewBox="0 0 120 120" style="width: 100%; height: 100%; transform: rotate(-90deg)">
-                  <circle cx="60" cy="60" r="46" fill="none" :stroke="$q.dark.isActive ? '#333' : '#F1F3F7'" stroke-width="12" />
+                <svg
+                  viewBox="0 0 120 120"
+                  style="width: 100%; height: 100%; transform: rotate(-90deg)"
+                >
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="46"
+                    fill="none"
+                    :stroke="$q.dark.isActive ? '#333' : '#F1F3F7'"
+                    stroke-width="12"
+                  />
                   <circle
                     cx="60"
                     cy="60"
@@ -273,7 +301,10 @@
                     stroke-linecap="round"
                   />
                 </svg>
-                <div style="position: absolute; inset: 0;" class="column items-center justify-center">
+                <div
+                  style="position: absolute; inset: 0"
+                  class="column items-center justify-center"
+                >
                   <div class="text-subtitle1 text-weight-bolder">{{ onTrackRatio }}%</div>
                   <div class="text-caption text-grey-6" style="font-size: 10px">On Track</div>
                 </div>
@@ -283,21 +314,27 @@
               <div class="column q-gutter-xs">
                 <div class="row items-center justify-between gap-md" style="min-width: 140px">
                   <div class="row items-center q-gutter-xs">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #34D399" />
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: #34d399"
+                    />
                     <span class="text-caption">On Track</span>
                   </div>
                   <span class="text-caption text-weight-bold">{{ onTrackProjects }}</span>
                 </div>
                 <div class="row items-center justify-between gap-md" style="min-width: 140px">
                   <div class="row items-center q-gutter-xs">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #FB923C" />
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: #fb923c"
+                    />
                     <span class="text-caption">At Risk</span>
                   </div>
                   <span class="text-caption text-weight-bold">{{ atRiskProjects }}</span>
                 </div>
                 <div class="row items-center justify-between gap-md" style="min-width: 140px">
                   <div class="row items-center q-gutter-xs">
-                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #FB7185" />
+                    <span
+                      style="width: 8px; height: 8px; border-radius: 50%; background: #fb7185"
+                    />
                     <span class="text-caption">Delayed</span>
                   </div>
                   <span class="text-caption text-weight-bold">{{ delayedProjects }}</span>
@@ -315,11 +352,16 @@
                 <div class="text-subtitle1 text-weight-bold">Upcoming Deadlines</div>
                 <div class="text-caption text-grey-6">Chronological milestone schedule</div>
               </div>
-              <span class="text-caption text-grey-6">{{ upcomingDeadlinesList.length }} scheduled</span>
+              <span class="text-caption text-grey-6"
+                >{{ upcomingDeadlinesList.length }} scheduled</span
+              >
             </q-card-section>
 
             <q-card-section>
-              <div v-if="upcomingDeadlinesList.length === 0" class="q-pa-md text-center text-grey-6">
+              <div
+                v-if="upcomingDeadlinesList.length === 0"
+                class="q-pa-md text-center text-grey-6"
+              >
                 <q-icon name="event_available" size="32px" />
                 <div class="q-mt-xs">No upcoming project deadlines</div>
               </div>
@@ -337,21 +379,34 @@
                     <div
                       class="column items-center justify-center rounded-borders q-px-xs q-py-xs"
                       style="min-width: 44px"
-                      :class="$q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-purple-1 text-primary'"
+                      :class="
+                        $q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-purple-1 text-primary'
+                      "
                     >
-                      <span class="text-caption text-weight-bold" style="font-size: 10px">{{ item.month }}</span>
-                      <span class="text-subtitle2 text-weight-bolder" style="line-height: 1">{{ item.day }}</span>
+                      <span class="text-caption text-weight-bold" style="font-size: 10px">{{
+                        item.month
+                      }}</span>
+                      <span class="text-subtitle2 text-weight-bolder" style="line-height: 1">{{
+                        item.day
+                      }}</span>
                     </div>
 
                     <div>
                       <div class="row items-center q-gutter-xs">
                         <span class="text-weight-bold">{{ item.project.name }}</span>
-                        <q-chip dense square size="xs" :color="$q.dark.isActive ? 'purple-10' : 'purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'">
+                        <q-chip
+                          dense
+                          square
+                          size="xs"
+                          :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                          :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                        >
                           {{ getHealthLabel(item.project) }}
                         </q-chip>
                       </div>
                       <div class="text-caption text-grey-6">
-                        {{ item.relativeText }} • {{ Number(item.project.progress) || 0 }}% completed
+                        {{ item.relativeText }} • {{ Number(item.project.progress) || 0 }}%
+                        completed
                       </div>
                     </div>
                   </div>
@@ -371,7 +426,11 @@
           <q-card-section class="row items-center justify-between">
             <div class="row items-center q-gutter-sm">
               <span class="text-subtitle1 text-weight-bold">Active Projects</span>
-              <q-badge :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" class="text-weight-bold">
+              <q-badge
+                :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                class="text-weight-bold"
+              >
                 {{ filteredProjects.length }} Projects
               </q-badge>
             </div>
@@ -449,11 +508,27 @@
               </div>
 
               <div class="col-6 col-md-2">
-                <q-input v-model="startDateFilter" outlined dense type="date" label="Start Date" :dark="$q.dark.isActive" stack-label />
+                <q-input
+                  v-model="startDateFilter"
+                  outlined
+                  dense
+                  type="date"
+                  label="Start Date"
+                  :dark="$q.dark.isActive"
+                  stack-label
+                />
               </div>
 
               <div class="col-6 col-md-2">
-                <q-input v-model="endDateFilter" outlined dense type="date" label="End Date" :dark="$q.dark.isActive" stack-label />
+                <q-input
+                  v-model="endDateFilter"
+                  outlined
+                  dense
+                  type="date"
+                  label="End Date"
+                  :dark="$q.dark.isActive"
+                  stack-label
+                />
               </div>
 
               <div class="col-12 col-md-1 text-right">
@@ -476,8 +551,18 @@
                 <q-icon name="folder_open" size="30px" />
               </q-avatar>
               <div class="text-h6 text-weight-bold">No projects found</div>
-              <div class="text-caption text-grey-6">Try adjusting your search terms or active filters.</div>
-              <q-btn flat dense no-caps color="primary" label="Clear Filters" class="q-mt-sm" @click="resetAllFilters" />
+              <div class="text-caption text-grey-6">
+                Try adjusting your search terms or active filters.
+              </div>
+              <q-btn
+                flat
+                dense
+                no-caps
+                color="primary"
+                label="Clear Filters"
+                class="q-mt-sm"
+                @click="resetAllFilters"
+              />
             </div>
 
             <div v-else>
@@ -485,7 +570,9 @@
                 <div v-if="group.label" class="row items-center q-gutter-xs q-mb-sm">
                   <q-icon name="category" size="16px" color="primary" />
                   <span class="text-subtitle2 text-weight-bold">{{ group.label }}</span>
-                  <q-chip dense size="sm" color="purple-1" text-color="primary">{{ group.projects.length }}</q-chip>
+                  <q-chip dense size="sm" color="purple-1" text-color="primary">{{
+                    group.projects.length
+                  }}</q-chip>
                 </div>
 
                 <div class="row q-col-gutter-lg">
@@ -509,7 +596,7 @@
                         }"
                       >
                         <div class="row items-center justify-between no-wrap q-mb-sm">
-                          <q-avatar size="32px" color="white" :text-color="getProjectTheme(project, index).accent" class="shadow-1">
+                          <q-avatar size="32px" color="white" :style="{ color: getProjectTheme(project, index).accent }" class="shadow-1">
                             <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
                           </q-avatar>
 
@@ -521,11 +608,19 @@
                               <q-menu auto-close>
                                 <q-list style="min-width: 150px">
                                   <q-item clickable @click="goToProject(project.project_id)">
-                                    <q-item-section avatar><q-icon name="visibility" color="primary" /></q-item-section>
+                                    <q-item-section avatar
+                                      ><q-icon name="visibility" color="primary"
+                                    /></q-item-section>
                                     <q-item-section>View Details</q-item-section>
                                   </q-item>
-                                  <q-item clickable class="text-negative" @click="confirmDeleteProject(project)">
-                                    <q-item-section avatar><q-icon name="delete" color="negative" /></q-item-section>
+                                  <q-item
+                                    clickable
+                                    class="text-negative"
+                                    @click="confirmDeleteProject(project)"
+                                  >
+                                    <q-item-section avatar
+                                      ><q-icon name="delete" color="negative"
+                                    /></q-item-section>
                                     <q-item-section>Delete Project</q-item-section>
                                   </q-item>
                                 </q-list>
@@ -621,7 +716,10 @@
           >
             <template #body-cell-project="props">
               <q-td :props="props">
-                <div class="row items-center q-gutter-xs cursor-pointer" @click="goToProject(props.row.project_id)">
+                <div
+                  class="row items-center q-gutter-xs cursor-pointer"
+                  @click="goToProject(props.row.project_id)"
+                >
                   <q-avatar size="26px" color="purple-1" text-color="primary">
                     <q-icon name="folder" size="14px" />
                   </q-avatar>
@@ -643,7 +741,12 @@
 
             <template #body-cell-status="props">
               <q-td :props="props">
-                <q-chip dense square :color="$q.dark.isActive ? 'grey-9' : 'grey-2'" :text-color="$q.dark.isActive ? 'white' : 'dark'">
+                <q-chip
+                  dense
+                  square
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                  :text-color="$q.dark.isActive ? 'white' : 'dark'"
+                >
                   {{ formatStatus(props.row.status) }}
                 </q-chip>
               </q-td>
@@ -651,7 +754,12 @@
 
             <template #body-cell-health="props">
               <q-td :props="props">
-                <q-chip dense square :color="$q.dark.isActive ? 'purple-10' : 'purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'">
+                <q-chip
+                  dense
+                  square
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                >
                   {{ getHealthLabel(props.row) }}
                 </q-chip>
               </q-td>
@@ -667,7 +775,9 @@
                     color="primary"
                     class="col"
                   />
-                  <span class="text-caption text-weight-bold">{{ Number(props.row.progress) || 0 }}%</span>
+                  <span class="text-caption text-weight-bold"
+                    >{{ Number(props.row.progress) || 0 }}%</span
+                  >
                 </div>
               </q-td>
             </template>
@@ -686,11 +796,19 @@
                   <q-menu auto-close>
                     <q-list style="min-width: 150px">
                       <q-item clickable @click="goToProject(props.row.project_id)">
-                        <q-item-section avatar><q-icon name="visibility" color="primary" /></q-item-section>
+                        <q-item-section avatar
+                          ><q-icon name="visibility" color="primary"
+                        /></q-item-section>
                         <q-item-section>View Details</q-item-section>
                       </q-item>
-                      <q-item clickable class="text-negative" @click="confirmDeleteProject(props.row)">
-                        <q-item-section avatar><q-icon name="delete" color="negative" /></q-item-section>
+                      <q-item
+                        clickable
+                        class="text-negative"
+                        @click="confirmDeleteProject(props.row)"
+                      >
+                        <q-item-section avatar
+                          ><q-icon name="delete" color="negative"
+                        /></q-item-section>
                         <q-item-section>Delete Project</q-item-section>
                       </q-item>
                     </q-list>
@@ -706,15 +824,21 @@
       <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md">
         <div class="row q-col-gutter-md items-center justify-around text-center">
           <div class="row items-center q-gutter-sm">
-            <q-avatar size="36px" color="green-1" text-color="green"><q-icon name="trending_up" /></q-avatar>
+            <q-avatar size="36px" color="green-1" text-color="green"
+              ><q-icon name="trending_up"
+            /></q-avatar>
             <div class="text-left">
               <div class="text-caption text-grey-6">Highest Progress</div>
-              <div class="text-subtitle1 text-weight-bolder">{{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%</div>
+              <div class="text-subtitle1 text-weight-bolder">
+                {{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%
+              </div>
             </div>
           </div>
 
           <div class="row items-center q-gutter-sm">
-            <q-avatar size="36px" color="purple-1" text-color="primary"><q-icon name="pie_chart" /></q-avatar>
+            <q-avatar size="36px" color="purple-1" text-color="primary"
+              ><q-icon name="pie_chart"
+            /></q-avatar>
             <div class="text-left">
               <div class="text-caption text-grey-6">Average Progress</div>
               <div class="text-subtitle1 text-weight-bolder">{{ completionAverage }}%</div>
@@ -722,10 +846,14 @@
           </div>
 
           <div class="row items-center q-gutter-sm">
-            <q-avatar size="36px" color="orange-1" text-color="orange"><q-icon name="priority_high" /></q-avatar>
+            <q-avatar size="36px" color="orange-1" text-color="orange"
+              ><q-icon name="priority_high"
+            /></q-avatar>
             <div class="text-left">
               <div class="text-caption text-grey-6">Projects Needing Attention</div>
-              <div class="text-subtitle1 text-weight-bolder">{{ atRiskProjects + delayedProjects }}</div>
+              <div class="text-subtitle1 text-weight-bolder">
+                {{ atRiskProjects + delayedProjects }}
+              </div>
             </div>
           </div>
         </div>
@@ -745,31 +873,87 @@
 
         <q-form @submit.prevent="handleCreateProject">
           <q-card-section class="column q-gutter-md">
-            <q-input v-model="form.name" outlined dense label="Project name" :dark="$q.dark.isActive" :rules="[(val) => !!val.trim() || 'Project name is required']" />
-            <q-input v-model="form.description" outlined dense type="textarea" label="Description" autogrow :dark="$q.dark.isActive" />
+            <q-input
+              v-model="form.name"
+              outlined
+              dense
+              label="Project name"
+              :dark="$q.dark.isActive"
+              :rules="[(val) => !!val.trim() || 'Project name is required']"
+            />
+            <q-input
+              v-model="form.description"
+              outlined
+              dense
+              type="textarea"
+              label="Description"
+              autogrow
+              :dark="$q.dark.isActive"
+            />
 
             <div class="row q-col-gutter-sm">
               <div class="col-6">
-                <q-select v-model="form.status" outlined dense label="Status" :options="statusOptions" emit-value map-options :dark="$q.dark.isActive" />
+                <q-select
+                  v-model="form.status"
+                  outlined
+                  dense
+                  label="Status"
+                  :options="statusOptions"
+                  emit-value
+                  map-options
+                  :dark="$q.dark.isActive"
+                />
               </div>
               <div class="col-6">
-                <q-select v-model="form.priority" outlined dense label="Priority" :options="priorityOptions" emit-value map-options :dark="$q.dark.isActive" />
+                <q-select
+                  v-model="form.priority"
+                  outlined
+                  dense
+                  label="Priority"
+                  :options="priorityOptions"
+                  emit-value
+                  map-options
+                  :dark="$q.dark.isActive"
+                />
               </div>
             </div>
 
             <div class="row q-col-gutter-sm">
               <div class="col-6">
-                <q-input v-model="form.start_date" outlined dense type="date" label="Start date" stack-label :dark="$q.dark.isActive" />
+                <q-input
+                  v-model="form.start_date"
+                  outlined
+                  dense
+                  type="date"
+                  label="Start date"
+                  stack-label
+                  :dark="$q.dark.isActive"
+                />
               </div>
               <div class="col-6">
-                <q-input v-model="form.deadline" outlined dense type="date" label="Deadline" stack-label :dark="$q.dark.isActive" />
+                <q-input
+                  v-model="form.deadline"
+                  outlined
+                  dense
+                  type="date"
+                  label="Deadline"
+                  stack-label
+                  :dark="$q.dark.isActive"
+                />
               </div>
             </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
             <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
-            <q-btn type="submit" no-caps unelevated label="Create Project" color="primary" :loading="creating" />
+            <q-btn
+              type="submit"
+              no-caps
+              unelevated
+              label="Create Project"
+              color="primary"
+              :loading="creating"
+            />
           </q-card-actions>
         </q-form>
       </q-card>
@@ -784,7 +968,8 @@
       :loading="deletingProject"
       @confirm="handleExecuteDeleteProject"
     >
-      Are you sure you want to delete project <strong>"{{ projectToDelete?.name }}"</strong>? All associated tasks, dependencies, and team assignments will be permanently removed.
+      Are you sure you want to delete project <strong>"{{ projectToDelete?.name }}"</strong>? All
+      associated tasks, dependencies, and team assignments will be permanently removed.
     </ConfirmActionDialog>
   </q-page>
 </template>
@@ -1077,7 +1262,6 @@ function getHealthLabel(project: Project) {
 
   return 'On Track';
 }
-
 
 const filteredProjects = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();

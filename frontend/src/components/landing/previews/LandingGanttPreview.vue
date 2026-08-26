@@ -52,7 +52,9 @@
               <div class="task-name ellipsis" :title="task.name">{{ task.name }}</div>
               <div class="task-meta-row row items-center gap-xs">
                 <span class="project-pill">{{ task.project }}</span>
-                <span class="effort-pill">{{ task.actualEffort }}h / {{ task.expectedEffort }}h</span>
+                <span class="effort-pill"
+                  >{{ task.actualEffort }}h / {{ task.expectedEffort }}h</span
+                >
               </div>
             </div>
           </div>

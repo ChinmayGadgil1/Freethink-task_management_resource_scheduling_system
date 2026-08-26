@@ -138,13 +138,18 @@
               </q-badge>
               <div
                 class="timeline-dates-grid"
-                :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))` }"
+                :style="{
+                  gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))`,
+                }"
               >
                 <div
                   v-for="day in timelineDays"
                   :key="day.key"
                   class="column items-center justify-center text-caption"
-                  :class="{ 'text-primary text-weight-bold': day.isToday, 'text-grey-6': !day.isToday }"
+                  :class="{
+                    'text-primary text-weight-bold': day.isToday,
+                    'text-grey-6': !day.isToday,
+                  }"
                 >
                   <span class="text-weight-bold">{{ day.label }}</span>
                   <span style="font-size: 9px">{{ day.weekday }}</span>
@@ -152,7 +157,11 @@
               </div>
             </div>
 
-            <div v-if="positionedTimelineRows.length" id="timeline-body" class="timeline-body q-mt-sm">
+            <div
+              v-if="positionedTimelineRows.length"
+              id="timeline-body"
+              class="timeline-body q-mt-sm"
+            >
               <div
                 v-for="row in positionedTimelineRows"
                 :key="row.id"
@@ -160,16 +169,30 @@
                 :style="{ minWidth: `${140 + timelineDays.length * 54}px` }"
               >
                 <div class="project-label">
-                  <span class="timeline-task-label text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ row.title }}</span>
-                  <span class="timeline-project-name text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ row.projectName }}</span>
+                  <span
+                    class="timeline-task-label text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >{{ row.title }}</span
+                  >
+                  <span
+                    class="timeline-project-name text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                    >{{ row.projectName }}</span
+                  >
                 </div>
 
                 <div class="project-track" style="height: 36px; position: relative">
                   <div
                     class="timeline-grid-lines"
-                    :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))` }"
+                    :style="{
+                      gridTemplateColumns: `repeat(${timelineDays.length}, minmax(54px, 1fr))`,
+                    }"
                   >
-                    <div v-for="day in timelineDays" :key="`${row.id}-${day.key}`" class="grid-line" />
+                    <div
+                      v-for="day in timelineDays"
+                      :key="`${row.id}-${day.key}`"
+                      class="grid-line"
+                    />
                   </div>
 
                   <div
@@ -194,7 +217,9 @@
 
             <div v-else class="column items-center q-pa-xl text-grey-6">
               <q-icon name="event_note" size="36px" color="grey-5" />
-              <span class="text-caption q-mt-sm">No tasks or project dates are available for the timeline yet.</span>
+              <span class="text-caption q-mt-sm"
+                >No tasks or project dates are available for the timeline yet.</span
+              >
             </div>
           </q-card-section>
         </q-card>
@@ -205,7 +230,11 @@
         <div class="row items-center justify-between wrap q-gutter-y-sm">
           <div class="row items-center q-gutter-xs">
             <q-icon name="bolt" color="primary" size="20px" />
-            <span class="text-subtitle2 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Quick Actions</span>
+            <span
+              class="text-subtitle2 text-weight-bold"
+              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >Quick Actions</span
+            >
           </div>
 
           <div class="row items-center q-gutter-sm wrap">
@@ -270,7 +299,10 @@
 
       <!-- DIALOG 1: CREATE PROJECT -->
       <q-dialog v-model="showNewProjectModal">
-        <q-card :dark="$q.dark.isActive" style="min-width: 460px; max-width: 90vw; border-radius: 12px">
+        <q-card
+          :dark="$q.dark.isActive"
+          style="min-width: 460px; max-width: 90vw; border-radius: 12px"
+        >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Create New Project</div>
             <q-space />
@@ -360,7 +392,10 @@
 
       <!-- DIALOG 2: ADD TASK -->
       <q-dialog v-model="showAddTaskModal">
-        <q-card :dark="$q.dark.isActive" style="min-width: 480px; max-width: 90vw; border-radius: 12px">
+        <q-card
+          :dark="$q.dark.isActive"
+          style="min-width: 480px; max-width: 90vw; border-radius: 12px"
+        >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Add New Task</div>
             <q-space />
@@ -489,7 +524,10 @@
 
       <!-- DIALOG 3: ALLOCATE RESOURCE -->
       <q-dialog v-model="showAllocateResourceModal">
-        <q-card :dark="$q.dark.isActive" style="min-width: 440px; max-width: 90vw; border-radius: 12px">
+        <q-card
+          :dark="$q.dark.isActive"
+          style="min-width: 440px; max-width: 90vw; border-radius: 12px"
+        >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Allocate Resource</div>
             <q-space />
@@ -549,7 +587,10 @@
 
       <!-- DIALOG 4: LOG PROGRESS -->
       <q-dialog v-model="showLogProgressModal">
-        <q-card :dark="$q.dark.isActive" style="min-width: 460px; max-width: 90vw; border-radius: 12px">
+        <q-card
+          :dark="$q.dark.isActive"
+          style="min-width: 460px; max-width: 90vw; border-radius: 12px"
+        >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Log Progress & Effort</div>
             <q-space />
@@ -592,7 +633,9 @@
                     outlined
                     dense
                     :dark="$q.dark.isActive"
-                    :rules="[(val) => (val !== null && val >= 0 && val <= 100) || '0-100% required']"
+                    :rules="[
+                      (val) => (val !== null && val >= 0 && val <= 100) || '0-100% required',
+                    ]"
                   />
                 </div>
               </div>
@@ -623,7 +666,10 @@
 
       <!-- DIALOG 5: GENERATE REPORT -->
       <q-dialog v-model="showGenerateReportModal">
-        <q-card :dark="$q.dark.isActive" style="min-width: 440px; max-width: 90vw; border-radius: 12px">
+        <q-card
+          :dark="$q.dark.isActive"
+          style="min-width: 440px; max-width: 90vw; border-radius: 12px"
+        >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Generate Project Report</div>
             <q-space />

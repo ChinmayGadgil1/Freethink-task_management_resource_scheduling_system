@@ -46,7 +46,9 @@
           class="theme-toggle-btn"
           @click="themeStore.toggleDarkMode"
         >
-          <q-tooltip>{{ themeStore.isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode' }}</q-tooltip>
+          <q-tooltip>{{
+            themeStore.isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'
+          }}</q-tooltip>
         </q-btn>
 
         <q-btn flat no-caps label="Log in" class="login-btn" @click="goToLogin" />

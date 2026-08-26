@@ -4,7 +4,9 @@
     <div class="page-header-row">
       <div class="header-left">
         <div class="page-title">Schedule</div>
-        <div class="page-subtitle">Plan and track your team's work across projects and milestones</div>
+        <div class="page-subtitle">
+          Plan and track your team's work across projects and milestones
+        </div>
       </div>
 
       <div class="header-actions row items-center q-gutter-sm">
@@ -16,7 +18,6 @@
           color="white"
           text-color="grey-8"
           dense
-          rounded
           unelevated
           class="view-toggle-btn shadow-subtle q-mr-xs"
           :options="[
@@ -128,14 +129,7 @@
             title="Next"
             @click="navigateDate(1)"
           />
-          <q-btn
-            outline
-            dense
-            no-caps
-            label="Today"
-            class="today-btn q-px-sm"
-            @click="goToToday"
-          />
+          <q-btn outline dense no-caps label="Today" class="today-btn q-px-sm" @click="goToToday" />
           <div class="current-range-label q-ml-sm">
             {{ formattedDateRangeHeader }}
           </div>
@@ -253,7 +247,10 @@
               v-for="day in displayedDays"
               :key="`${day.toISOString()}-${hour}`"
               class="cal-cell time-track-cell"
-              :class="{ 'is-today-col': isSameDay(day, todayDate), 'is-weekend-col': isWeekend(day) }"
+              :class="{
+                'is-today-col': isSameDay(day, todayDate),
+                'is-weekend-col': isWeekend(day),
+              }"
             />
           </template>
 
@@ -268,14 +265,20 @@
             <div class="task-block-inner">
               <div class="block-top-row row items-center justify-between no-wrap">
                 <span class="block-time-range">{{ item.timeRange }}</span>
-                <span class="block-priority-dot" :class="`prio-dot-${item.task.priority.toLowerCase()}`" />
+                <span
+                  class="block-priority-dot"
+                  :class="`prio-dot-${item.task.priority.toLowerCase()}`"
+                />
               </div>
 
               <div class="block-task-title ellipsis" :title="item.task.title">
                 {{ item.task.title }}
               </div>
 
-              <div class="block-project-name ellipsis" :title="getProjectName(item.task.project_id)">
+              <div
+                class="block-project-name ellipsis"
+                :title="getProjectName(item.task.project_id)"
+              >
                 {{ getProjectName(item.task.project_id) }}
               </div>
 
@@ -283,7 +286,11 @@
               <div class="block-bottom-row row items-center justify-between no-wrap q-mt-xs">
                 <!-- Assignee Avatars -->
                 <div class="row items-center avatar-mini-stack">
-                  <template v-if="item.task.assigned_resource_ids && item.task.assigned_resource_ids.length > 0">
+                  <template
+                    v-if="
+                      item.task.assigned_resource_ids && item.task.assigned_resource_ids.length > 0
+                    "
+                  >
                     <q-avatar
                       v-for="rId in item.task.assigned_resource_ids.slice(0, 2)"
                       :key="rId"
@@ -319,7 +326,11 @@
       <div class="month-calendar-wrapper">
         <!-- Weekday header strip -->
         <div class="month-weekday-header-grid">
-          <div v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="wDay" class="month-wday-cell">
+          <div
+            v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']"
+            :key="wDay"
+            class="month-wday-cell"
+          >
             {{ wDay }}
           </div>
         </div>
@@ -509,14 +520,7 @@
               >
                 <q-tooltip>View Details</q-tooltip>
               </q-btn>
-              <q-btn
-                flat
-                round
-                dense
-                icon="edit"
-                color="grey-7"
-                @click="openEditModal(props.row)"
-              >
+              <q-btn flat round dense icon="edit" color="grey-7" @click="openEditModal(props.row)">
                 <q-tooltip>Edit Task</q-tooltip>
               </q-btn>
             </div>
@@ -736,7 +740,8 @@ const TASK_PASTEL_THEMES: TaskPastelTheme[] = [
 ];
 
 function getTaskPastelTheme(task: Task): TaskPastelTheme {
-  const idx = Math.abs(Number(task.task_id) || Number(task.project_id) || 0) % TASK_PASTEL_THEMES.length;
+  const idx =
+    Math.abs(Number(task.task_id) || Number(task.project_id) || 0) % TASK_PASTEL_THEMES.length;
   const theme = TASK_PASTEL_THEMES[idx];
   return theme ?? DEFAULT_TASK_THEME;
 }
@@ -820,13 +825,21 @@ const formattedDateRangeHeader = computed<string>(() => {
     const first = displayedDays.value[0];
     const last = displayedDays.value[6];
     if (first && last) {
-      const fStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(first);
-      const lStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(last);
+      const fStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(
+        first,
+      );
+      const lStr = new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(last);
       return `${fStr} – ${lStr}`;
     }
   }
 
-  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(currentAnchorDate.value);
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(
+    currentAnchorDate.value,
+  );
 });
 
 // Month matrix calculation (42 cells: 6 rows of 7 days)
@@ -1490,7 +1503,9 @@ async function handleUpdateTask() {
   border: 1px solid transparent;
   padding: 6px 8px;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   overflow: hidden;
 
   &:hover {
@@ -1514,10 +1529,18 @@ async function handleUpdateTask() {
     height: 6px;
     border-radius: 50%;
 
-    &.prio-dot-critical { background: #ef4444; }
-    &.prio-dot-high { background: #f97316; }
-    &.prio-dot-medium { background: #8b6fd8; }
-    &.prio-dot-low { background: #10b981; }
+    &.prio-dot-critical {
+      background: #ef4444;
+    }
+    &.prio-dot-high {
+      background: #f97316;
+    }
+    &.prio-dot-medium {
+      background: #8b6fd8;
+    }
+    &.prio-dot-low {
+      background: #10b981;
+    }
   }
 
   .block-task-title {
@@ -1539,7 +1562,9 @@ async function handleUpdateTask() {
       color: #ffffff;
       font-size: 9px;
       font-weight: 700;
-      &:first-child { margin-left: 0; }
+      &:first-child {
+        margin-left: 0;
+      }
     }
     .mini-more {
       background: #cbd5e1;
@@ -1597,7 +1622,9 @@ async function handleUpdateTask() {
 
     &.is-other-month {
       background: rgba(248, 250, 252, 0.4);
-      .m-day-number { opacity: 0.35; }
+      .m-day-number {
+        opacity: 0.35;
+      }
     }
 
     &.is-month-today {

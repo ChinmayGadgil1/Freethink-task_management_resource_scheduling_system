@@ -1,8 +1,5 @@
 <template>
-  <q-dialog
-    :model-value="modelValue"
-    @update:model-value="(val) => emit('update:modelValue', val)"
-  >
+  <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
     <q-card class="dialog-card" style="min-width: 520px; max-width: 95vw">
       <q-card-section class="row items-center justify-between q-pb-none">
         <div>
@@ -163,7 +160,11 @@
             <template #option="{ itemProps, opt, selected, toggleOption }">
               <q-item v-bind="itemProps">
                 <q-item-section side>
-                  <q-checkbox :model-value="selected" color="primary" @update:model-value="toggleOption(opt)" />
+                  <q-checkbox
+                    :model-value="selected"
+                    color="primary"
+                    @update:model-value="toggleOption(opt)"
+                  />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>{{ opt.label }}</q-item-label>
@@ -199,7 +200,11 @@
             <template #option="{ itemProps, opt, selected, toggleOption }">
               <q-item v-bind="itemProps">
                 <q-item-section side>
-                  <q-checkbox :model-value="selected" color="primary" @update:model-value="toggleOption(opt)" />
+                  <q-checkbox
+                    :model-value="selected"
+                    color="primary"
+                    @update:model-value="toggleOption(opt)"
+                  />
                 </q-item-section>
                 <q-item-section side>
                   <q-icon name="account_tree" color="primary" size="18px" />
@@ -315,7 +320,10 @@ const form = reactive<CreateTaskFormData>({
 });
 
 function resetForm() {
-  const pid = props.fixedProjectId ?? props.initialProjectId ?? (props.projects.length > 0 ? (props.projects[0]?.value ?? null) : null);
+  const pid =
+    props.fixedProjectId ??
+    props.initialProjectId ??
+    (props.projects.length > 0 ? (props.projects[0]?.value ?? null) : null);
   form.project_id = pid;
   form.title = '';
   form.description = '';

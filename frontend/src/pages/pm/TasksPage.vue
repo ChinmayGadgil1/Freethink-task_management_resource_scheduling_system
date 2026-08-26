@@ -19,7 +19,6 @@
             color="transparent"
             :text-color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
             dense
-            rounded
             unelevated
             :options="[
               { label: 'Board', value: 'board', icon: 'view_kanban' },
@@ -159,11 +158,7 @@
 
       <!-- 4. KANBAN TASK BOARD VIEW -->
       <div v-else-if="viewMode === 'board'" class="row q-col-gutter-md">
-        <div
-          v-for="col in KANBAN_COLUMNS"
-          :key="col.id"
-          class="col-12 col-sm-6 col-md-3"
-        >
+        <div v-for="col in KANBAN_COLUMNS" :key="col.id" class="col-12 col-sm-6 col-md-3">
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
             <!-- Column Header -->
             <q-card-section
@@ -171,9 +166,16 @@
               :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
             >
               <div class="row items-center q-gutter-xs">
-                <span style="width: 8px; height: 8px; border-radius: 50%" :style="{ background: col.dotColor }" />
+                <span
+                  style="width: 8px; height: 8px; border-radius: 50%"
+                  :style="{ background: col.dotColor }"
+                />
                 <span class="text-subtitle2 text-weight-bold">{{ col.title }}</span>
-                <q-badge :color="$q.dark.isActive ? 'purple-10' : 'purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'" class="text-weight-bold">
+                <q-badge
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  class="text-weight-bold"
+                >
                   {{ tasksByStatus[col.id]?.length || 0 }}
                 </q-badge>
               </div>
@@ -208,7 +210,13 @@
                 <!-- Card Header -->
                 <div class="row items-center justify-between no-wrap q-mb-xs">
                   <div class="row items-center q-gutter-xs ellipsis">
-                    <q-chip dense square size="xs" :color="$q.dark.isActive ? 'purple-10' : 'purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'">
+                    <q-chip
+                      dense
+                      square
+                      size="xs"
+                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    >
                       {{ getProjectName(task.project_id) }}
                     </q-chip>
                     <q-badge color="black" text-color="white" style="font-size: 10px">
@@ -221,20 +229,28 @@
                     <q-menu auto-close anchor="bottom right" self="top right">
                       <q-list dense style="min-width: 170px">
                         <q-item clickable @click="openEditModal(task)">
-                          <q-item-section avatar><q-icon name="edit" size="16px" color="grey-8" /></q-item-section>
+                          <q-item-section avatar
+                            ><q-icon name="edit" size="16px" color="grey-8"
+                          /></q-item-section>
                           <q-item-section>Edit Details</q-item-section>
                         </q-item>
                         <q-item clickable @click="openAssignTaskMemberDialog(task.task_id)">
-                          <q-item-section avatar><q-icon name="person_add" size="16px" color="primary" /></q-item-section>
+                          <q-item-section avatar
+                            ><q-icon name="person_add" size="16px" color="primary"
+                          /></q-item-section>
                           <q-item-section>Assign Member</q-item-section>
                         </q-item>
                         <q-item clickable @click="openDependencyDialog(task)">
-                          <q-item-section avatar><q-icon name="account_tree" size="16px" color="teal" /></q-item-section>
+                          <q-item-section avatar
+                            ><q-icon name="account_tree" size="16px" color="teal"
+                          /></q-item-section>
                           <q-item-section>Add Dependency</q-item-section>
                         </q-item>
                         <q-separator />
                         <q-item clickable class="text-negative" @click="confirmDeleteTask(task)">
-                          <q-item-section avatar><q-icon name="delete" size="16px" color="negative" /></q-item-section>
+                          <q-item-section avatar
+                            ><q-icon name="delete" size="16px" color="negative"
+                          /></q-item-section>
                           <q-item-section>Delete Task</q-item-section>
                         </q-item>
                       </q-list>
@@ -243,10 +259,16 @@
                 </div>
 
                 <!-- Task Title & Description -->
-                <div class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs" :title="task.title">
+                <div
+                  class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs"
+                  :title="task.title"
+                >
                   {{ task.title }}
                 </div>
-                <div v-if="task.description" class="text-caption text-grey-6 ellipsis-2-lines q-mb-xs">
+                <div
+                  v-if="task.description"
+                  class="text-caption text-grey-6 ellipsis-2-lines q-mb-xs"
+                >
                   {{ task.description }}
                 </div>
 
@@ -268,7 +290,9 @@
                 <!-- Card Footer -->
                 <div class="row items-center justify-between q-mt-sm text-caption">
                   <div class="row items-center q-gutter-xs">
-                    <template v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0">
+                    <template
+                      v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
+                    >
                       <q-avatar
                         v-for="rId in task.assigned_resource_ids.slice(0, 3)"
                         :key="rId"
@@ -282,12 +306,18 @@
                         <q-tooltip>{{ getResourceName(rId) }} (Click to unassign)</q-tooltip>
                       </q-avatar>
                     </template>
-                    <span v-else class="text-grey-6 cursor-pointer" @click.stop="openAssignTaskMemberDialog(task.task_id)">
+                    <span
+                      v-else
+                      class="text-grey-6 cursor-pointer"
+                      @click.stop="openAssignTaskMemberDialog(task.task_id)"
+                    >
                       + Assign
                     </span>
                   </div>
 
-                  <span :class="isTaskOverdue(task) ? 'text-negative text-weight-bold' : 'text-grey-6'">
+                  <span
+                    :class="isTaskOverdue(task) ? 'text-negative text-weight-bold' : 'text-grey-6'"
+                  >
                     <q-icon name="event" size="13px" />
                     {{ task.deadline ? formatDate(task.deadline) : 'TBD' }}
                   </span>
@@ -295,7 +325,10 @@
               </q-card>
 
               <!-- Empty Column State -->
-              <div v-if="!tasksByStatus[col.id]?.length" class="q-pa-md text-center text-grey-5 column items-center justify-center">
+              <div
+                v-if="!tasksByStatus[col.id]?.length"
+                class="q-pa-md text-center text-grey-5 column items-center justify-center"
+              >
                 <q-icon :name="col.icon" size="24px" class="q-mb-xs" />
                 <div class="text-caption">No {{ col.title.toLowerCase() }} tasks</div>
               </div>
@@ -327,7 +360,13 @@
 
           <template #body-cell-project="props">
             <q-td :props="props">
-              <q-chip dense square size="xs" :color="$q.dark.isActive ? 'purple-10' : 'purple-1'" :text-color="$q.dark.isActive ? 'purple-2' : 'primary'">
+              <q-chip
+                dense
+                square
+                size="xs"
+                :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              >
                 {{ getProjectName(props.row.project_id) }}
               </q-chip>
             </q-td>
@@ -335,7 +374,10 @@
 
           <template #body-cell-resources="props">
             <q-td :props="props">
-              <div v-if="props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0" class="row q-gutter-xs wrap">
+              <div
+                v-if="props.row.assigned_resource_ids && props.row.assigned_resource_ids.length > 0"
+                class="row q-gutter-xs wrap"
+              >
                 <q-chip
                   v-for="rId in props.row.assigned_resource_ids"
                   :key="rId"
@@ -356,7 +398,12 @@
 
           <template #body-cell-status="props">
             <q-td :props="props">
-              <q-chip dense square :color="$q.dark.isActive ? 'grey-9' : 'grey-2'" :text-color="$q.dark.isActive ? 'white' : 'dark'">
+              <q-chip
+                dense
+                square
+                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                :text-color="$q.dark.isActive ? 'white' : 'dark'"
+              >
                 {{ formatStatus(props.row.status) }}
               </q-chip>
             </q-td>
@@ -397,16 +444,44 @@
           <template #body-cell-actions="props">
             <q-td :props="props" auto-width @click.stop>
               <div class="row items-center justify-center q-gutter-xs no-wrap">
-                <q-btn flat round dense icon="person_add" color="primary" @click="openAssignTaskMemberDialog(props.row.task_id)">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="person_add"
+                  color="primary"
+                  @click="openAssignTaskMemberDialog(props.row.task_id)"
+                >
                   <q-tooltip>Assign Member</q-tooltip>
                 </q-btn>
-                <q-btn flat round dense icon="account_tree" color="teal" @click="openDependencyDialog(props.row)">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="account_tree"
+                  color="teal"
+                  @click="openDependencyDialog(props.row)"
+                >
                   <q-tooltip>Add Dependency</q-tooltip>
                 </q-btn>
-                <q-btn flat round dense icon="edit" color="grey-7" @click="openEditModal(props.row)">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="edit"
+                  color="grey-7"
+                  @click="openEditModal(props.row)"
+                >
                   <q-tooltip>Edit Task</q-tooltip>
                 </q-btn>
-                <q-btn flat round dense icon="delete" color="negative" @click="confirmDeleteTask(props.row)">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="delete"
+                  color="negative"
+                  @click="confirmDeleteTask(props.row)"
+                >
                   <q-tooltip>Delete Task</q-tooltip>
                 </q-btn>
               </div>
@@ -460,7 +535,11 @@
                 multiple
                 clearable
                 :dark="$q.dark.isActive"
-                :display-value="assignTaskMemberForm.user_ids.length ? `${assignTaskMemberForm.user_ids.length} selected` : ''"
+                :display-value="
+                  assignTaskMemberForm.user_ids.length
+                    ? `${assignTaskMemberForm.user_ids.length} selected`
+                    : ''
+                "
                 label="Select Member(s)"
                 :options="resourceMemberSelectOptions"
                 emit-value
@@ -471,7 +550,14 @@
 
             <q-card-actions align="right" class="q-pa-md">
               <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
-              <q-btn type="submit" unelevated no-caps color="primary" label="Assign to Task" :loading="submittingTaskMember" />
+              <q-btn
+                type="submit"
+                unelevated
+                no-caps
+                color="primary"
+                label="Assign to Task"
+                :loading="submittingTaskMember"
+              />
             </q-card-actions>
           </q-form>
         </q-card>
@@ -509,19 +595,33 @@
                 multiple
                 clearable
                 :dark="$q.dark.isActive"
-                :display-value="selectedPredecessorTaskIds.length ? `${selectedPredecessorTaskIds.length} selected` : ''"
+                :display-value="
+                  selectedPredecessorTaskIds.length
+                    ? `${selectedPredecessorTaskIds.length} selected`
+                    : ''
+                "
                 label="Depends On Predecessor(s)"
                 :options="dependencyPredecessorOptions"
                 emit-value
                 map-options
-                :rules="[(val) => (val && val.length > 0) || 'At least one predecessor task is required']"
+                :rules="[
+                  (val) => (val && val.length > 0) || 'At least one predecessor task is required',
+                ]"
                 :disable="!selectedDependencyTaskId"
               />
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
               <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
-              <q-btn type="submit" unelevated no-caps color="primary" label="Add Dependency" :loading="submittingDependency" :disable="!selectedDependencyTaskId || !selectedPredecessorTaskIds?.length" />
+              <q-btn
+                type="submit"
+                unelevated
+                no-caps
+                color="primary"
+                label="Add Dependency"
+                :loading="submittingDependency"
+                :disable="!selectedDependencyTaskId || !selectedPredecessorTaskIds?.length"
+              />
             </q-card-actions>
           </q-form>
         </q-card>
@@ -548,39 +648,97 @@
 
           <q-form @submit.prevent="handleUpdateTask">
             <q-card-section class="column q-gutter-md">
-              <q-input v-model="editForm.title" outlined dense label="Task Title" :dark="$q.dark.isActive" :rules="[(val) => !!val.trim() || 'Title is required']" />
+              <q-input
+                v-model="editForm.title"
+                outlined
+                dense
+                label="Task Title"
+                :dark="$q.dark.isActive"
+                :rules="[(val) => !!val.trim() || 'Title is required']"
+              />
 
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
-                  <q-select v-model="editForm.status" outlined dense label="Status" :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']" :dark="$q.dark.isActive" />
+                  <q-select
+                    v-model="editForm.status"
+                    outlined
+                    dense
+                    label="Status"
+                    :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']"
+                    :dark="$q.dark.isActive"
+                  />
                 </div>
                 <div class="col-6">
-                  <q-select v-model="editForm.priority" outlined dense label="Priority" :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']" :dark="$q.dark.isActive" />
+                  <q-select
+                    v-model="editForm.priority"
+                    outlined
+                    dense
+                    label="Priority"
+                    :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                    :dark="$q.dark.isActive"
+                  />
                 </div>
               </div>
 
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
-                  <q-input v-model.number="editForm.progress" outlined dense type="number" label="Progress (%)" :dark="$q.dark.isActive" />
+                  <q-input
+                    v-model.number="editForm.progress"
+                    outlined
+                    dense
+                    type="number"
+                    label="Progress (%)"
+                    :dark="$q.dark.isActive"
+                  />
                 </div>
                 <div class="col-6">
-                  <q-input v-model.number="editForm.expected_effort" outlined dense type="number" label="Effort (Hours)" :dark="$q.dark.isActive" />
+                  <q-input
+                    v-model.number="editForm.expected_effort"
+                    outlined
+                    dense
+                    type="number"
+                    label="Effort (Hours)"
+                    :dark="$q.dark.isActive"
+                  />
                 </div>
               </div>
 
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
-                  <q-input v-model="editForm.start_date" outlined dense type="date" label="Start Date" stack-label :dark="$q.dark.isActive" />
+                  <q-input
+                    v-model="editForm.start_date"
+                    outlined
+                    dense
+                    type="date"
+                    label="Start Date"
+                    stack-label
+                    :dark="$q.dark.isActive"
+                  />
                 </div>
                 <div class="col-6">
-                  <q-input v-model="editForm.deadline" outlined dense type="date" label="Deadline" stack-label :dark="$q.dark.isActive" />
+                  <q-input
+                    v-model="editForm.deadline"
+                    outlined
+                    dense
+                    type="date"
+                    label="Deadline"
+                    stack-label
+                    :dark="$q.dark.isActive"
+                  />
                 </div>
               </div>
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
               <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
-              <q-btn type="submit" unelevated no-caps color="primary" label="Save Changes" :loading="submitting" />
+              <q-btn
+                type="submit"
+                unelevated
+                no-caps
+                color="primary"
+                label="Save Changes"
+                :loading="submitting"
+              />
             </q-card-actions>
           </q-form>
         </q-card>
@@ -595,7 +753,8 @@
         :loading="deletingTask"
         @confirm="handleExecuteDeleteTask"
       >
-        Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>? All associated dependencies and work logs will be removed.
+        Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>? All
+        associated dependencies and work logs will be removed.
       </ConfirmActionDialog>
 
       <!-- UNASSIGN TASK RESOURCE DIALOG -->
@@ -608,7 +767,8 @@
         :loading="unassigning"
         @confirm="handleExecuteUnassign"
       >
-        Are you sure you want to remove <strong>{{ unassignTarget.resourceName }}</strong> from task <strong>"{{ unassignTarget.taskTitle }}"</strong>?
+        Are you sure you want to remove <strong>{{ unassignTarget.resourceName }}</strong> from task
+        <strong>"{{ unassignTarget.taskTitle }}"</strong>?
       </ConfirmActionDialog>
     </div>
   </q-page>
@@ -1154,7 +1314,10 @@ async function handleAssignTaskMember() {
     showAssignTaskMemberDialog.value = false;
     assignTaskMemberForm.user_ids = [];
     await loadData();
-    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === assignTaskMemberForm.task_id) {
+    if (
+      selectedTaskDetails.value &&
+      selectedTaskDetails.value.task_id === assignTaskMemberForm.task_id
+    ) {
       const updated = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
       selectedTaskDetails.value = updated || null;
     }

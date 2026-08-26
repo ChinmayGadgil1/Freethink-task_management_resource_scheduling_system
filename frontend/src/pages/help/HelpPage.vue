@@ -4,15 +4,7 @@
     <div class="help-header-panel q-mb-lg">
       <div class="row items-center justify-between no-wrap q-mb-sm">
         <div class="row items-center gap-sm">
-          <q-btn
-            flat
-            round
-            dense
-            icon="arrow_back"
-            color="grey-8"
-            class="back-btn"
-            @click="goBack"
-          >
+          <q-btn flat round dense icon="arrow_back" color="grey-8" class="back-btn" @click="goBack">
             <q-tooltip>Go Back</q-tooltip>
           </q-btn>
           <div>
@@ -90,8 +82,12 @@
     </div>
 
     <div class="row q-col-gutter-lg">
-      <!-- Left / Main Column: Guides & FAQs -->
-      <div class="col-12 col-lg-8">
+      <!-- Left Column: Guides & FAQs -->
+      <div
+        v-show="activeTab === 'all' || activeTab === 'guides' || activeTab === 'faqs'"
+        class="col-12"
+        :class="activeTab === 'all' ? 'col-lg-8' : 'col-lg-12'"
+      >
         <!-- SECTION 1: GETTING STARTED GUIDES -->
         <div v-show="activeTab === 'all' || activeTab === 'guides'" class="help-section q-mb-xl">
           <div class="section-title-row row items-center gap-xs q-mb-md">
@@ -108,7 +104,10 @@
 
           <div class="row q-col-gutter-md">
             <!-- Guide 1: Projects -->
-            <div v-if="matchesFilter('projects project create health priority')" class="col-12 col-md-6">
+            <div
+              v-if="matchesFilter('projects project create health priority')"
+              class="col-12 col-md-6"
+            >
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
@@ -135,7 +134,14 @@
             </div>
 
             <!-- Guide 2: Tasks -->
-            <div v-if="matchesFilter('tasks task assign effort status scheduled in_progress completed blocked')" class="col-12 col-md-6">
+            <div
+              v-if="
+                matchesFilter(
+                  'tasks task assign effort status scheduled in_progress completed blocked',
+                )
+              "
+              class="col-12 col-md-6"
+            >
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
@@ -157,7 +163,10 @@
             </div>
 
             <!-- Guide 3: Resource Assignment -->
-            <div v-if="matchesFilter('resource assignment team allocation members skills capacity')" class="col-12 col-md-6">
+            <div
+              v-if="matchesFilter('resource assignment team allocation members skills capacity')"
+              class="col-12 col-md-6"
+            >
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
@@ -176,7 +185,10 @@
             </div>
 
             <!-- Guide 4: Scheduling & Gantt -->
-            <div v-if="matchesFilter('scheduling schedule gantt timeline dates dependencies calendar')" class="col-12 col-md-6">
+            <div
+              v-if="matchesFilter('scheduling schedule gantt timeline dates dependencies calendar')"
+              class="col-12 col-md-6"
+            >
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
@@ -187,15 +199,18 @@
                   </div>
                   <p class="guide-text">
                     The Schedule page plots task start and end dates onto interactive Gantt
-                    timelines. Tasks show duration bars, progress fills, priority color coding,
-                    and assignee avatar badges across 7, 14, or 30-day viewing windows.
+                    timelines. Tasks show duration bars, progress fills, priority color coding, and
+                    assignee avatar badges across 7, 14, or 30-day viewing windows.
                   </p>
                 </q-card-section>
               </q-card>
             </div>
 
             <!-- Guide 5: Progress & Work Logs -->
-            <div v-if="matchesFilter('progress work logs log hours effort actual completed')" class="col-12 col-md-6">
+            <div
+              v-if="matchesFilter('progress work logs log hours effort actual completed')"
+              class="col-12 col-md-6"
+            >
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
@@ -214,7 +229,14 @@
             </div>
 
             <!-- Guide 6: Workload & Capacity -->
-            <div v-if="matchesFilter('workload capacity 40h hours allocation balance burnout overallocated')" class="col-12 col-md-6">
+            <div
+              v-if="
+                matchesFilter(
+                  'workload capacity 40h hours allocation balance burnout overallocated',
+                )
+              "
+              class="col-12 col-md-6"
+            >
               <q-card class="guide-card">
                 <q-card-section>
                   <div class="guide-header row items-center gap-sm q-mb-sm">
@@ -273,7 +295,10 @@
               </q-card>
             </q-expansion-item>
 
-            <div v-if="filteredFaqs.length === 0" class="no-faqs-found q-pa-lg text-center text-grey-6">
+            <div
+              v-if="filteredFaqs.length === 0"
+              class="no-faqs-found q-pa-lg text-center text-grey-6"
+            >
               <q-icon name="search_off" size="32px" class="q-mb-xs" />
               <div>No FAQs match your search query "{{ searchQuery }}".</div>
             </div>
@@ -282,7 +307,11 @@
       </div>
 
       <!-- Right Column: Contact Support Form & About Section -->
-      <div class="col-12 col-lg-4">
+      <div
+        v-show="activeTab === 'all' || activeTab === 'contact' || activeTab === 'about'"
+        class="col-12"
+        :class="activeTab === 'all' ? 'col-lg-4' : 'col-lg-8'"
+      >
         <!-- SECTION 3: CONTACT SUPPORT FORM -->
         <div v-show="activeTab === 'all' || activeTab === 'contact'" class="help-section q-mb-lg">
           <q-card class="contact-support-card">
@@ -444,10 +473,7 @@ const activeTab = ref<'all' | 'guides' | 'faqs' | 'contact' | 'about'>('all');
 const formSubmitted = ref(false);
 
 const isResourceRole = computed(() => {
-  return (
-    route.path.includes('resource-dashboard') ||
-    authStore.user?.role === 'RESOURCE'
-  );
+  return route.path.includes('resource-dashboard') || authStore.user?.role === 'RESOURCE';
 });
 
 function goBack() {
@@ -465,7 +491,6 @@ const contactForm = ref({
   category: 'Task & Project Management',
   description: '',
 });
-
 const categoryOptions = [
   'Task & Project Management',
   'Resource & Workload Scheduling',
@@ -557,7 +582,7 @@ const filteredFaqs = computed(() => {
     (f) =>
       f.question.toLowerCase().includes(q) ||
       f.answer.toLowerCase().includes(q) ||
-      f.tags.toLowerCase().includes(q)
+      f.tags.toLowerCase().includes(q),
   );
 });
 </script>
@@ -669,7 +694,9 @@ const filteredFaqs = computed(() => {
   border: 1px solid var(--wo-border, #eaecef);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);
