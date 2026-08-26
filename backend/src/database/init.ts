@@ -64,6 +64,8 @@ export async function initializeDatabase() {
             priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
             status ENUM('UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'UNASSIGNED',
             deadline DATE,
+            planned_start DATE,
+            planned_end DATE,
             actual_start DATE,
             actual_end DATE,
             expected_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
