@@ -56,7 +56,8 @@ export function canCompleteBy(
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
-    const endDate = new Date(`${targetDate}T00:00:00`);
+    const cleanTargetDate = targetDate.includes("T") ? targetDate.split("T")[0]! : targetDate;
+    const endDate = new Date(`${cleanTargetDate}T00:00:00`);
 
     while (
         currentDate <= endDate &&
@@ -178,12 +179,16 @@ export async function recalculate(projectId: number): Promise<void> {
         description: row.description ?? null,
         priority: row.priority,
         status: row.status,
-        deadline: row.deadline ?? null,
+        deadline: row.deadline ? String(row.deadline).split("T")[0]! : null,
+        planned_start: row.planned_start ? String(row.planned_start).split("T")[0]! : null,
+        planned_end: row.planned_end ? String(row.planned_end).split("T")[0]! : null,
         actual_start: row.actual_start ?? null,
         actual_end: row.actual_end ?? null,
         expected_effort: Number(row.expected_effort),
         actual_effort: Number(row.actual_effort),
         progress: Number(row.progress),
+        is_schedule_at_risk: Boolean(row.is_schedule_at_risk),
+        is_deadline_at_risk: Boolean(row.is_deadline_at_risk),
         created_at: row.created_at,
         updated_at: row.updated_at
     }));
@@ -311,6 +316,8 @@ export async function recalculate(projectId: number): Promise<void> {
         allocated_hours: number;
     }[] = [];
 
+    const scheduledTaskIds = new Set<number>();
+
     for (const task of sortedTasks) {
         const resourceIds = taskResources.get(task.task_id) ?? [];
 
@@ -393,14 +400,58 @@ export async function recalculate(projectId: number): Promise<void> {
         }
 
         if (plannedStart !== null && plannedEnd !== null) {
+            scheduledTaskIds.add(task.task_id);
+            const risks = calculateRisks(
+                task,
+                plannedEnd,
+                taskResources,
+                holidays,
+                leaves
+            );
+
             await pool.query(
                 `
                 UPDATE tasks
                 SET planned_start = ?,
-                    planned_end = ?
+                    planned_end = ?,
+                    is_schedule_at_risk = ?,
+                    is_deadline_at_risk = ?
                 WHERE task_id = ?
                 `,
-                [plannedStart, plannedEnd, task.task_id]
+                [
+                    plannedStart,
+                    plannedEnd,
+                    risks.is_schedule_at_risk,
+                    risks.is_deadline_at_risk,
+                    task.task_id
+                ]
+            );
+        }
+    }
+
+    // For any uncompleted tasks not scheduled above (e.g. UNASSIGNED, blocked by dependencies, or 0 remaining effort)
+    for (const task of tasks) {
+        if (!scheduledTaskIds.has(task.task_id)) {
+            const risks = calculateRisks(
+                task,
+                task.planned_end ?? null,
+                taskResources,
+                holidays,
+                leaves
+            );
+
+            await pool.query(
+                `
+                UPDATE tasks
+                SET is_schedule_at_risk = ?,
+                    is_deadline_at_risk = ?
+                WHERE task_id = ?
+                `,
+                [
+                    risks.is_schedule_at_risk,
+                    risks.is_deadline_at_risk,
+                    task.task_id
+                ]
             );
         }
     }

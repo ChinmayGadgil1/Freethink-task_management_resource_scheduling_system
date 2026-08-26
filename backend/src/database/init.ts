@@ -1,8 +1,32 @@
-import { createDatabasePool } from "../config/database.js";
+import { createDatabasePool, getPool } from "../config/database.js";
 
-export async function initializeDatabase() {
+export async function initializeDatabase(options: { dropExisting?: boolean } = {}) {
     const pool = await createDatabasePool();
 
+    if (options.dropExisting) {
+        console.log("Dropping existing tables...");
+        await pool.query("SET FOREIGN_KEY_CHECKS = 0");
+        const tables = [
+            "task_schedules",
+            "task_sessions",
+            "work_logs",
+            "task_dependencies",
+            "task_assignments",
+            "project_members",
+            "user_leaves",
+            "holidays",
+            "tasks",
+            "projects",
+            "users"
+        ];
+        for (const table of tables) {
+            await pool.query(`DROP TABLE IF EXISTS \`${table}\``);
+        }
+        await pool.query("SET FOREIGN_KEY_CHECKS = 1");
+        console.log("All tables dropped.");
+    }
+
+    // 1. Users table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
             user_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -13,47 +37,43 @@ export async function initializeDatabase() {
             role ENUM('PROJECT_MANAGER', 'RESOURCE') NOT NULL,
             is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ON UPDATE CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     `);
-
     console.log("Users table is ready.");
 
+    // 2. Projects table
     await pool.query(`
-    CREATE TABLE IF NOT EXISTS projects (
-        project_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        project_manager_id BIGINT NOT NULL,
-        name VARCHAR(150) NOT NULL,
-        description TEXT,
-        status ENUM(
-            'DRAFT',
-            'PUBLISHED',
-            'ACTIVE',
-            'ON_HOLD',
-            'COMPLETED',
-            'CANCELLED'
-        ) NOT NULL DEFAULT 'DRAFT',
-        priority ENUM(
-            'LOW',
-            'MEDIUM',
-            'HIGH',
-            'CRITICAL'
-        ) NOT NULL DEFAULT 'MEDIUM',
-        start_date DATE,
-        deadline DATE,
-        progress DECIMAL(5,2) NOT NULL DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ON UPDATE CURRENT_TIMESTAMP,
-
-        FOREIGN KEY (project_manager_id)
-            REFERENCES users(user_id)
+        CREATE TABLE IF NOT EXISTS projects (
+            project_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            project_manager_id BIGINT NOT NULL,
+            name VARCHAR(150) NOT NULL,
+            description TEXT,
+            status ENUM(
+                'DRAFT',
+                'PUBLISHED',
+                'ACTIVE',
+                'ON_HOLD',
+                'COMPLETED',
+                'CANCELLED'
+            ) NOT NULL DEFAULT 'DRAFT',
+            priority ENUM(
+                'LOW',
+                'MEDIUM',
+                'HIGH',
+                'CRITICAL'
+            ) NOT NULL DEFAULT 'MEDIUM',
+            start_date DATE,
+            deadline DATE,
+            progress DECIMAL(5,2) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (project_manager_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
+    console.log("Projects table is ready.");
 
-    console.log("Projects table created successfully.");
-
+    // 3. Tasks table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS tasks (
             task_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -71,35 +91,30 @@ export async function initializeDatabase() {
             expected_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
             actual_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
             progress DECIMAL(5,2) NOT NULL DEFAULT 0,
+            is_schedule_at_risk BOOLEAN NOT NULL DEFAULT FALSE,
+            is_deadline_at_risk BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (project_id) REFERENCES projects(project_id),
-            FOREIGN KEY (created_by) REFERENCES users(user_id)
+            FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
+    console.log("Tasks table is ready.");
 
-    console.log("Tasks table created successfully.");
-
+    // 4. Project Members table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS project_members (
             project_id BIGINT NOT NULL,
             user_id BIGINT NOT NULL,
             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
             PRIMARY KEY (project_id, user_id),
-
-            FOREIGN KEY (project_id)
-                REFERENCES projects(project_id)
-                ON DELETE CASCADE,
-
-            FOREIGN KEY (user_id)
-                REFERENCES users(user_id)
-                ON DELETE CASCADE
+            FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
+    console.log("Project members table is ready.");
 
-    console.log("Project members table created successfully.");
-
+    // 5. Task Assignments table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS task_assignments (
             task_id BIGINT NOT NULL,
@@ -110,9 +125,9 @@ export async function initializeDatabase() {
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
+    console.log("Task assignments table is ready.");
 
-    console.log("Task assignments table created successfully.");
-
+    // 6. Task Dependencies table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS task_dependencies (
             task_id BIGINT NOT NULL,
@@ -122,9 +137,9 @@ export async function initializeDatabase() {
             FOREIGN KEY (predecessor_task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
         )
     `);
+    console.log("Task dependencies table is ready.");
 
-    console.log("Task dependencies table created successfully.");
-
+    // 7. Work Logs table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS work_logs (
             log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -137,14 +152,13 @@ export async function initializeDatabase() {
             blockers TEXT,
             log_date DATE NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
             FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
+    console.log("Work logs table is ready.");
 
-    console.log("Work logs table created successfully.");
-
+    // 8. Task Sessions table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS task_sessions (
             session_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -157,9 +171,9 @@ export async function initializeDatabase() {
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
+    console.log("Task sessions table is ready.");
 
-    console.log("Task sessions table created successfully.");
-
+    // 9. Task Schedules table (Gantt allocations)
     await pool.query(`
         CREATE TABLE IF NOT EXISTS task_schedules (
             schedule_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -175,9 +189,9 @@ export async function initializeDatabase() {
             INDEX idx_user_date (user_id, schedule_date)
         )
     `);
+    console.log("Task schedules table is ready.");
 
-    console.log("Task schedules table created successfully.");
-
+    // 10. Holidays table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS holidays (
             holiday_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -185,9 +199,9 @@ export async function initializeDatabase() {
             description VARCHAR(255) NOT NULL
         )
     `);
+    console.log("Holidays table is ready.");
 
-    console.log("Holidays table created successfully.");
-
+    // 11. User Leaves table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS user_leaves (
             leave_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -198,8 +212,21 @@ export async function initializeDatabase() {
             UNIQUE KEY unique_user_leave (user_id, leave_date)
         )
     `);
-
-    console.log("User leaves table created successfully.");
+    console.log("User leaves table is ready.");
 
     return pool;
+}
+
+// Auto-run if executed directly via CLI
+if (process.argv[1]?.endsWith("init.ts") || process.argv[1]?.endsWith("init.js")) {
+    const shouldDrop = process.argv.includes("--drop") || process.argv.includes("-d");
+    initializeDatabase({ dropExisting: shouldDrop })
+        .then(() => {
+            console.log("🎉 Database initialization completed successfully.");
+            process.exit(0);
+        })
+        .catch((err) => {
+            console.error("❌ Database initialization failed:", err);
+            process.exit(1);
+        });
 }

@@ -10,11 +10,15 @@ export interface Task {
     priority: TaskPriority;
     status: TaskStatus;
     deadline: string | null;   // ISO Date string (YYYY-MM-DD)
+    planned_start?: string | null;
+    planned_end?: string | null;
     actual_start: string | null; // ISO Date string (YYYY-MM-DD)
     actual_end: string | null;   // ISO Date string (YYYY-MM-DD)
     expected_effort: number;   // in hours
     actual_effort: number;     // in hours
     progress: number;          // percentage 0 to 100
+    is_schedule_at_risk?: boolean;
+    is_deadline_at_risk?: boolean;
     created_at: Date;
     updated_at: Date;
 }
