@@ -145,11 +145,17 @@
             </div>
 
             <!-- Right Side: Structured Metadata Panel -->
-            <div class="col-12 col-md-5 q-pa-lg row column justify-between featured-details-panel">
+            <div class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main">
               <div>
                 <div class="row items-center justify-between q-mb-sm">
                   <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
-                  <q-chip dense square class="text-weight-bold featured-health-chip">
+                  <q-chip
+                    dense
+                    square
+                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    class="text-weight-bold"
+                  >
                     {{ getHealthLabel(featuredProject) }}
                   </q-chip>
                 </div>
@@ -157,7 +163,7 @@
                 <!-- 4-Box Metadata Grid -->
                 <div class="row q-col-gutter-xs q-mb-md">
                   <div class="col-6 q-pa-xs">
-                    <div class="detail-sub-box">
+                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
                       <div class="text-caption text-grey-6">HEALTH</div>
                       <div
                         class="text-weight-bold"
@@ -168,21 +174,21 @@
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
-                    <div class="detail-sub-box">
+                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
                       <div class="text-caption text-grey-6">STATUS</div>
-                      <div class="text-weight-bold">{{ formatStatus(featuredProject.status) }}</div>
+                      <div class="text-weight-bold text-main">{{ formatStatus(featuredProject.status) }}</div>
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
-                    <div class="detail-sub-box">
+                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
                       <div class="text-caption text-grey-6">DEADLINE</div>
-                      <div class="text-weight-bold">{{ formatDate(featuredProject.deadline) }}</div>
+                      <div class="text-weight-bold text-main">{{ formatDate(featuredProject.deadline) }}</div>
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
-                    <div class="detail-sub-box">
+                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
                       <div class="text-caption text-grey-6">PRIORITY</div>
-                      <div class="text-weight-bold">{{ featuredProject.priority }}</div>
+                      <div class="text-weight-bold text-main">{{ featuredProject.priority }}</div>
                     </div>
                   </div>
                 </div>
@@ -200,7 +206,7 @@
                     size="8px"
                     :value="Math.min(100, Math.max(0, Number(featuredProject.progress) || 0)) / 100"
                     color="primary"
-                    class="project-progress-track"
+                    :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                   />
                 </div>
               </div>
@@ -590,7 +596,7 @@
                     >
                       <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
                       <div
-                        class="project-card-header text-white"
+                        class="text-white q-px-lg q-pt-lg q-pb-md relative-position overflow-hidden"
                         :style="{
                           background: getProjectTheme(project, index).gradient,
                         }"
@@ -642,20 +648,20 @@
                         <!-- Dual Pill Info Badges (like Image 4) -->
                         <div class="row q-col-gutter-xs q-mb-md">
                           <div class="col-6">
-                            <div class="project-stat-pill">
+                            <div class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle">
                               <q-icon name="assignment" size="13px" color="grey-6" />
                               <div class="ellipsis">
                                 <span>Status: </span>
-                                <strong>{{ formatStatus(project.status) }}</strong>
+                                <strong class="text-main">{{ formatStatus(project.status) }}</strong>
                               </div>
                             </div>
                           </div>
                           <div class="col-6">
-                            <div class="project-stat-pill">
+                            <div class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle">
                               <q-icon name="event" size="13px" color="grey-6" />
                               <div class="ellipsis">
                                 <span>Due: </span>
-                                <strong>{{ formatDate(project.deadline) }}</strong>
+                                <strong class="text-main">{{ formatDate(project.deadline) }}</strong>
                               </div>
                             </div>
                           </div>
@@ -1492,23 +1498,16 @@ onMounted(() => {
 
 .project-grid-card {
   border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--wo-border, #eaecef);
-  background: var(--wo-bg-card, #ffffff);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s ease;
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s ease;
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-    border-color: var(--wo-primary, #8b6fd8);
+    border-color: var(--wo-primary, #8b6fd8) !important;
   }
-}
-
-.project-card-header {
-  padding: 18px 18px 16px;
-  position: relative;
-  overflow: hidden;
 }
 
 .priority-frosted-pill {
@@ -1523,84 +1522,27 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-.project-stat-pill {
-  background: var(--wo-bg-subtle, #f8fafc);
-  border: 1px solid var(--wo-border, #eef2f6);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 11.5px;
-  color: var(--wo-text-muted, #64748b);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
-
-  strong {
-    color: var(--wo-text-main, #1e293b);
-  }
+.border-subtle {
+  border: 1px solid var(--wo-border, #eaecef);
 }
 
-.featured-details-panel {
-  background: var(--wo-bg-card, #ffffff);
-  color: var(--wo-text-main, #1d2433);
+.border-left-subtle {
   border-left: 1px solid var(--wo-border, #eaecef);
 }
 
-.detail-sub-box {
+.bg-subtle {
   background: var(--wo-bg-subtle, #f8fafc);
-  border: 1px solid var(--wo-border, #eaecef);
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-
-.featured-health-chip {
-  background: var(--wo-primary-light, #eee9fb);
-  color: var(--wo-primary, #8b6fd8);
-}
-
-.project-progress-track {
-  :deep(.q-linear-progress__track) {
-    background: var(--wo-border, #e5e7ec) !important;
-  }
 }
 
 body.body--dark {
-  .project-grid-card {
-    border-color: var(--wo-border, #1e2433);
-    background: var(--wo-bg-card, #181d28);
-  }
-
-  .project-stat-pill {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
-    color: #94a3b8;
-
-    strong {
-      color: #f1f5f9;
-    }
-  }
-
-  .featured-details-panel {
-    background: var(--wo-bg-card, #181d28);
-    color: var(--wo-text-main, #f3f4f6);
-    border-color: var(--wo-border, #1e2433);
-  }
-
-  .detail-sub-box {
-    background: rgba(255, 255, 255, 0.04);
+  .border-subtle {
     border-color: rgba(255, 255, 255, 0.08);
   }
-
-  .featured-health-chip {
-    background: rgba(139, 111, 216, 0.2);
-    color: #b89bf8;
+  .border-left-subtle {
+    border-left-color: rgba(255, 255, 255, 0.08);
   }
-
-  .project-progress-track {
-    :deep(.q-linear-progress__track) {
-      background: var(--wo-border-subtle, #1e2433) !important;
-    }
+  .bg-subtle {
+    background: rgba(255, 255, 255, 0.04);
   }
 }
 </style>
