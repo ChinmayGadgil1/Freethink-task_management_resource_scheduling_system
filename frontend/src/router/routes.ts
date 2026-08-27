@@ -5,12 +5,14 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/pages/LandingPage.vue'),
+    meta: { publicOnly: true },
   },
 
   // Auth routes (sharing AuthLayout for layout and background reuse)
   {
     path: '/',
     component: () => import('@/layouts/AuthLayout.vue'),
+    meta: { publicOnly: true },
     children: [
       { path: 'login', component: () => import('@/pages/auth/LoginPage.vue') },
       { path: 'signup', component: () => import('@/pages/auth/SignupPage.vue') },
@@ -23,6 +25,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/app',
     component: () => import('@/layouts/MainLayout.vue'),
+    meta: { requiresAuth: true, roles: ['PROJECT_MANAGER'] },
     children: [
       { path: '', component: () => import('@/pages/IndexPage.vue') },
       {
@@ -37,6 +40,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/pm',
     component: () => import('@/layouts/MainLayout.vue'),
+    meta: { requiresAuth: true, roles: ['PROJECT_MANAGER'] },
 
     children: [
       {
@@ -80,10 +84,6 @@ const routes: RouteRecordRaw[] = [
         redirect: '/pm/projects',
       },
       {
-        path: 'reports',
-        redirect: '/pm/projects',
-      },
-      {
         path: 'help',
         component: () => import('@/pages/help/HelpPage.vue'),
       },
@@ -94,6 +94,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/app/resource-dashboard',
     component: () => import('@/layouts/ResourceLayout.vue'),
+    meta: { requiresAuth: true, roles: ['RESOURCE'] },
 
     children: [
       {

@@ -34,5 +34,67 @@ export default defineRouter((/* { store, ssrContext } */) => {
     history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE),
   });
 
+  Router.beforeEach((to, _from, next) => {
+    let token: string | null = null;
+    let userRole: string | null = null;
+
+    try {
+      const storedAuth = localStorage.getItem('auth') || sessionStorage.getItem('auth');
+      if (storedAuth) {
+        const parsed = JSON.parse(storedAuth);
+        if (parsed?.token) {
+          token = parsed.token;
+          userRole = parsed.user?.role || null;
+        }
+      }
+    } catch {
+      // Ignore JSON error
+    }
+
+    if (!token) {
+      try {
+        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          if (parsed?.token) {
+            token = parsed.token;
+            userRole = parsed.role || null;
+          }
+        }
+      } catch {
+        // Ignore JSON error
+      }
+    }
+
+    const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+    const publicOnly = to.matched.some((record) => record.meta.publicOnly);
+
+    if (requiresAuth && !token) {
+      return next({ path: '/login', query: { redirect: to.fullPath } });
+    }
+
+    if (publicOnly && token) {
+      if (userRole === 'PROJECT_MANAGER') {
+        return next('/pm/projects');
+      } else if (userRole === 'RESOURCE') {
+        return next('/app/resource-dashboard');
+      }
+    }
+
+    const allowedRoles = to.matched
+      .map((record) => record.meta.roles as string[] | undefined)
+      .find((roles) => Array.isArray(roles) && roles.length > 0);
+
+    if (requiresAuth && allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+      if (userRole === 'PROJECT_MANAGER') {
+        return next('/pm/projects');
+      } else if (userRole === 'RESOURCE') {
+        return next('/app/resource-dashboard');
+      }
+    }
+
+    return next();
+  });
+
   return Router;
 });

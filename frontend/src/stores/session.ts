@@ -80,7 +80,7 @@ export const useSessionStore = defineStore('session', {
   },
 
   persist: {
-    storage: sessionStorage,
+    storage: localStorage,
   },
 });
 

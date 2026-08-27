@@ -124,7 +124,7 @@ function getStoredToken(): string | null {
     // Pinia instance not active in current execution context
   }
 
-  const storedAuth = sessionStorage.getItem('auth');
+  const storedAuth = localStorage.getItem('auth') || sessionStorage.getItem('auth');
   if (storedAuth) {
     try {
       const parsed = JSON.parse(storedAuth);
@@ -136,7 +136,7 @@ function getStoredToken(): string | null {
     }
   }
 
-  const storedUser = localStorage.getItem('user');
+  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
   if (storedUser) {
     try {
       const user = JSON.parse(storedUser);

@@ -354,7 +354,7 @@ function logout() {
       persistent: true,
     }).onOk(() => {
       if (sessionStore.activeTaskId) {
-        void router.push(`/app/resource-dashboard/task-details?taskId=${sessionStore.activeTaskId}`);
+        void router.push(`/app/resource-dashboard/task-details/${sessionStore.activeTaskId}`);
       }
     });
     return;
