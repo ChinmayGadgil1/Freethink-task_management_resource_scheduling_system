@@ -196,7 +196,7 @@
               :key="res.resource_id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <q-card flat bordered class="resource-grid-card full-height column justify-between">
+              <q-card flat bordered class="resource-grid-card full-height column justify-between cursor-pointer" @click="goToDetails(res.resource_id)">
                 <q-card-section class="q-pa-md">
                   <!-- CARD TOP: AVATAR, NAME, CHIP -->
                   <div class="row items-center justify-between no-wrap q-mb-md">
@@ -286,7 +286,7 @@
                       no-caps
                       label="View Profile"
                       class="full-width action-btn-outline"
-                      @click="goToDetails(res.resource_id)"
+                      @click.stop="goToDetails(res.resource_id)"
                     />
                   </div>
                   <div class="col-6">
@@ -297,7 +297,7 @@
                       icon="add_task"
                       label="Assign Task"
                       class="full-width action-btn-primary"
-                      @click="openAssignModal(res.resource_id)"
+                      @click.stop="openAssignModal(res.resource_id)"
                     />
                   </div>
                 </q-card-actions>
@@ -592,34 +592,46 @@
         </q-card-section>
 
         <q-form @submit.prevent="handleAssignTask">
-          <q-card-section class="q-gutter-md q-pt-md">
-            <q-select
-              v-model="assignForm.project_id"
-              outlined
-              dense
-              label="Select Project"
-              :options="projectOptions"
-              emit-value
-              map-options
-              :rules="[(val) => !!val || 'Project is required']"
-            />
+          <q-card-section class="q-gutter-y-md q-pt-md">
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-select
+                  v-model="assignForm.project_id"
+                  outlined
+                  dense
+                  label="Select Project"
+                  :options="projectOptions"
+                  emit-value
+                  map-options
+                  :rules="[(val) => !!val || 'Project is required']"
+                />
+              </div>
+            </div>
 
-            <q-input
-              v-model="assignForm.title"
-              outlined
-              dense
-              label="Task Title"
-              :rules="[(val) => !!val.trim() || 'Title is required']"
-            />
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="assignForm.title"
+                  outlined
+                  dense
+                  label="Task Title"
+                  :rules="[(val) => !!val.trim() || 'Title is required']"
+                />
+              </div>
+            </div>
 
-            <q-input
-              v-model="assignForm.description"
-              outlined
-              dense
-              type="textarea"
-              label="Description"
-              autogrow
-            />
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="assignForm.description"
+                  outlined
+                  dense
+                  type="textarea"
+                  label="Description"
+                  autogrow
+                />
+              </div>
+            </div>
 
             <div class="row q-col-gutter-sm">
               <div class="col-6">
@@ -1185,12 +1197,16 @@ async function handleAssignTask() {
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #e5e7ec);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  cursor: pointer;
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(124, 94, 212, 0.08);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(124, 94, 212, 0.12);
+    border-color: var(--q-primary);
   }
 }
 

@@ -344,34 +344,46 @@
           </q-card-section>
 
           <q-form @submit.prevent="handleAssignTask">
-            <q-card-section class="q-gutter-md">
-              <q-select
-                v-model="assignForm.project_id"
-                outlined
-                dense
-                label="Select Project"
-                :options="projectOptions"
-                emit-value
-                map-options
-                :rules="[(val) => !!val || 'Project is required']"
-              />
+            <q-card-section class="q-gutter-y-md">
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-select
+                    v-model="assignForm.project_id"
+                    outlined
+                    dense
+                    label="Select Project"
+                    :options="projectOptions"
+                    emit-value
+                    map-options
+                    :rules="[(val) => !!val || 'Project is required']"
+                  />
+                </div>
+              </div>
 
-              <q-input
-                v-model="assignForm.title"
-                outlined
-                dense
-                label="Task Title"
-                :rules="[(val) => !!val.trim() || 'Title is required']"
-              />
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="assignForm.title"
+                    outlined
+                    dense
+                    label="Task Title"
+                    :rules="[(val) => !!val.trim() || 'Title is required']"
+                  />
+                </div>
+              </div>
 
-              <q-input
-                v-model="assignForm.description"
-                outlined
-                dense
-                type="textarea"
-                label="Description"
-                autogrow
-              />
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="assignForm.description"
+                    outlined
+                    dense
+                    type="textarea"
+                    label="Description"
+                    autogrow
+                  />
+                </div>
+              </div>
 
               <div class="row q-col-gutter-sm">
                 <div class="col-6">

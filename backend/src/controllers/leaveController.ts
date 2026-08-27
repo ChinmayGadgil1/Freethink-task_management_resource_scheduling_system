@@ -125,7 +125,8 @@ export async function listLeaves(req: AuthRequest, res: Response): Promise<void>
         const leaves = await leaveService.getLeaves({
             ...(filterUserId !== undefined ? { user_id: filterUserId } : {}),
             ...(queryParsed.startDate !== undefined ? { startDate: queryParsed.startDate } : {}),
-            ...(queryParsed.endDate !== undefined ? { endDate: queryParsed.endDate } : {})
+            ...(queryParsed.endDate !== undefined ? { endDate: queryParsed.endDate } : {}),
+            ...(req.user?.role === "PROJECT_MANAGER" ? { manager_id: req.user.user_id } : {})
         });
 
         res.status(200).json({

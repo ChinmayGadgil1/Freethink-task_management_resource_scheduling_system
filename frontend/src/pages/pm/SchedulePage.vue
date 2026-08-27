@@ -584,20 +584,24 @@
       <q-card class="dialog-card">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div class="text-subtitle1 text-weight-bold text-dark">
-            Update Task #{{ editingTaskId }}
+            Update Task: {{ editingTaskTitle }}
           </div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
         </q-card-section>
 
         <q-form @submit.prevent="handleUpdateTask">
-          <q-card-section class="q-gutter-md q-pt-md">
-            <q-input
-              v-model="editForm.title"
-              outlined
-              dense
-              label="Task Title"
-              :rules="[(val) => !!val.trim() || 'Title is required']"
-            />
+          <q-card-section class="q-gutter-y-md q-pt-md">
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="editForm.title"
+                  outlined
+                  dense
+                  label="Task Title"
+                  :rules="[(val) => !!val.trim() || 'Title is required']"
+                />
+              </div>
+            </div>
 
             <div class="row q-col-gutter-sm">
               <div class="col-6">
@@ -726,6 +730,11 @@ const selectedTaskDetails = ref<Task | null>(null);
 const showCreateDialog = ref(false);
 const showEditDialog = ref(false);
 const editingTaskId = ref<number | null>(null);
+const editingTaskTitle = computed(() => {
+  if (!editingTaskId.value) return '';
+  const t = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+  return t ? t.title : `Task #${editingTaskId.value}`;
+});
 const submitting = ref(false);
 
 const TIME_HOURS = [

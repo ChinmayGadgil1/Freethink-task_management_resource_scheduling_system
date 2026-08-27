@@ -495,12 +495,23 @@ export interface ResourceUser {
   created_at?: string;
 }
 
-export async function getResourcesApi(projectId?: number): Promise<ResourceUser[]> {
-  const url =
-    projectId !== undefined
-      ? `${API_BASE_URL}/resources?project_id=${projectId}`
-      : `${API_BASE_URL}/resources`;
+export async function getResourcesApi(
+  params?: number | { project_id?: number; manager_id?: number }
+): Promise<ResourceUser[]> {
+  const queryParams = new URLSearchParams();
 
+  if (typeof params === 'number') {
+    queryParams.append('project_id', String(params));
+  } else if (params) {
+    if (params.project_id !== undefined && params.project_id !== null) {
+      queryParams.append('project_id', String(params.project_id));
+    }
+    if (params.manager_id !== undefined && params.manager_id !== null) {
+      queryParams.append('manager_id', String(params.manager_id));
+    }
+  }
+
+  const url = `${API_BASE_URL}/resources${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
   const response = await authenticatedFetch(url);
 
   const data = await response.json();

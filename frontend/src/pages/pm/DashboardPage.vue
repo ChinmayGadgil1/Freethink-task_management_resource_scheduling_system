@@ -310,24 +310,32 @@
           </q-card-section>
 
           <q-card-section>
-            <q-form @submit="handleCreateProject" class="q-gutter-md">
-              <q-input
-                v-model="newProjectForm.name"
-                label="Project Name *"
-                outlined
-                dense
-                :dark="$q.dark.isActive"
-                :rules="[(val) => (val && val.length > 0) || 'Project name is required']"
-              />
-              <q-input
-                v-model="newProjectForm.description"
-                label="Description"
-                type="textarea"
-                outlined
-                dense
-                :dark="$q.dark.isActive"
-                rows="3"
-              />
+            <q-form @submit="handleCreateProject" class="q-gutter-y-md">
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="newProjectForm.name"
+                    label="Project Name *"
+                    outlined
+                    dense
+                    :dark="$q.dark.isActive"
+                    :rules="[(val) => (val && val.length > 0) || 'Project name is required']"
+                  />
+                </div>
+              </div>
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="newProjectForm.description"
+                    label="Description"
+                    type="textarea"
+                    outlined
+                    dense
+                    :dark="$q.dark.isActive"
+                    rows="3"
+                  />
+                </div>
+              </div>
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
                   <q-select
@@ -443,23 +451,31 @@
                   </q-item>
                 </template>
               </q-select>
-              <q-input
-                v-model="newTaskForm.title"
-                label="Task Title *"
-                outlined
-                dense
-                :dark="$q.dark.isActive"
-                :rules="[(val) => (val && val.length > 0) || 'Task title is required']"
-              />
-              <q-input
-                v-model="newTaskForm.description"
-                label="Description"
-                type="textarea"
-                outlined
-                dense
-                :dark="$q.dark.isActive"
-                rows="2"
-              />
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="newTaskForm.title"
+                    label="Task Title *"
+                    outlined
+                    dense
+                    :dark="$q.dark.isActive"
+                    :rules="[(val) => (val && val.length > 0) || 'Task title is required']"
+                  />
+                </div>
+              </div>
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="newTaskForm.description"
+                    label="Description"
+                    type="textarea"
+                    outlined
+                    dense
+                    :dark="$q.dark.isActive"
+                    rows="2"
+                  />
+                </div>
+              </div>
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
                   <q-select

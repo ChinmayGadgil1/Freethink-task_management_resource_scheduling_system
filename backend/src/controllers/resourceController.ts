@@ -14,8 +14,10 @@ export async function listResources(
         }
 
         const projectIdParam = req.query.project_id;
+        const managerIdParam = req.query.manager_id;
 
         let projectId: number | undefined;
+        let managerId: number | undefined;
 
         if (projectIdParam !== undefined) {
             projectId = Number(projectIdParam);
@@ -27,7 +29,17 @@ export async function listResources(
             }
         }
 
-        const resources = await getResources(projectId);
+        if (managerIdParam !== undefined) {
+            managerId = Number(managerIdParam);
+
+            if (!Number.isInteger(managerId) || managerId <= 0) {
+                return res.status(400).json({
+                    message: "Invalid manager ID"
+                });
+            }
+        }
+
+        const resources = await getResources(projectId, managerId);
 
         return res.status(200).json(resources);
     } catch (error: any) {

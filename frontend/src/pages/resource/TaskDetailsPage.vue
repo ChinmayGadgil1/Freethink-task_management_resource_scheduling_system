@@ -1042,60 +1042,75 @@
         <q-separator />
 
         <q-card-section class="q-pa-lg">
-          <div class="q-gutter-md">
-            <q-select
-              v-model="createForm.project_id"
-              :options="projectOptionsForCreate"
-              option-label="name"
-              option-value="project_id"
-              emit-value
-              map-options
-              label="Project *"
-              outlined
-              dense
-              options-dense
-              :loading="loadingCreateProjects"
-            >
-              <template #prepend>
-                <q-icon name="folder" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-              </template>
-            </q-select>
+          <div class="column q-gutter-y-md">
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-select
+                  v-model="createForm.project_id"
+                  :options="projectOptionsForCreate"
+                  option-label="name"
+                  option-value="project_id"
+                  emit-value
+                  map-options
+                  label="Project *"
+                  outlined
+                  dense
+                  options-dense
+                  :loading="loadingCreateProjects"
+                >
+                  <template #prepend>
+                    <q-icon name="folder" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+                  </template>
+                </q-select>
+              </div>
+            </div>
 
-            <q-input v-model="createForm.title" label="Task Title *" outlined dense>
-              <template #prepend>
-                <q-icon name="task" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-              </template>
-            </q-input>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input v-model="createForm.title" label="Task Title *" outlined dense>
+                  <template #prepend>
+                    <q-icon name="task" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+                  </template>
+                </q-input>
+              </div>
+            </div>
 
-            <q-input
-              v-model="createForm.description"
-              label="Description"
-              type="textarea"
-              outlined
-              dense
-              rows="3"
-              autogrow
-            >
-              <template #prepend>
-                <q-icon name="description" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-              </template>
-            </q-input>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="createForm.description"
+                  label="Description"
+                  type="textarea"
+                  outlined
+                  dense
+                  rows="3"
+                  autogrow
+                >
+                  <template #prepend>
+                    <q-icon name="description" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+                  </template>
+                </q-input>
+              </div>
+            </div>
 
-            <q-select
-              v-model="createForm.priority"
-              :options="priorityOptions"
-              label="Priority"
-              outlined
-              dense
-              options-dense
-              class="q-mb-sm"
-            >
-              <template #prepend>
-                <q-icon name="flag" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-              </template>
-            </q-select>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-select
+                  v-model="createForm.priority"
+                  :options="priorityOptions"
+                  label="Priority"
+                  outlined
+                  dense
+                  options-dense
+                >
+                  <template #prepend>
+                    <q-icon name="flag" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+                  </template>
+                </q-select>
+              </div>
+            </div>
 
-            <div class="row q-col-gutter-md date-row">
+            <div class="row q-col-gutter-sm">
               <div class="col-12">
                 <q-input v-model="createForm.deadline" label="Deadline" type="date" outlined dense>
                   <template #prepend>
@@ -1108,19 +1123,23 @@
               </div>
             </div>
 
-            <q-input
-              v-model.number="createForm.expected_effort"
-              label="Expected Effort (hours) *"
-              type="number"
-              min="0"
-              step="0.5"
-              outlined
-              dense
-            >
-              <template #prepend>
-                <q-icon name="schedule" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-              </template>
-            </q-input>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model.number="createForm.expected_effort"
+                  label="Expected Effort (hours) *"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  outlined
+                  dense
+                >
+                  <template #prepend>
+                    <q-icon name="schedule" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+                  </template>
+                </q-input>
+              </div>
+            </div>
 
             <q-banner
               v-if="!canCreateTask"

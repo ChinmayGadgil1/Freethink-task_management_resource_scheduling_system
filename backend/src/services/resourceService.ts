@@ -1,7 +1,7 @@
 import { getPool } from "../config/database.js";
 import type { RowDataPacket } from "mysql2";
 
-export async function getResources(projectId?: number) {
+export async function getResources(projectId?: number, managerId?: number) {
     const pool = getPool();
 
     let query = `
@@ -22,6 +22,13 @@ export async function getResources(projectId?: number) {
             INNER JOIN project_members pm
                 ON u.user_id = pm.user_id
         `;
+    } else if (managerId !== undefined) {
+        query += `
+            INNER JOIN project_members pm
+                ON u.user_id = pm.user_id
+            INNER JOIN projects p
+                ON pm.project_id = p.project_id
+        `;
     }
 
     query += `
@@ -34,6 +41,11 @@ export async function getResources(projectId?: number) {
           AND pm.project_id = ?
         `;
         params.push(projectId);
+    } else if (managerId !== undefined) {
+        query += `
+          AND p.project_manager_id = ?
+        `;
+        params.push(managerId);
     }
 
     query += `

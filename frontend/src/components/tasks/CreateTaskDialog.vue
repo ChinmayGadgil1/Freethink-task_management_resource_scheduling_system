@@ -12,72 +12,119 @@
       </q-card-section>
 
       <q-form @submit.prevent="handleSubmit">
-        <q-card-section class="column q-gutter-md q-pt-md">
+        <q-card-section class="column q-gutter-y-md q-pt-md">
           <!-- Project Selection (if not in fixed project mode) -->
-          <q-select
-            v-if="!fixedProjectId"
-            v-model="form.project_id"
-            outlined
-            dense
-            label="Project *"
-            :options="projects"
-            emit-value
-            map-options
-            :rules="[(val) => !!val || 'Project is required']"
-            @update:model-value="(val) => emit('projectChange', val)"
-          />
+          <div v-if="!fixedProjectId" class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-select
+                v-model="form.project_id"
+                outlined
+                dense
+                label="Project *"
+                :options="projects"
+                emit-value
+                map-options
+                :rules="[(val) => !!val || 'Project is required']"
+                @update:model-value="(val) => emit('projectChange', val)"
+              />
+            </div>
+          </div>
 
           <!-- Title -->
-          <q-input
-            v-model="form.title"
-            outlined
-            dense
-            label="Task Title *"
-            placeholder="e.g. Design responsive navbar component"
-            :rules="[(val) => !!val?.trim() || 'Task title is required']"
-          />
+          <div class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-input
+                v-model="form.title"
+                outlined
+                dense
+                stack-label
+                label="Task Title *"
+                placeholder="e.g. Design responsive navbar component"
+                :rules="[(val) => !!val?.trim() || 'Task title is required']"
+              />
+            </div>
+          </div>
 
           <!-- Description -->
-          <q-input
-            v-model="form.description"
-            outlined
-            dense
-            type="textarea"
-            label="Description"
-            placeholder="Task details and acceptance criteria..."
-            autogrow
-          />
+          <div class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-input
+                v-model="form.description"
+                outlined
+                dense
+                stack-label
+                type="textarea"
+                label="Description"
+                placeholder="Task details and acceptance criteria..."
+                autogrow
+              />
+            </div>
+          </div>
 
           <!-- Priority and Status / Effort Row -->
           <div class="row q-col-gutter-sm">
-            <div :class="showStatus ? 'col-6' : 'col-6'">
-              <q-select
-                v-model="form.priority"
+            <div class="col-12">
+              <div class="row q-col-gutter-sm">
+                <div :class="showStatus ? 'col-6' : 'col-6'">
+                  <q-select
+                    v-model="form.priority"
+                    outlined
+                    dense
+                    label="Priority"
+                    :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                  />
+                </div>
+
+                <div v-if="showStatus" class="col-6">
+                  <q-select
+                    v-model="form.status"
+                    outlined
+                    dense
+                    label="Initial Status"
+                    :options="[
+                      { label: 'Unassigned', value: 'UNASSIGNED' },
+                      { label: 'Scheduled', value: 'SCHEDULED' },
+                      { label: 'In Progress', value: 'IN_PROGRESS' },
+                      { label: 'Completed', value: 'COMPLETED' },
+                    ]"
+                    emit-value
+                    map-options
+                  />
+                </div>
+
+                <div v-if="!showStatus" class="col-6">
+                  <q-input
+                    v-model.number="form.expected_effort"
+                    outlined
+                    dense
+                    type="number"
+                    min="0.5"
+                    step="0.5"
+                    label="Effort (Hours) *"
+                    :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deadline -->
+          <div class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-input
+                v-model="form.deadline"
                 outlined
                 dense
-                label="Priority"
-                :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                type="date"
+                label="Deadline"
+                stack-label
               />
             </div>
+          </div>
 
-            <div v-if="showStatus" class="col-6">
-              <q-select
-                v-model="form.status"
-                outlined
-                dense
-                label="Initial Status"
-                :options="[
-                  { label: 'Unassigned', value: 'UNASSIGNED' },
-                  { label: 'Scheduled', value: 'SCHEDULED' },
-                  { label: 'In Progress', value: 'IN_PROGRESS' },
-                  { label: 'Completed', value: 'COMPLETED' },
-                ]"
-                emit-value
-                map-options
-              />
-            </div>
-
-            <div v-if="!showStatus" class="col-6">
+          <!-- Effort (if showStatus is enabled) -->
+          <div v-if="showStatus" class="row q-col-gutter-sm">
+            <div class="col-12">
               <q-input
                 v-model.number="form.expected_effort"
                 outlined
@@ -85,119 +132,102 @@
                 type="number"
                 min="0.5"
                 step="0.5"
-                label="Effort (Hours) *"
-                :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
+                label="Expected Effort (Hours) *"
+                :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
               />
             </div>
           </div>
 
-          <!-- Deadline -->
-          <q-input
-            v-model="form.deadline"
-            outlined
-            dense
-            type="date"
-            label="Deadline"
-            stack-label
-          />
-
-          <!-- Effort (if showStatus is enabled) -->
-          <q-input
-            v-if="showStatus"
-            v-model.number="form.expected_effort"
-            outlined
-            dense
-            type="number"
-            min="0.5"
-            step="0.5"
-            label="Expected Effort (Hours) *"
-            :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
-          />
-
           <!-- Assign Members Field -->
-          <q-select
-            v-if="showAssignees"
-            v-model="form.assigned_resource_ids"
-            outlined
-            dense
-            multiple
-            clearable
-            :display-value="
-              form.assigned_resource_ids.length
-                ? `${form.assigned_resource_ids.length} member(s) selected`
-                : ''
-            "
-            label="Assign Member(s) (Optional)"
-            :options="memberOptions"
-            emit-value
-            map-options
-            :disable="!activeProjectId"
-            :hint="
-              !activeProjectId
-                ? 'Select a project first to assign members'
-                : form.assigned_resource_ids.length
-                  ? 'Task will be created as SCHEDULED'
-                  : 'No members selected — task will be created as UNASSIGNED'
-            "
-          >
-            <template #option="{ itemProps, opt, selected, toggleOption }">
-              <q-item v-bind="itemProps">
-                <q-item-section side>
-                  <q-checkbox
-                    :model-value="selected"
-                    color="primary"
-                    @update:model-value="toggleOption(opt)"
-                  />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ opt.label }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
+          <div v-if="showAssignees" class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-select
+                v-model="form.assigned_resource_ids"
+                outlined
+                dense
+                multiple
+                clearable
+                :display-value="
+                  form.assigned_resource_ids.length
+                    ? `${form.assigned_resource_ids.length} member(s) selected`
+                    : ''
+                "
+                label="Assign Member(s) (Optional)"
+                :options="memberOptions"
+                emit-value
+                map-options
+                :disable="!activeProjectId"
+                :hint="
+                  !activeProjectId
+                    ? 'Select a project first to assign members'
+                    : form.assigned_resource_ids.length
+                      ? 'Task will be created as SCHEDULED'
+                      : 'No members selected — task will be created as UNASSIGNED'
+                "
+              >
+                <template #option="{ itemProps, opt, selected, toggleOption }">
+                  <q-item v-bind="itemProps">
+                    <q-item-section side>
+                      <q-checkbox
+                        :model-value="selected"
+                        color="primary"
+                        @update:model-value="toggleOption(opt)"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ opt.label }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+          </div>
 
           <!-- Dependencies Field -->
-          <q-select
-            v-if="showDependencies"
-            v-model="form.predecessor_task_ids"
-            outlined
-            dense
-            multiple
-            clearable
-            :display-value="
-              form.predecessor_task_ids.length
-                ? `${form.predecessor_task_ids.length} dependency/dependencies selected`
-                : ''
-            "
-            label="Predecessor Dependencies (Optional)"
-            :options="predecessorOptions"
-            emit-value
-            map-options
-            :disable="!activeProjectId"
-            :hint="
-              !activeProjectId
-                ? 'Select a project first to choose dependencies'
-                : 'Select tasks that must be completed before this task'
-            "
-          >
-            <template #option="{ itemProps, opt, selected, toggleOption }">
-              <q-item v-bind="itemProps">
-                <q-item-section side>
-                  <q-checkbox
-                    :model-value="selected"
-                    color="primary"
-                    @update:model-value="toggleOption(opt)"
-                  />
-                </q-item-section>
-                <q-item-section side>
-                  <q-icon name="account_tree" color="primary" size="18px" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ opt.label }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
+          <div v-if="showDependencies" class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-select
+                v-model="form.predecessor_task_ids"
+                outlined
+                dense
+                multiple
+                clearable
+                :display-value="
+                  form.predecessor_task_ids.length
+                    ? `${form.predecessor_task_ids.length} dependency/dependencies selected`
+                    : ''
+                "
+                label="Predecessor Dependencies (Optional)"
+                :options="predecessorOptions"
+                emit-value
+                map-options
+                :disable="!activeProjectId"
+                :hint="
+                  !activeProjectId
+                    ? 'Select a project first to choose dependencies'
+                    : 'Select tasks that must be completed before this task'
+                "
+              >
+                <template #option="{ itemProps, opt, selected, toggleOption }">
+                  <q-item v-bind="itemProps">
+                    <q-item-section side>
+                      <q-checkbox
+                        :model-value="selected"
+                        color="primary"
+                        @update:model-value="toggleOption(opt)"
+                      />
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-icon name="account_tree" color="primary" size="18px" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ opt.label }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+          </div>
         </q-card-section>
 
         <q-card-actions align="right" class="q-pa-md q-pt-none">

@@ -431,7 +431,9 @@ async function loadData() {
   loading.value = true;
   try {
     if (isProjectManager.value) {
-      const dbResources = await getResourcesApi();
+      const dbResources = await getResourcesApi(
+        currentUserId.value !== null ? { manager_id: currentUserId.value } : undefined
+      );
       resourcesList.value = dbResources;
     }
     await loadLeaves();

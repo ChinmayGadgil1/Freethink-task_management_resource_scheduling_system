@@ -141,7 +141,12 @@ export async function cancelLeave(leaveId: number, reqUser: { user_id: number; r
 /**
  * Get leaves list with optional filters for user_id, startDate, and endDate.
  */
-export async function getLeaves(filters: { user_id?: number; startDate?: string; endDate?: string }): Promise<UserLeave[]> {
+export async function getLeaves(filters: {
+    user_id?: number;
+    startDate?: string;
+    endDate?: string;
+    manager_id?: number;
+}): Promise<UserLeave[]> {
     const pool = getPool();
     let query = `
         SELECT 
@@ -167,6 +172,16 @@ export async function getLeaves(filters: { user_id?: number; startDate?: string;
     if (filters.endDate) {
         conditions.push(`leave_date <= ?`);
         params.push(filters.endDate);
+    }
+
+    if (filters.manager_id !== undefined) {
+        conditions.push(`user_id IN (
+            SELECT DISTINCT pm.user_id 
+            FROM project_members pm
+            INNER JOIN projects p ON pm.project_id = p.project_id
+            WHERE p.project_manager_id = ?
+        )`);
+        params.push(filters.manager_id);
     }
 
     if (conditions.length > 0) {

@@ -642,20 +642,24 @@
       <q-dialog v-model="showEditDialog">
         <q-card :dark="$q.dark.isActive" style="min-width: 450px" class="rounded-borders">
           <q-card-section class="row items-center justify-between">
-            <div class="text-subtitle1 text-weight-bold">Update Task #{{ editingTaskId }}</div>
+            <div class="text-subtitle1 text-weight-bold">Update Task: {{ editingTaskTitle }}</div>
             <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
           </q-card-section>
 
           <q-form @submit.prevent="handleUpdateTask">
-            <q-card-section class="column q-gutter-md">
-              <q-input
-                v-model="editForm.title"
-                outlined
-                dense
-                label="Task Title"
-                :dark="$q.dark.isActive"
-                :rules="[(val) => !!val.trim() || 'Title is required']"
-              />
+            <q-card-section class="column q-gutter-y-md">
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="editForm.title"
+                    outlined
+                    dense
+                    label="Task Title"
+                    :dark="$q.dark.isActive"
+                    :rules="[(val) => !!val.trim() || 'Title is required']"
+                  />
+                </div>
+              </div>
 
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
@@ -1089,6 +1093,11 @@ const createPredecessorOptions = computed(() => {
       label: `${t.title} (#${t.task_id})`,
       value: t.task_id,
     }));
+});
+
+const editingTaskTitle = computed(() => {
+  const t = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+  return t ? t.title : `Task #${editingTaskId.value}`;
 });
 
 const editForm = reactive<{

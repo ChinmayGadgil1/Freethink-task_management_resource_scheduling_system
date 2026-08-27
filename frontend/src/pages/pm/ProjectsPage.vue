@@ -878,24 +878,32 @@
         </q-card-section>
 
         <q-form @submit.prevent="handleCreateProject">
-          <q-card-section class="column q-gutter-md">
-            <q-input
-              v-model="form.name"
-              outlined
-              dense
-              label="Project name"
-              :dark="$q.dark.isActive"
-              :rules="[(val) => !!val.trim() || 'Project name is required']"
-            />
-            <q-input
-              v-model="form.description"
-              outlined
-              dense
-              type="textarea"
-              label="Description"
-              autogrow
-              :dark="$q.dark.isActive"
-            />
+          <q-card-section class="column q-gutter-y-md">
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="form.name"
+                  outlined
+                  dense
+                  label="Project name"
+                  :dark="$q.dark.isActive"
+                  :rules="[(val) => !!val.trim() || 'Project name is required']"
+                />
+              </div>
+            </div>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="form.description"
+                  outlined
+                  dense
+                  type="textarea"
+                  label="Description"
+                  autogrow
+                  :dark="$q.dark.isActive"
+                />
+              </div>
+            </div>
 
             <div class="row q-col-gutter-sm">
               <div class="col-6">
