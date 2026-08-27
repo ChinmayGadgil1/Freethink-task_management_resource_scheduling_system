@@ -15,7 +15,7 @@
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
         <!-- Left: Mobile / Sidebar Expand Toggle -->
-        <div class="toolbar-left-area row items-center gap-sm">
+        <div class="toolbar-left-area row items-center gap-sm lt-md">
           <q-btn
             flat
             round
@@ -418,7 +418,11 @@ const searchQuery = ref('');
 const searchRef = ref<{ focus: () => void } | null>(null);
 
 function toggleMini() {
-  isMini.value = !isMini.value;
+  if ($q.screen.lt.md) {
+    leftDrawerOpen.value = !leftDrawerOpen.value;
+  } else {
+    isMini.value = !isMini.value;
+  }
 }
 
 const projects = ref<Project[]>([]);

@@ -7,6 +7,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         console.log("Dropping existing tables...");
         await pool.query("SET FOREIGN_KEY_CHECKS = 0");
         const tables = [
+            "support_tickets",
             "task_schedules",
             "task_sessions",
             "work_logs",
@@ -213,6 +214,22 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("User leaves table is ready.");
+
+    // 12. Support Tickets table
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS support_tickets (
+            ticket_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            name VARCHAR(150) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            description TEXT NOT NULL,
+            status ENUM('OPEN', 'IN_PROGRESS', 'RESOLVED') NOT NULL DEFAULT 'OPEN',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    `);
+    console.log("Support tickets table is ready.");
 
     return pool;
 }

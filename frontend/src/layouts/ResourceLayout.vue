@@ -21,7 +21,7 @@
             round
             :icon="isMini ? 'menu_open' : 'menu'"
             aria-label="Toggle Sidebar"
-            class="drawer-toggle-btn"
+            class="drawer-toggle-btn lt-md"
             @click="toggleMini"
           >
             <q-tooltip>{{ isMini ? 'Expand Sidebar' : 'Collapse Sidebar' }}</q-tooltip>

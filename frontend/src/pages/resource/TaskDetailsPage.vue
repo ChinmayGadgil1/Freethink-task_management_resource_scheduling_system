@@ -222,7 +222,7 @@
                 flat
                 bordered
                 :dark="$q.dark.isActive"
-                class="q-pa-md rounded-borders cursor-pointer overflow-hidden"
+                class="task-board-card q-pa-md rounded-borders cursor-pointer overflow-hidden column"
                 @click="openTask(item.task_id)"
               >
                 <!-- Card Top Row: Project, Priority & Self-Assigned Badges (Wraps gracefully & Truncates) -->
@@ -264,7 +264,7 @@
                 </div>
 
                 <!-- Progress & Effort Bar -->
-                <div class="q-mt-sm">
+                <div class="q-mt-auto q-pt-sm">
                   <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
                     <span
                       class="text-caption text-weight-bold"
@@ -603,47 +603,64 @@
               </div>
 
               <!-- Action Buttons -->
-              <div class="row items-center q-gutter-xs q-mt-xs">
-                <q-btn
-                  v-if="!isCurrentTaskSessionActive"
-                  unelevated
-                  no-caps
-                  color="positive"
-                  icon="play_arrow"
-                  label="Start Session"
-                  class="text-weight-bold"
-                  :loading="sessionStore.loading"
-                  @click="handleStartSession(task.task_id)"
-                />
-                <q-btn
-                  v-else
-                  unelevated
-                  no-caps
-                  color="negative"
-                  icon="stop"
-                  label="Stop Session"
-                  class="text-weight-bold"
-                  :loading="sessionStore.loading"
-                  @click="promptStopSession"
-                />
-                <q-btn
-                  outline
-                  no-caps
-                  color="primary"
-                  icon="edit"
-                  label="Edit Task"
-                  class="text-weight-bold"
-                  @click="openUpdateTaskDialog(task)"
-                />
-                <q-btn
-                  unelevated
-                  no-caps
-                  color="primary"
-                  icon="edit_note"
-                  label="Add Daily Update"
-                  class="text-weight-bold"
-                  @click="updateDialog = true"
-                />
+              <div class="column gap-sm q-mt-md full-width" style="max-width: 320px">
+                <!-- Primary Actions Row -->
+                <div class="row q-col-gutter-sm">
+                  <div class="col-6">
+                    <q-btn
+                      v-if="!isCurrentTaskSessionActive"
+                      unelevated
+                      no-caps
+                      color="positive"
+                      icon="play_arrow"
+                      label="Start"
+                      class="full-width text-weight-bold"
+                      style="border-radius: 8px; height: 40px;"
+                      :loading="sessionStore.loading"
+                      @click="handleStartSession(task.task_id)"
+                    />
+                    <q-btn
+                      v-else
+                      unelevated
+                      no-caps
+                      color="negative"
+                      icon="stop"
+                      label="Stop"
+                      class="full-width text-weight-bold"
+                      style="border-radius: 8px; height: 40px;"
+                      :loading="sessionStore.loading"
+                      @click="promptStopSession"
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-btn
+                      unelevated
+                      no-caps
+                      color="primary"
+                      icon="edit_note"
+                      label="Add Update"
+                      class="full-width text-weight-bold"
+                      style="border-radius: 8px; height: 40px;"
+                      @click="updateDialog = true"
+                    />
+                  </div>
+                </div>
+
+                <!-- Secondary Action Row -->
+                <div class="row">
+                  <div class="col-12">
+                    <q-btn
+                      outline
+                      no-caps
+                      color="primary"
+                      icon="edit"
+                      label="Edit Task Details"
+                      class="full-width text-weight-bold"
+                      style="border-radius: 8px; height: 40px;"
+                      @click="openUpdateTaskDialog(task)"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1830,6 +1847,23 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.task-board-card {
+  height: 205px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(124, 94, 212, 0.08);
+    border-color: var(--q-primary);
+  }
+}
+
 .task-project-pill,
 .task-self-pill {
   display: inline-flex;
