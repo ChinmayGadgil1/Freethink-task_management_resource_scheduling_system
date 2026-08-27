@@ -14,4 +14,6 @@ export interface ResourceTask {
   estimatedHours: number;
   workUpdate: string;
   description?: string | null;
+  created_by?: number;
+  isSelfAssigned?: boolean;
 }

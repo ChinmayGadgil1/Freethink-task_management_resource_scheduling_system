@@ -984,6 +984,7 @@
     <UpdateTaskDialog
       v-model="updateTaskDialog"
       :task="selectedTaskForUpdate"
+      :is-self-assigned="isSelfAssigned(selectedTaskForUpdate)"
       @save="saveTaskSpecUpdate"
     />
 
@@ -1180,9 +1181,51 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 const viewMode = ref<'board' | 'table'>('board');
 
-function isSelfAssigned(item: Task | null | undefined): boolean {
-  if (!item || !authStore.user?.user_id) return false;
-  return Number(item.created_by) === Number(authStore.user.user_id);
+type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string };
+type TaskLike = {
+  created_by?: number | string;
+  createdBy?: number | string;
+  created_by_id?: number | string;
+  isSelfAssigned?: boolean;
+};
+
+function getCurrentUserId(): number | null {
+  const u = (authStore.user || authStore.currentUser) as UserLike | null;
+  if (u) {
+    const id = u.user_id ?? u.id ?? u.userId;
+    if (id) return Number(id);
+  }
+  try {
+    const rawAuth = sessionStorage.getItem('auth');
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth) as { user?: UserLike };
+      const id = parsed?.user?.user_id ?? parsed?.user?.id ?? parsed?.user?.userId;
+      if (id) return Number(id);
+    }
+    const rawUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser) as UserLike;
+      const id = parsed?.user_id ?? parsed?.id ?? parsed?.userId;
+      if (id) return Number(id);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function isSelfAssigned(item: Task | ResourceTask | null | undefined): boolean {
+  if (!item) return false;
+  const t = item as TaskLike;
+  if (typeof t.isSelfAssigned === 'boolean') {
+    return t.isSelfAssigned;
+  }
+  const currentUserId = getCurrentUserId();
+  const createdBy = Number(t.created_by ?? t.createdBy ?? t.created_by_id);
+  if (currentUserId && createdBy && currentUserId === createdBy) {
+    return true;
+  }
+  return false;
 }
 
 const KANBAN_COLUMNS = computed(() => [
@@ -1603,6 +1646,8 @@ function mapToResourceTask(item: Task): ResourceTask {
     estimatedHours: Number(item.expected_effort) || 0,
     workUpdate: '',
     description: item.description || '',
+    created_by: item.created_by,
+    isSelfAssigned: isSelfAssigned(item),
   };
 }
 
@@ -1613,10 +1658,7 @@ function openUpdateTaskDialog(item: Task) {
 
 async function saveTaskSpecUpdate(payload: {
   id: number;
-  status: ResourceTask['status'];
-  progress: number;
-  hoursWorked: number;
-  workUpdate: string;
+  expected_effort: number;
   description: string;
 }) {
   const existing = tasks.value.find((item) => item.task_id === payload.id);
@@ -1627,9 +1669,7 @@ async function saveTaskSpecUpdate(payload: {
 
   try {
     const updated = await updateTaskApi(payload.id, {
-      status: payload.status,
-      progress: payload.progress,
-      actual_effort: payload.hoursWorked,
+      expected_effort: payload.expected_effort,
       description: payload.description,
     });
 
@@ -1693,10 +1733,24 @@ async function saveDailyUpdate(payload: CreateWorkLogPayload) {
     await loadHistory(currentTaskId);
 
     updateDialog.value = false;
+
+    Notify.create({
+      type: 'positive',
+      message: 'Daily update recorded successfully.',
+      icon: 'check_circle',
+      position: 'top-right',
+    });
   } catch (err) {
     console.error(err);
 
     error.value = err instanceof Error ? err.message : 'Failed to submit daily progress.';
+
+    Notify.create({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to submit daily progress.',
+      icon: 'error',
+      position: 'top-right',
+    });
   }
 }
 

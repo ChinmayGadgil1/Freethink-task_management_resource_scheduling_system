@@ -401,7 +401,7 @@ import WorkloadCard from '@/components/resource/WorkloadCard.vue';
 import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
 import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
-import { formatDate, formatHours } from '@/utils/formatters';
+import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 import {
   getTasksApi,
@@ -419,7 +419,26 @@ const error = ref('');
 const tasks = ref<Task[]>([]);
 const workloadData = ref<ResourceWorkload | null>(null);
 
-const currentUserId = computed(() => authStore.user?.user_id ?? null);
+type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string };
+
+const currentUserId = computed(() => {
+  const u = (authStore.user || authStore.currentUser) as UserLike | null;
+  if (u) {
+    const id = u.user_id ?? u.id ?? u.userId;
+    if (id) return Number(id);
+  }
+  try {
+    const rawAuth = sessionStorage.getItem('auth');
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth) as { user?: UserLike };
+      const id = parsed?.user?.user_id ?? parsed?.user?.id ?? parsed?.user?.userId;
+      if (id) return Number(id);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+});
 const userFirstName = computed(() => authStore.user?.name?.split(' ')[0] ?? '');
 
 async function loadDashboardData() {
@@ -502,13 +521,13 @@ const workload = computed(() => {
   if (workloadData.value) {
     const expected = Number(workloadData.value.total_expected_effort) || 0;
     const actual = Number(workloadData.value.total_actual_effort) || 0;
-    const remaining = Math.max(0, expected - actual);
+    const remaining = Math.max(0, formatNumber(expected - actual));
     const consumedPct = expected > 0 ? Math.min(100, Math.round((actual / expected) * 100)) : 0;
     const activeTasks = Number(workloadData.value.active_tasks_count) || activeTasksCount.value;
 
     return {
-      expectedEffort: expected,
-      actualEffort: actual,
+      expectedEffort: formatNumber(expected),
+      actualEffort: formatNumber(actual),
       remainingEffort: remaining,
       activeTasks,
       consumedPct,
@@ -523,12 +542,12 @@ const workload = computed(() => {
     actual += Number(t.actual_effort) || 0;
   });
 
-  const remaining = Math.max(0, expected - actual);
+  const remaining = Math.max(0, formatNumber(expected - actual));
   const consumedPct = expected > 0 ? Math.min(100, Math.round((actual / expected) * 100)) : 0;
 
   return {
-    expectedEffort: expected,
-    actualEffort: actual,
+    expectedEffort: formatNumber(expected),
+    actualEffort: formatNumber(actual),
     remainingEffort: remaining,
     activeTasks: activeTasksCount.value,
     consumedPct,
@@ -573,7 +592,7 @@ function attentionMeta(t: Task) {
 
 const selfAssignedTasks = computed(() => {
   if (!currentUserId.value) return [];
-  return tasks.value.filter((t) => t.created_by === currentUserId.value);
+  return tasks.value.filter((t) => Number(t.created_by) === currentUserId.value);
 });
 
 const projectSummary = computed(() => {

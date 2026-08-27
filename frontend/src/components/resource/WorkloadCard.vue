@@ -12,7 +12,7 @@
       </div>
 
       <div class="effort-hero-display column q-mt-md">
-        <div class="effort-big-number">{{ allocatedHours }}<span class="unit-text">h</span></div>
+        <div class="effort-big-number">{{ formatNumber(allocatedHours) }}<span class="unit-text">h</span></div>
         <div class="effort-progress-block q-mt-xs">
           <div class="row justify-between q-mb-xs">
             <span class="text-caption text-weight-bold text-muted-subtle">Effort consumed</span>
@@ -37,15 +37,15 @@
       <div class="stat-cells-grid q-mt-lg">
         <div class="stat-cell stat-purple">
           <div class="stat-label">Active tasks</div>
-          <div class="stat-value">{{ assignedTasks }}</div>
+          <div class="stat-value ellipsis">{{ assignedTasks }}</div>
         </div>
         <div class="stat-cell stat-blue">
           <div class="stat-label">Actual effort</div>
-          <div class="stat-value">{{ actualHours }}h</div>
+          <div class="stat-value ellipsis">{{ formatHours(actualHours) }}</div>
         </div>
         <div class="stat-cell stat-mint">
           <div class="stat-label">Remaining effort</div>
-          <div class="stat-value">{{ remainingHours }}h</div>
+          <div class="stat-value ellipsis">{{ formatHours(remainingHours) }}</div>
         </div>
       </div>
     </q-card-section>
@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatHours, formatNumber } from '@/utils/formatters';
 
 const props = defineProps<{
   allocatedHours: number;

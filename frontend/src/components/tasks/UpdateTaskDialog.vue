@@ -19,38 +19,26 @@
       <q-separator />
 
       <q-card-section v-if="task">
-        <div class="field-label">Status</div>
-
-        <div class="status-choice">
-          <q-btn
-            v-for="option in statusOptions"
-            :key="option.value"
-            no-caps
-            unelevated
-            :color="form.status === option.value ? 'primary' : 'grey-2'"
-            :text-color="form.status === option.value ? 'white' : 'grey-8'"
-            :label="option.label"
-            class="status-choice-btn"
-            @click="form.status = option.value"
-          />
+        <div v-if="!isSelf" class="q-mb-md">
+          <q-banner dense rounded class="bg-amber-1 text-amber-10">
+            <template #avatar>
+              <q-icon name="lock" color="amber-9" />
+            </template>
+            Only self-assigned tasks can be edited. This task was assigned by a project manager.
+          </q-banner>
         </div>
 
-        <div class="field-label q-mt-lg">
-          Progress
-          <span class="text-primary text-weight-bold"> {{ form.progress }}% </span>
-        </div>
-
-        <q-slider v-model="form.progress" :min="0" :max="100" :step="5" color="primary" label />
-
-        <div class="field-label q-mt-md">Total Hours Worked</div>
+        <div class="field-label">Expected Hours (hrs) *</div>
 
         <q-input
-          v-model.number="form.hoursWorked"
+          v-model.number="form.estimatedHours"
           outlined
           dense
           type="number"
           min="0"
           step="0.5"
+          :disable="!isSelf"
+          placeholder="e.g. 8"
         />
 
         <div class="field-label q-mt-md">Task Description</div>
@@ -60,7 +48,8 @@
           outlined
           type="textarea"
           autogrow
-          rows="2"
+          rows="3"
+          :disable="!isSelf"
           placeholder="Add or edit task description..."
         />
       </q-card-section>
@@ -70,19 +59,28 @@
       <q-card-actions align="right" class="q-pa-md">
         <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
 
-        <q-btn unelevated no-caps label="Save Changes" color="primary" @click="save" />
+        <q-btn
+          unelevated
+          no-caps
+          label="Save Changes"
+          color="primary"
+          :disable="!isSelf || Number(form.estimatedHours) <= 0"
+          @click="save"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue';
-import type { ResourceTask, TaskStatus } from '@/components/tasks/task-types';
+import { computed, reactive, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import type { ResourceTask } from '@/components/tasks/task-types';
 
 const props = defineProps<{
   modelValue: boolean;
   task: ResourceTask | null;
+  isSelfAssigned?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -91,62 +89,80 @@ const emit = defineEmits<{
     e: 'save',
     payload: {
       id: number;
-      status: TaskStatus;
-      progress: number;
-      hoursWorked: number;
-      workUpdate: string;
+      expected_effort: number;
       description: string;
     },
   ): void;
 }>();
 
-const statusOptions: {
-  label: string;
-  value: TaskStatus;
-}[] = [
-  { label: 'Unassigned', value: 'UNASSIGNED' },
-  { label: 'Scheduled', value: 'SCHEDULED' },
-  { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Completed', value: 'COMPLETED' },
-];
+const authStore = useAuthStore();
+
+type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string };
+type TaskLike = {
+  created_by?: number | string;
+  createdBy?: number | string;
+  created_by_id?: number | string;
+  isSelfAssigned?: boolean;
+};
+
+const isSelf = computed(() => {
+  if (props.isSelfAssigned !== undefined) {
+    return props.isSelfAssigned;
+  }
+  if (props.task?.isSelfAssigned !== undefined) {
+    return props.task.isSelfAssigned;
+  }
+  const u = (authStore.user || authStore.currentUser) as UserLike | null;
+  let currentUserId = u ? Number(u.user_id ?? u.id ?? u.userId) : null;
+  if (!currentUserId) {
+    try {
+      const rawAuth = sessionStorage.getItem('auth');
+      if (rawAuth) {
+        const parsed = JSON.parse(rawAuth) as { user?: UserLike };
+        currentUserId = Number(
+          parsed?.user?.user_id ?? parsed?.user?.id ?? parsed?.user?.userId,
+        );
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const t = props.task as TaskLike | null;
+  const taskCreatedBy = t ? Number(t.created_by ?? t.createdBy ?? t.created_by_id) : null;
+
+  if (currentUserId && taskCreatedBy && currentUserId === taskCreatedBy) {
+    return true;
+  }
+
+  return false;
+});
 
 const form = reactive<{
-  status: TaskStatus;
-  progress: number;
-  hoursWorked: number;
-  workUpdate: string;
+  estimatedHours: number;
   description: string;
 }>({
-  status: 'SCHEDULED',
-  progress: 0,
-  hoursWorked: 0,
-  workUpdate: '',
+  estimatedHours: 0,
   description: '',
 });
 
 watch(
-  () => props.task,
-  (task) => {
-    if (!task) return;
+  () => [props.task, props.modelValue] as const,
+  ([task, modelValue]) => {
+    if (!modelValue || !task) return;
 
-    form.status = task.status;
-    form.progress = task.progress;
-    form.hoursWorked = task.hoursWorked;
-    form.workUpdate = '';
+    form.estimatedHours = Number(task.estimatedHours) || 0;
     form.description = task.description || '';
   },
   { immediate: true },
 );
 
 function save() {
-  if (!props.task) return;
+  if (!props.task || !isSelf.value) return;
 
   emit('save', {
     id: props.task.id,
-    status: form.status,
-    progress: Math.min(Math.max(Number(form.progress), 0), 100),
-    hoursWorked: Math.max(Number(form.hoursWorked), 0),
-    workUpdate: form.workUpdate.trim(),
+    expected_effort: Math.max(Number(form.estimatedHours), 0),
     description: form.description.trim(),
   });
 
@@ -160,17 +176,5 @@ function save() {
   color: #667085;
   font-size: 12px;
   font-weight: 600;
-}
-
-.status-choice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.status-choice-btn {
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
 }
 </style>
