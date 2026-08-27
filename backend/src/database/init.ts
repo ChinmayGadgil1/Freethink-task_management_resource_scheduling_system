@@ -36,6 +36,8 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             email VARCHAR(255) NOT NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
             role ENUM('PROJECT_MANAGER', 'RESOURCE') NOT NULL,
+            non_working_days JSON NULL,
+            daily_working_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00,
             is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -214,6 +216,18 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("User leaves table is ready.");
+
+    // Migration check: ensure non_working_days and daily_working_hours columns exist in users table
+    try {
+        await pool.query(`ALTER TABLE users ADD COLUMN non_working_days JSON NULL`);
+    } catch (e: any) {
+        // Ignore if column already exists (ER_DUP_FIELDNAME)
+    }
+    try {
+        await pool.query(`ALTER TABLE users ADD COLUMN daily_working_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00`);
+    } catch (e: any) {
+        // Ignore if column already exists (ER_DUP_FIELDNAME)
+    }
 
     // 12. Support Tickets table
     await pool.query(`

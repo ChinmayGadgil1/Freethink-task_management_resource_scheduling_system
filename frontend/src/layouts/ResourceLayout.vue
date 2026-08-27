@@ -86,9 +86,15 @@
                   </q-item-section>
                 </q-item>
                 <q-separator />
+                <q-item clickable v-close-popup @click="openWorkingDaysDialog">
+                  <q-item-section avatar>
+                    <q-icon name="event_busy" color="primary" />
+                  </q-item-section>
+                  <q-item-section>Non-Working Days</q-item-section>
+                </q-item>
                 <q-item clickable v-close-popup @click="openResetPasswordDialog">
                   <q-item-section avatar>
-                    <q-icon name="lock_reset" color="primary" />
+                    <q-icon name="lock_reset" color="grey-7" />
                   </q-item-section>
                   <q-item-section>Reset Password</q-item-section>
                 </q-item>
@@ -109,6 +115,122 @@
     <q-page-container class="resource-page-container">
       <router-view />
     </q-page-container>
+
+    <!-- Non-Working Days Configuration Dialog -->
+    <q-dialog v-model="workingDaysDialog" persistent>
+      <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px;" :dark="$q.dark.isActive">
+        <q-card-section class="row items-center justify-between q-pb-xs">
+          <div class="row items-center q-gutter-xs">
+            <q-icon name="event_busy" size="24px" color="primary" />
+            <div class="text-h6 text-weight-bold">My Non-Working Days</div>
+          </div>
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="text-caption text-grey-6 q-pt-none">
+          Select your weekly non-working days (days off). Any day not selected is automatically treated as a regular working day for task scheduling.
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section v-if="scheduleLoading" class="row justify-center items-center q-pa-xl">
+          <q-spinner color="primary" size="36px" />
+        </q-card-section>
+
+        <q-card-section v-else class="q-pt-md q-gutter-md">
+          <!-- Non-Working Days Selector -->
+          <div>
+            <div class="text-subtitle2 text-weight-bold q-mb-xs">Weekly Non-Working Days (Days Off)</div>
+            <div class="text-caption text-grey-6 q-mb-sm">
+              Click days to mark them as non-working. Unmarked days are your active working days.
+            </div>
+
+            <div class="row q-gutter-xs wrap">
+              <q-chip
+                v-for="day in weekDayOptions"
+                :key="day.value"
+                clickable
+                :color="isNonWorkingDay(day.value) ? 'deep-orange-7' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
+                :text-color="isNonWorkingDay(day.value) ? 'white' : ($q.dark.isActive ? 'grey-4' : 'grey-8')"
+                :icon="isNonWorkingDay(day.value) ? 'event_busy' : 'check_circle_outline'"
+                class="text-weight-bold cursor-pointer transition-all"
+                @click="toggleNonWorkingDay(day.value)"
+              >
+                {{ day.label }}
+              </q-chip>
+            </div>
+            <div v-if="selectedNonWorkingDays.length >= 7" class="text-caption text-negative q-mt-xs">
+              * A resource must have at least one active working day.
+            </div>
+          </div>
+
+          <!-- Daily Working Hours Input -->
+          <div class="q-mt-sm">
+            <div class="row items-center justify-between q-mb-xs">
+              <span class="text-subtitle2 text-weight-bold">Daily Standard Capacity</span>
+              <span class="text-weight-bold text-primary">{{ dailyHours }} Hours / Day</span>
+            </div>
+            <div class="text-caption text-grey-6 q-mb-sm">
+              Standard working hours capacity per working day (Default: 8.0h).
+            </div>
+
+            <q-slider
+              v-model="dailyHours"
+              :min="1"
+              :max="16"
+              :step="0.5"
+              label
+              label-always
+              color="primary"
+              class="q-mt-md"
+            />
+          </div>
+
+          <!-- Schedule Summary Breakdown -->
+          <q-card flat bordered class="q-pa-sm" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
+            <div class="q-gutter-xs text-caption">
+              <div class="row items-center justify-between">
+                <span class="text-weight-medium">Non-Working Days:</span>
+                <span class="text-weight-bold text-deep-orange">
+                  {{ selectedNonWorkingDays.length === 0 ? 'None (Full 7-day schedule)' : selectedNonWorkingDays.map(formatDayName).join(', ') }}
+                  ({{ selectedNonWorkingDays.length }} days off)
+                </span>
+              </div>
+              <div class="row items-center justify-between q-mt-xs">
+                <span class="text-weight-medium">Active Working Days:</span>
+                <span class="text-weight-bold text-primary">
+                  {{ activeWorkingDays.length === 0 ? 'None' : activeWorkingDays.map(formatDayName).join(', ') }}
+                  ({{ activeWorkingDays.length }} working days)
+                </span>
+              </div>
+              <div class="row items-center justify-between q-mt-xs">
+                <span class="text-weight-medium">Weekly Total Capacity:</span>
+                <span class="text-weight-bold text-teal">
+                  {{ (activeWorkingDays.length * dailyHours).toFixed(1) }} Hours / Week
+                </span>
+              </div>
+            </div>
+          </q-card>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancel" no-caps v-close-popup color="grey-7" />
+          <q-btn
+            unelevated
+            label="Save Settings"
+            color="primary"
+            no-caps
+            class="text-weight-bold q-px-md"
+            :loading="scheduleSubmitting"
+            :disable="selectedNonWorkingDays.length >= 7 || scheduleLoading"
+            @click="handleSaveScheduleConfig"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Reset Password Dialog -->
     <q-dialog v-model="resetPasswordDialog" persistent>
       <q-card style="min-width: 350px; border-radius: 12px;">
@@ -174,8 +296,8 @@
               dense
               lazy-rules
               :rules="[
-                val => !!val || 'Please confirm your new password',
-                val => val === resetForm.newPassword || 'New passwords do not match'
+                val => !!val || 'Confirm new password is required',
+                val => val === resetForm.newPassword || 'Passwords do not match'
               ]"
             >
               <template #append>
@@ -209,7 +331,12 @@ import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.
 import { useAuthStore } from '@/stores/auth';
 import { useSessionStore } from '@/stores/session';
 import { useThemeStore } from '@/stores/theme';
-import { resetPasswordApi } from '@/services/api';
+import {
+  resetPasswordApi,
+  getResourceWorkScheduleApi,
+  updateResourceWorkScheduleApi,
+  type DayOfWeek,
+} from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -219,6 +346,94 @@ const themeStore = useThemeStore();
 const searchQuery = ref('');
 const leftDrawerOpen = ref(true);
 const isMini = ref(false);
+
+// Non-Working Days State
+const ALL_WEEK_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const workingDaysDialog = ref(false);
+const scheduleLoading = ref(false);
+const scheduleSubmitting = ref(false);
+const selectedNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
+const dailyHours = ref(8.0);
+
+const weekDayOptions: { label: string; value: DayOfWeek }[] = [
+  { label: 'Monday', value: 'MONDAY' },
+  { label: 'Tuesday', value: 'TUESDAY' },
+  { label: 'Wednesday', value: 'WEDNESDAY' },
+  { label: 'Thursday', value: 'THURSDAY' },
+  { label: 'Friday', value: 'FRIDAY' },
+  { label: 'Saturday', value: 'SATURDAY' },
+  { label: 'Sunday', value: 'SUNDAY' },
+];
+
+const activeWorkingDays = computed(() => {
+  return ALL_WEEK_DAYS.filter(day => !selectedNonWorkingDays.value.includes(day));
+});
+
+function formatDayName(day: DayOfWeek): string {
+  const match = weekDayOptions.find(o => o.value === day);
+  return match ? match.label : day;
+}
+
+function isNonWorkingDay(day: DayOfWeek): boolean {
+  return selectedNonWorkingDays.value.includes(day);
+}
+
+function toggleNonWorkingDay(day: DayOfWeek) {
+  if (selectedNonWorkingDays.value.includes(day)) {
+    selectedNonWorkingDays.value = selectedNonWorkingDays.value.filter(d => d !== day);
+  } else {
+    selectedNonWorkingDays.value = [...selectedNonWorkingDays.value, day];
+  }
+}
+
+async function openWorkingDaysDialog() {
+  workingDaysDialog.value = true;
+  scheduleLoading.value = true;
+  try {
+    const config = await getResourceWorkScheduleApi('me');
+    selectedNonWorkingDays.value = config.non_working_days || [];
+    dailyHours.value = config.daily_working_hours || 8.0;
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to load schedule settings',
+    });
+  } finally {
+    scheduleLoading.value = false;
+  }
+}
+
+async function handleSaveScheduleConfig() {
+  if (selectedNonWorkingDays.value.length >= 7) {
+    $q.notify({
+      type: 'warning',
+      message: 'You cannot mark all 7 days as non-working. At least 1 working day is required.',
+    });
+    return;
+  }
+
+  scheduleSubmitting.value = true;
+  try {
+    await updateResourceWorkScheduleApi('me', {
+      non_working_days: selectedNonWorkingDays.value,
+      daily_working_hours: dailyHours.value,
+    });
+    $q.notify({
+      type: 'positive',
+      message: 'Schedule settings saved successfully',
+    });
+    workingDaysDialog.value = false;
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to update schedule settings',
+    });
+  } finally {
+    scheduleSubmitting.value = false;
+  }
+}
 
 const resourceNavItems: SidebarNavItem[] = [
   {

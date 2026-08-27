@@ -279,23 +279,34 @@
 
                 <!-- CARD ACTIONS -->
                 <q-card-actions class="q-pa-sm row q-col-gutter-xs">
-                  <div class="col-6">
+                  <div class="col-4">
                     <q-btn
                       outline
                       dense
                       no-caps
-                      label="View Profile"
+                      label="Profile"
                       class="full-width action-btn-outline"
                       @click.stop="goToDetails(res.resource_id)"
                     />
                   </div>
-                  <div class="col-6">
+                  <div class="col-4">
+                    <q-btn
+                      outline
+                      dense
+                      no-caps
+                      icon="edit_calendar"
+                      label="Schedule"
+                      class="full-width action-btn-outline"
+                      @click.stop="openResourceScheduleDialog(res)"
+                    />
+                  </div>
+                  <div class="col-4">
                     <q-btn
                       unelevated
                       dense
                       no-caps
                       icon="add_task"
-                      label="Assign Task"
+                      label="Assign"
                       class="full-width action-btn-primary"
                       @click.stop="openAssignModal(res.resource_id)"
                     />
@@ -384,6 +395,17 @@
 
               <template #body-cell-actions="props">
                 <q-td :props="props" auto-width>
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="edit_calendar"
+                    color="primary"
+                    class="q-mr-xs"
+                    @click.stop="openResourceScheduleDialog(props.row)"
+                  >
+                    <q-tooltip>Edit Work Schedule</q-tooltip>
+                  </q-btn>
                   <q-btn
                     flat
                     round
@@ -692,6 +714,121 @@
       <strong>{{ unassignTaskTarget.resourceName }}</strong> from the task
       <strong>"{{ unassignTaskTarget.taskTitle }}"</strong>?
     </ConfirmActionDialog>
+
+    <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
+    <q-dialog v-model="showScheduleDialog" persistent>
+      <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px;">
+        <q-card-section class="row items-center justify-between q-pb-xs">
+          <div class="row items-center q-gutter-xs">
+            <q-icon name="edit_calendar" size="24px" color="primary" />
+            <div class="text-h6 text-weight-bold">Work Schedule: {{ scheduleTargetResource?.name || 'Resource' }}</div>
+          </div>
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="text-caption text-grey-6 q-pt-none">
+          Configure weekly non-working days (days off) and daily working hours capacity for this resource.
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section v-if="scheduleModalLoading" class="row justify-center items-center q-pa-xl">
+          <q-spinner color="primary" size="36px" />
+        </q-card-section>
+
+        <q-card-section v-else class="q-pt-md q-gutter-md">
+          <!-- Non-Working Days Selector -->
+          <div>
+            <div class="text-subtitle2 text-weight-bold q-mb-xs">Weekly Non-Working Days (Days Off)</div>
+            <div class="text-caption text-grey-6 q-mb-sm">
+              Click days to mark them as non-working. Unmarked days are active working days.
+            </div>
+
+            <div class="row q-gutter-xs wrap">
+              <q-chip
+                v-for="day in weekDayOptions"
+                :key="day.value"
+                clickable
+                :color="isScheduleNonWorkingDay(day.value) ? 'deep-orange-7' : 'grey-3'"
+                :text-color="isScheduleNonWorkingDay(day.value) ? 'white' : 'grey-8'"
+                :icon="isScheduleNonWorkingDay(day.value) ? 'event_busy' : 'check_circle_outline'"
+                class="text-weight-bold cursor-pointer transition-all"
+                @click="toggleScheduleNonWorkingDay(day.value)"
+              >
+                {{ day.label }}
+              </q-chip>
+            </div>
+            <div v-if="modalNonWorkingDays.length >= 7" class="text-caption text-negative q-mt-xs">
+              * A resource must have at least one active working day.
+            </div>
+          </div>
+
+          <!-- Daily Working Hours Input -->
+          <div class="q-mt-sm">
+            <div class="row items-center justify-between q-mb-xs">
+              <span class="text-subtitle2 text-weight-bold">Daily Standard Capacity</span>
+              <span class="text-weight-bold text-primary">{{ modalDailyHours }} Hours / Day</span>
+            </div>
+            <div class="text-caption text-grey-6 q-mb-sm">
+              Standard working hours available per working day (Default: 8.0h).
+            </div>
+
+            <q-slider
+              v-model="modalDailyHours"
+              :min="1"
+              :max="16"
+              :step="0.5"
+              label
+              label-always
+              color="primary"
+              class="q-mt-md"
+            />
+          </div>
+
+          <!-- Schedule Summary Breakdown -->
+          <q-card flat bordered class="q-pa-sm bg-grey-1">
+            <div class="q-gutter-xs text-caption">
+              <div class="row items-center justify-between">
+                <span class="text-weight-medium">Non-Working Days:</span>
+                <span class="text-weight-bold text-deep-orange">
+                  {{ modalNonWorkingDays.length === 0 ? 'None (Full 7-day schedule)' : modalNonWorkingDays.map(formatDayName).join(', ') }}
+                  ({{ modalNonWorkingDays.length }} days off)
+                </span>
+              </div>
+              <div class="row items-center justify-between q-mt-xs">
+                <span class="text-weight-medium">Active Working Days:</span>
+                <span class="text-weight-bold text-primary">
+                  {{ modalActiveWorkingDays.length === 0 ? 'None' : modalActiveWorkingDays.map(formatDayName).join(', ') }}
+                  ({{ modalActiveWorkingDays.length }} working days)
+                </span>
+              </div>
+              <div class="row items-center justify-between q-mt-xs">
+                <span class="text-weight-medium">Weekly Total Capacity:</span>
+                <span class="text-weight-bold text-teal">
+                  {{ (modalActiveWorkingDays.length * modalDailyHours).toFixed(1) }} Hours / Week
+                </span>
+              </div>
+            </div>
+          </q-card>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancel" no-caps v-close-popup color="grey-7" />
+          <q-btn
+            unelevated
+            label="Save Schedule"
+            color="primary"
+            no-caps
+            class="text-weight-bold q-px-md"
+            :loading="scheduleModalSubmitting"
+            :disable="modalNonWorkingDays.length >= 7 || scheduleModalLoading"
+            @click="handleSaveResourceSchedule"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -712,13 +849,113 @@ import {
   getResourceProjectsApi,
   getTasksApi,
   unassignTaskResourceApi,
+  getResourceWorkScheduleApi,
+  updateResourceWorkScheduleApi,
   type Project,
   type ResourceUser,
   type Task,
+  type DayOfWeek,
 } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
+
+// PM Work Schedule Modal State
+const ALL_WEEK_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const weekDayOptions: { label: string; value: DayOfWeek }[] = [
+  { label: 'Monday', value: 'MONDAY' },
+  { label: 'Tuesday', value: 'TUESDAY' },
+  { label: 'Wednesday', value: 'WEDNESDAY' },
+  { label: 'Thursday', value: 'THURSDAY' },
+  { label: 'Friday', value: 'FRIDAY' },
+  { label: 'Saturday', value: 'SATURDAY' },
+  { label: 'Sunday', value: 'SUNDAY' },
+];
+
+const showScheduleDialog = ref(false);
+const scheduleModalLoading = ref(false);
+const scheduleModalSubmitting = ref(false);
+const scheduleTargetResource = ref<{ resource_id?: number; user_id?: number; name?: string } | null>(null);
+const modalNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
+const modalDailyHours = ref(8.0);
+
+const modalActiveWorkingDays = computed(() => {
+  return ALL_WEEK_DAYS.filter((d) => !modalNonWorkingDays.value.includes(d));
+});
+
+function formatDayName(day: DayOfWeek): string {
+  const match = weekDayOptions.find((o) => o.value === day);
+  return match ? match.label : day;
+}
+
+function isScheduleNonWorkingDay(day: DayOfWeek): boolean {
+  return modalNonWorkingDays.value.includes(day);
+}
+
+function toggleScheduleNonWorkingDay(day: DayOfWeek) {
+  if (modalNonWorkingDays.value.includes(day)) {
+    modalNonWorkingDays.value = modalNonWorkingDays.value.filter((d) => d !== day);
+  } else {
+    modalNonWorkingDays.value = [...modalNonWorkingDays.value, day];
+  }
+}
+
+async function openResourceScheduleDialog(resource: { resource_id?: number; user_id?: number; name?: string }) {
+  scheduleTargetResource.value = resource;
+  const targetId = resource.resource_id || resource.user_id;
+  if (!targetId) return;
+
+  showScheduleDialog.value = true;
+  scheduleModalLoading.value = true;
+  try {
+    const config = await getResourceWorkScheduleApi(targetId);
+    modalNonWorkingDays.value = config.non_working_days || [];
+    modalDailyHours.value = config.daily_working_hours || 8.0;
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to load schedule configuration',
+    });
+  } finally {
+    scheduleModalLoading.value = false;
+  }
+}
+
+async function handleSaveResourceSchedule() {
+  const targetId = scheduleTargetResource.value?.resource_id || scheduleTargetResource.value?.user_id;
+  if (!targetId) return;
+
+  if (modalNonWorkingDays.value.length >= 7) {
+    $q.notify({
+      type: 'warning',
+      message: 'A resource must have at least one active working day.',
+    });
+    return;
+  }
+
+  scheduleModalSubmitting.value = true;
+  try {
+    await updateResourceWorkScheduleApi(targetId, {
+      non_working_days: modalNonWorkingDays.value,
+      daily_working_hours: modalDailyHours.value,
+    });
+    $q.notify({
+      type: 'positive',
+      message: `Work schedule for ${scheduleTargetResource.value?.name || 'Resource'} updated successfully`,
+    });
+    showScheduleDialog.value = false;
+    void loadData();
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to update schedule configuration',
+    });
+  } finally {
+    scheduleModalSubmitting.value = false;
+  }
+}
 
 const loading = ref(true);
 const searchQuery = ref('');

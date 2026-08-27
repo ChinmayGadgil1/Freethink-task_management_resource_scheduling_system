@@ -1023,5 +1023,72 @@ export async function getSupportTicketsApi(): Promise<SupportTicket[]> {
   return data.data;
 }
 
+export type DayOfWeek =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
 
+export interface ResourceScheduleConfig {
+  user_id: number;
+  non_working_days: DayOfWeek[];
+  working_days: DayOfWeek[];
+  daily_working_hours: number;
+  is_custom: boolean;
+}
 
+export interface UpdateResourceSchedulePayload {
+  non_working_days: DayOfWeek[];
+  daily_working_hours?: number;
+}
+
+/**
+ * Fetch resource work schedule configuration
+ * GET /api/resources/:id/schedule-config
+ */
+export async function getResourceWorkScheduleApi(
+  resourceId: number | 'me' = 'me',
+): Promise<ResourceScheduleConfig> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/resources/${resourceId}/schedule-config`,
+    {
+      method: 'GET',
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch work schedule configuration');
+  }
+
+  return data.data;
+}
+
+/**
+ * Update resource work schedule configuration
+ * PUT /api/resources/:id/schedule-config
+ */
+export async function updateResourceWorkScheduleApi(
+  resourceId: number | 'me' = 'me',
+  payload: UpdateResourceSchedulePayload,
+): Promise<ResourceScheduleConfig> {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/resources/${resourceId}/schedule-config`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update work schedule configuration');
+  }
+
+  return data.data;
+}

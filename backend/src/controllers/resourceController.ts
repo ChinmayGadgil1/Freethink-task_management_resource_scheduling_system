@@ -118,3 +118,106 @@ export async function getResourceProjectsController(
         });
     }
 }
+
+/**
+ * GET /api/resources/:id/schedule-config (or /api/resources/me/schedule-config)
+ * Retrieve working days and daily hours for a resource.
+ */
+export async function getWorkScheduleController(
+    req: AuthRequest<{ id?: string }>,
+    res: Response
+) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const userRole = req.user.role;
+        const currentUserId = req.user.user_id;
+        const paramId = req.params.id;
+
+        let targetUserId: number;
+
+        if (!paramId || paramId === "me") {
+            targetUserId = currentUserId;
+        } else {
+            const parsed = Number(paramId);
+            if (!Number.isInteger(parsed) || parsed <= 0) {
+                return res.status(400).json({ message: "Invalid resource ID" });
+            }
+            targetUserId = parsed;
+        }
+
+        // Access control: RESOURCE role can only view their own schedule
+        if (userRole === "RESOURCE" && targetUserId !== currentUserId) {
+            return res.status(403).json({
+                message: "Access denied. You can only view your own work schedule."
+            });
+        }
+
+        const { getResourceWorkSchedule } = await import("../services/resourceScheduleService.js");
+        const schedule = await getResourceWorkSchedule(targetUserId);
+
+        return res.status(200).json({
+            success: true,
+            data: schedule
+        });
+    } catch (error: any) {
+        console.error("Get work schedule error:", error);
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error"
+        });
+    }
+}
+
+/**
+ * PUT /api/resources/:id/schedule-config (or /api/resources/me/schedule-config)
+ * Update working days and daily hours for a resource.
+ */
+export async function updateWorkScheduleController(
+    req: AuthRequest<{ id?: string }>,
+    res: Response
+) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const userRole = req.user.role;
+        const currentUserId = req.user.user_id;
+        const paramId = req.params.id;
+
+        let targetUserId: number;
+
+        if (!paramId || paramId === "me") {
+            targetUserId = currentUserId;
+        } else {
+            const parsed = Number(paramId);
+            if (!Number.isInteger(parsed) || parsed <= 0) {
+                return res.status(400).json({ message: "Invalid resource ID" });
+            }
+            targetUserId = parsed;
+        }
+
+        // Access control: RESOURCE role can only modify their own schedule
+        if (userRole === "RESOURCE" && targetUserId !== currentUserId) {
+            return res.status(403).json({
+                message: "Access denied. You can only modify your own work schedule."
+            });
+        }
+
+        const { updateResourceWorkSchedule } = await import("../services/resourceScheduleService.js");
+        const updated = await updateResourceWorkSchedule(targetUserId, req.body);
+
+        return res.status(200).json({
+            success: true,
+            message: "Work schedule updated successfully",
+            data: updated
+        });
+    } catch (error: any) {
+        console.error("Update work schedule error:", error);
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error"
+        });
+    }
+}

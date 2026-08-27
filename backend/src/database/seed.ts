@@ -14,22 +14,22 @@ async function seed() {
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     const usersData = [
-        { name: "Alex Morgan", username: "alex.pm", email: "alex.pm@company.com", role: "PROJECT_MANAGER", is_active: true },
-        { name: "Sarah Connor", username: "sarah.pm", email: "sarah.pm@company.com", role: "PROJECT_MANAGER", is_active: true },
-        { name: "John Doe", username: "john.dev", email: "john.dev@company.com", role: "RESOURCE", is_active: true },
-        { name: "Jane Smith", username: "jane.dev", email: "jane.dev@company.com", role: "RESOURCE", is_active: true },
-        { name: "Alice Wong", username: "alice.ui", email: "alice.ui@company.com", role: "RESOURCE", is_active: true },
-        { name: "Bob Miller", username: "bob.qa", email: "bob.qa@company.com", role: "RESOURCE", is_active: true },
-        { name: "David Patel", username: "david.devops", email: "david.devops@company.com", role: "RESOURCE", is_active: true },
-        { name: "Inactive User", username: "inactive.user", email: "inactive.user@company.com", role: "RESOURCE", is_active: false },
+        { name: "Alex Morgan", username: "alex.pm", email: "alex.pm@company.com", role: "PROJECT_MANAGER", is_active: true, non_working_days: null, daily_working_hours: 8.00 },
+        { name: "Sarah Connor", username: "sarah.pm", email: "sarah.pm@company.com", role: "PROJECT_MANAGER", is_active: true, non_working_days: null, daily_working_hours: 8.00 },
+        { name: "John Doe", username: "john.dev", email: "john.dev@company.com", role: "RESOURCE", is_active: true, non_working_days: JSON.stringify(["SATURDAY", "SUNDAY"]), daily_working_hours: 8.00 },
+        { name: "Jane Smith", username: "jane.dev", email: "jane.dev@company.com", role: "RESOURCE", is_active: true, non_working_days: JSON.stringify(["SATURDAY", "SUNDAY"]), daily_working_hours: 8.00 },
+        { name: "Alice Wong", username: "alice.ui", email: "alice.ui@company.com", role: "RESOURCE", is_active: true, non_working_days: JSON.stringify(["SATURDAY", "SUNDAY"]), daily_working_hours: 8.00 },
+        { name: "Bob Miller", username: "bob.qa", email: "bob.qa@company.com", role: "RESOURCE", is_active: true, non_working_days: JSON.stringify(["SATURDAY", "SUNDAY"]), daily_working_hours: 8.00 },
+        { name: "David Patel", username: "david.devops", email: "david.devops@company.com", role: "RESOURCE", is_active: true, non_working_days: JSON.stringify(["SATURDAY", "SUNDAY"]), daily_working_hours: 8.00 },
+        { name: "Inactive User", username: "inactive.user", email: "inactive.user@company.com", role: "RESOURCE", is_active: false, non_working_days: JSON.stringify(["SATURDAY", "SUNDAY"]), daily_working_hours: 8.00 },
     ];
 
     const userMap: Record<string, number> = {};
 
     for (const u of usersData) {
         const [res] = await pool.query<ResultSetHeader>(
-            `INSERT INTO users (name, username, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?, ?)`,
-            [u.name, u.username, u.email, passwordHash, u.role, u.is_active]
+            `INSERT INTO users (name, username, email, password_hash, role, non_working_days, daily_working_hours, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [u.name, u.username, u.email, passwordHash, u.role, u.non_working_days, u.daily_working_hours, u.is_active]
         );
         userMap[u.email] = res.insertId;
     }

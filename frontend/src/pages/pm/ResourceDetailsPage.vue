@@ -25,6 +25,14 @@
 
         <div class="row items-center q-gutter-sm">
           <q-btn
+            outline
+            color="primary"
+            icon="edit_calendar"
+            label="Work Schedule"
+            no-caps
+            @click="openScheduleDialog"
+          />
+          <q-btn
             color="primary"
             icon="add_task"
             label="Assign Task"
@@ -232,7 +240,7 @@
                   <q-card-section class="q-gutter-sm">
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Standard Weekly Capacity</span>
-                      <strong>40 Hours</strong>
+                      <strong>{{ weeklyStandardCapacity }} Hours</strong>
                     </div>
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Allocated Task Effort</span>
@@ -240,8 +248,8 @@
                     </div>
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Remaining Capacity</span>
-                      <strong :class="40 - totalEffort < 0 ? 'text-negative' : 'text-positive'">
-                        {{ formatNumber(Math.max(0, 40 - totalEffort)) }} Hours
+                      <strong :class="weeklyStandardCapacity - totalEffort < 0 ? 'text-negative' : 'text-positive'">
+                        {{ formatNumber(Math.max(0, weeklyStandardCapacity - totalEffort)) }} Hours
                       </strong>
                     </div>
                     <q-separator />
@@ -268,12 +276,34 @@
               <div class="col-12 col-md-6">
                 <q-card flat bordered class="bg-grey-2">
                   <q-card-section class="q-gutter-xs">
-                    <div class="text-subtitle2 text-weight-bold">Task Distribution Summary</div>
-                    <div class="text-caption text-grey-7">
-                      Completed: {{ completedTasksCount }} / {{ resourceTasks.length }} tasks
+                    <div class="row items-center justify-between">
+                      <div class="text-subtitle2 text-weight-bold">Work Schedule & Working Days</div>
+                      <q-btn
+                        flat
+                        dense
+                        no-caps
+                        color="primary"
+                        icon="edit"
+                        label="Edit"
+                        @click="openScheduleDialog"
+                      />
                     </div>
-                    <div class="text-caption text-grey-7">
-                      Pending / In Progress: {{ resourceTasks.length - completedTasksCount }} tasks
+                    <div class="text-caption text-grey-8 q-mt-xs">
+                      <strong>Daily Capacity:</strong> {{ scheduleConfig?.daily_working_hours || 8 }}h / day
+                    </div>
+                    <div class="text-caption text-grey-8">
+                      <strong>Working Days:</strong>
+                      {{ activeWorkingDaysList.length === 0 ? 'None' : activeWorkingDaysList.map(formatDayName).join(', ') }}
+                      ({{ activeWorkingDaysList.length }} days)
+                    </div>
+                    <div class="text-caption text-grey-8">
+                      <strong>Non-Working Days:</strong>
+                      <span class="text-deep-orange text-weight-medium">
+                        {{ (scheduleConfig?.non_working_days?.length || 0) === 0 ? 'None' : scheduleConfig?.non_working_days?.map(formatDayName).join(', ') }}
+                      </span>
+                    </div>
+                    <div class="text-caption text-grey-7 q-mt-xs">
+                      Completed Tasks: {{ completedTasksCount }} / {{ resourceTasks.length }}
                     </div>
                   </q-card-section>
                 </q-card>
@@ -301,32 +331,20 @@
               :rows="leavesList"
               :columns="leaveColumns"
               row-key="leave_id"
-              no-data-label="No leave requests found for this resource"
-              :pagination="{ rowsPerPage: 10 }"
+              no-data-label="No leave records found for this resource"
+              :pagination="{ rowsPerPage: 5 }"
             >
-              <template #body-cell-leave_date="props">
-                <q-td :props="props">
-                  {{ formatDate(props.row.leave_date) }}
-                </q-td>
-              </template>
-
-              <template #body-cell-leave_hours="props">
-                <q-td :props="props">
-                  {{ formatHours(props.row.leave_hours) }}
-                </q-td>
-              </template>
-
               <template #body-cell-actions="props">
-                <q-td :props="props" class="text-center">
+                <q-td :props="props" auto-width>
                   <q-btn
                     flat
                     round
                     dense
-                    color="negative"
                     icon="delete"
-                    @click="confirmCancelLeave(props.row.leave_id)"
+                    color="negative"
+                    @click="handleDeleteLeave(props.row.leave_id)"
                   >
-                    <q-tooltip>Cancel Leave</q-tooltip>
+                    <q-tooltip>Delete Leave</q-tooltip>
                   </q-btn>
                 </q-td>
               </template>
@@ -337,40 +355,34 @@
 
       <!-- ASSIGN TASK DIALOG -->
       <q-dialog v-model="showAssignDialog">
-        <q-card style="min-width: 420px">
+        <q-card style="min-width: 400px">
           <q-card-section class="row items-center justify-between">
             <div class="text-h6 text-weight-bold">Assign Task to {{ resourceName }}</div>
             <q-btn v-close-popup flat round dense icon="close" />
           </q-card-section>
 
           <q-form @submit.prevent="handleAssignTask">
-            <q-card-section class="q-gutter-y-md">
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-select
-                    v-model="assignForm.project_id"
-                    outlined
-                    dense
-                    label="Select Project"
-                    :options="projectOptions"
-                    emit-value
-                    map-options
-                    :rules="[(val) => !!val || 'Project is required']"
-                  />
-                </div>
-              </div>
+            <q-card-section class="q-gutter-md">
+              <q-select
+                v-model="assignForm.project_id"
+                outlined
+                dense
+                label="Select Project *"
+                :options="allProjects"
+                option-value="project_id"
+                option-label="name"
+                emit-value
+                map-options
+                :rules="[(val) => !!val || 'Project is required']"
+              />
 
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="assignForm.title"
-                    outlined
-                    dense
-                    label="Task Title"
-                    :rules="[(val) => !!val.trim() || 'Title is required']"
-                  />
-                </div>
-              </div>
+              <q-input
+                v-model="assignForm.title"
+                outlined
+                dense
+                label="Task Title *"
+                :rules="[(val) => !!val || 'Title is required']"
+              />
 
               <div class="row q-col-gutter-sm">
                 <div class="col-12">
@@ -457,13 +469,8 @@
                 outlined
                 dense
                 type="number"
-                step="0.5"
-                label="Leave Hours *"
-                :rules="[
-                  (val) => !!val || 'Leave hours is required',
-                  (val) => val > 0 || 'Hours must be positive',
-                  (val) => val <= 24 || 'Hours cannot exceed 24'
-                ]"
+                label="Leave Hours"
+                :rules="[(val) => val > 0 || 'Hours must be greater than 0']"
               />
             </q-card-section>
 
@@ -481,6 +488,121 @@
           </q-form>
         </q-card>
       </q-dialog>
+
+      <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
+      <q-dialog v-model="showScheduleDialog" persistent>
+        <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px;">
+          <q-card-section class="row items-center justify-between q-pb-xs">
+            <div class="row items-center q-gutter-xs">
+              <q-icon name="edit_calendar" size="24px" color="primary" />
+              <div class="text-h6 text-weight-bold">Work Schedule: {{ resourceName }}</div>
+            </div>
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section class="text-caption text-grey-6 q-pt-none">
+            As a Project Manager, you can configure non-working days (days off) and daily capacity for this resource.
+          </q-card-section>
+
+          <q-separator />
+
+          <q-card-section v-if="scheduleModalLoading" class="row justify-center items-center q-pa-xl">
+            <q-spinner color="primary" size="36px" />
+          </q-card-section>
+
+          <q-card-section v-else class="q-pt-md q-gutter-md">
+            <!-- Non-Working Days Selector -->
+            <div>
+              <div class="text-subtitle2 text-weight-bold q-mb-xs">Weekly Non-Working Days (Days Off)</div>
+              <div class="text-caption text-grey-6 q-mb-sm">
+                Click days to mark them as non-working. Unmarked days are active working days.
+              </div>
+
+              <div class="row q-gutter-xs wrap">
+                <q-chip
+                  v-for="day in weekDayOptions"
+                  :key="day.value"
+                  clickable
+                  :color="isNonWorkingDay(day.value) ? 'deep-orange-7' : 'grey-3'"
+                  :text-color="isNonWorkingDay(day.value) ? 'white' : 'grey-8'"
+                  :icon="isNonWorkingDay(day.value) ? 'event_busy' : 'check_circle_outline'"
+                  class="text-weight-bold cursor-pointer transition-all"
+                  @click="toggleNonWorkingDay(day.value)"
+                >
+                  {{ day.label }}
+                </q-chip>
+              </div>
+              <div v-if="modalNonWorkingDays.length >= 7" class="text-caption text-negative q-mt-xs">
+                * A resource must have at least one active working day.
+              </div>
+            </div>
+
+            <!-- Daily Working Hours Input -->
+            <div class="q-mt-sm">
+              <div class="row items-center justify-between q-mb-xs">
+                <span class="text-subtitle2 text-weight-bold">Daily Standard Capacity</span>
+                <span class="text-weight-bold text-primary">{{ modalDailyHours }} Hours / Day</span>
+              </div>
+              <div class="text-caption text-grey-6 q-mb-sm">
+                Standard working hours available per working day (Default: 8.0h).
+              </div>
+
+              <q-slider
+                v-model="modalDailyHours"
+                :min="1"
+                :max="16"
+                :step="0.5"
+                label
+                label-always
+                color="primary"
+                class="q-mt-md"
+              />
+            </div>
+
+            <!-- Schedule Summary Breakdown -->
+            <q-card flat bordered class="q-pa-sm bg-grey-1">
+              <div class="q-gutter-xs text-caption">
+                <div class="row items-center justify-between">
+                  <span class="text-weight-medium">Non-Working Days:</span>
+                  <span class="text-weight-bold text-deep-orange">
+                    {{ modalNonWorkingDays.length === 0 ? 'None (Full 7-day schedule)' : modalNonWorkingDays.map(formatDayName).join(', ') }}
+                    ({{ modalNonWorkingDays.length }} days off)
+                  </span>
+                </div>
+                <div class="row items-center justify-between q-mt-xs">
+                  <span class="text-weight-medium">Active Working Days:</span>
+                  <span class="text-weight-bold text-primary">
+                    {{ modalActiveWorkingDays.length === 0 ? 'None' : modalActiveWorkingDays.map(formatDayName).join(', ') }}
+                    ({{ modalActiveWorkingDays.length }} working days)
+                  </span>
+                </div>
+                <div class="row items-center justify-between q-mt-xs">
+                  <span class="text-weight-medium">Weekly Total Capacity:</span>
+                  <span class="text-weight-bold text-teal">
+                    {{ (modalActiveWorkingDays.length * modalDailyHours).toFixed(1) }} Hours / Week
+                  </span>
+                </div>
+              </div>
+            </q-card>
+          </q-card-section>
+
+          <q-separator />
+
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn flat label="Cancel" no-caps v-close-popup color="grey-7" />
+            <q-btn
+              unelevated
+              label="Save Schedule"
+              color="primary"
+              no-caps
+              class="text-weight-bold q-px-md"
+              :loading="scheduleModalSubmitting"
+              :disable="modalNonWorkingDays.length >= 7 || scheduleModalLoading"
+              @click="handleSaveSchedule"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </template>
   </q-page>
 </template>
@@ -490,7 +612,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
-import { getInitials, formatHours, formatNumber, formatDate } from '@/utils/formatters';
+import { getInitials, formatHours, formatNumber } from '@/utils/formatters';
 import {
   createTaskApi,
   getProjectsApi,
@@ -501,11 +623,15 @@ import {
   getLeavesApi,
   createLeaveApi,
   deleteLeaveApi,
+  getResourceWorkScheduleApi,
+  updateResourceWorkScheduleApi,
   type Project,
   type ResourceUser,
   type Task,
   type ResourceWorkload,
   type LeaveItem,
+  type DayOfWeek,
+  type ResourceScheduleConfig,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -518,6 +644,108 @@ const activeTab = ref('tasks');
 const resourceInfo = ref<ResourceUser | null>(null);
 
 const resourceName = computed(() => resourceInfo.value?.name || 'Team Resource');
+
+// PM Work Schedule State
+const ALL_WEEK_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const weekDayOptions: { label: string; value: DayOfWeek }[] = [
+  { label: 'Monday', value: 'MONDAY' },
+  { label: 'Tuesday', value: 'TUESDAY' },
+  { label: 'Wednesday', value: 'WEDNESDAY' },
+  { label: 'Thursday', value: 'THURSDAY' },
+  { label: 'Friday', value: 'FRIDAY' },
+  { label: 'Saturday', value: 'SATURDAY' },
+  { label: 'Sunday', value: 'SUNDAY' },
+];
+
+const scheduleConfig = ref<ResourceScheduleConfig | null>(null);
+const showScheduleDialog = ref(false);
+const scheduleModalLoading = ref(false);
+const scheduleModalSubmitting = ref(false);
+const modalNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
+const modalDailyHours = ref(8.0);
+
+const activeWorkingDaysList = computed(() => {
+  const nonWorking = scheduleConfig.value?.non_working_days || [];
+  return ALL_WEEK_DAYS.filter((d) => !nonWorking.includes(d));
+});
+
+const modalActiveWorkingDays = computed(() => {
+  return ALL_WEEK_DAYS.filter((d) => !modalNonWorkingDays.value.includes(d));
+});
+
+const weeklyStandardCapacity = computed(() => {
+  const daysCount = activeWorkingDaysList.value.length;
+  const hours = scheduleConfig.value?.daily_working_hours || 8.0;
+  return daysCount * hours;
+});
+
+function formatDayName(day: DayOfWeek): string {
+  const match = weekDayOptions.find((o) => o.value === day);
+  return match ? match.label : day;
+}
+
+function isNonWorkingDay(day: DayOfWeek): boolean {
+  return modalNonWorkingDays.value.includes(day);
+}
+
+function toggleNonWorkingDay(day: DayOfWeek) {
+  if (modalNonWorkingDays.value.includes(day)) {
+    modalNonWorkingDays.value = modalNonWorkingDays.value.filter((d) => d !== day);
+  } else {
+    modalNonWorkingDays.value = [...modalNonWorkingDays.value, day];
+  }
+}
+
+async function openScheduleDialog() {
+  showScheduleDialog.value = true;
+  scheduleModalLoading.value = true;
+  try {
+    const config = await getResourceWorkScheduleApi(resourceId.value);
+    scheduleConfig.value = config;
+    modalNonWorkingDays.value = config.non_working_days || [];
+    modalDailyHours.value = config.daily_working_hours || 8.0;
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to load schedule configuration',
+    });
+  } finally {
+    scheduleModalLoading.value = false;
+  }
+}
+
+async function handleSaveSchedule() {
+  if (modalNonWorkingDays.value.length >= 7) {
+    $q.notify({
+      type: 'warning',
+      message: 'A resource must have at least one active working day.',
+    });
+    return;
+  }
+
+  scheduleModalSubmitting.value = true;
+  try {
+    const updated = await updateResourceWorkScheduleApi(resourceId.value, {
+      non_working_days: modalNonWorkingDays.value,
+      daily_working_hours: modalDailyHours.value,
+    });
+    scheduleConfig.value = updated;
+    $q.notify({
+      type: 'positive',
+      message: `Work schedule for ${resourceName.value} updated successfully`,
+    });
+    showScheduleDialog.value = false;
+  } catch (error) {
+    const err = error as Error;
+    $q.notify({
+      type: 'negative',
+      message: err.message || 'Failed to update schedule configuration',
+    });
+  } finally {
+    scheduleModalSubmitting.value = false;
+  }
+}
 
 const allTasks = ref<Task[]>([]);
 const allProjects = ref<Project[]>([]);
@@ -573,13 +801,14 @@ const taskColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tasks, projects, workload, resUser, memberProjs, leaves] = await Promise.all([
+    const [tasks, projects, workload, resUser, memberProjs, leaves, sched] = await Promise.all([
       getTasksApi(),
       getProjectsApi(),
       getResourceWorkloadApi(resourceId.value).catch(() => null),
       getResourceByIdApi(resourceId.value).catch(() => null),
       getResourceProjectsApi(resourceId.value).catch(() => []),
       getLeavesApi({ user_id: resourceId.value }).catch(() => []),
+      getResourceWorkScheduleApi(resourceId.value).catch(() => null),
     ]);
     allTasks.value = tasks;
     allProjects.value = projects;
@@ -591,6 +820,9 @@ async function loadData() {
     if (resUser) {
       resourceInfo.value = resUser;
     }
+    if (sched) {
+      scheduleConfig.value = sched;
+    }
     if (projects.length > 0) {
       assignForm.project_id = projects[0]!.project_id;
     }
@@ -599,6 +831,10 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
+}
+
+function handleDeleteLeave(leaveId: number) {
+  confirmCancelLeave(leaveId);
 }
 
 onMounted(() => {
@@ -633,13 +869,6 @@ const totalEffort = computed(() => {
 const utilization = computed(() => {
   return Math.min(150, Math.round((totalEffort.value / 40) * 100));
 });
-
-const projectOptions = computed(() =>
-  allProjects.value.map((p) => ({
-    label: p.name,
-    value: p.project_id,
-  })),
-);
 
 function getTaskStatusColor(status: string): string {
   if (status === 'COMPLETED') return 'positive';
