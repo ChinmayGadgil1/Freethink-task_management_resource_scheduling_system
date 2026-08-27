@@ -1,309 +1,375 @@
 <template>
-  <q-page class="calendar-page q-pa-lg">
-    <!-- 1. PAGE HEADER & COMPACT METRICS -->
-    <div class="calendar-header-wrapper row items-center justify-between q-mb-md flex-wrap gap-md">
-      <!-- Left: Title & Subtitle -->
-      <div class="header-title-block">
-        <div class="row items-center gap-xs">
-          <q-icon name="calendar_month" size="28px" color="primary" />
-          <h1 class="page-title q-my-none">Company Calendar</h1>
-        </div>
-        <p class="page-subtitle q-mb-none q-mt-xs">
-          Track official organization holidays, weekends, and team working schedule
-        </p>
-      </div>
-
-      <!-- Right: Compact Metrics & Main Actions -->
-      <div class="header-actions-block row items-center gap-sm">
-        <!-- Compact Summary Badges -->
-        <div class="compact-stat-chip row items-center no-wrap gap-xs">
-          <div class="stat-icon-wrapper bg-primary-soft text-primary">
-            <q-icon name="event" size="14px" />
-          </div>
-          <div class="stat-text-group">
-            <span class="stat-micro-label">Total Holidays:</span>
-            <span class="stat-micro-val">{{ holidays.length }}</span>
-          </div>
-        </div>
-
-        <div class="compact-stat-chip row items-center no-wrap gap-xs">
-          <div class="stat-icon-wrapper bg-purple-soft text-purple">
-            <q-icon name="upcoming" size="14px" />
-          </div>
-          <div class="stat-text-group">
-            <span class="stat-micro-label">This Month:</span>
-            <span class="stat-micro-val">{{ currentMonthHolidaysCount }}</span>
-          </div>
-        </div>
-
-        <q-separator vertical inset class="gt-xs q-mx-xs header-sep" />
-
-        <!-- View mode toggle: Month Grid vs List -->
-        <q-btn-toggle
-          v-model="viewMode"
-          toggle-color="primary"
-          toggle-text-color="white"
-          :color="$q.dark.isActive ? 'dark' : 'white'"
-          :text-color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
-          dense
-          unelevated
-          class="view-toggle-btn shadow-subtle"
-          :options="[
-            { label: 'Calendar', value: 'grid', icon: 'grid_view' },
-            { label: 'List View', value: 'list', icon: 'format_list_bulleted' },
-          ]"
-        />
-
-        <!-- Add Holiday Button (PM Only) -->
-        <q-btn
-          v-if="isProjectManager"
-          color="primary"
-          icon="add"
-          label="Add Holiday"
-          unelevated
-          no-caps
-          class="action-btn-primary"
-          @click="openAddHolidayDialog()"
-        />
-
-        <!-- Refresh Button -->
-        <q-btn
-          flat
-          round
-          dense
-          icon="refresh"
-          class="refresh-btn"
-          :loading="loading"
-          @click="loadHolidays"
-        >
-          <q-tooltip>Refresh Calendar</q-tooltip>
-        </q-btn>
-      </div>
-    </div>
-
-    <!-- 2. MONTH CALENDAR GRID VIEW -->
-    <q-card v-if="viewMode === 'grid'" flat class="main-calendar-card">
-      <!-- Calendar Toolbar & Month Switcher -->
-      <div class="calendar-toolbar row items-center justify-between q-pa-md border-bottom flex-wrap gap-sm">
-        <!-- Month Navigation -->
-        <div class="row items-center gap-xs">
-          <q-btn
-            flat
-            dense
-            round
-            icon="chevron_left"
-            class="nav-chevron-btn"
-            @click="prevMonth"
-          >
-            <q-tooltip>Previous Month</q-tooltip>
-          </q-btn>
-
-          <div class="current-month-display text-h6 text-weight-bold q-px-sm">
-            {{ currentMonthName }} <span class="year-subtext">{{ currentYear }}</span>
-          </div>
-
-          <q-btn
-            flat
-            dense
-            round
-            icon="chevron_right"
-            class="nav-chevron-btn"
-            @click="nextMonth"
-          >
-            <q-tooltip>Next Month</q-tooltip>
-          </q-btn>
-
-          <q-btn
-            outline
-            dense
-            no-caps
-            label="Today"
-            class="today-btn q-ml-sm"
-            @click="goToToday"
-          />
-        </div>
-
-        <!-- Visual Legend -->
-        <div class="legend-row row items-center gap-md text-caption">
-          <div class="legend-item row items-center gap-xs">
-            <span class="legend-dot dot-holiday"></span>
-            <span class="legend-text">Holiday (No Work)</span>
-          </div>
-          <div class="legend-item row items-center gap-xs">
-            <span class="legend-dot dot-weekend"></span>
-            <span class="legend-text">Weekend (Off)</span>
-          </div>
-          <div class="legend-item row items-center gap-xs">
-            <span class="legend-dot dot-workday"></span>
-            <span class="legend-text">Working Day</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Days of Week Header (SUN - SAT) -->
-      <div class="calendar-weekdays-header">
-        <div
-          v-for="(day, idx) in weekDays"
-          :key="day"
-          class="weekday-col-header text-caption text-weight-bold"
-          :class="{ 'is-weekend-header': idx === 0 || idx === 6 }"
-        >
-          {{ day }}
-        </div>
-      </div>
-
-      <!-- Calendar Month Days Grid -->
-      <div class="calendar-days-grid">
-        <div
-          v-for="cell in calendarCells"
-          :key="cell.dateKey"
-          class="calendar-day-cell"
-          :class="{
-            'is-other-month': !cell.isCurrentMonth,
-            'is-today': cell.isToday,
-            'is-weekend': cell.isWeekend,
-            'has-holiday': !!cell.holiday,
-          }"
-          @click="onCellClick(cell)"
-        >
-          <!-- Cell Top: Day Number & Add Action -->
-          <div class="cell-top-bar row items-center justify-between">
-            <div class="row items-center gap-xs">
-              <span
-                class="day-number-badge"
-                :class="{
-                  'today-highlight': cell.isToday,
-                  'weekend-day-num': cell.isWeekend && !cell.isToday,
-                }"
-              >
-                {{ cell.dayNumber }}
-              </span>
-
-              <span v-if="cell.isWeekend && cell.isCurrentMonth" class="weekend-tag">
-                Off
-              </span>
-            </div>
-
-            <!-- Quick Add (+) on Hover for PMs -->
-            <q-btn
-              v-if="isProjectManager && !cell.holiday"
-              flat
-              round
-              dense
-              icon="add"
-              size="xs"
-              color="primary"
-              class="quick-add-btn"
-              @click.stop="openAddHolidayDialog(cell.dateKey)"
-            >
-              <q-tooltip>Add holiday on {{ cell.dateKey }}</q-tooltip>
-            </q-btn>
-          </div>
-
-          <!-- Cell Center / Holiday Badge -->
-          <div class="cell-content-area">
+  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
+    <div class="q-mx-auto" style="max-width: 1400px">
+      <!-- 1. PAGE HEADER & COMPACT METRICS -->
+      <div class="row items-center justify-between q-mb-md wrap q-col-gutter-md">
+        <!-- Left: Title & Subtitle -->
+        <div>
+          <div class="row items-center q-gutter-xs">
+            <q-icon name="calendar_month" size="28px" color="primary" />
             <div
-              v-if="cell.holiday"
-              class="holiday-badge-card"
-              :class="{ 'is-clickable': isProjectManager }"
-              @click.stop="onHolidayClick(cell.holiday)"
+              class="text-h5 text-weight-bold"
+              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
             >
-              <div class="row items-center justify-between no-wrap">
-                <div class="row items-center no-wrap gap-xs ellipsis">
-                  <span class="holiday-indicator-dot"></span>
-                  <span class="holiday-badge-title ellipsis" :title="cell.holiday.description">
-                    {{ cell.holiday.description }}
-                  </span>
-                </div>
+              Company Calendar
+            </div>
+          </div>
+          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+            Track official organization holidays, weekends, and team working schedule
+          </div>
+        </div>
 
-                <q-icon
-                  v-if="isProjectManager"
-                  name="edit"
-                  size="11px"
-                  class="holiday-badge-edit-icon q-ml-xs"
-                />
+        <!-- Right: Compact Metrics & Main Actions -->
+        <div class="row items-center q-gutter-sm wrap">
+          <!-- Compact Summary Badge 1: Total Holidays -->
+          <q-card
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="row items-center q-px-sm q-py-xs rounded-borders q-gutter-xs"
+          >
+            <q-avatar
+              size="24px"
+              rounded
+              :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
+              :text-color="$q.dark.isActive ? 'blue-2' : 'primary'"
+              icon="event"
+            />
+            <div class="column">
+              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1">Total Holidays</span>
+              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{ holidays.length }}</span>
+            </div>
+          </q-card>
+
+          <!-- Compact Summary Badge 2: This Month -->
+          <q-card
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="row items-center q-px-sm q-py-xs rounded-borders q-gutter-xs"
+          >
+            <q-avatar
+              size="24px"
+              rounded
+              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'purple'"
+              icon="upcoming"
+            />
+            <div class="column">
+              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1">This Month</span>
+              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{ currentMonthHolidaysCount }}</span>
+            </div>
+          </q-card>
+
+          <q-separator vertical inset class="gt-xs q-mx-xs" />
+
+          <!-- View mode toggle: Month Grid vs List -->
+          <q-btn-toggle
+            v-model="viewMode"
+            toggle-color="primary"
+            toggle-text-color="white"
+            :color="$q.dark.isActive ? 'grey-9' : 'white'"
+            :text-color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+            dense
+            unelevated
+            :options="[
+              { label: 'Calendar', value: 'grid', icon: 'grid_view' },
+              { label: 'List View', value: 'list', icon: 'format_list_bulleted' },
+            ]"
+          />
+
+          <!-- Add Holiday Button (PM Only) -->
+          <q-btn
+            v-if="isProjectManager"
+            color="primary"
+            icon="add"
+            label="Add Holiday"
+            unelevated
+            no-caps
+            class="text-weight-bold"
+            style="border-radius: 8px"
+            @click="openAddHolidayDialog()"
+          />
+
+          <!-- Refresh Button -->
+          <q-btn
+            flat
+            round
+            dense
+            icon="refresh"
+            :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+            :loading="loading"
+            @click="loadHolidays"
+          >
+            <q-tooltip>Refresh Calendar</q-tooltip>
+          </q-btn>
+        </div>
+      </div>
+
+      <!-- 2. MONTH CALENDAR GRID VIEW -->
+      <q-card
+        v-if="viewMode === 'grid'"
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders overflow-hidden"
+      >
+        <!-- Calendar Toolbar & Month Switcher -->
+        <q-card-section class="row items-center justify-between q-pa-md wrap q-col-gutter-sm border-bottom">
+          <!-- Month Navigation -->
+          <div class="row items-center q-gutter-xs">
+            <q-btn
+              flat
+              dense
+              round
+              icon="chevron_left"
+              @click="prevMonth"
+            >
+              <q-tooltip>Previous Month</q-tooltip>
+            </q-btn>
+
+            <div class="text-subtitle1 text-weight-bold q-px-sm" style="min-width: 160px; text-align: center">
+              {{ currentMonthName }} <span class="text-grey-6 text-weight-medium">{{ currentYear }}</span>
+            </div>
+
+            <q-btn
+              flat
+              dense
+              round
+              icon="chevron_right"
+              @click="nextMonth"
+            >
+              <q-tooltip>Next Month</q-tooltip>
+            </q-btn>
+
+            <q-btn
+              outline
+              dense
+              no-caps
+              label="Today"
+              class="q-px-sm q-ml-sm"
+              :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+              @click="goToToday"
+            />
+          </div>
+
+          <!-- Visual Legend -->
+          <div class="row items-center q-gutter-md text-caption text-grey-6">
+            <div class="row items-center q-gutter-xs">
+              <q-badge rounded color="amber-8" style="width: 8px; height: 8px" />
+              <span>Holiday (No Work)</span>
+            </div>
+            <div class="row items-center q-gutter-xs">
+              <q-badge rounded color="grey-6" style="width: 8px; height: 8px" />
+              <span>Weekend (Off)</span>
+            </div>
+            <div class="row items-center q-gutter-xs">
+              <q-badge rounded outline color="grey-7" style="width: 8px; height: 8px" />
+              <span>Working Day</span>
+            </div>
+          </div>
+        </q-card-section>
+
+        <!-- Days of Week Header (SUN - SAT) -->
+        <div class="calendar-weekdays-header">
+          <div
+            v-for="(day, idx) in weekDays"
+            :key="day"
+            class="weekday-col-header text-caption text-weight-bold"
+            :class="{ 'is-weekend-header': idx === 0 || idx === 6 }"
+            :style="{
+              background: idx === 0 || idx === 6
+                ? ($q.dark.isActive ? '#10141e' : '#f1f5f9')
+                : ($q.dark.isActive ? '#131722' : '#f8fafc'),
+              color: $q.dark.isActive ? '#94a3b8' : '#64748b',
+              borderBottom: $q.dark.isActive ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+            }"
+          >
+            {{ day }}
+          </div>
+        </div>
+
+        <!-- Calendar Month Days Grid -->
+        <div class="calendar-days-grid">
+          <div
+            v-for="cell in calendarCells"
+            :key="cell.dateKey"
+            class="calendar-day-cell"
+            :class="{
+              'is-other-month': !cell.isCurrentMonth,
+              'is-today': cell.isToday,
+              'is-weekend': cell.isWeekend,
+              'has-holiday': !!cell.holiday,
+            }"
+            @click="onCellClick(cell)"
+          >
+            <!-- Cell Top: Day Number & Add Action -->
+            <div class="row items-center justify-between q-mb-xs">
+              <div class="row items-center q-gutter-xs">
+                <span
+                  class="day-number-badge"
+                  :class="{
+                    'today-highlight': cell.isToday,
+                    'text-grey-6': cell.isWeekend && !cell.isToday,
+                  }"
+                >
+                  {{ cell.dayNumber }}
+                </span>
+
+                <q-badge
+                  v-if="cell.isWeekend && cell.isCurrentMonth"
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                  :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                  class="text-weight-bold"
+                  style="font-size: 9px; padding: 1px 4px"
+                >
+                  OFF
+                </q-badge>
+              </div>
+
+              <!-- Quick Add (+) on Hover for PMs -->
+              <q-btn
+                v-if="isProjectManager && !cell.holiday"
+                flat
+                round
+                dense
+                icon="add"
+                size="xs"
+                color="primary"
+                class="quick-add-btn"
+                @click.stop="openAddHolidayDialog(cell.dateKey)"
+              >
+                <q-tooltip>Add holiday on {{ cell.dateKey }}</q-tooltip>
+              </q-btn>
+            </div>
+
+            <!-- Cell Center / Holiday Badge -->
+            <div class="col column justify-start" style="min-width: 0">
+              <div
+                v-if="cell.holiday"
+                class="holiday-badge-card"
+                :class="{ 'is-clickable': isProjectManager }"
+                @click.stop="onHolidayClick(cell.holiday)"
+              >
+                <div class="row items-start justify-between no-wrap">
+                  <div class="row items-start no-wrap q-gutter-xs" style="min-width: 0; flex: 1">
+                    <span class="holiday-indicator-dot q-mt-xs"></span>
+                    <span class="holiday-title-text" :title="cell.holiday.description">
+                      {{ cell.holiday.description }}
+                    </span>
+                  </div>
+
+                  <q-icon
+                    v-if="isProjectManager"
+                    name="edit"
+                    size="12px"
+                    class="q-ml-xs q-mt-xs flex-shrink-0"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </q-card>
+      </q-card>
 
-    <!-- 3. LIST / TABLE VIEW -->
-    <q-card v-else flat class="main-calendar-card q-pa-md">
-      <q-table
+      <!-- 3. LIST / TABLE VIEW -->
+      <q-card
+        v-else
         flat
-        :rows="holidays"
-        :columns="columns"
-        row-key="holiday_id"
-        :loading="loading"
-        :pagination="{ rowsPerPage: 15 }"
+        bordered
         :dark="$q.dark.isActive"
-        no-data-label="No holidays scheduled yet."
-        class="holidays-data-table"
+        class="rounded-borders overflow-hidden q-pa-md"
       >
-        <template #body-cell-holiday_date="props">
-          <q-td :props="props">
-            <div class="text-weight-bold table-main-text">
-              {{ formatPrettyDate(props.row.holiday_date) }}
-            </div>
-            <div class="text-caption table-sub-text">
-              {{ getDayOfWeekName(props.row.holiday_date) }}
-            </div>
-          </q-td>
-        </template>
-
-        <template #body-cell-description="props">
-          <q-td :props="props">
-            <div class="row items-center gap-xs">
-              <div class="holiday-table-badge row items-center gap-xs">
-                <span class="holiday-indicator-dot"></span>
-                <span class="text-weight-bold table-main-text">{{ props.row.description }}</span>
+        <q-table
+          flat
+          :rows="holidays"
+          :columns="columns"
+          row-key="holiday_id"
+          :loading="loading"
+          :pagination="{ rowsPerPage: 15 }"
+          :dark="$q.dark.isActive"
+          no-data-label="No holidays scheduled yet."
+        >
+          <template #body-cell-holiday_date="props">
+            <q-td :props="props">
+              <div
+                class="text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                {{ formatPrettyDate(props.row.holiday_date) }}
               </div>
-            </div>
-          </q-td>
-        </template>
+              <div class="text-caption text-grey-6">
+                {{ getDayOfWeekName(props.row.holiday_date) }}
+              </div>
+            </q-td>
+          </template>
 
-        <template v-if="isProjectManager" #body-cell-actions="props">
-          <q-td :props="props" align="right">
-            <div class="row items-center justify-end gap-xs">
-              <q-btn
-                flat
-                round
+          <template #body-cell-description="props">
+            <q-td :props="props">
+              <q-chip
                 dense
-                color="primary"
-                icon="edit"
+                square
                 size="sm"
-                @click="openEditHolidayDialog(props.row)"
-              >
-                <q-tooltip>Edit Holiday</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                dense
-                color="negative"
-                icon="delete"
-                size="sm"
-                @click="confirmDeleteHoliday(props.row)"
-              >
-                <q-tooltip>Delete Holiday</q-tooltip>
-              </q-btn>
-            </div>
-          </q-td>
-        </template>
-      </q-table>
-    </q-card>
+                icon="event"
+                :label="props.row.description"
+                class="text-weight-bold"
+                :style="{
+                  background: $q.dark.isActive ? 'rgba(245, 158, 11, 0.14)' : '#fff8e6',
+                  color: $q.dark.isActive ? '#fbbf24' : '#b45309',
+                  border: $q.dark.isActive ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a',
+                  borderLeft: '3px solid #f59e0b',
+                }"
+              />
+            </q-td>
+          </template>
+
+          <template v-if="isProjectManager" #body-cell-actions="props">
+            <q-td :props="props" align="right">
+              <div class="row items-center justify-end q-gutter-xs no-wrap">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  color="primary"
+                  icon="edit"
+                  size="sm"
+                  @click="openEditHolidayDialog(props.row)"
+                >
+                  <q-tooltip>Edit Holiday</q-tooltip>
+                </q-btn>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  color="negative"
+                  icon="delete"
+                  size="sm"
+                  @click="confirmDeleteHoliday(props.row)"
+                >
+                  <q-tooltip>Delete Holiday</q-tooltip>
+                </q-btn>
+              </div>
+            </q-td>
+          </template>
+        </q-table>
+      </q-card>
+    </div>
 
     <!-- 4. ADD / EDIT HOLIDAY MODAL (PM ONLY) -->
     <q-dialog v-model="holidayDialog.show" persistent>
-      <q-card class="modal-dialog-card">
+      <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 92vw">
         <!-- Dialog Header -->
-        <q-card-section class="modal-header row items-center justify-between q-pb-none">
-          <div class="row items-center gap-xs">
-            <q-avatar size="32px" color="primary-soft" text-color="primary" icon="event" />
-            <div class="text-subtitle1 text-weight-bold q-ml-xs modal-title-text">
-              {{ holidayDialog.isEdit ? 'Edit Company Holiday' : 'Add Company Holiday' }}
+        <q-card-section class="row items-center justify-between q-pb-none">
+          <div class="row items-center q-gutter-xs">
+            <q-avatar
+              size="32px"
+              rounded
+              :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
+              :text-color="$q.dark.isActive ? 'blue-2' : 'primary'"
+              icon="event"
+            />
+            <div class="text-subtitle1 text-weight-bold q-ml-xs">
+              {{ holidayDialog.isEdit ? 'Edit Holiday' : 'Add Company Holiday' }}
             </div>
           </div>
           <q-btn flat round dense icon="close" size="sm" color="grey-6" v-close-popup />
@@ -319,7 +385,6 @@
               outlined
               dense
               stack-label
-              :dark="$q.dark.isActive"
               mask="####-##-##"
               :rules="[val => !!val || 'Holiday date is required', validateDate]"
             >
@@ -344,13 +409,14 @@
               outlined
               dense
               stack-label
-              :dark="$q.dark.isActive"
               :rules="[val => !!val && val.trim().length > 0 || 'Description is required']"
             />
           </q-card-section>
 
+          <q-separator />
+
           <!-- Dialog Actions Footer -->
-          <q-card-actions class="modal-footer row items-center justify-between q-px-md q-pb-md">
+          <q-card-actions class="row items-center justify-between q-pa-md">
             <div>
               <q-btn
                 v-if="holidayDialog.isEdit"
@@ -364,7 +430,7 @@
               />
             </div>
 
-            <div class="row items-center gap-xs">
+            <div class="row items-center q-gutter-xs">
               <q-btn flat label="Cancel" color="grey-7" v-close-popup no-caps />
               <q-btn
                 unelevated
@@ -373,7 +439,7 @@
                 type="submit"
                 :loading="holidayDialog.saving"
                 no-caps
-                class="action-btn-primary"
+                class="text-weight-bold"
               />
             </div>
           </q-card-actions>
@@ -383,18 +449,18 @@
 
     <!-- 5. DELETE CONFIRMATION MODAL -->
     <q-dialog v-model="deleteDialog.show">
-      <q-card class="modal-dialog-card" style="max-width: 400px">
+      <q-card :dark="$q.dark.isActive" style="width: 420px; max-width: 92vw">
         <q-card-section class="row items-center q-pb-none">
           <q-avatar icon="delete" color="red-1" text-color="negative" size="38px" />
-          <div class="text-subtitle1 text-weight-bold q-ml-md modal-title-text">Remove Holiday?</div>
+          <div class="text-subtitle1 text-weight-bold q-ml-md">Remove Holiday?</div>
         </q-card-section>
 
-        <q-card-section class="text-body2 modal-body-text q-pt-md">
+        <q-card-section class="text-body2 q-pt-md">
           Are you sure you want to remove <strong>{{ deleteDialog.holiday?.description }}</strong> on
           <strong>{{ deleteDialog.holiday?.holiday_date }}</strong>? This will restore regular working capacity.
         </q-card-section>
 
-        <q-card-actions align="right" class="q-px-md q-pb-md">
+        <q-card-actions align="right" class="q-pa-md">
           <q-btn flat label="Cancel" color="grey-7" v-close-popup no-caps />
           <q-btn
             unelevated
@@ -529,7 +595,6 @@ const calendarCells = computed<CalendarCell[]>(() => {
   return cells;
 });
 
-// Format Date object to YYYY-MM-DD
 function formatDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -557,7 +622,6 @@ function validateDate(val: string): boolean | string {
   return true;
 }
 
-// Navigation helpers
 function prevMonth() {
   if (currentMonth.value === 0) {
     currentMonth.value = 11;
@@ -582,7 +646,6 @@ function goToToday() {
   currentMonth.value = today.getMonth();
 }
 
-// Load holidays
 async function loadHolidays() {
   loading.value = true;
   try {
@@ -598,7 +661,6 @@ async function loadHolidays() {
   }
 }
 
-// Holiday Dialog state
 const holidayDialog = ref({
   show: false,
   isEdit: false,
@@ -651,11 +713,9 @@ function onHolidayClick(holiday: HolidayItem) {
   }
 }
 
-// Save (Create or Update) Holiday
 async function saveHoliday() {
   const { form, isEdit, holidayId } = holidayDialog.value;
 
-  // Duplicate pre-check on client
   const existing = holidaysByDate.value.get(form.holiday_date);
   if (existing && (!isEdit || existing.holiday_id !== holidayId)) {
     $q.notify({
@@ -708,7 +768,6 @@ function handleDeleteFromEditDialog() {
   confirmDeleteHoliday(holidayToDelete);
 }
 
-// Delete confirmation dialog state
 const deleteDialog = ref({
   show: false,
   deleting: false,
@@ -746,7 +805,6 @@ async function executeDeleteHoliday() {
   }
 }
 
-// Table columns definition (Actions column only included for Project Managers)
 const columns = computed<QTableColumn[]>(() => {
   const baseCols: QTableColumn[] = [
     {
@@ -782,281 +840,80 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.calendar-page {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* ===================================================
-   Header & Action Styles
-   =================================================== */
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--wo-text-main, #1d2433);
-}
-
-.page-subtitle {
-  font-size: 13px;
-  color: var(--wo-text-muted, #667085);
-}
-
-.compact-stat-chip {
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #e2e8f0);
-  border-radius: 8px;
-  padding: 4px 10px;
-  box-shadow: var(--wo-card-shadow, 0 1px 2px rgba(0, 0, 0, 0.03));
-}
-
-.stat-icon-wrapper {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bg-primary-soft {
-  background-color: var(--wo-primary-light, #f0f4ff);
-}
-
-.bg-purple-soft {
-  background-color: rgba(139, 111, 216, 0.12);
-}
-
-.stat-text-group {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.stat-micro-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--wo-text-muted, #64748b);
-}
-
-.stat-micro-val {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--wo-text-main, #1e293b);
-}
-
-.header-sep {
-  border-color: var(--wo-border, #e2e8f0);
-}
-
-.view-toggle-btn {
-  border: 1px solid var(--wo-border, #e2e8f0);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--wo-bg-card, #ffffff);
-}
-
-:deep(.view-toggle-btn .q-btn) {
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 4px 12px;
-}
-
-.action-btn-primary {
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 14px;
-}
-
-.refresh-btn {
-  border: 1px solid var(--wo-border, #e2e8f0);
-  border-radius: 8px;
-  color: var(--wo-text-muted, #64748b);
-}
-
-/* ===================================================
-   Main Calendar Card
-   =================================================== */
-.main-calendar-card {
-  border-radius: 12px;
-  border: 1px solid var(--wo-border, #e2e8f0);
-  background: var(--wo-bg-card, #ffffff);
-  box-shadow: var(--wo-card-shadow, 0 1px 4px rgba(15, 23, 42, 0.04));
-  overflow: hidden;
-}
-
+<style scoped lang="scss">
 .border-bottom {
-  border-bottom: 1px solid var(--wo-border, #e2e8f0);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.nav-chevron-btn {
-  border: 1px solid var(--wo-border, #e2e8f0);
-  border-radius: 6px;
-  color: var(--wo-text-main, #475569);
-}
-
-.nav-chevron-btn:hover {
-  background: var(--wo-bg-card-hover, #f1f5f9);
-  color: var(--wo-text-main, #1e293b);
-}
-
-.current-month-display {
-  font-size: 16px;
-  letter-spacing: -0.01em;
-  min-width: 160px;
-  text-align: center;
-  color: var(--wo-text-main, #1e293b);
-}
-
-.year-subtext {
-  font-weight: 500;
-  color: var(--wo-text-muted, #64748b);
-}
-
-.today-btn {
-  font-size: 11.5px;
-  font-weight: 600;
-  border-radius: 6px;
-  color: var(--wo-text-main, #334155);
-  border-color: var(--wo-border, #cbd5e1);
-}
-
-.legend-row {
-  color: var(--wo-text-muted, #64748b);
-}
-
-.legend-text {
-  font-weight: 500;
-}
-
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.dot-holiday {
-  background: #f59e0b;
-}
-
-.dot-weekend {
-  background: #64748b;
-}
-
-.dot-workday {
-  background: var(--wo-bg-card, #ffffff);
-  border: 1.5px solid var(--wo-border, #94a3b8);
-}
-
-/* Weekday Columns Header */
 .calendar-weekdays-header {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  background: var(--wo-bg-subtle, #f8fafc);
-  border-bottom: 1px solid var(--wo-border, #e2e8f0);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
 }
 
 .weekday-col-header {
   padding: 10px 4px;
   text-align: center;
-  color: var(--wo-text-muted, #475569);
   font-size: 11.5px;
   letter-spacing: 0.04em;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.is-weekend-header {
-  color: var(--wo-text-muted, #64748b);
-  background: var(--wo-border-subtle, #edf2f7);
-}
-
-/* ===================================================
-   Calendar Grid & Day Cells
-   =================================================== */
 .calendar-days-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-auto-rows: minmax(118px, 1fr);
+  width: 100%;
 }
 
 .calendar-day-cell {
-  border-right: 1px solid var(--wo-border, #e2e8f0);
-  border-bottom: 1px solid var(--wo-border, #e2e8f0);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   padding: 8px;
-  position: relative;
-  background: var(--wo-bg-card, #ffffff);
-  transition: all 0.12s ease;
   display: flex;
   flex-direction: column;
-}
+  background: transparent;
+  min-width: 0;
+  overflow: hidden;
+  transition: background 0.12s ease;
 
-.calendar-day-cell:nth-child(7n) {
-  border-right: none;
-}
-
-.calendar-day-cell:hover {
-  background: var(--wo-bg-card-hover, #f8fafc);
-}
-
-/* WEEKENDS (SATURDAY & SUNDAY) */
-.calendar-day-cell.is-weekend {
-  background: #f1f5f9;
-}
-
-.calendar-day-cell.is-weekend:hover {
-  background: #e2e8f0;
-}
-
-.calendar-day-cell.is-other-month {
-  background: #fafafa;
-  opacity: 0.45;
-}
-
-.calendar-day-cell.is-today {
-  background: #f0f7ff;
-  border: 1.5px solid var(--wo-primary, #3b82f6) !important;
-  z-index: 2;
-}
-
-.calendar-day-cell.has-holiday {
-  background: #fffdf5;
-}
-
-.cell-top-bar {
-  margin-bottom: 6px;
+  &:nth-child(7n) {
+    border-right: none;
+  }
+  &:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  &.is-weekend {
+    background: rgba(0, 0, 0, 0.03);
+  }
+  &.is-other-month {
+    opacity: 0.4;
+  }
+  &.is-today {
+    background: rgba(59, 130, 246, 0.08);
+    outline: 2px solid var(--q-primary);
+    outline-offset: -2px;
+  }
+  &.has-holiday {
+    background: rgba(245, 158, 11, 0.06);
+  }
 }
 
 .day-number-badge {
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--wo-text-main, #334155);
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-}
 
-.today-highlight {
-  background: var(--wo-primary, #2563eb);
-  color: #ffffff !important;
-}
-
-.weekend-day-num {
-  color: var(--wo-text-muted, #64748b);
-}
-
-.weekend-tag {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #64748b;
-  background: #e2e8f0;
-  padding: 1px 5px;
-  border-radius: 4px;
+  &.today-highlight {
+    background: var(--q-primary);
+    color: #ffffff !important;
+  }
 }
 
 .quick-add-btn {
@@ -1068,24 +925,34 @@ onMounted(() => {
   opacity: 1;
 }
 
-/* Professional Holiday Badge inside day cell */
-.cell-content-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
 .holiday-badge-card {
   background: #fff8e6;
   color: #b45309;
   border: 1px solid #fde68a;
   border-left: 3px solid #f59e0b;
-  border-radius: 5px;
-  padding: 3px 6px;
-  font-size: 11.5px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  line-height: 1.3;
+  width: 100%;
+  box-sizing: border-box;
+
+  &.is-clickable {
+    cursor: pointer;
+    &:hover {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.holiday-title-text {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.25;
 }
 
 .holiday-indicator-dot {
@@ -1096,141 +963,30 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.holiday-badge-title {
-  max-width: 110px;
-  letter-spacing: -0.01em;
-}
-
-.holiday-badge-edit-icon {
-  color: #b45309;
-}
-
-.holiday-badge-card.is-clickable {
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.holiday-badge-card.is-clickable:hover {
-  background: #fef3c7;
-  border-color: #f59e0b;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
-}
-
-.holiday-table-badge {
-  background: #fff8e6;
-  border: 1px solid #fde68a;
-  border-left: 3px solid #f59e0b;
-  border-radius: 5px;
-  padding: 4px 10px;
-}
-
-/* Modals & Dialogs */
-.modal-dialog-card {
-  min-width: 420px;
-  max-width: 500px;
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-  color: var(--wo-text-main, #1d2433);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--wo-border, #e2e8f0);
-}
-
-.modal-header {
-  border-bottom: 1px solid var(--wo-border, #f1f5f9);
-  padding-bottom: 12px;
-}
-
-.modal-footer {
-  border-top: 1px solid var(--wo-border, #f1f5f9);
-  padding-top: 12px;
-}
-
-.modal-title-text {
-  color: var(--wo-text-main, #1d2433);
-}
-
-.modal-body-text {
-  color: var(--wo-text-main, #334155);
-}
-
-.table-main-text {
-  color: var(--wo-text-main, #1d2433);
-}
-
-.table-sub-text {
-  color: var(--wo-text-muted, #64748b);
-}
-
-/* ===================================================
-   DARK MODE OVERRIDES (body.body--dark)
-   =================================================== */
 body.body--dark {
+  .border-bottom {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
   .calendar-day-cell {
-    background: #181d28;
-    border-color: #283042;
+    border-color: rgba(255, 255, 255, 0.08);
+    &:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    &.is-weekend {
+      background: #10141e;
+    }
+    &.is-other-month {
+      background: #0d1017;
+    }
+    &.has-holiday {
+      background: rgba(245, 158, 11, 0.08);
+    }
   }
-
-  .calendar-day-cell:hover {
-    background: #202636;
-  }
-
-  .calendar-day-cell.is-weekend {
-    background: #10141e; /* Distinct deeper grey-tint for weekends */
-  }
-
-  .calendar-day-cell.is-weekend:hover {
-    background: #151a26;
-  }
-
-  .calendar-day-cell.is-other-month {
-    background: #0d1017;
-    opacity: 0.35;
-  }
-
-  .calendar-day-cell.is-today {
-    background: rgba(139, 111, 216, 0.12);
-    border-color: var(--wo-primary, #9e84ec) !important;
-  }
-
-  .calendar-day-cell.has-holiday {
-    background: rgba(245, 158, 11, 0.08);
-  }
-
-  .weekend-tag {
-    background: #1e2535;
-    color: #94a3b8;
-  }
-
   .holiday-badge-card {
     background: rgba(245, 158, 11, 0.12);
     color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.25);
     border-left: 3px solid #f59e0b;
-  }
-
-  .holiday-badge-card.is-clickable:hover {
-    background: rgba(245, 158, 11, 0.22);
-    border-color: #fbbf24;
-  }
-
-  .holiday-badge-edit-icon {
-    color: #fbbf24;
-  }
-
-  .holiday-table-badge {
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    border-left: 3px solid #f59e0b;
-  }
-
-  .calendar-weekdays-header {
-    background: #131722;
-    border-color: #283042;
-  }
-
-  .is-weekend-header {
-    background: #0f121a;
   }
 }
 </style>

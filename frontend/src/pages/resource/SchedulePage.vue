@@ -1,16 +1,21 @@
 <template>
-  <q-page class="pm-page resource-schedule-page">
+  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
     <div class="q-mx-auto" style="max-width: 1380px">
       <!-- 1. PAGE HEADER -->
-      <div class="page-header-row row items-center justify-between q-mb-lg">
-        <div class="header-left">
-          <div class="page-title">Schedule & Roadmap</div>
-          <div class="page-subtitle">
+      <div class="row items-end justify-between q-mb-lg q-col-gutter-md">
+        <div>
+          <div
+            class="text-h5 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Schedule & Roadmap
+          </div>
+          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
             Plan, monitor deadlines, and track your scheduled tasks across projects
           </div>
         </div>
 
-        <div class="header-actions row items-center q-gutter-sm">
+        <div class="row items-center q-gutter-sm">
           <!-- View Toggle Buttons: Week, Day, Month, Gantt, Table -->
           <q-btn-toggle
             v-model="scheduleViewMode"
@@ -20,7 +25,6 @@
             :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
             dense
             unelevated
-            class="view-toggle-btn shadow-subtle q-mr-xs"
             :options="[
               { label: 'Week', value: 'week', icon: 'view_week' },
               { label: 'Day', value: 'day', icon: 'view_day' },
@@ -33,9 +37,9 @@
           <q-btn
             outline
             no-caps
+            :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
             icon="refresh"
             label="Refresh"
-            class="action-btn-outline"
             :loading="loading"
             @click="loadData"
           />
@@ -43,72 +47,64 @@
       </div>
 
       <!-- 2. STAT SUMMARY CARDS -->
-      <div class="stats-grid q-mb-md">
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-purple">
-              <q-icon name="event_note" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">Assigned Tasks</div>
-              <div class="stat-value">{{ tasks.length }}</div>
-              <div class="stat-note stat-purple-text">Across all projects</div>
-            </div>
-          </q-card-section>
-        </q-card>
+      <div class="row q-col-gutter-md q-mb-md">
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Assigned Tasks"
+            :value="tasks.length"
+            subtitle="Across all projects"
+            icon="event_note"
+            color="purple"
+            note-class="note-purple"
+          />
+        </div>
 
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-blue-bg">
-              <q-icon name="sync" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">In Progress</div>
-              <div class="stat-value">{{ inProgressCount }}</div>
-              <div class="stat-note stat-blue">Actively moving</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="In Progress"
+            :value="inProgressCount"
+            subtitle="Actively moving"
+            icon="sync"
+            color="blue"
+            note-class="note-blue"
+          />
+        </div>
 
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-green-bg">
-              <q-icon name="check_circle" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">Completed</div>
-              <div class="stat-value">{{ completedCount }}</div>
-              <div class="stat-note stat-green">Milestones reached</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Completed"
+            :value="completedCount"
+            subtitle="Milestones reached"
+            icon="check_circle"
+            color="green"
+            note-class="note-green"
+          />
+        </div>
 
-        <q-card flat bordered class="stat-card">
-          <q-card-section class="stat-section">
-            <q-avatar size="46px" class="stat-icon stat-red-bg">
-              <q-icon name="warning" size="22px" />
-            </q-avatar>
-            <div class="stat-copy">
-              <div class="stat-label">Overdue / Urgent</div>
-              <div class="stat-value">{{ overdueCount }}</div>
-              <div class="stat-note stat-red">Requires attention</div>
-            </div>
-          </q-card-section>
-        </q-card>
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Overdue / Urgent"
+            :value="overdueCount"
+            subtitle="Requires attention"
+            icon="warning"
+            color="red"
+            note-class="note-red"
+            :negative="overdueCount > 0"
+          />
+        </div>
       </div>
 
       <!-- 3. CALENDAR TOOLBAR & FILTERS -->
-      <q-card flat bordered class="calendar-toolbar-card q-mb-md">
-        <div class="toolbar-content row items-center justify-between q-pa-sm wrap gap-sm">
+      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-mb-md">
+        <q-card-section class="row items-center justify-between q-pa-sm wrap q-col-gutter-sm">
           <!-- Date Navigation Controls -->
-          <div class="date-nav-block row items-center gap-xs">
+          <div class="row items-center q-gutter-xs">
             <q-btn
               flat
               round
               dense
               icon="chevron_left"
               size="sm"
-              class="nav-arrow-btn"
               title="Previous"
               @click="navigateDate(-1)"
             />
@@ -118,7 +114,6 @@
               dense
               icon="chevron_right"
               size="sm"
-              class="nav-arrow-btn"
               title="Next"
               @click="navigateDate(1)"
             />
@@ -127,23 +122,23 @@
               dense
               no-caps
               label="Today"
-              class="today-btn q-px-sm"
+              class="q-px-sm"
+              :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
               @click="goToToday"
             />
-            <div class="current-range-label q-ml-sm text-weight-bold">
+            <div class="q-ml-sm text-subtitle2 text-weight-bold">
               {{ formattedDateRangeHeader }}
             </div>
           </div>
 
           <!-- Filter Controls -->
-          <div class="filter-controls-row row items-center gap-xs wrap">
+          <div class="row items-center q-gutter-xs wrap">
             <q-input
               v-model="searchQuery"
               outlined
               dense
               clearable
               placeholder="Search tasks..."
-              class="filter-input-search"
               style="width: 160px"
             >
               <template #prepend>
@@ -155,6 +150,7 @@
               v-model="projectFilter"
               outlined
               dense
+              clearable
               emit-value
               map-options
               :options="projectFilterOptions"
@@ -166,6 +162,7 @@
               v-model="statusFilter"
               outlined
               dense
+              clearable
               emit-value
               map-options
               :options="statusFilterOptions"
@@ -177,6 +174,7 @@
               v-model="priorityFilter"
               outlined
               dense
+              clearable
               emit-value
               map-options
               :options="priorityFilterOptions"
@@ -184,7 +182,7 @@
               style="width: 130px"
             />
           </div>
-        </div>
+        </q-card-section>
       </q-card>
 
       <!-- 4. LOADING STATE -->
@@ -199,7 +197,8 @@
           v-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'"
           flat
           bordered
-          class="calendar-grid-card q-mb-lg"
+          :dark="$q.dark.isActive"
+          class="rounded-borders overflow-hidden q-mb-lg"
         >
           <div class="calendar-scroll-wrapper">
             <div
@@ -209,7 +208,10 @@
               }"
             >
               <!-- Top Left Time Corner Header -->
-              <div class="cal-cell time-corner-header flex flex-center" :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '48px' }">
+              <div
+                class="cal-cell flex flex-center"
+                :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '48px' }"
+              >
                 <span class="text-caption text-weight-bold text-grey-5">Time</span>
               </div>
 
@@ -225,7 +227,10 @@
                   height: '48px',
                 }"
               >
-                <span class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+                <span
+                  class="text-caption text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
                   {{ formatWeekdayName(day) }}
                 </span>
                 <q-badge
@@ -292,12 +297,21 @@
         </q-card>
 
         <!-- B. MONTH MATRIX VIEW -->
-        <q-card v-else-if="scheduleViewMode === 'month'" flat bordered class="calendar-grid-card q-mb-lg">
+        <q-card
+          v-else-if="scheduleViewMode === 'month'"
+          flat
+          bordered
+          :dark="$q.dark.isActive"
+          class="rounded-borders overflow-hidden q-mb-lg"
+        >
           <div class="calendar-scroll-wrapper">
             <div class="month-grid-container">
               <div
-                class="row text-center border-bottom"
-                :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc' }"
+                class="row text-center"
+                :style="{
+                  background: $q.dark.isActive ? '#181d28' : '#fafbfc',
+                  borderBottom: $q.dark.isActive ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eef0f4',
+                }"
               >
                 <div
                   v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']"
@@ -319,6 +333,7 @@
                       : !mDay.isCurrentMonth
                         ? $q.dark.isActive ? 'rgba(0,0,0,0.2)' : '#fafbfc'
                         : 'transparent',
+                    borderColor: $q.dark.isActive ? 'rgba(255,255,255,0.08)' : '#f0f2f5',
                   }"
                 >
                   <div class="row items-center justify-between">
@@ -363,7 +378,13 @@
         </div>
 
         <!-- D. LIST TABLE VIEW -->
-        <q-card v-else-if="scheduleViewMode === 'table'" flat bordered class="q-mb-lg">
+        <q-card
+          v-else-if="scheduleViewMode === 'table'"
+          flat
+          bordered
+          :dark="$q.dark.isActive"
+          class="rounded-borders overflow-hidden q-mb-lg"
+        >
           <q-table
             flat
             :dark="$q.dark.isActive"
@@ -375,7 +396,10 @@
             <template #body-cell-title="props">
               <q-td :props="props">
                 <div class="cursor-pointer" @click="goToTask(props.row.task_id)">
-                  <div class="text-weight-bold ellipsis" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                  <div
+                    class="text-weight-bold ellipsis"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     {{ props.row.title }}
                   </div>
                   <div
@@ -385,29 +409,32 @@
                   >
                     {{ props.row.description }}
                   </div>
-                  <div v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk" class="row items-center gap-xs q-mt-xs">
+                  <div
+                    v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk"
+                    class="row items-center q-gutter-xs q-mt-xs"
+                  >
                     <q-chip
                       v-if="props.row.is_deadline_at_risk"
                       dense
                       square
-                      color="red-1"
-                      text-color="red-9"
+                      size="sm"
+                      :color="$q.dark.isActive ? 'red-10' : 'red-1'"
+                      :text-color="$q.dark.isActive ? 'red-2' : 'negative'"
                       icon="warning"
-                      style="font-size: 10px; height: 18px"
-                    >
-                      Deadline Risk
-                    </q-chip>
+                      label="Deadline Risk"
+                      class="text-weight-bold"
+                    />
                     <q-chip
                       v-if="props.row.is_schedule_at_risk"
                       dense
                       square
-                      color="amber-1"
-                      text-color="amber-9"
+                      size="sm"
+                      :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
+                      :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'"
                       icon="schedule"
-                      style="font-size: 10px; height: 18px"
-                    >
-                      Schedule Risk
-                    </q-chip>
+                      label="Schedule Risk"
+                      class="text-weight-bold"
+                    />
                   </div>
                 </div>
               </q-td>
@@ -418,13 +445,13 @@
                 <q-chip
                   dense
                   square
-                  :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'"
+                  size="sm"
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                   :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  class="text-caption text-weight-bold"
-                >
-                  <q-icon name="folder" size="12px" class="q-mr-xs" />
-                  {{ props.row.project_name || `Project #${props.row.project_id}` }}
-                </q-chip>
+                  icon="folder"
+                  :label="props.row.project_name || `Project #${props.row.project_id}`"
+                  class="text-weight-bold"
+                />
               </q-td>
             </template>
 
@@ -433,12 +460,12 @@
                 <q-chip
                   dense
                   square
+                  size="sm"
                   :color="priorityColor(props.row.priority)"
                   :text-color="priorityTextColor(props.row.priority)"
-                  class="text-caption text-weight-bold"
-                >
-                  {{ props.row.priority }}
-                </q-chip>
+                  :label="props.row.priority"
+                  class="text-weight-bold"
+                />
               </q-td>
             </template>
 
@@ -447,27 +474,29 @@
                 <q-chip
                   dense
                   square
+                  size="sm"
                   :color="statusColor(props.row.status)"
                   :text-color="statusTextColor(props.row.status)"
-                  class="text-caption text-weight-bold"
-                >
-                  {{ props.row.status.replace('_', ' ') }}
-                </q-chip>
+                  :label="props.row.status.replace('_', ' ')"
+                  class="text-weight-bold"
+                />
               </q-td>
             </template>
 
             <template #body-cell-progress="props">
               <q-td :props="props">
-                <div class="row items-center gap-xs">
+                <div class="row items-center q-gutter-xs no-wrap">
                   <q-linear-progress
-                    :value="(props.row.progress || 0) / 100"
+                    :value="(Number(props.row.progress) || 0) / 100"
                     size="6px"
                     rounded
                     color="primary"
-                    track-color="grey-3"
+                    :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                     style="width: 70px"
                   />
-                  <span class="text-caption text-weight-bold">{{ props.row.progress || 0 }}%</span>
+                  <span class="text-caption text-weight-bold">
+                    {{ Number(props.row.progress) || 0 }}%
+                  </span>
                 </div>
               </q-td>
             </template>
@@ -490,6 +519,7 @@ import {
 } from '@/services/api';
 import { isOverdue } from '@/utils/taskHelpers';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -772,54 +802,70 @@ function getMonthTaskPillStyle(task: Task) {
 }
 
 function priorityColor(priority: string) {
+  if ($q.dark.isActive) {
+    switch (priority) {
+      case 'CRITICAL': return 'red-10';
+      case 'HIGH': return 'orange-10';
+      case 'MEDIUM': return 'purple-10';
+      default: return 'blue-10';
+    }
+  }
   switch (priority) {
-    case 'CRITICAL':
-      return 'red-1';
-    case 'HIGH':
-      return 'orange-1';
-    case 'MEDIUM':
-      return 'purple-1';
-    default:
-      return 'blue-1';
+    case 'CRITICAL': return 'red-1';
+    case 'HIGH': return 'orange-1';
+    case 'MEDIUM': return 'purple-1';
+    default: return 'blue-1';
   }
 }
 
 function priorityTextColor(priority: string) {
+  if ($q.dark.isActive) {
+    switch (priority) {
+      case 'CRITICAL': return 'red-2';
+      case 'HIGH': return 'orange-2';
+      case 'MEDIUM': return 'purple-2';
+      default: return 'blue-2';
+    }
+  }
   switch (priority) {
-    case 'CRITICAL':
-      return 'negative';
-    case 'HIGH':
-      return 'deep-orange';
-    case 'MEDIUM':
-      return 'primary';
-    default:
-      return 'blue-8';
+    case 'CRITICAL': return 'negative';
+    case 'HIGH': return 'deep-orange';
+    case 'MEDIUM': return 'primary';
+    default: return 'blue-8';
   }
 }
 
 function statusColor(status: string) {
+  if ($q.dark.isActive) {
+    switch (status) {
+      case 'COMPLETED': return 'green-10';
+      case 'IN_PROGRESS': return 'blue-10';
+      case 'SCHEDULED': return 'purple-10';
+      default: return 'grey-9';
+    }
+  }
   switch (status) {
-    case 'COMPLETED':
-      return 'green-1';
-    case 'IN_PROGRESS':
-      return 'blue-1';
-    case 'SCHEDULED':
-      return 'purple-1';
-    default:
-      return 'grey-3';
+    case 'COMPLETED': return 'green-1';
+    case 'IN_PROGRESS': return 'blue-1';
+    case 'SCHEDULED': return 'purple-1';
+    default: return 'grey-3';
   }
 }
 
 function statusTextColor(status: string) {
+  if ($q.dark.isActive) {
+    switch (status) {
+      case 'COMPLETED': return 'green-2';
+      case 'IN_PROGRESS': return 'blue-2';
+      case 'SCHEDULED': return 'purple-2';
+      default: return 'grey-4';
+    }
+  }
   switch (status) {
-    case 'COMPLETED':
-      return 'positive';
-    case 'IN_PROGRESS':
-      return 'blue-8';
-    case 'SCHEDULED':
-      return 'primary';
-    default:
-      return 'grey-8';
+    case 'COMPLETED': return 'positive';
+    case 'IN_PROGRESS': return 'blue-8';
+    case 'SCHEDULED': return 'primary';
+    default: return 'grey-8';
   }
 }
 
@@ -852,100 +898,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.resource-schedule-page {
-  width: 100%;
-  padding: 24px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.stat-card {
-  border-radius: 14px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #eaecef);
-}
-
-.stat-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-}
-
-.stat-icon {
-  border-radius: 12px;
-
-  &.stat-purple {
-    background: rgba(139, 111, 216, 0.12);
-    color: #8b6fd8;
-  }
-  &.stat-blue-bg {
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
-  }
-  &.stat-green-bg {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-  }
-  &.stat-red-bg {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
-  }
-}
-
-.stat-copy {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--wo-text-muted, #64748b);
-  font-weight: 600;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.2;
-  color: var(--wo-text-main, #1e293b);
-}
-
-.stat-note {
-  font-size: 11px;
-  font-weight: 600;
-
-  &.stat-purple-text {
-    color: #8b6fd8;
-  }
-  &.stat-blue {
-    color: #3b82f6;
-  }
-  &.stat-green {
-    color: #10b981;
-  }
-  &.stat-red {
-    color: #ef4444;
-  }
-}
-
-.calendar-toolbar-card {
-  border-radius: 14px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #eaecef);
-}
-
-.calendar-grid-card {
-  border-radius: 14px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #eaecef);
-  overflow: hidden;
-}
-
 .calendar-scroll-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -966,7 +918,7 @@ onMounted(() => {
 .calendar-task-block {
   position: absolute;
   z-index: 5;
-  border-radius: 9px;
+  border-radius: 8px;
   padding: 6px 8px;
   box-shadow: 0 1px 4px rgba(16, 24, 40, 0.08);
   overflow: hidden;
@@ -986,21 +938,12 @@ onMounted(() => {
 
 .month-day-cell {
   min-height: 90px;
-  border-right: 1px solid var(--wo-border-subtle, #f0f2f5);
-  border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
+  border-right: 1px solid #f0f2f5;
+  border-bottom: 1px solid #f0f2f5;
   padding: 6px;
 }
 
 body.body--dark {
-  .stat-card,
-  .calendar-toolbar-card,
-  .calendar-grid-card {
-    background: var(--wo-bg-card, #181d28);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-  .stat-value {
-    color: #ffffff;
-  }
   .cal-cell,
   .month-day-cell {
     border-color: rgba(255, 255, 255, 0.08) !important;

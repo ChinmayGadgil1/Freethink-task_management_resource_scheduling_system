@@ -36,11 +36,23 @@ async function seed() {
     console.log(`✅ Inserted ${usersData.length} users.`);
 
     // 2. Insert Holidays
-    console.log("\n🏖️ Inserting company holidays...");
-    const holidaysData = [
-        { holiday_date: "2026-09-07", description: "Labor Day" },
-        { holiday_date: "2026-10-12", description: "Company Fall Wellness Day" },
-        { holiday_date: "2026-11-26", description: "Thanksgiving Day" }
+    console.log("\nInserting company holidays...");
+        const holidaysData = [
+        { holiday_date: "2026-01-26", description: "Republic Day" },
+        { holiday_date: "2026-03-03", description: "Holi" },
+        { holiday_date: "2026-03-19", description: "Gudi Padava" },
+        { holiday_date: "2026-03-21", description: "Id-Ul Fitr (Depends on Moon)" },
+        { holiday_date: "2026-03-26", description: "Ram Navami" },
+        { holiday_date: "2026-04-03", description: "Good Friday" },
+        { holiday_date: "2026-04-14", description: "Birth Anniversary of Dr. Babasaheb Ambedkar" },
+        { holiday_date: "2026-05-01", description: "May Day" },
+        { holiday_date: "2026-08-15", description: "Independence Day" },
+        { holiday_date: "2026-09-14", description: "Ganesh Chaturthi (1st Day)" },
+        { holiday_date: "2026-09-15", description: "Ganesh Chaturthi (2nd Day)" },
+        { holiday_date: "2026-10-02", description: "Gandhi Jayanti" },
+        { holiday_date: "2026-11-08", description: "Diwali (Deepavali)" },
+        { holiday_date: "2026-12-19", description: "Goa Liberation Day" },
+        { holiday_date: "2026-12-25", description: "Christmas Day" }
     ];
 
     for (const h of holidaysData) {

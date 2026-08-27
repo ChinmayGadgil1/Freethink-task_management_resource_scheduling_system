@@ -48,7 +48,6 @@
             :color="$q.dark.isActive ? 'grey-9' : 'white'"
             :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
             dense
-            
             unelevated
             :options="[
               { label: 'Board', value: 'board', icon: 'view_kanban' },
@@ -222,101 +221,132 @@
                 flat
                 bordered
                 :dark="$q.dark.isActive"
-                class="task-board-card q-pa-md rounded-borders cursor-pointer overflow-hidden column"
+                class="task-board-card q-pa-md rounded-borders cursor-pointer overflow-hidden column justify-between"
                 @click="openTask(item.task_id)"
               >
-                <!-- Card Top Row: Project, Priority & Self-Assigned Badges (Wraps gracefully & Truncates) -->
-                <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-xs">
-                  <span
-                    class="task-project-pill ellipsis"
-                    :title="item.project_name || `Project #${item.project_id}`"
-                  >
-                    <q-icon name="folder" size="12px" class="q-mr-xs" />
-                    {{ item.project_name || `Project #${item.project_id}` }}
-                  </span>
+                <!-- Top Info Section -->
+                <div>
+                  <!-- Card Top Row: Project, Priority & Self-Assigned Badges -->
+                  <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-xs">
+                    <q-chip
+                      dense
+                      square
+                      size="sm"
+                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                      icon="folder"
+                      :label="item.project_name || `Project #${item.project_id}`"
+                      class="text-weight-bold ellipsis"
+                      style="max-width: 140px;"
+                    />
 
-                  <span :class="['task-priority-pill', `priority-${item.priority.toLowerCase()}`]">
-                    {{ item.priority }}
-                  </span>
+                    <q-chip
+                      dense
+                      square
+                      size="sm"
+                      :color="priorityBgColor(item.priority)"
+                      :text-color="priorityTextColor(item.priority)"
+                      :label="item.priority"
+                      class="text-weight-bold"
+                    />
 
-                  <span v-if="isSelfAssigned(item)" class="task-self-pill">
-                    <q-icon name="person" size="11px" class="q-mr-xs" />
-                    Self-assigned
-                  </span>
-                </div>
-
-                <!-- Task Title -->
-                <div
-                  class="text-subtitle2 text-weight-medium ellipsis-2-lines q-mb-xs"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                  :title="item.title"
-                >
-                  {{ item.title }}
-                </div>
-
-                <!-- Task Description -->
-                <div
-                  v-if="item.description"
-                  class="text-caption ellipsis-2-lines q-mb-xs"
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                >
-                  {{ item.description }}
-                </div>
-
-                <!-- Progress & Effort Bar -->
-                <div class="q-mt-auto q-pt-sm">
-                  <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
-                    <span
-                      class="text-caption text-weight-bold"
-                      :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
-                      >{{ Number(item.progress) || 0 }}%</span
-                    >
-                    <span
-                      class="text-caption"
-                      :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
-                      >{{ formatHours(item.expected_effort) }} effort</span
-                    >
+                    <q-chip
+                      v-if="isSelfAssigned(item)"
+                      dense
+                      square
+                      size="sm"
+                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                      icon="person"
+                      label="Self-assigned"
+                      class="text-weight-bold"
+                    />
                   </div>
-                  <q-linear-progress
-                    rounded
-                    size="5px"
-                    :value="(Number(item.progress) || 0) / 100"
-                    :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
-                    :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                  />
+
+                  <!-- Task Title -->
+                  <div
+                    class="text-subtitle2 text-weight-medium ellipsis-2-lines q-mb-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    :title="item.title"
+                  >
+                    {{ item.title }}
+                  </div>
+
+                  <!-- Task Description -->
+                  <div
+                    v-if="item.description"
+                    class="text-caption ellipsis-2-lines q-mb-xs"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                  >
+                    {{ item.description }}
+                  </div>
                 </div>
 
-                <div class="q-my-sm" />
+                <!-- Bottom Info Section (Progress & Actions) -->
+                <div>
+                  <!-- Progress & Effort Bar -->
+                  <div class="q-pt-sm">
+                    <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
+                      <span
+                        class="text-caption text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                      >
+                        {{ Number(item.progress) || 0 }}%
+                      </span>
+                      <span
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                      >
+                        {{ formatHours(item.expected_effort) }} effort
+                      </span>
+                    </div>
+                    <q-linear-progress
+                      rounded
+                      size="5px"
+                      :value="(Number(item.progress) || 0) / 100"
+                      :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
+                      :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                    />
+                  </div>
 
-                <!-- Card Bottom Row: Deadline & Action Buttons -->
-                <div class="task-card-footer row items-center justify-between no-wrap">
-                  <span :class="['task-deadline-tag', { 'deadline-overdue': isTaskOverdue(item) }]">
-                    <q-icon name="event" size="13px" class="q-mr-xs" />
-                    {{ item.deadline ? formatDate(item.deadline) : 'TBD' }}
-                  </span>
+                  <div class="q-my-xs" />
 
-                  <div class="row items-center q-gutter-xs">
-                    <q-btn
-                      outline
-                      no-caps
+                  <!-- Card Bottom Row: Deadline & Action Buttons -->
+                  <div class="row items-center justify-between no-wrap">
+                    <q-chip
                       dense
-                      color="primary"
+                      square
                       size="sm"
-                      label="Specs"
-                      icon="article"
-                      @click.stop="openTask(item.task_id)"
+                      :color="isTaskOverdue(item) ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'grey-9' : 'grey-2')"
+                      :text-color="isTaskOverdue(item) ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                      icon="event"
+                      :label="item.deadline ? formatDate(item.deadline) : 'TBD'"
+                      class="text-weight-medium"
                     />
 
-                    <q-btn
-                      unelevated
-                      no-caps
-                      dense
-                      color="primary"
-                      size="sm"
-                      label="Edit"
-                      icon="edit"
-                      @click.stop="openUpdateTaskDialog(item)"
-                    />
+                    <div class="row items-center q-gutter-xs">
+                      <q-btn
+                        outline
+                        no-caps
+                        dense
+                        color="primary"
+                        size="sm"
+                        label="Specs"
+                        icon="article"
+                        @click.stop="openTask(item.task_id)"
+                      />
+
+                      <q-btn
+                        unelevated
+                        no-caps
+                        dense
+                        color="primary"
+                        size="sm"
+                        label="Edit"
+                        icon="edit"
+                        @click.stop="openUpdateTaskDialog(item)"
+                      />
+                    </div>
                   </div>
                 </div>
               </q-card>
@@ -366,10 +396,17 @@
                 >
                   {{ props.row.title }}
                 </div>
-                <span v-if="isSelfAssigned(props.row)" class="task-self-pill">
-                  <q-icon name="person" size="11px" class="q-mr-xs" />
-                  Self-assigned
-                </span>
+                <q-chip
+                  v-if="isSelfAssigned(props.row)"
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="person"
+                  label="Self-assigned"
+                  class="text-weight-bold"
+                />
               </div>
               <div
                 class="text-caption q-mt-xs ellipsis"
@@ -382,17 +419,29 @@
 
           <template #body-cell-priority="props">
             <q-td :props="props">
-              <span :class="['task-priority-pill', `priority-${props.row.priority.toLowerCase()}`]">
-                {{ props.row.priority }}
-              </span>
+              <q-chip
+                dense
+                square
+                size="sm"
+                :color="priorityBgColor(props.row.priority)"
+                :text-color="priorityTextColor(props.row.priority)"
+                :label="props.row.priority"
+                class="text-weight-bold"
+              />
             </q-td>
           </template>
 
           <template #body-cell-status="props">
             <q-td :props="props">
-              <span :class="['status-chip', `status-${props.row.status.toLowerCase()}`]">
-                {{ statusLabel(props.row.status) }}
-              </span>
+              <q-chip
+                dense
+                square
+                size="sm"
+                :color="statusBgColor(props.row.status)"
+                :text-color="statusTextColor(props.row.status)"
+                :label="statusLabel(props.row.status)"
+                class="text-weight-bold"
+              />
             </q-td>
           </template>
 
@@ -412,8 +461,9 @@
                   <span
                     class="text-caption"
                     :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
-                    >{{ Number(props.row.progress) }}%</span
                   >
+                    {{ Number(props.row.progress) }}%
+                  </span>
                 </div>
 
                 <q-linear-progress
@@ -511,31 +561,77 @@
             @click="router.push('/app/resource-dashboard/task-details')"
           />
 
-          <!-- Main Hero Content Row (Left & Right start at the top) -->
+          <!-- Main Hero Content Row -->
           <div class="row items-start justify-between q-col-gutter-lg">
             <!-- Left Column: Chips, Title, Subtitle, Description -->
             <div class="col-12 col-md-7">
-              <!-- Top Row Chips (Task ID, Status, Priority, Self-assigned) -->
+              <!-- Top Row Chips (Task ID, Status, Priority, Risk Badges, Self-assigned) -->
               <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-sm">
-                <span class="task-project-pill"> #{{ task.task_id }} </span>
-                <span :class="['status-chip', `status-${task.status.toLowerCase()}`]">
-                  {{ statusLabel(task.status) }}
-                </span>
-                <span :class="['task-priority-pill', `priority-${task.priority.toLowerCase()}`]">
-                  {{ task.priority }}
-                </span>
-                <span v-if="task.is_deadline_at_risk" class="task-priority-pill priority-critical" style="background: rgba(239, 68, 68, 0.15); color: #ef4444">
-                  <q-icon name="warning" size="12px" class="q-mr-xs" />
-                  Deadline Risk
-                </span>
-                <span v-if="task.is_schedule_at_risk" class="task-priority-pill priority-high" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b">
-                  <q-icon name="schedule" size="12px" class="q-mr-xs" />
-                  Schedule Risk
-                </span>
-                <span v-if="isSelfAssigned(task)" class="task-self-pill">
-                  <q-icon name="person" size="12px" class="q-mr-xs" />
-                  Self-assigned
-                </span>
+                <q-chip
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  :label="`#${task.task_id}`"
+                  class="text-weight-bold"
+                />
+
+                <q-chip
+                  dense
+                  square
+                  size="sm"
+                  :color="statusBgColor(task.status)"
+                  :text-color="statusTextColor(task.status)"
+                  :label="statusLabel(task.status)"
+                  class="text-weight-bold"
+                />
+
+                <q-chip
+                  dense
+                  square
+                  size="sm"
+                  :color="priorityBgColor(task.priority)"
+                  :text-color="priorityTextColor(task.priority)"
+                  :label="task.priority"
+                  class="text-weight-bold"
+                />
+
+                <q-chip
+                  v-if="task.is_deadline_at_risk"
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'red-10' : 'red-1'"
+                  :text-color="$q.dark.isActive ? 'red-2' : 'negative'"
+                  icon="warning"
+                  label="Deadline Risk"
+                  class="text-weight-bold"
+                />
+
+                <q-chip
+                  v-if="task.is_schedule_at_risk"
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
+                  :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'"
+                  icon="schedule"
+                  label="Schedule Risk"
+                  class="text-weight-bold"
+                />
+
+                <q-chip
+                  v-if="isSelfAssigned(task)"
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="person"
+                  label="Self-assigned"
+                  class="text-weight-bold"
+                />
               </div>
 
               <div
@@ -568,14 +664,13 @@
                 <q-card flat bordered :dark="$q.dark.isActive" class="q-pa-xs">
                   <q-item dense>
                     <q-item-section avatar style="min-width: 32px">
-                      <div
-                        :class="[
-                          'hero-date-avatar',
-                          isTaskOverdue(task) ? 'avatar-red' : 'avatar-blue',
-                        ]"
-                      >
-                        <q-icon name="event_available" size="16px" />
-                      </div>
+                      <q-avatar
+                        size="34px"
+                        rounded
+                        :color="isTaskOverdue(task) ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'blue-10' : 'blue-1')"
+                        :text-color="isTaskOverdue(task) ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'blue-2' : 'blue-8')"
+                        icon="event_available"
+                      />
                     </q-item-section>
                     <q-item-section>
                       <q-item-label
@@ -667,7 +762,7 @@
         </q-card-section>
       </q-card>
 
-      <!-- 2. TASK PROGRESS & EFFORT BREAKDOWN CARD (PM-style Progress Card) -->
+      <!-- 2. TASK PROGRESS & EFFORT BREAKDOWN CARD -->
       <q-card
         flat
         bordered
@@ -676,9 +771,14 @@
       >
         <q-card-section class="row items-center justify-between q-pa-md">
           <div class="row items-center">
-            <div class="hero-date-avatar avatar-purple q-mr-sm">
-              <q-icon name="insights" size="18px" />
-            </div>
+            <q-avatar
+              size="34px"
+              rounded
+              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              icon="insights"
+              class="q-mr-sm"
+            />
             <div>
               <div
                 class="text-subtitle1 text-weight-bold"
@@ -691,9 +791,15 @@
               </div>
             </div>
           </div>
-          <span :class="['status-chip', `status-${task.status.toLowerCase()}`]">
-            {{ Number(task.progress) }}% Completed
-          </span>
+          <q-chip
+            dense
+            square
+            size="sm"
+            :color="statusBgColor(task.status)"
+            :text-color="statusTextColor(task.status)"
+            :label="`${Number(task.progress)}% Completed`"
+            class="text-weight-bold"
+          />
         </q-card-section>
 
         <q-separator />
@@ -708,9 +814,9 @@
               >
                 Overall Completion Progress
               </span>
-              <span class="text-h6 text-primary text-weight-bolder"
-                >{{ Number(task.progress) }}%</span
-              >
+              <span class="text-h6 text-primary text-weight-bolder">
+                {{ Number(task.progress) }}%
+              </span>
             </div>
             <q-linear-progress
               :value="Number(task.progress) / 100"
@@ -727,9 +833,13 @@
             <div class="col-12 col-sm-4">
               <q-card flat bordered :dark="$q.dark.isActive">
                 <q-card-section class="row items-center no-wrap q-pa-md">
-                  <div class="hero-date-avatar avatar-purple">
-                    <q-icon name="schedule" size="20px" />
-                  </div>
+                  <q-avatar
+                    size="36px"
+                    rounded
+                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    icon="schedule"
+                  />
                   <div class="q-ml-md">
                     <div
                       class="text-caption text-weight-bold"
@@ -753,9 +863,13 @@
             <div class="col-12 col-sm-4">
               <q-card flat bordered :dark="$q.dark.isActive">
                 <q-card-section class="row items-center no-wrap q-pa-md">
-                  <div class="hero-date-avatar avatar-blue">
-                    <q-icon name="timer" size="20px" />
-                  </div>
+                  <q-avatar
+                    size="36px"
+                    rounded
+                    :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
+                    :text-color="$q.dark.isActive ? 'blue-2' : 'blue-8'"
+                    icon="timer"
+                  />
                   <div class="q-ml-md">
                     <div
                       class="text-caption text-weight-bold"
@@ -779,9 +893,13 @@
             <div class="col-12 col-sm-4">
               <q-card flat bordered :dark="$q.dark.isActive">
                 <q-card-section class="row items-center no-wrap q-pa-md">
-                  <div class="hero-date-avatar avatar-green">
-                    <q-icon name="hourglass_empty" size="20px" />
-                  </div>
+                  <q-avatar
+                    size="36px"
+                    rounded
+                    :color="$q.dark.isActive ? 'green-10' : 'green-1'"
+                    :text-color="$q.dark.isActive ? 'green-2' : 'green-8'"
+                    icon="hourglass_empty"
+                  />
                   <div class="q-ml-md">
                     <div
                       class="text-caption text-weight-bold"
@@ -807,9 +925,14 @@
       <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
         <q-card-section class="row items-center justify-between q-pa-md">
           <div class="row items-center">
-            <div class="hero-date-avatar avatar-purple q-mr-sm">
-              <q-icon name="history" size="18px" />
-            </div>
+            <q-avatar
+              size="34px"
+              rounded
+              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              icon="history"
+              class="q-mr-sm"
+            />
             <div>
               <div
                 class="text-subtitle1 text-weight-bold"
@@ -879,9 +1002,13 @@
           <q-list v-else bordered separator :dark="$q.dark.isActive" class="rounded-borders">
             <q-item v-for="log in workLogs" :key="log.log_id" class="q-py-md">
               <q-item-section avatar top>
-                <div class="hero-date-avatar avatar-purple">
-                  <q-icon name="trending_up" size="18px" />
-                </div>
+                <q-avatar
+                  size="34px"
+                  rounded
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="trending_up"
+                />
               </q-item-section>
 
               <q-item-section>
@@ -897,8 +1024,7 @@
                   class="q-mt-xs"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                 >
-                  {{ formatHours(log.hours_logged) }} worked · {{ Number(log.progress_logged) }}%
-                  progress
+                  {{ formatHours(log.hours_logged) }} worked · {{ Number(log.progress_logged) }}% progress
                 </q-item-label>
 
                 <q-item-label
@@ -919,9 +1045,15 @@
               </q-item-section>
 
               <q-item-section side top>
-                <span :class="['status-chip', `status-${log.status.toLowerCase()}`]">
-                  {{ statusLabel(log.status) }}
-                </span>
+                <q-chip
+                  dense
+                  square
+                  size="sm"
+                  :color="statusBgColor(log.status)"
+                  :text-color="statusTextColor(log.status)"
+                  :label="statusLabel(log.status)"
+                  class="text-weight-bold"
+                />
               </q-item-section>
             </q-item>
           </q-list>
@@ -965,12 +1097,12 @@
                 <q-chip
                   dense
                   square
-                  :class="['status-chip', getTaskStatusClass(getStatusFromProgress(stopSessionForm.progress_logged))]"
+                  size="sm"
+                  :color="statusBgColor(getStatusFromProgress(stopSessionForm.progress_logged))"
+                  :text-color="statusTextColor(getStatusFromProgress(stopSessionForm.progress_logged))"
+                  :label="formatStatusLabel(getStatusFromProgress(stopSessionForm.progress_logged))"
                   class="text-weight-bold"
-                  style="font-size: 11px; height: 20px"
-                >
-                  {{ formatStatusLabel(getStatusFromProgress(stopSessionForm.progress_logged)) }}
-                </q-chip>
+                />
               </div>
             </div>
             <q-input
@@ -1229,7 +1361,6 @@ import {
   isOverdue,
   isTaskOverdue,
   getStatusFromProgress,
-  getTaskStatusClass,
   formatStatusLabel,
 } from '@/utils/taskHelpers';
 
@@ -1282,6 +1413,58 @@ function isSelfAssigned(item: Task | ResourceTask | null | undefined): boolean {
     return true;
   }
   return false;
+}
+
+function priorityBgColor(priority: string | null | undefined): string {
+  const p = (priority || '').toUpperCase();
+  if ($q.dark.isActive) {
+    if (p === 'CRITICAL') return 'red-10';
+    if (p === 'HIGH') return 'orange-10';
+    if (p === 'MEDIUM') return 'purple-10';
+    return 'blue-10';
+  }
+  if (p === 'CRITICAL') return 'red-1';
+  if (p === 'HIGH') return 'orange-1';
+  if (p === 'MEDIUM') return 'purple-1';
+  return 'blue-1';
+}
+
+function priorityTextColor(priority: string | null | undefined): string {
+  const p = (priority || '').toUpperCase();
+  if ($q.dark.isActive) {
+    if (p === 'CRITICAL') return 'red-2';
+    if (p === 'HIGH') return 'orange-2';
+    if (p === 'MEDIUM') return 'purple-2';
+    return 'blue-2';
+  }
+  if (p === 'CRITICAL') return 'red-9';
+  if (p === 'HIGH') return 'orange-9';
+  if (p === 'MEDIUM') return 'purple-9';
+  return 'blue-9';
+}
+
+function statusBgColor(status: string | null | undefined): string {
+  const s = (status || '').toUpperCase();
+  if ($q.dark.isActive) {
+    if (s === 'COMPLETED') return 'green-10';
+    if (s === 'IN_PROGRESS') return 'blue-10';
+    return 'purple-10';
+  }
+  if (s === 'COMPLETED') return 'green-1';
+  if (s === 'IN_PROGRESS') return 'blue-1';
+  return 'purple-1';
+}
+
+function statusTextColor(status: string | null | undefined): string {
+  const s = (status || '').toUpperCase();
+  if ($q.dark.isActive) {
+    if (s === 'COMPLETED') return 'green-2';
+    if (s === 'IN_PROGRESS') return 'blue-2';
+    return 'purple-2';
+  }
+  if (s === 'COMPLETED') return 'green-9';
+  if (s === 'IN_PROGRESS') return 'blue-9';
+  return 'purple-9';
 }
 
 const KANBAN_COLUMNS = computed(() => [
@@ -1848,177 +2031,14 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .task-board-card {
-  height: 205px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  height: 215px;
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
+    box-shadow 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(124, 94, 212, 0.08);
-    border-color: var(--q-primary);
-  }
-}
-
-.task-project-pill,
-.task-self-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--wo-primary, #8b6fd8);
-  background: rgba(139, 111, 216, 0.12);
-  padding: 2px 7px;
-  border-radius: 6px;
-  max-width: 120px;
-}
-
-.task-priority-pill {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-
-  &.priority-low {
-    background: #eff6ff;
-    color: #1d4ed8;
-  }
-  &.priority-medium {
-    background: rgba(139, 111, 216, 0.12);
-    color: #8b6fd8;
-  }
-  &.priority-high {
-    background: #fff7ed;
-    color: #c2410c;
-  }
-  &.priority-critical {
-    background: #fef2f2;
-    color: #b91c1c;
-  }
-}
-
-.status-chip {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-
-  &.status-scheduled {
-    background: rgba(139, 111, 216, 0.12);
-    color: #8b6fd8;
-  }
-  &.status-in_progress {
-    background: rgba(46, 144, 250, 0.12);
-    color: #2e90fa;
-  }
-  &.status-completed {
-    background: rgba(19, 174, 118, 0.12);
-    color: #13ae76;
-  }
-}
-
-.task-deadline-tag {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--wo-text-muted, #64748b);
-  background: var(--wo-bg-tag, #f1f5f9);
-  padding: 2px 7px;
-  border-radius: 6px;
-
-  &.deadline-overdue {
-    background: #fef2f2;
-    color: #ef4444;
-  }
-}
-
-.hero-date-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  &.avatar-purple {
-    background: rgba(139, 111, 216, 0.12);
-    color: var(--wo-primary, #8b6fd8);
-  }
-  &.avatar-blue {
-    background: rgba(46, 144, 250, 0.12);
-    color: #2e90fa;
-  }
-  &.avatar-green {
-    background: rgba(19, 174, 118, 0.12);
-    color: #13ae76;
-  }
-  &.avatar-red {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
-  }
-}
-
-body.body--dark {
-  .task-project-pill,
-  .task-self-pill,
-  .priority-medium,
-  .status-scheduled {
-    background: rgba(139, 111, 216, 0.18) !important;
-    color: #b89bf8 !important;
-  }
-
-  .priority-low {
-    background: rgba(46, 144, 250, 0.18) !important;
-    color: #60a5fa !important;
-  }
-  .priority-high {
-    background: rgba(249, 115, 22, 0.18) !important;
-    color: #fb923c !important;
-  }
-  .priority-critical {
-    background: rgba(239, 68, 68, 0.18) !important;
-    color: #f87171 !important;
-  }
-  .status-in_progress {
-    background: rgba(46, 144, 250, 0.18) !important;
-    color: #60a5fa !important;
-  }
-  .status-completed {
-    background: rgba(39, 174, 96, 0.18) !important;
-    color: #4ade80 !important;
-  }
-  .task-deadline-tag {
-    background: #222938 !important;
-    color: #94a3b8 !important;
-
-    &.deadline-overdue {
-      background: rgba(239, 68, 68, 0.18) !important;
-      color: #f87171 !important;
-    }
-  }
-  .hero-date-avatar {
-    &.avatar-purple {
-      background: rgba(139, 111, 216, 0.18) !important;
-      color: #b89bf8 !important;
-    }
-    &.avatar-blue {
-      background: rgba(46, 144, 250, 0.18) !important;
-      color: #60a5fa !important;
-    }
-    &.avatar-green {
-      background: rgba(39, 174, 96, 0.18) !important;
-      color: #4ade80 !important;
-    }
-    &.avatar-red {
-      background: rgba(239, 68, 68, 0.18) !important;
-      color: #f87171 !important;
-    }
+    box-shadow: 0 4px 12px rgba(124, 94, 212, 0.1);
   }
 }
 </style>
