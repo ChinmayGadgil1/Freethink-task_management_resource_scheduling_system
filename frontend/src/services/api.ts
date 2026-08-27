@@ -492,7 +492,34 @@ export interface ResourceUser {
   email: string;
   role: 'RESOURCE';
   is_active?: boolean | number;
+  non_working_days?: DayOfWeek[] | string | null;
+  daily_working_hours?: number;
   created_at?: string;
+}
+
+export function calculateResourceWeeklyCapacity(resource?: {
+  non_working_days?: DayOfWeek[] | string | null;
+  daily_working_hours?: number;
+} | null): number {
+  if (!resource) return 40;
+  let nonWorkingCount = 0;
+  if (resource.non_working_days) {
+    try {
+      const days = typeof resource.non_working_days === 'string'
+        ? JSON.parse(resource.non_working_days)
+        : resource.non_working_days;
+      if (Array.isArray(days)) {
+        nonWorkingCount = days.length;
+      }
+    } catch {
+      nonWorkingCount = 0;
+    }
+  }
+  const workingDays = Math.max(1, 7 - nonWorkingCount);
+  const dailyHours = resource.daily_working_hours !== undefined && resource.daily_working_hours !== null
+    ? Number(resource.daily_working_hours)
+    : 8.0;
+  return workingDays * dailyHours;
 }
 
 export async function getResourcesApi(

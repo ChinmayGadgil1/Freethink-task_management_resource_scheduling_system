@@ -83,7 +83,7 @@
             <div>
               <div class="text-caption text-grey-6">Workload Utilization</div>
               <div class="text-h6 text-weight-bold text-primary">{{ utilization }}%</div>
-              <div class="text-caption text-grey-7">{{ formatHours(totalEffort) }} / 40h</div>
+              <div class="text-caption text-grey-7">{{ formatHours(totalEffort) }} / {{ weeklyStandardCapacity }}h</div>
             </div>
 
             <div>
@@ -665,7 +665,17 @@ const modalNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 const modalDailyHours = ref(8.0);
 
 const activeWorkingDaysList = computed(() => {
-  const nonWorking = scheduleConfig.value?.non_working_days || [];
+  const rawNonWorking = scheduleConfig.value?.non_working_days ?? resourceInfo.value?.non_working_days ?? [];
+  let nonWorking: string[] = [];
+  if (Array.isArray(rawNonWorking)) {
+    nonWorking = rawNonWorking;
+  } else if (typeof rawNonWorking === 'string') {
+    try {
+      nonWorking = JSON.parse(rawNonWorking);
+    } catch {
+      nonWorking = [];
+    }
+  }
   return ALL_WEEK_DAYS.filter((d) => !nonWorking.includes(d));
 });
 
@@ -675,7 +685,8 @@ const modalActiveWorkingDays = computed(() => {
 
 const weeklyStandardCapacity = computed(() => {
   const daysCount = activeWorkingDaysList.value.length;
-  const hours = scheduleConfig.value?.daily_working_hours || 8.0;
+  const rawHours = scheduleConfig.value?.daily_working_hours ?? resourceInfo.value?.daily_working_hours ?? 8.0;
+  const hours = Number(rawHours) || 8.0;
   return daysCount * hours;
 });
 
@@ -867,7 +878,8 @@ const totalEffort = computed(() => {
 });
 
 const utilization = computed(() => {
-  return Math.min(150, Math.round((totalEffort.value / 40) * 100));
+  const cap = Math.max(1, weeklyStandardCapacity.value || 40);
+  return Math.min(150, Math.round((totalEffort.value / cap) * 100));
 });
 
 function getTaskStatusColor(status: string): string {

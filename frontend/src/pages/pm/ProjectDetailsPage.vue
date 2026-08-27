@@ -1340,6 +1340,7 @@ import {
   unassignTaskResourceApi,
   addTaskDependencyApi,
   getGlobalProgressFeedApi,
+  calculateResourceWeeklyCapacity,
   type Project,
   type Task,
   type ResourceUser,
@@ -2148,12 +2149,13 @@ async function loadProjectTeamMembers() {
         task.assigned_resource_ids?.includes(resource.user_id),
       );
       const effort = assigned.reduce((sum, task) => sum + (Number(task.expected_effort) || 0), 0);
+      const cap = calculateResourceWeeklyCapacity(resource);
       return {
         id: resource.user_id,
         name: resource.name,
         role: resource.role || 'Team Resource',
         assignedTasks: assigned.length,
-        capacity: Math.min(100, Math.round((effort / 40) * 100)),
+        capacity: Math.min(100, Math.round((effort / Math.max(1, cap)) * 100)),
       };
     });
   } catch (error) {

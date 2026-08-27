@@ -222,7 +222,7 @@
                     <div class="row justify-between text-caption q-mb-xs">
                       <span class="text-grey-7 text-weight-medium">Workload Effort</span>
                       <span class="text-weight-bold text-dark"
-                        >{{ formatHours(res.totalEffort) }} ({{ res.utilization }}%)</span
+                        >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{ res.utilization }}%)</span
                       >
                     </div>
                     <q-linear-progress
@@ -851,6 +851,7 @@ import {
   unassignTaskResourceApi,
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
+  calculateResourceWeeklyCapacity,
   type Project,
   type ResourceUser,
   type Task,
@@ -1056,6 +1057,7 @@ interface ResourceAggregate {
   projectsCount: number;
   projectNames: string[];
   totalEffort: number;
+  weeklyCapacity: number;
   utilization: number;
   status: 'AVAILABLE' | 'HIGH_LOAD' | 'OVERALLOCATED';
 }
@@ -1202,6 +1204,7 @@ const resourceMap = computed(() => {
   const map = new Map<number, ResourceAggregate>();
 
   for (const r of resourceList.value) {
+    const weeklyCap = calculateResourceWeeklyCapacity(r);
     map.set(r.user_id, {
       resource_id: r.user_id,
       name: r.name,
@@ -1209,6 +1212,7 @@ const resourceMap = computed(() => {
       projectsCount: 0,
       projectNames: [],
       totalEffort: 0,
+      weeklyCapacity: weeklyCap,
       utilization: 0,
       status: 'AVAILABLE',
     });
@@ -1220,6 +1224,8 @@ const resourceMap = computed(() => {
 
     for (const rid of rIds) {
       if (!map.has(rid)) {
+        const rObj = resourceList.value.find((r) => r.user_id === rid);
+        const weeklyCap = calculateResourceWeeklyCapacity(rObj);
         map.set(rid, {
           resource_id: rid,
           name: getResourceName(rid),
@@ -1227,6 +1233,7 @@ const resourceMap = computed(() => {
           projectsCount: 0,
           projectNames: [],
           totalEffort: 0,
+          weeklyCapacity: weeklyCap,
           utilization: 0,
           status: 'AVAILABLE',
         });
@@ -1267,8 +1274,9 @@ const resourceMap = computed(() => {
     }
     item.projectNames = Array.from(names);
 
-    // Standard 40h capacity
-    item.utilization = Math.min(150, Math.round((item.totalEffort / 40) * 100));
+    // Dynamic weekly capacity derived from actual resource work schedule
+    const cap = Math.max(1, item.weeklyCapacity || 40);
+    item.utilization = Math.min(150, Math.round((item.totalEffort / cap) * 100));
 
     if (item.utilization > 100) item.status = 'OVERALLOCATED';
     else if (item.utilization >= 75) item.status = 'HIGH_LOAD';

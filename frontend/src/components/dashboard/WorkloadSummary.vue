@@ -84,7 +84,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { getResourceWorkloadApi, type ResourceUser } from '@/services/api';
+import { getResourceWorkloadApi, calculateResourceWeeklyCapacity, type ResourceUser } from '@/services/api';
 import { getInitials } from '@/utils/formatters';
 
 const props = defineProps<{
@@ -208,7 +208,8 @@ async function loadWorkloads() {
       try {
         const workload = await getResourceWorkloadApi(resource.user_id);
         const expectedHours = Number(workload.total_expected_effort) || 0;
-        const percentage = Math.round((expectedHours / 40) * 100);
+        const cap = Math.max(1, calculateResourceWeeklyCapacity(resource));
+        const percentage = Math.round((expectedHours / cap) * 100);
         const pNames = Array.from(
           new Set(
             (workload.tasks || []).map((t) => t.project_name).filter((n): n is string => !!n),

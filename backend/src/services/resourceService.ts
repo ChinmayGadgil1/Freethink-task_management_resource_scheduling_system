@@ -1,6 +1,37 @@
 import { getPool } from "../config/database.js";
 import type { RowDataPacket } from "mysql2";
 
+function formatResourceRow(row: any) {
+    let nonWorkingDays: string[] = [];
+    if (row.non_working_days !== null && row.non_working_days !== undefined) {
+        try {
+            const parsed = typeof row.non_working_days === "string"
+                ? JSON.parse(row.non_working_days)
+                : row.non_working_days;
+            if (Array.isArray(parsed)) {
+                nonWorkingDays = parsed;
+            }
+        } catch {
+            nonWorkingDays = [];
+        }
+    }
+
+    const dailyWorkingHours = row.daily_working_hours !== null && row.daily_working_hours !== undefined
+        ? Number(row.daily_working_hours)
+        : 8.0;
+
+    return {
+        user_id: Number(row.user_id),
+        name: row.name,
+        email: row.email,
+        role: row.role,
+        is_active: Boolean(row.is_active),
+        non_working_days: nonWorkingDays,
+        daily_working_hours: dailyWorkingHours,
+        created_at: row.created_at
+    };
+}
+
 export async function getResources(projectId?: number, managerId?: number) {
     const pool = getPool();
 
@@ -11,6 +42,8 @@ export async function getResources(projectId?: number, managerId?: number) {
             u.email,
             u.role,
             u.is_active,
+            u.non_working_days,
+            u.daily_working_hours,
             u.created_at
         FROM users u
     `;
@@ -54,7 +87,7 @@ export async function getResources(projectId?: number, managerId?: number) {
 
     const [resources] = await pool.query<RowDataPacket[]>(query, params);
 
-    return resources;
+    return resources.map(formatResourceRow);
 }
 
 export async function getResourceById(resourceId: number) {
@@ -68,6 +101,8 @@ export async function getResourceById(resourceId: number) {
             email,
             role,
             is_active,
+            non_working_days,
+            daily_working_hours,
             created_at
         FROM users
         WHERE user_id = ?
@@ -80,7 +115,7 @@ export async function getResourceById(resourceId: number) {
     if (resources.length === 0)
         throw new Error("RESOURCE_NOT_FOUND");
 
-    return resources[0];
+    return formatResourceRow(resources[0]);
 }
 
 export async function getResourceProjects(resourceId: number) {
