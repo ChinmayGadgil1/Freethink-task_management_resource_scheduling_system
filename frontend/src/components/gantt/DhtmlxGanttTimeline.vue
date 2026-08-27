@@ -71,6 +71,27 @@
           <span>{{ isHierarchical ? 'Projects' : 'Flat' }}</span>
         </button>
 
+        <!-- Columns Toggle (Status, Priority, Duration) -->
+        <button
+          type="button"
+          class="ctrl-pill-btn columns-toggle-btn row items-center no-wrap"
+          :class="{ 'is-active-pill': showExtraColumns }"
+          :title="showExtraColumns ? 'Collapse Status, Priority & Duration columns' : 'Expand Status, Priority & Duration columns'"
+          @click="toggleExtraColumns"
+        >
+          <q-icon
+            :name="showExtraColumns ? 'view_week' : 'view_column'"
+            size="14px"
+            class="q-mr-xs text-purple-7"
+          />
+          <span>{{ showExtraColumns ? 'Columns On' : 'Columns Off' }}</span>
+          <q-icon
+            :name="showExtraColumns ? 'chevron_left' : 'chevron_right'"
+            size="14px"
+            class="q-ml-xs text-grey-7"
+          />
+        </button>
+
         <!-- Expand / Collapse All (when hierarchical) -->
         <template v-if="isHierarchical">
           <button
@@ -91,8 +112,13 @@
           </button>
         </template>
 
-        <!-- Today Button -->
-        <button type="button" class="ctrl-pill-btn today-btn row items-center no-wrap" @click="scrollToToday">
+        <!-- Today Button (Visible ONLY in Day view scale) -->
+        <button
+          v-if="activeScale === 'day'"
+          type="button"
+          class="ctrl-pill-btn today-btn row items-center no-wrap"
+          @click="scrollToToday"
+        >
           <q-icon name="gps_fixed" size="14px" class="q-mr-xs text-purple-7" />
           <span>Today</span>
         </button>
@@ -254,71 +280,53 @@ const projectMap = computed(() => {
 
 const totalCount = computed(() => props.tasks.length);
 const visibleCount = ref(0);
+const showExtraColumns = ref(false); // Collapsed/compact by default (only TASK & PROJECT visible)
 
 // ----------------------------------------------------
 // DHTMLX Configuration & Column Definitions
 // ----------------------------------------------------
-function configureGanttEngine() {
-  gantt.plugins({
-    marker: true,
-    tooltip: true,
-  });
-
-  gantt.config.date_format = '%Y-%m-%d %H:%i';
-  gantt.config.xml_date = '%Y-%m-%d %H:%i';
-
-  // Layout Dimensions
-  gantt.config.row_height = 44;
-  gantt.config.bar_height = 28;
-  gantt.config.grid_resize = true;
-  gantt.config.grid_width = 490; // 200 (task/project) + 115 (status) + 95 (priority) + 80 (duration) = 490px
-  gantt.config.fit_tasks = false;
-  gantt.config.smart_rendering = true;
-  gantt.config.preserve_scroll = true;
-
-  // Interactivity
-  gantt.config.drag_move = true;
-  gantt.config.drag_resize = true;
-  gantt.config.drag_progress = true;
-  gantt.config.drag_links = true;
-  gantt.config.details_on_dblclick = false;
-  gantt.config.open_tree_initially = true;
-
-  // Grid Columns: TASK & PROJECT, STATUS, PRIORITY, DURATION
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (gantt.config as any).columns = [
-    {
-      name: 'text',
-      label: 'TASK & PROJECT',
-      tree: true,
-      width: 200,
-      resize: true,
-      template: (task: DhtmlxGanttTaskItem) => {
-        const text = escapeHtml(task.text || '');
-        if (task.type === 'project') {
-          const count = task.task_count || 0;
-          return `<div class="gantt-col-project" title="${text}">` +
-            `<span class="project-icon-badge">📁</span>` +
-            `<strong class="project-title ellipsis">${text}</strong>` +
-            `<span class="task-count-pill">${count} ${count === 1 ? 'task' : 'tasks'}</span>` +
-            `</div>`;
-        }
-        return `<div class="gantt-col-task" title="${text}">` +
-          `<span class="task-icon-dot"></span>` +
-          `<span class="task-title ellipsis">${text}</span>` +
-          `</div>`;
-      },
+function applyColumnsConfig() {
+  const baseColumn = {
+    name: 'text',
+    label: 'TASK & PROJECT',
+    tree: true,
+    width: showExtraColumns.value ? 190 : 250,
+    min_width: 180,
+    resize: true,
+    template: (task: DhtmlxGanttTaskItem) => {
+      const text = escapeHtml(task.text || '');
+      if (task.type === 'project') {
+        const count = task.task_count || 0;
+        return (
+          `<div class="gantt-col-project" title="${text}">` +
+          `<span class="project-icon-badge">📁</span>` +
+          `<strong class="project-title ellipsis">${text}</strong>` +
+          `<span class="task-count-pill">${count} ${count === 1 ? 'task' : 'tasks'}</span>` +
+          `</div>`
+        );
+      }
+      return (
+        `<div class="gantt-col-task" title="${text}">` +
+        `<span class="task-icon-dot"></span>` +
+        `<span class="task-title ellipsis">${text}</span>` +
+        `</div>`
+      );
     },
+  };
+
+  const extraColumns = [
     {
       name: 'status',
       label: 'STATUS',
       align: 'center',
-      width: 115,
+      width: 95,
+      min_width: 75,
+      max_width: 110,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
         if (!task.status) return '<span class="text-muted">—</span>';
         const s = task.status.toUpperCase();
-        let label = task.status;
+        let label = task.status.replace(/_/g, ' ');
         let sClass = 's-unassigned';
 
         if (s === 'COMPLETED') {
@@ -335,40 +343,84 @@ function configureGanttEngine() {
           sClass = 's-unassigned';
         }
 
-        if (task.type === 'project') {
-          return `<span class="status-badge is-project-status ${sClass}"><span class="status-dot"></span>${label}</span>`;
-        }
-        return `<span class="status-badge ${sClass}"><span class="status-dot"></span>${label}</span>`;
+        const isProj = task.type === 'project';
+        return `<span class="status-badge ${isProj ? 'is-project-status' : ''} ${sClass}" title="Status: ${label}"><span class="status-dot"></span><span class="badge-text">${label}</span></span>`;
       },
     },
     {
       name: 'priority',
       label: 'PRIORITY',
       align: 'center',
-      width: 95,
+      width: 80,
+      min_width: 65,
+      max_width: 90,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
         if (!task.priority) return '<span class="text-muted">—</span>';
         const p = task.priority.toLowerCase();
         const pLabel = task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase();
-        return `<span class="priority-badge p-${p}">${pLabel}</span>`;
+        return `<span class="priority-badge p-${p}" title="Priority: ${pLabel}">${pLabel}</span>`;
       },
     },
     {
       name: 'duration',
       label: 'DURATION',
       align: 'center',
-      width: 80,
+      width: 65,
+      min_width: 50,
+      max_width: 80,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
         const dur = Math.max(1, Math.round(Number(task.duration) || 1));
-        if (task.type === 'project') {
-          return `<span class="duration-badge project-dur-badge">${dur}d</span>`;
-        }
-        return `<span class="duration-badge">${dur}d</span>`;
+        const isProj = task.type === 'project';
+        const daysLabel = dur === 1 ? '1 day' : `${dur} days`;
+        return `<span class="duration-badge ${isProj ? 'project-dur-badge' : ''}" title="Duration: ${daysLabel}">${dur}d</span>`;
       },
     },
   ];
+
+  if (showExtraColumns.value) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (gantt.config as any).columns = [baseColumn, ...extraColumns];
+    gantt.config.grid_width = 430; // 190 + 95 + 80 + 65 = 430px
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (gantt.config as any).columns = [baseColumn];
+    gantt.config.grid_width = 250; // Compact state: full timeline space
+  }
+}
+
+function configureGanttEngine() {
+  gantt.plugins({
+    marker: true,
+    tooltip: true,
+  });
+
+  gantt.config.date_format = '%Y-%m-%d %H:%i';
+  gantt.config.xml_date = '%Y-%m-%d %H:%i';
+
+  // Layout Dimensions
+  gantt.config.row_height = 44;
+  gantt.config.bar_height = 28;
+  gantt.config.grid_resize = true;
+  gantt.config.fit_tasks = false;
+  gantt.config.smart_rendering = true;
+  gantt.config.preserve_scroll = true;
+
+  // Interactivity (Display-Only for Task Schedule / Progress)
+  gantt.config.drag_move = false;
+  gantt.config.drag_resize = false;
+  gantt.config.drag_progress = false;
+  gantt.config.drag_links = false;
+  gantt.config.details_on_dblclick = false;
+  gantt.config.details_on_click = false;
+  gantt.config.details_on_create = false;
+  gantt.config.show_quick_info = false;
+  gantt.config.select_task = false;
+  gantt.config.open_tree_initially = true;
+
+  // Apply column configuration (Collapsed / Compact by default)
+  applyColumnsConfig();
 
   // Custom Task Bar CSS Classes (Color-coded by Priority with gradients for tasks, distinct slate-indigo bar for projects)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -803,6 +855,7 @@ function updateDateRangeHeader() {
 function refreshGantt() {
   if (!ganttContainer.value) return;
 
+  applyColumnsConfig();
   applyScaleMode(activeScale.value);
   const dataset = buildGanttDataset();
 
@@ -812,6 +865,12 @@ function refreshGantt() {
   gantt.render();
 
   updateDateRangeHeader();
+}
+
+function toggleExtraColumns() {
+  showExtraColumns.value = !showExtraColumns.value;
+  applyColumnsConfig();
+  gantt.render();
 }
 
 function setScale(scale: 'day' | 'week' | 'month') {
@@ -891,8 +950,10 @@ function escapeHtml(str: string): string {
 // Lifecycle Hooks & Event Listeners
 // ----------------------------------------------------
 let onTaskClickId: string | null = null;
-let onAfterUpdateId: string | null = null;
-let onAfterLinkId: string | null = null;
+let onBeforeDragId: string | null = null;
+let onBeforeLinkId: string | null = null;
+let onDblClickId: string | null = null;
+let onLightboxId: string | null = null;
 
 onMounted(() => {
   if (!ganttContainer.value) return;
@@ -900,7 +961,24 @@ onMounted(() => {
   configureGanttEngine();
   gantt.init(ganttContainer.value);
 
+  // Disable dragging, resizing, link creation, and default lightboxes completely
+  onBeforeDragId = gantt.attachEvent('onBeforeTaskDrag', () => false);
+  onBeforeLinkId = gantt.attachEvent('onBeforeLinkAdd', () => false);
+  onDblClickId = gantt.attachEvent('onTaskDblClick', () => false);
+  onLightboxId = gantt.attachEvent('onBeforeLightbox', () => false);
+
+  // Task click handler: Open details modal while preventing default selection / stray lightbox
   onTaskClickId = gantt.attachEvent('onTaskClick', (id: string | number) => {
+    try {
+      // Hide any active Gantt tooltip so it doesn't linger over the opened modal
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (gantt as any).ext?.tooltips?.tooltip?.hide?.();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (gantt as any).hideTooltip?.();
+    } catch {
+      // Ignore
+    }
+
     if (typeof id === 'number' || (!String(id).startsWith('proj_') && !isNaN(Number(id)))) {
       const numericId = Number(id);
       const found = props.tasks.find((t) => t.task_id === numericId);
@@ -908,30 +986,7 @@ onMounted(() => {
         emit('task-click', found);
       }
     }
-    return true;
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onAfterUpdateId = gantt.attachEvent('onAfterTaskUpdate', (id: string | number, item: any) => {
-    if (typeof id === 'number' || !String(id).startsWith('proj_')) {
-      const numericId = Number(id);
-      const startObj = item.start_date instanceof Date ? item.start_date : new Date(item.start_date);
-      const endObj = item.end_date instanceof Date ? item.end_date : new Date(item.end_date);
-      emit('task-updated', {
-        taskId: numericId,
-        title: String(item.text || ''),
-        startDate: formatGanttDate(startObj),
-        endDate: formatGanttDate(endObj),
-        progress: Math.round((Number(item.progress) || 0) * 100),
-      });
-    }
-  });
-
-  onAfterLinkId = gantt.attachEvent('onAfterLinkAdd', (_id: string | number, item: { source: number | string; target: number | string }) => {
-    emit('link-added', {
-      sourceTaskId: Number(item.source),
-      targetTaskId: Number(item.target),
-    });
+    return false;
   });
 
   refreshGantt();
@@ -939,8 +994,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (onTaskClickId) gantt.detachEvent(onTaskClickId);
-  if (onAfterUpdateId) gantt.detachEvent(onAfterUpdateId);
-  if (onAfterLinkId) gantt.detachEvent(onAfterLinkId);
+  if (onBeforeDragId) gantt.detachEvent(onBeforeDragId);
+  if (onBeforeLinkId) gantt.detachEvent(onBeforeLinkId);
+  if (onDblClickId) gantt.detachEvent(onDblClickId);
+  if (onLightboxId) gantt.detachEvent(onLightboxId);
   gantt.clearAll();
 });
 
@@ -1208,11 +1265,20 @@ defineExpose({
     font-weight: 800;
     font-size: 10.5px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     border-right: 1px solid #e2e8f0;
-    padding: 0 10px;
+    padding: 0 6px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &.gantt_grid_head_text {
+      justify-content: flex-start;
+      padding-left: 10px;
+    }
   }
 
   .gantt_scale_cell {
@@ -1297,9 +1363,16 @@ defineExpose({
     color: #1e293b;
     font-size: 12px;
     border-right: 1px solid #f1f5f9;
-    padding: 0 8px;
+    padding: 0 4px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    &.gantt_cell_tree {
+      justify-content: flex-start;
+      padding-left: 6px;
+    }
   }
 
   .gantt_task_cell {
@@ -1363,16 +1436,28 @@ defineExpose({
   .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10.5px;
     font-weight: 600;
+    max-width: 100%;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
 
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .badge-text {
+      line-height: 1.1;
       display: inline-block;
     }
 
@@ -1400,10 +1485,16 @@ defineExpose({
 
   .priority-badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10.5px;
     font-weight: 700;
+    max-width: 100%;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &.p-critical {
       background: #fdf2f8;
@@ -1425,18 +1516,29 @@ defineExpose({
 
   .duration-badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10.5px;
     font-weight: 600;
     background: #f0f9ff;
     color: #0284c7;
+    white-space: nowrap;
+    text-align: center;
 
     &.project-dur-badge {
       background: #f1f5f9;
       color: #475569;
       font-weight: 700;
     }
+  }
+
+  /* Completely disable/hide drag and resize handles on task bars */
+  .gantt_task_drag,
+  .gantt_task_progress_drag,
+  .gantt_link_control,
+  .gantt_link_point {
+    display: none !important;
+    pointer-events: none !important;
   }
 
   /* ----------------------------------------------------
