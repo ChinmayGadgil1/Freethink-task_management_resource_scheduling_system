@@ -894,7 +894,7 @@ export async function getLeavesApi(params?: {
   endDate?: string;
 }): Promise<LeaveItem[]> {
   const queryParams = new URLSearchParams();
-  if (params?.user_id !== undefined) {
+  if (params?.user_id !== undefined && params?.user_id !== null) {
     queryParams.append('user_id', String(params.user_id));
   }
   if (params?.startDate) {

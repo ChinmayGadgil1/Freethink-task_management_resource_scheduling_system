@@ -256,6 +256,13 @@ const resourceNavItems: SidebarNavItem[] = [
     colorClass: 'text-amber-9',
     bgClass: 'bg-amber-1',
   },
+  {
+    title: 'Leaves',
+    to: '/app/resource-dashboard/leaves',
+    icon: 'event_busy',
+    colorClass: 'text-red-7',
+    bgClass: 'bg-red-1',
+  },
 ];
 
 function toggleMini() {

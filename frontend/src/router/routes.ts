@@ -72,6 +72,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/common/CalendarPage.vue'),
       },
       {
+        path: 'leaves',
+        component: () => import('@/pages/common/LeavesPage.vue'),
+      },
+      {
         path: 'progress',
         redirect: '/pm/projects',
       },
@@ -111,6 +115,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'calendar',
         component: () => import('@/pages/common/CalendarPage.vue'),
+      },
+      {
+        path: 'leaves',
+        component: () => import('@/pages/common/LeavesPage.vue'),
       },
       {
         path: 'progress',

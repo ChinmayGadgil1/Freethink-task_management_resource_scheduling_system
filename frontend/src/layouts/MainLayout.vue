@@ -462,6 +462,13 @@ const pmNavItems = computed<SidebarNavItem[]>(() => [
     colorClass: 'text-amber-9',
     bgClass: 'bg-amber-1',
   },
+  {
+    title: 'Leaves',
+    to: '/pm/leaves',
+    icon: 'event_busy',
+    colorClass: 'text-red-7',
+    bgClass: 'bg-red-1',
+  },
 ]);
 
 const quickLinks = [
@@ -470,6 +477,7 @@ const quickLinks = [
   { title: 'Resource Workload', icon: 'groups', route: '/pm/resources' },
   { title: 'Project Schedule', icon: 'event', route: '/pm/schedule' },
   { title: 'Company Calendar', icon: 'calendar_month', route: '/pm/calendar' },
+  { title: 'Leaves & Absences', icon: 'event_busy', route: '/pm/leaves' },
 ];
 
 async function loadSearchData() {
