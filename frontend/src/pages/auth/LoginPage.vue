@@ -5,7 +5,7 @@
       <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold auth-title">Login</div>
         <div class="text-body2 text-grey-7 q-mt-sm auth-subtitle">
-          Hey, Enter your details to get sign in
+          Hey, Enter your details to get log in
           <br />
           to your account
         </div>
@@ -79,7 +79,7 @@
             type="submit"
             unelevated
             no-caps
-            label="Sign in"
+            label="Log in"
             color="deep-purple"
             text-color="white"
             class="full-width rounded-borders auth-submit-btn"
@@ -134,7 +134,7 @@ const handleLogin = async () => {
       password: form.password,
     });
 
-    console.log('Sign in response:', data);
+    console.log('Log in response:', data);
 
     if (data.user) {
       const token = data.user.token || data.token || '';
@@ -144,7 +144,7 @@ const handleLogin = async () => {
 
     const messageText = data.user?.name
       ? `Signed in successfully! Welcome ${data.user.name}`
-      : data.message || 'Sign in successful!';
+      : data.message || 'LOg in successful!';
 
     sessionStorage.setItem('flashMessage', messageText);
 
