@@ -877,4 +877,87 @@ export async function deleteHolidayApi(id: number): Promise<{ message: string }>
   return data;
 }
 
+export interface LeaveItem {
+  leave_id: number;
+  user_id: number;
+  leave_date: string;
+  leave_hours: number;
+}
+
+/**
+ * Fetch all leaves with optional filters
+ * GET /api/leaves
+ */
+export async function getLeavesApi(params?: {
+  user_id?: number;
+  startDate?: string;
+  endDate?: string;
+}): Promise<LeaveItem[]> {
+  const queryParams = new URLSearchParams();
+  if (params?.user_id !== undefined) {
+    queryParams.append('user_id', String(params.user_id));
+  }
+  if (params?.startDate) {
+    queryParams.append('startDate', params.startDate);
+  }
+  if (params?.endDate) {
+    queryParams.append('endDate', params.endDate);
+  }
+
+  const url = `${API_BASE_URL}/leaves${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await authenticatedFetch(url, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch leaves');
+  }
+
+  return data.data;
+}
+
+/**
+ * Apply / create a new leave request
+ * POST /api/leaves
+ */
+export async function createLeaveApi(payload: {
+  user_id: number;
+  leave_date: string;
+  leave_hours?: number;
+}): Promise<LeaveItem> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/leaves`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to apply leave');
+  }
+
+  return data.data;
+}
+
+/**
+ * Delete / cancel a leave request
+ * DELETE /api/leaves/:id
+ */
+export async function deleteLeaveApi(id: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/leaves/${id}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete leave');
+  }
+
+  return data;
+}
+
+
 

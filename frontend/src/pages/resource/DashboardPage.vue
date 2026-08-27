@@ -388,8 +388,133 @@
             </q-list>
           </q-card>
         </div>
+
+        <!-- 8. MY LEAVES (FULL WIDTH) -->
+        <div>
+          <q-card flat bordered class="dashboard-card" style="border-radius: 14px">
+            <q-card-section class="row items-center justify-between q-pa-md">
+              <div>
+                <div class="text-subtitle1 text-weight-bold text-main">My Leaves & Time Off</div>
+                <div class="text-caption text-muted">Manage your leaves and request new time off</div>
+              </div>
+              <q-btn
+                color="primary"
+                icon="add"
+                label="Apply Leave"
+                no-caps
+                unelevated
+                @click="openLeaveDialog"
+              />
+            </q-card-section>
+
+            <q-separator />
+
+            <div v-if="leavesList.length === 0" class="q-pa-lg text-center text-muted">
+              <q-avatar size="44px" color="grey-2" text-color="grey-7" icon="event_busy" />
+              <div class="text-body2 q-mt-sm text-main">No leave requests found.</div>
+              <div class="text-caption q-mt-xs">Click "Apply Leave" to log a new time off request.</div>
+            </div>
+
+            <q-table
+              v-else
+              flat
+              :rows="leavesList"
+              :columns="leaveColumns"
+              row-key="leave_id"
+              :pagination="{ rowsPerPage: 5 }"
+              class="leaves-table bg-transparent text-main"
+            >
+              <template #body-cell-leave_date="props">
+                <q-td :props="props">
+                  {{ formatDate(props.row.leave_date) }}
+                </q-td>
+              </template>
+
+              <template #body-cell-leave_hours="props">
+                <q-td :props="props">
+                  {{ formatHours(props.row.leave_hours) }}
+                </q-td>
+              </template>
+
+              <template #body-cell-actions="props">
+                <q-td :props="props" class="text-center">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    color="negative"
+                    icon="delete"
+                    @click="confirmCancelLeave(props.row.leave_id)"
+                  >
+                    <q-tooltip>Cancel Leave</q-tooltip>
+                  </q-btn>
+                </q-td>
+              </template>
+            </q-table>
+          </q-card>
+        </div>
       </div>
     </div>
+
+    <!-- APPLY LEAVE DIALOG -->
+    <q-dialog v-model="showLeaveDialog">
+      <q-card style="min-width: 380px">
+        <q-card-section class="row items-center justify-between">
+          <div class="text-h6 text-weight-bold">Apply Leave</div>
+          <q-btn v-close-popup flat round dense icon="close" />
+        </q-card-section>
+
+        <q-form @submit.prevent="handleApplyLeave">
+          <q-card-section class="q-gutter-md">
+            <q-input
+              v-model="leaveForm.leave_date"
+              outlined
+              dense
+              label="Leave Date (YYYY-MM-DD) *"
+              :rules="[(val) => !!val || 'Leave date is required']"
+            >
+              <template #append>
+                <q-icon name="event" class="cursor-pointer">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date v-model="leaveForm.leave_date" mask="YYYY-MM-DD">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Close" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+
+            <q-input
+              v-model.number="leaveForm.leave_hours"
+              outlined
+              dense
+              type="number"
+              step="0.5"
+              label="Leave Hours *"
+              :rules="[
+                (val) => !!val || 'Leave hours is required',
+                (val) => val > 0 || 'Hours must be positive',
+                (val) => val <= 24 || 'Hours cannot exceed 24'
+              ]"
+            />
+          </q-card-section>
+
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn v-close-popup flat no-caps label="Cancel" />
+            <q-btn
+              type="submit"
+              unelevated
+              no-caps
+              color="primary"
+              label="Apply Leave"
+              :loading="leaveSubmitting"
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -403,11 +528,16 @@ import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.v
 import StatCard from '@/components/dashboard/StatCard.vue';
 import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
+import { reactive } from 'vue';
 import {
   getTasksApi,
   getResourceWorkloadApi,
+  getLeavesApi,
+  createLeaveApi,
+  deleteLeaveApi,
   type Task,
   type ResourceWorkload,
+  type LeaveItem,
 } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
@@ -418,6 +548,20 @@ const loading = ref(true);
 const error = ref('');
 const tasks = ref<Task[]>([]);
 const workloadData = ref<ResourceWorkload | null>(null);
+
+const leavesList = ref<LeaveItem[]>([]);
+const showLeaveDialog = ref(false);
+const leaveSubmitting = ref(false);
+const leaveForm = reactive({
+  leave_date: '',
+  leave_hours: 8,
+});
+
+const leaveColumns = [
+  { name: 'leave_date', label: 'Date', field: (l: LeaveItem) => l.leave_date, align: 'left' as const, sortable: true },
+  { name: 'leave_hours', label: 'Hours', field: (l: LeaveItem) => l.leave_hours, align: 'center' as const, sortable: true },
+  { name: 'actions', label: 'Actions', field: () => '', align: 'center' as const },
+];
 
 type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string };
 
@@ -453,6 +597,17 @@ async function loadDashboardData() {
       workloadData.value = await getResourceWorkloadApi();
     } catch {
       workloadData.value = null;
+    }
+
+    try {
+      if (currentUserId.value !== null) {
+        leavesList.value = await getLeavesApi({ user_id: currentUserId.value });
+      } else {
+        leavesList.value = await getLeavesApi();
+      }
+    } catch (e) {
+      console.error('Failed to load leaves:', e);
+      leavesList.value = [];
     }
   } catch (err) {
     console.error('Failed to load dashboard data:', err);
@@ -703,6 +858,68 @@ function goToSchedule() {
 
 function goToProgress() {
   void router.push('/app/resource-dashboard/progress');
+}
+
+function openLeaveDialog() {
+  leaveForm.leave_date = '';
+  leaveForm.leave_hours = 8;
+  showLeaveDialog.value = true;
+}
+
+async function handleApplyLeave() {
+  if (!leaveForm.leave_date || currentUserId.value === null) {
+    return;
+  }
+  leaveSubmitting.value = true;
+  try {
+    await createLeaveApi({
+      user_id: currentUserId.value,
+      leave_date: leaveForm.leave_date,
+      leave_hours: Number(leaveForm.leave_hours) || 8,
+    });
+    $q.notify({
+      type: 'positive',
+      message: 'Leave applied successfully',
+    });
+    showLeaveDialog.value = false;
+    void loadDashboardData();
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to apply leave';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+    });
+  } finally {
+    leaveSubmitting.value = false;
+  }
+}
+
+function confirmCancelLeave(leaveId: number) {
+  $q.dialog({
+    title: 'Confirm Cancellation',
+    message: 'Are you sure you want to cancel this leave?',
+    cancel: true,
+    persistent: true,
+  }).onOk(() => {
+    void handleCancelLeave(leaveId);
+  });
+}
+
+async function handleCancelLeave(leaveId: number) {
+  try {
+    await deleteLeaveApi(leaveId);
+    $q.notify({
+      type: 'positive',
+      message: 'Leave cancelled successfully',
+    });
+    void loadDashboardData();
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to cancel leave';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+    });
+  }
 }
 </script>
 

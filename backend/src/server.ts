@@ -6,6 +6,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import resourceRoutes from "./routes/resourceRoutes.js";
 import schedulerRoutes from "./routes/schedulerRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
+import leaveRoutes from "./routes/leaveRoutes.js";
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/scheduler", schedulerRoutes);
 app.use("/api/holidays", holidayRoutes);
+app.use("/api/leaves", leaveRoutes);
 
 async function startServer() {
     try {
