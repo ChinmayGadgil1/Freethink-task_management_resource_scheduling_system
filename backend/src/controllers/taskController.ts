@@ -177,6 +177,30 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
             }
         }
 
+        /* BACKEND STATUS & PROGRESS SYNCHRONIZATION:
+        Automatically sync task status and progress if one is provided without the other:
+            0% progress     -> 'SCHEDULED'
+            100% progress   -> 'COMPLETED'
+            1% - 99% progress -> 'IN_PROGRESS'
+        If status is explicitly updated without progress:
+         - 'COMPLETED' -> 100% progress
+         - 'SCHEDULED' -> 0% progress */
+        if (parsed.progress !== undefined && parsed.status === undefined) {
+            if (parsed.progress <= 0) {
+                parsed.status = "SCHEDULED";
+            } else if (parsed.progress >= 100) {
+                parsed.status = "COMPLETED";
+            } else {
+                parsed.status = "IN_PROGRESS";
+            }
+        } else if (parsed.status !== undefined && parsed.progress === undefined) {
+            if (parsed.status === "COMPLETED") {
+                parsed.progress = 100;
+            } else if (parsed.status === "SCHEDULED") {
+                parsed.progress = 0;
+            }
+        }
+
         await updateTask(taskId, parsed);
 
         // Hook SchedulingEngine.recalculate when priority, effort, deadline, or status updates

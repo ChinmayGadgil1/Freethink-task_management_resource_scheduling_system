@@ -40,26 +40,33 @@ export async function createWorkLog(
         );
         const isFirstLog = (workLogCountRows[0]?.log_count ?? 0) === 0;
 
-        // Insert the work log
-        const [result] = await connection.query<ResultSetHeader>(
-            `INSERT INTO work_logs (task_id, user_id, hours_logged, progress_logged, status, notes, blockers, log_date)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [taskId, userId, hoursLogged, progressLogged, status, notes, blockers, logDate]
-        );
-
-        // Update the task actual effort, progress, and status
+        // Calculate updated effort and progress values
         const oldActualEffort = Number(task.actual_effort);
         const expectedEffort = Number(task.expected_effort);
         const newActualEffort = oldActualEffort + Number(hoursLogged);
         const newProgress = Number(progressLogged);
 
-        // 1. If first log, set actual_start = log_date and transition to IN_PROGRESS (if not already completed)
-        let newStatus = status;
-        if (isFirstLog && (task.status === "UNASSIGNED" || task.status === "SCHEDULED" || task.status === "PENDING")) {
-            if (status !== "COMPLETED") {
-                newStatus = "IN_PROGRESS";
-            }
+        /* BACKEND STATUS SYNCHRONIZATION:
+         Automatically determine task status based on progress logged:
+         0% progress     -> 'SCHEDULED' (planned / not started)
+         100% progress   -> 'COMPLETED' (all work finished)
+         1% - 99% progress -> 'IN_PROGRESS' (work actively ongoing) */
+
+        let newStatus: string;
+        if (newProgress <= 0) {
+            newStatus = "SCHEDULED";
+        } else if (newProgress >= 100) {
+            newStatus = "COMPLETED";
+        } else {
+            newStatus = "IN_PROGRESS";
         }
+
+        // Insert the work log with the progress-aligned status
+        const [result] = await connection.query<ResultSetHeader>(
+            `INSERT INTO work_logs (task_id, user_id, hours_logged, progress_logged, status, notes, blockers, log_date)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [taskId, userId, hoursLogged, progressLogged, newStatus, notes, blockers, logDate]
+        );
 
         // Dynamically build UPDATE query for tasks
         // We set actual_start on first log if supported, and actual_end on COMPLETED

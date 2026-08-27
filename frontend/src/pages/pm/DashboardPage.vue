@@ -613,9 +613,20 @@
                   />
                 </div>
                 <div class="col-6">
+                  <div class="row items-center justify-between q-mb-xs">
+                    <span class="text-caption text-weight-bold">Progress (%) *</span>
+                    <q-chip
+                      dense
+                      square
+                      :class="['status-chip', getTaskStatusClass(getStatusFromProgress(logProgressForm.progress_logged))]"
+                      class="text-weight-bold"
+                      style="font-size: 11px; height: 18px"
+                    >
+                      {{ formatStatusLabel(getStatusFromProgress(logProgressForm.progress_logged)) }}
+                    </q-chip>
+                  </div>
                   <q-input
                     v-model.number="logProgressForm.progress_logged"
-                    label="Task Progress (%) *"
                     type="number"
                     min="0"
                     max="100"
@@ -729,6 +740,7 @@ import {
   type TaskPriority,
 } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
+import { getStatusFromProgress, formatStatusLabel, getTaskStatusClass } from '@/utils/taskHelpers';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -964,10 +976,11 @@ async function handleLogProgressSubmit() {
   if (!logProgressForm.task_id) return;
   loggingProgress.value = true;
   try {
+    const computedStatus = getStatusFromProgress(logProgressForm.progress_logged);
     await createWorkLogApi(logProgressForm.task_id, {
       hours_logged: logProgressForm.hours_logged,
       progress_logged: logProgressForm.progress_logged,
-      status: 'IN_PROGRESS',
+      status: computedStatus,
       notes: logProgressForm.notes,
       log_date: new Date().toISOString().slice(0, 10),
     });

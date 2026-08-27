@@ -940,15 +940,31 @@
         </q-card-section>
         <q-separator />
         <q-card-section class="q-gutter-md">
-          <q-input
-            v-model.number="stopSessionForm.progress_logged"
-            type="number"
-            min="0"
-            max="100"
-            label="Progress (%) *"
-            outlined
-            dense
-          />
+          <div>
+            <div class="row items-center justify-between q-mb-xs">
+              <div class="text-caption text-weight-bold">Progress (%) *</div>
+              <div class="row items-center q-gutter-xs">
+                <span class="text-caption text-grey-6">Status:</span>
+                <q-chip
+                  dense
+                  square
+                  :class="['status-chip', getTaskStatusClass(getStatusFromProgress(stopSessionForm.progress_logged))]"
+                  class="text-weight-bold"
+                  style="font-size: 11px; height: 20px"
+                >
+                  {{ formatStatusLabel(getStatusFromProgress(stopSessionForm.progress_logged)) }}
+                </q-chip>
+              </div>
+            </div>
+            <q-input
+              v-model.number="stopSessionForm.progress_logged"
+              type="number"
+              min="0"
+              max="100"
+              outlined
+              dense
+            />
+          </div>
           <q-input
             v-model="stopSessionForm.notes"
             type="textarea"
@@ -1175,7 +1191,13 @@ import DailyProgressDialog from '@/components/tasks/DailyProgressDialog.vue';
 import UpdateTaskDialog from '@/components/tasks/UpdateTaskDialog.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
-import { isOverdue, isTaskOverdue } from '@/utils/taskHelpers';
+import {
+  isOverdue,
+  isTaskOverdue,
+  getStatusFromProgress,
+  getTaskStatusClass,
+  formatStatusLabel,
+} from '@/utils/taskHelpers';
 
 const $q = useQuasar();
 const authStore = useAuthStore();

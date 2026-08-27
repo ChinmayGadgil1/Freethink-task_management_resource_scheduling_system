@@ -1165,7 +1165,7 @@
                   "
                   :label="st.label"
                   class="q-px-sm text-caption text-weight-bold"
-                  @click="selectedTaskForUpdate.status = st.value"
+                  @click="onQuickUpdateStatusClick(st.value)"
                 />
               </div>
             </div>
@@ -1184,6 +1184,12 @@
                 :step="5"
                 color="primary"
                 label
+                @update:model-value="
+                  (val) => {
+                    if (selectedTaskForUpdate)
+                      selectedTaskForUpdate.status = getStatusFromProgress(val);
+                  }
+                "
               />
             </div>
 
@@ -1319,7 +1325,7 @@ import StatCard from '@/components/dashboard/StatCard.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus, formatHours } from '@/utils/formatters';
-import { isTaskOverdue } from '@/utils/taskHelpers';
+import { isTaskOverdue, getStatusFromProgress } from '@/utils/taskHelpers';
 
 import {
   getProjectByIdApi,
@@ -2003,11 +2009,29 @@ function openQuickUpdate(task: Task) {
   showQuickUpdateDialog.value = true;
 }
 
+function onQuickUpdateStatusClick(
+  stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED',
+) {
+  if (!selectedTaskForUpdate.value) return;
+  selectedTaskForUpdate.value.status = stVal;
+  if (stVal === 'COMPLETED') {
+    selectedTaskForUpdateProgress.value = 100;
+  } else if (stVal === 'SCHEDULED') {
+    selectedTaskForUpdateProgress.value = 0;
+  } else if (
+    stVal === 'IN_PROGRESS' &&
+    (selectedTaskForUpdateProgress.value === 0 || selectedTaskForUpdateProgress.value === 100)
+  ) {
+    selectedTaskForUpdateProgress.value = 50;
+  }
+}
+
 async function saveQuickUpdate() {
   if (!selectedTaskForUpdate.value) return;
   try {
+    const finalStatus = getStatusFromProgress(selectedTaskForUpdateProgress.value);
     await updateTaskApi(selectedTaskForUpdate.value.task_id, {
-      status: selectedTaskForUpdate.value.status,
+      status: finalStatus,
       progress: selectedTaskForUpdateProgress.value,
       actual_effort: Number(selectedTaskForUpdate.value.actual_effort) || 0,
     });

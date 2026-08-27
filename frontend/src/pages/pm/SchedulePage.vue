@@ -607,6 +607,7 @@
                   dense
                   label="Status"
                   :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']"
+                  @update:model-value="onEditStatusChange"
                 />
               </div>
               <div class="col-6">
@@ -627,7 +628,10 @@
                   outlined
                   dense
                   type="number"
+                  min="0"
+                  max="100"
                   label="Progress (%)"
+                  @update:model-value="onEditProgressChange"
                 />
               </div>
               <div class="col-6">
@@ -681,7 +685,12 @@ import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { isTaskOverdue, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
+import {
+  isTaskOverdue,
+  getTaskStatusClass,
+  getPriorityClass,
+  getStatusFromProgress,
+} from '@/utils/taskHelpers';
 import {
   getProjectsApi,
   getTasksApi,
@@ -1260,6 +1269,21 @@ function openEditModal(task: Task) {
   editForm.expected_effort = Number(task.expected_effort) || 8;
   editForm.deadline = task.deadline?.split('T')[0] ?? '';
   showEditDialog.value = true;
+}
+
+function onEditProgressChange(val: number | string | null) {
+  const num = Math.min(100, Math.max(0, Number(val) || 0));
+  editForm.status = getStatusFromProgress(num);
+}
+
+function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
+  if (newStatus === 'COMPLETED') {
+    editForm.progress = 100;
+  } else if (newStatus === 'SCHEDULED') {
+    editForm.progress = 0;
+  } else if (newStatus === 'IN_PROGRESS' && (editForm.progress === 0 || editForm.progress === 100)) {
+    editForm.progress = 50;
+  }
 }
 
 async function handleUpdateTask() {

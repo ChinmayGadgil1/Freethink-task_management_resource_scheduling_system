@@ -37,9 +37,23 @@
           </div>
 
           <div class="col-12">
-            <div class="field-label">
-              Progress
-              <span class="text-primary text-weight-bold"> {{ form.progress_logged }}% </span>
+            <div class="row items-center justify-between q-mb-xs">
+              <div class="field-label q-mb-none">
+                Progress
+                <span class="text-primary text-weight-bold"> {{ form.progress_logged }}% </span>
+              </div>
+              <div class="row items-center q-gutter-xs">
+                <span class="text-caption text-grey-6 text-weight-medium">Status:</span>
+                <q-chip
+                  dense
+                  square
+                  :class="['status-chip', getTaskStatusClass(computedStatus)]"
+                  class="text-weight-bold"
+                  style="font-size: 11px; height: 22px;"
+                >
+                  {{ formatStatusLabel(computedStatus) }}
+                </q-chip>
+              </div>
             </div>
             <q-slider
               v-model="form.progress_logged"
@@ -95,6 +109,7 @@
 import { computed, reactive, watch } from 'vue';
 
 import type { CreateWorkLogPayload, Task } from '@/services/api';
+import { getStatusFromProgress, getTaskStatusClass, formatStatusLabel } from '@/utils/taskHelpers';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -113,10 +128,14 @@ function createToday() {
 const form = reactive<CreateWorkLogPayload>({
   hours_logged: 0,
   progress_logged: 0,
-  status: 'IN_PROGRESS',
+  status: 'SCHEDULED',
   notes: '',
   blockers: '',
   log_date: createToday(),
+});
+
+const computedStatus = computed(() => {
+  return getStatusFromProgress(form.progress_logged);
 });
 
 const canSubmit = computed(() => {
@@ -133,7 +152,7 @@ const canSubmit = computed(() => {
 function resetForm(task: Task | null) {
   form.hours_logged = 0;
   form.progress_logged = task ? Number(task.progress) || 0 : 0;
-  form.status = task?.status ?? 'IN_PROGRESS';
+  form.status = getStatusFromProgress(form.progress_logged);
   form.notes = '';
   form.blockers = '';
   form.log_date = createToday();
@@ -156,17 +175,12 @@ function save() {
     return;
   }
 
-  const computedStatus =
-    Number(form.progress_logged) === 100
-      ? 'COMPLETED'
-      : props.task.status === 'COMPLETED'
-        ? 'IN_PROGRESS'
-        : props.task.status || 'IN_PROGRESS';
+  const finalStatus = computedStatus.value;
 
   emit('save', {
     hours_logged: Number(form.hours_logged),
     progress_logged: Math.min(Math.max(Number(form.progress_logged), 0), 100),
-    status: computedStatus,
+    status: finalStatus,
     notes: form.notes.trim(),
     blockers: (form.blockers ?? '').trim() || null,
     log_date: form.log_date,

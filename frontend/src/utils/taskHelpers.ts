@@ -52,3 +52,32 @@ export function normalizePriority(
   if (up === 'LOW') return 'Low';
   return 'Medium';
 }
+
+/**
+ * Automatically determine task status from its progress percentage:
+ * - 0%  -> 'SCHEDULED'
+ * - 100% -> 'COMPLETED'
+ * - 1-99% -> 'IN_PROGRESS'
+ */
+export function getStatusFromProgress(
+  progress: number | string | null | undefined,
+): 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' {
+  const prog = Number(progress) || 0;
+  if (prog <= 0) return 'SCHEDULED';
+  if (prog >= 100) return 'COMPLETED';
+  return 'IN_PROGRESS';
+}
+
+/**
+ * Get human-readable label for a task status.
+ */
+export function formatStatusLabel(status: string | null | undefined): string {
+  if (!status) return 'Scheduled';
+  const s = status.toUpperCase();
+  if (s === 'COMPLETED') return 'Completed';
+  if (s === 'IN_PROGRESS') return 'In Progress';
+  if (s === 'SCHEDULED') return 'Scheduled';
+  if (s === 'UNASSIGNED') return 'Unassigned';
+  return status.replace(/_/g, ' ');
+}
+
