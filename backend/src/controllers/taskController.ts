@@ -640,3 +640,16 @@ export async function stopSessionController(req: AuthRequest<{ id: string }>, re
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
+
+export async function getActiveSessionController(req: AuthRequest, res: Response) {
+    try {
+        if (!req.user || req.user.role !== "RESOURCE") {
+            return res.status(200).json({ session: null });
+        }
+        const { getActiveSession } = await import("../services/workLogService.js");
+        const session = await getActiveSession(req.user.user_id);
+        return res.status(200).json({ session: session || null });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}

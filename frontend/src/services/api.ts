@@ -752,6 +752,21 @@ export async function stopTaskSessionApi(
 }
 
 /**
+ * Get active working session for the currently authenticated user
+ * GET /api/tasks/session/active
+ */
+export async function getActiveTaskSessionApi(): Promise<{ session: TaskSession | null }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/session/active`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch active session');
+  }
+
+  return data;
+}
+
+/**
  * Manually trigger scheduling engine recalculation for a project
  * POST /api/scheduler/project/:projectId/recalculate
  */

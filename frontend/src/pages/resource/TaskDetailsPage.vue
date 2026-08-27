@@ -605,14 +605,14 @@
               <!-- Action Buttons -->
               <div class="row items-center q-gutter-xs q-mt-xs">
                 <q-btn
-                  v-if="!activeSession"
+                  v-if="!isCurrentTaskSessionActive"
                   unelevated
                   no-caps
                   color="positive"
                   icon="play_arrow"
                   label="Start Session"
                   class="text-weight-bold"
-                  :loading="sessionLoading"
+                  :loading="sessionStore.loading"
                   @click="handleStartSession(task.task_id)"
                 />
                 <q-btn
@@ -623,7 +623,7 @@
                   icon="stop"
                   label="Stop Session"
                   class="text-weight-bold"
-                  :loading="sessionLoading"
+                  :loading="sessionStore.loading"
                   @click="promptStopSession"
                 />
                 <q-btn
@@ -989,7 +989,7 @@
             no-caps
             color="negative"
             label="Stop & Log Work"
-            :loading="sessionLoading"
+            :loading="sessionStore.loading"
             :disable="!stopSessionForm.notes.trim()"
             @click="confirmStopSession"
           />
@@ -1174,17 +1174,15 @@ import {
   getTasksApi,
   getWorkLogsApi,
   updateTaskApi,
-  startTaskSessionApi,
-  stopTaskSessionApi,
   type CreateWorkLogPayload,
   type Project,
   type Task,
-  type TaskSession,
   type WorkLog,
 } from '@/services/api';
 
 import { Notify, useQuasar } from 'quasar';
 import { useAuthStore } from '@/stores/auth';
+import { useSessionStore } from '@/stores/session';
 
 import type { ResourceTask } from '@/components/tasks/task-types';
 import DailyProgressDialog from '@/components/tasks/DailyProgressDialog.vue';
@@ -1462,8 +1460,12 @@ function resetCreateForm() {
   };
 }
 
-const activeSession = ref<TaskSession | null>(null);
-const sessionLoading = ref(false);
+const sessionStore = useSessionStore();
+
+const isCurrentTaskSessionActive = computed(() => {
+  return !!task.value && sessionStore.isTaskSessionActive(task.value.task_id);
+});
+
 const showStopSessionDialog = ref(false);
 const stopSessionForm = reactive({
   progress_logged: 0,
@@ -1472,10 +1474,17 @@ const stopSessionForm = reactive({
 });
 
 async function handleStartSession(tId: number) {
-  sessionLoading.value = true;
+  if (sessionStore.hasActiveSession && sessionStore.activeTaskId !== tId) {
+    Notify.create({
+      type: 'warning',
+      message: `You already have an active work session on Task #${sessionStore.activeTaskId}. Please stop your current session before starting a new one.`,
+      position: 'top-right',
+    });
+    return;
+  }
+
   try {
-    const res = await startTaskSessionApi(tId);
-    activeSession.value = res.session;
+    await sessionStore.startSession(tId);
     Notify.create({
       type: 'positive',
       message: 'Session started successfully.',
@@ -1488,30 +1497,32 @@ async function handleStartSession(tId: number) {
       message: err instanceof Error ? err.message : 'Failed to start session.',
       position: 'top-right',
     });
-  } finally {
-    sessionLoading.value = false;
   }
 }
 
 function promptStopSession() {
-  if (task.value) {
-    stopSessionForm.progress_logged = Number(task.value.progress) || 0;
-    stopSessionForm.notes = '';
-    stopSessionForm.blockers = '';
+  if (!sessionStore.hasActiveSession) return;
+  const activeId = sessionStore.activeTaskId;
+  const targetTask = tasks.value.find((t) => t.task_id === activeId) || task.value;
+  if (targetTask) {
+    stopSessionForm.progress_logged = Number(targetTask.progress) || 0;
+  } else {
+    stopSessionForm.progress_logged = 0;
   }
+  stopSessionForm.notes = '';
+  stopSessionForm.blockers = '';
   showStopSessionDialog.value = true;
 }
 
 async function confirmStopSession() {
-  if (!task.value) return;
-  sessionLoading.value = true;
+  if (!sessionStore.hasActiveSession) return;
+  const targetTaskId = sessionStore.activeTaskId;
   try {
-    await stopTaskSessionApi(task.value.task_id, {
+    await sessionStore.stopSession({
       progress_logged: Math.min(100, Math.max(0, Number(stopSessionForm.progress_logged) || 0)),
       notes: stopSessionForm.notes.trim(),
       blockers: stopSessionForm.blockers.trim() || null,
     });
-    activeSession.value = null;
     showStopSessionDialog.value = false;
     Notify.create({
       type: 'positive',
@@ -1519,8 +1530,8 @@ async function confirmStopSession() {
       position: 'top-right',
     });
     await loadTasks();
-    if (task.value) {
-      await loadHistory(task.value.task_id);
+    if (task.value && targetTaskId && task.value.task_id === targetTaskId) {
+      await loadHistory(targetTaskId);
     }
   } catch (err) {
     Notify.create({
@@ -1528,8 +1539,6 @@ async function confirmStopSession() {
       message: err instanceof Error ? err.message : 'Failed to stop session.',
       position: 'top-right',
     });
-  } finally {
-    sessionLoading.value = false;
   }
 }
 
@@ -1797,6 +1806,7 @@ function statusLabel(status: Task['status']) {
 
 onMounted(() => {
   void loadTasks();
+  void sessionStore.fetchActiveSession();
 });
 </script>
 

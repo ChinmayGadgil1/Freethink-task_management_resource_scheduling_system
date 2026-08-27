@@ -207,12 +207,14 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useSessionStore } from '@/stores/session';
 import { useThemeStore } from '@/stores/theme';
 import { resetPasswordApi } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
 const authStore = useAuthStore();
+const sessionStore = useSessionStore();
 const themeStore = useThemeStore();
 const searchQuery = ref('');
 const leftDrawerOpen = ref(true);
@@ -270,6 +272,9 @@ function toggleDarkMode() {
 
 onMounted(() => {
   themeStore.initTheme();
+  if (authStore.user?.role === 'RESOURCE') {
+    void sessionStore.fetchActiveSession();
+  }
 });
 
 const resetPasswordDialog = ref(false);
@@ -325,7 +330,31 @@ const user = computed(() => authStore.user);
 const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCase());
 
 function logout() {
+  if (sessionStore.hasActiveSession) {
+    $q.dialog({
+      title: 'Active Work Session',
+      message: `You have an active work session (Task #${sessionStore.activeTaskId}). Please end your current session before logging out.`,
+      ok: {
+        label: 'Go to Task',
+        color: 'primary',
+        noCaps: true,
+      },
+      cancel: {
+        label: 'Cancel',
+        flat: true,
+        noCaps: true,
+      },
+      persistent: true,
+    }).onOk(() => {
+      if (sessionStore.activeTaskId) {
+        void router.push(`/app/resource-dashboard/task-details?taskId=${sessionStore.activeTaskId}`);
+      }
+    });
+    return;
+  }
+
   authStore.clearAuth();
+  sessionStore.clearSession();
   localStorage.removeItem('user');
   sessionStorage.removeItem('flashMessage');
   void router.push('/');
