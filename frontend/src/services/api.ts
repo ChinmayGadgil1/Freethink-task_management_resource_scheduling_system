@@ -774,3 +774,92 @@ export async function recalculateProjectScheduleApi(
   return data;
 }
 
+/**
+ * Fetch all holidays with optional date filters
+ * GET /api/holidays
+ */
+export async function getHolidaysApi(
+  startDate?: string,
+  endDate?: string,
+): Promise<HolidayItem[]> {
+  const queryParams = new URLSearchParams();
+  if (startDate) queryParams.append('startDate', startDate);
+  if (endDate) queryParams.append('endDate', endDate);
+
+  const url = `${API_BASE_URL}/holidays${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await authenticatedFetch(url, { method: 'GET' });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch holidays');
+  }
+
+  return data.data || [];
+}
+
+/**
+ * Create a new holiday (Project Manager only)
+ * POST /api/holidays
+ */
+export async function createHolidayApi(payload: {
+  holiday_date: string;
+  description: string;
+}): Promise<HolidayItem> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/holidays`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create holiday');
+  }
+
+  return data.data;
+}
+
+/**
+ * Update an existing holiday (Project Manager only)
+ * PUT /api/holidays/:id
+ */
+export async function updateHolidayApi(
+  id: number,
+  payload: {
+    holiday_date?: string;
+    description?: string;
+  },
+): Promise<HolidayItem> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/holidays/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update holiday');
+  }
+
+  return data.data;
+}
+
+/**
+ * Delete a holiday (Project Manager only)
+ * DELETE /api/holidays/:id
+ */
+export async function deleteHolidayApi(id: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/holidays/${id}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete holiday');
+  }
+
+  return data;
+}
+
+

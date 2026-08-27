@@ -247,6 +247,13 @@ const resourceNavItems: SidebarNavItem[] = [
     colorClass: 'text-green',
     bgClass: 'bg-green-soft',
   },
+  {
+    title: 'Calendar',
+    to: '/app/resource-dashboard/calendar',
+    icon: 'event_available',
+    colorClass: 'text-amber-9',
+    bgClass: 'bg-amber-1',
+  },
 ];
 
 function toggleMini() {
