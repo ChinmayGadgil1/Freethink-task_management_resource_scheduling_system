@@ -654,6 +654,46 @@
               >
                 {{ task.description || 'No description provided.' }}
               </div>
+
+              <!-- Co-assigned team members collaborating on this task spec -->
+              <div
+                v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
+                class="q-mt-md"
+              >
+                <div
+                  class="text-caption text-weight-bold q-mb-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
+                  ASSIGNED TEAM MEMBERS (CO-ASSIGNEES)
+                </div>
+                <div class="row items-center q-gutter-xs wrap">
+                  <q-chip
+                    v-for="rId in task.assigned_resource_ids"
+                    :key="rId"
+                    dense
+                    square
+                    :color="Number(rId) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-10' : 'purple-1') : ($q.dark.isActive ? 'grey-9' : 'grey-2')"
+                    :text-color="Number(rId) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-2' : 'primary') : ($q.dark.isActive ? 'grey-3' : 'grey-8')"
+                    class="text-weight-medium"
+                  >
+                    <q-avatar
+                      size="20px"
+                      :color="Number(rId) === getCurrentUserId() ? 'primary' : 'grey-6'"
+                      text-color="white"
+                    >
+                      {{ getInitials(resolveMemberName(Number(rId)), 'R') }}
+                    </q-avatar>
+                    {{ resolveMemberName(Number(rId)) }}
+                    <!-- Highlight (You) badge if current logged-in resource -->
+                    <span
+                      v-if="Number(rId) === getCurrentUserId()"
+                      class="q-ml-xs text-weight-bold text-primary"
+                    >
+                      (You)
+                    </span>
+                  </q-chip>
+                </div>
+              </div>
             </div>
 
             <!-- Right Column: Deadline (Compact, Aligned at Top Right) + Action Buttons -->
@@ -921,7 +961,7 @@
         </q-card-section>
       </q-card>
 
-      <!-- 3. DAILY UPDATES LOG SECTION -->
+      <!-- 3. DAILY UPDATES & START/STOP SESSION LOG SECTION -->
       <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
         <q-card-section class="row items-center justify-between q-pa-md">
           <div class="row items-center">
@@ -938,18 +978,46 @@
                 class="text-subtitle1 text-weight-bold"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
-                Daily Updates History
+                Daily Updates & Session History
               </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                Work log notes, progress reports, and blockers logged for this task.
+                Collaborative timeline of start/stop sessions, work notes, and progress logged by all assigned resources.
               </div>
             </div>
           </div>
+          <!-- Total updates count chip -->
+          <q-chip
+            v-if="workLogs.length > 0"
+            dense
+            square
+            :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+            :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
+            class="text-caption text-weight-bold"
+          >
+            {{ workLogs.length }} update{{ workLogs.length === 1 ? '' : 's' }}
+          </q-chip>
         </q-card-section>
 
         <q-separator />
 
         <q-card-section class="q-pa-md">
+          <!-- Live Active Session Banner for co-assigned resources currently working on this task -->
+          <q-banner
+            v-if="otherActiveSessions.length > 0"
+            class="bg-blue-1 text-primary q-mb-md rounded-borders"
+            rounded
+          >
+            <template #avatar>
+              <q-spinner-dots color="primary" size="24px" />
+            </template>
+            <div class="text-weight-medium text-caption">
+              <!-- Render notice for each co-assignee with an active timer -->
+              <span v-for="s in otherActiveSessions" :key="s.session_id" class="q-mr-md">
+                🟢 <b>{{ s.user_name || resolveMemberName(s.user_id) }}</b> is currently working on this task (started {{ formatHistoryTime(s.start_time) }}).
+              </span>
+            </div>
+          </q-banner>
+
           <div v-if="historyLoading" class="column items-center q-pa-xl">
             <q-spinner color="primary" size="32px" />
             <div
@@ -999,61 +1067,89 @@
             </q-card-section>
           </q-card>
 
+          <!-- List of work logs & session updates from all assigned co-resources -->
           <q-list v-else bordered separator :dark="$q.dark.isActive" class="rounded-borders">
             <q-item v-for="log in workLogs" :key="log.log_id" class="q-py-md">
-              <q-item-section avatar top>
+              <!-- Author Avatar with Initials -->
+              <q-item-section avatar top style="min-width: 40px">
                 <q-avatar
-                  size="34px"
-                  rounded
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  icon="trending_up"
-                />
+                  size="36px"
+                  :color="Number(log.user_id) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-10' : 'purple-1') : ($q.dark.isActive ? 'teal-10' : 'teal-1')"
+                  :text-color="Number(log.user_id) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-2' : 'primary') : ($q.dark.isActive ? 'teal-2' : 'teal-9')"
+                  class="text-weight-bold"
+                >
+                  {{ getInitials(log.author_name || resolveMemberName(log.user_id), 'U') }}
+                </q-avatar>
               </q-item-section>
 
               <q-item-section>
-                <q-item-label
-                  class="text-weight-bold"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                >
-                  {{ formatHistoryDate(log.log_date) }}
-                </q-item-label>
+                <!-- Header row: Author name, You badge, timestamp, status -->
+                <div class="row items-center justify-between no-wrap">
+                  <div class="row items-center q-gutter-xs wrap">
+                    <!-- Author Resource Name -->
+                    <span
+                      class="text-weight-bold"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
+                      {{ log.author_name || resolveMemberName(log.user_id) }}
+                    </span>
 
-                <q-item-label
-                  caption
-                  class="q-mt-xs"
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                >
-                  {{ formatHours(log.hours_logged) }} worked · {{ Number(log.progress_logged) }}% progress
-                </q-item-label>
+                    <!-- (You) Badge for current user's logs -->
+                    <q-badge
+                      v-if="Number(log.user_id) === getCurrentUserId()"
+                      color="primary"
+                      label="You"
+                      class="text-weight-bold q-ml-xs"
+                    />
 
-                <q-item-label
+                    <span class="text-caption text-grey-5">·</span>
+
+                    <!-- Date & time of the update -->
+                    <span class="text-caption text-grey-6 text-weight-medium">
+                      {{ formatHistoryDate(log.log_date || log.created_at) }}
+                    </span>
+                  </div>
+
+                  <!-- Task status associated with this update -->
+                  <q-chip
+                    dense
+                    square
+                    size="sm"
+                    :color="statusBgColor(log.status)"
+                    :text-color="statusTextColor(log.status)"
+                    :label="statusLabel(log.status)"
+                    class="text-weight-bold"
+                  />
+                </div>
+
+                <!-- Hours logged & progress metrics -->
+                <div class="row items-center gap-xs q-mt-xs text-caption text-grey-7">
+                  <q-icon name="timer" size="14px" color="primary" class="q-mr-xs" />
+                  <span class="text-weight-medium" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                    {{ formatHours(log.hours_logged) }} logged
+                  </span>
+                  <span class="q-mx-xs">·</span>
+                  <span class="text-weight-medium text-primary">{{ Number(log.progress_logged) }}% progress</span>
+                </div>
+
+                <!-- Session summary / update notes -->
+                <div
+                  v-if="log.notes"
                   class="q-mt-sm text-body2"
                   :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                  style="white-space: pre-wrap; word-break: break-word"
                 >
                   {{ log.notes }}
-                </q-item-label>
+                </div>
 
-                <q-item-label
+                <!-- Blocker details if reported -->
+                <div
                   v-if="log.blockers"
-                  caption
-                  class="text-negative q-mt-xs text-weight-medium"
+                  class="row items-center text-negative q-mt-xs text-weight-medium text-caption"
                 >
                   <q-icon name="warning_amber" size="15px" class="q-mr-xs" />
-                  {{ log.blockers }}
-                </q-item-label>
-              </q-item-section>
-
-              <q-item-section side top>
-                <q-chip
-                  dense
-                  square
-                  size="sm"
-                  :color="statusBgColor(log.status)"
-                  :text-color="statusTextColor(log.status)"
-                  :label="statusLabel(log.status)"
-                  class="text-weight-bold"
-                />
+                  <span>Blocker: {{ log.blockers }}</span>
+                </div>
               </q-item-section>
             </q-item>
           </q-list>
@@ -1341,10 +1437,12 @@ import {
   getProjectsApi,
   getTasksApi,
   getWorkLogsApi,
+  getTaskActiveSessionsApi, // Added API to fetch live active sessions of co-assigned resources
   updateTaskApi,
   type CreateWorkLogPayload,
   type Project,
   type Task,
+  type TaskSession, // Added TaskSession type for active session states
   type WorkLog,
 } from '@/services/api';
 
@@ -1356,7 +1454,7 @@ import type { ResourceTask } from '@/components/tasks/task-types';
 import DailyProgressDialog from '@/components/tasks/DailyProgressDialog.vue';
 import UpdateTaskDialog from '@/components/tasks/UpdateTaskDialog.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
-import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
+import { formatDate, formatHours, formatNumber, getInitials } from '@/utils/formatters'; // Added getInitials for avatar rendering
 import {
   isOverdue,
   isTaskOverdue,
@@ -1368,7 +1466,39 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 const viewMode = ref<'board' | 'table'>('board');
 
-type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string };
+// Active working sessions currently in progress on this task by any assigned resource
+const activeCoAssigneeSessions = ref<Array<TaskSession & { user_name?: string; user_email?: string }>>([]);
+
+// Map of resource user ID to display name populated from logs and sessions
+const resourceNamesMap = ref<Record<number, string>>({});
+
+// Compute active sessions from other co-assignees (excluding current user's session if already active)
+const otherActiveSessions = computed(() => {
+  const currentUserId = getCurrentUserId();
+  return activeCoAssigneeSessions.value.filter((s) => Number(s.user_id) !== currentUserId);
+});
+
+// Resolve a resource's readable name by their user_id (supports optional/nullable ID)
+function resolveMemberName(userId?: number | null): string {
+  if (userId && resourceNamesMap.value[userId]) {
+    return resourceNamesMap.value[userId];
+  }
+  const currentUserId = getCurrentUserId();
+  if (currentUserId && userId && userId === currentUserId) {
+    const u = authStore.user as UserLike | null;
+    return u?.name || 'You';
+  }
+  return userId ? `Resource #${userId}` : 'Team Member';
+}
+
+// Format time for active session banner (e.g., '10:30 AM')
+function formatHistoryTime(dateStr: string | Date | undefined): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? String(dateStr) : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string; name?: string };
 type TaskLike = {
   created_by?: number | string;
   createdBy?: number | string;
@@ -1955,12 +2085,38 @@ async function saveTaskSpecUpdate(payload: {
   }
 }
 
+// Load all work logs and active working sessions for this task so co-assignees can view complete progress
 async function loadHistory(currentTaskId: number) {
   historyLoading.value = true;
   historyError.value = '';
 
   try {
-    workLogs.value = await getWorkLogsApi(currentTaskId);
+    // 1. Fetch work logs submitted for this task (includes entries from all co-assigned resources)
+    const logs = await getWorkLogsApi(currentTaskId);
+    workLogs.value = logs || [];
+
+    // Populate resource names map from authors for co-assignee label resolution
+    workLogs.value.forEach((log) => {
+      if (log.user_id && log.author_name) {
+        resourceNamesMap.value[log.user_id] = log.author_name;
+      }
+    });
+
+    // 2. Fetch live active sessions on this task by co-assigned resources
+    try {
+      const activeRes = await getTaskActiveSessionsApi(currentTaskId);
+      activeCoAssigneeSessions.value = activeRes.sessions || [];
+
+      // Add active session user names to the map
+      activeCoAssigneeSessions.value.forEach((s) => {
+        if (s.user_id && s.user_name) {
+          resourceNamesMap.value[s.user_id] = s.user_name;
+        }
+      });
+    } catch (activeErr) {
+      console.warn('Failed to load active task sessions:', activeErr);
+      activeCoAssigneeSessions.value = [];
+    }
   } catch (err) {
     console.error('Failed to load task history:', err);
 

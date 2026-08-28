@@ -102,7 +102,8 @@ export interface WorkLog {
   blockers: string | null;
   log_date: string;
   created_at: string;
-  author_name?: string;
+  author_name?: string; // Author name of the resource who created the work log
+  author_email?: string; // Author email of the resource who created the work log
 }
 
 export interface CreateWorkLogPayload {
@@ -799,6 +800,24 @@ export async function getActiveTaskSessionApi(): Promise<{ session: TaskSession 
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch active session');
+  }
+
+  return data;
+}
+
+/**
+ * Get all active working sessions on a specific task across co-assigned resources
+ * GET /api/tasks/:id/sessions/active
+ */
+export async function getTaskActiveSessionsApi(
+  taskId: number,
+): Promise<{ sessions: Array<TaskSession & { user_name?: string; user_email?: string }> }> {
+  // Fetch active sessions for task so co-assignees can see live work in progress
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/sessions/active`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch task active sessions');
   }
 
   return data;

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
-import { create, list, update, addDependency, getResourceWorkloadController, checkImpactController, assignResource, addWorkLog, getWorkLogs, getBottlenecksController, deleteTaskController, unassignResourceController, removeTaskDependencyController, startSessionController, stopSessionController, getActiveSessionController } from "../controllers/taskController.js";
+import { create, list, update, addDependency, getResourceWorkloadController, checkImpactController, assignResource, addWorkLog, getWorkLogs, getBottlenecksController, deleteTaskController, unassignResourceController, removeTaskDependencyController, startSessionController, stopSessionController, getActiveSessionController, getTaskActiveSessionsController } from "../controllers/taskController.js";
 
 const taskRoutes = Router();
 
@@ -23,5 +23,6 @@ taskRoutes.get("/resources/:resourceId/workload", getResourceWorkloadController)
 taskRoutes.post("/resources/:resourceId/check-impact", checkImpactController);
 taskRoutes.post("/:id/session/start", startSessionController);
 taskRoutes.post("/:id/session/stop", stopSessionController);
+taskRoutes.get("/:id/sessions/active", getTaskActiveSessionsController); // Route to get active sessions currently ongoing on a specific task for co-assigned resources
 
 export default taskRoutes;

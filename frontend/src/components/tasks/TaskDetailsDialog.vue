@@ -207,8 +207,18 @@
 
               <q-item-section>
                 <div class="row items-center justify-between no-wrap">
-                  <div class="text-weight-bold text-caption text-dark ellipsis">
-                    {{ log.author_name || resolveResourceName(log.user_id) }}
+                  <!-- Author name with (You) badge if created by current logged-in resource -->
+                  <div class="row items-center q-gutter-xs">
+                    <span class="text-weight-bold text-caption text-dark ellipsis">
+                      {{ log.author_name || resolveResourceName(log.user_id) }}
+                    </span>
+                    <q-badge
+                      v-if="currentUserId && Number(log.user_id) === currentUserId"
+                      color="primary"
+                      label="You"
+                      class="text-weight-bold"
+                      style="font-size: 9px; padding: 1px 4px"
+                    />
                   </div>
                   <div class="text-caption text-grey-6 text-weight-medium">
                     {{ formatDate(log.log_date) }}
@@ -271,6 +281,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth'; // Auth store to identify current user
 import { getWorkLogsApi, type Task, type WorkLog } from '@/services/api';
 import { formatDate, formatStatus, formatHours, formatNumber, getInitials } from '@/utils/formatters';
 import { isTaskOverdue, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
@@ -308,6 +319,13 @@ const emit = defineEmits<{
   (e: 'assignMember', taskId: number): void;
   (e: 'addDependency', taskId: number): void;
 }>();
+
+const authStore = useAuthStore();
+// Extract current logged-in user id to highlight their own updates with strong typing
+const currentUserId = computed<number | null>(() => {
+  const u = (authStore.user || authStore.currentUser) as { user_id?: number | string; id?: number | string } | null;
+  return u?.user_id ? Number(u.user_id) : (u?.id ? Number(u.id) : null);
+});
 
 const workLogs = ref<WorkLog[]>([]);
 const loadingLogs = ref(false);

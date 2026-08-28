@@ -152,8 +152,9 @@ export async function createWorkLog(
 export async function getWorkLogsByTask(taskId: number) {
     const pool = getPool();
 
+    // Fetch all work logs for the specified task joined with users table to provide author details for co-assignees
     const [logs] = await pool.query<RowDataPacket[]>(
-        `SELECT wl.*, u.name as author_name 
+        `SELECT wl.*, u.name as author_name, u.email as author_email 
          FROM work_logs wl
          JOIN users u ON wl.user_id = u.user_id
          WHERE wl.task_id = ?
@@ -221,6 +222,21 @@ export async function getActiveSession(userId: number) {
         [userId]
     );
     return sessions.length > 0 ? sessions[0] : null;
+}
+
+// Fetch all active sessions currently in progress on a specific task across all assigned resources
+export async function getActiveSessionsForTask(taskId: number) {
+    const pool = getPool();
+    // Query active sessions joined with users so co-assignees can see who is currently working
+    const [sessions] = await pool.query<RowDataPacket[]>(
+        `SELECT ts.session_id, ts.task_id, ts.user_id, ts.start_time, ts.is_active, u.name as user_name, u.email as user_email
+         FROM task_sessions ts
+         JOIN users u ON ts.user_id = u.user_id
+         WHERE ts.task_id = ? AND ts.is_active = TRUE
+         ORDER BY ts.start_time ASC`,
+        [taskId]
+    );
+    return sessions;
 }
 
 export async function stopSession(userId: number, progressLogged: number, notes: string, blockers: string | null) {

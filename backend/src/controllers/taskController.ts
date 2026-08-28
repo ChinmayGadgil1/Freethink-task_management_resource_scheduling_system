@@ -4,7 +4,8 @@ import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, unassignResource, removeTaskDependency } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, checkSchedulingImpact } from "../services/schedulingService.js";
-import { createWorkLog, getWorkLogsByTask } from "../services/workLogService.js";
+// Work log and task session services for progress tracking and co-assignee updates
+import { createWorkLog, getWorkLogsByTask, getActiveSessionsForTask } from "../services/workLogService.js";
 import { recalculate as recalculateSchedule } from "../services/scheduler/SchedulingEngine.js";
 
 const createTaskSchema = z.object({
@@ -649,6 +650,44 @@ export async function getActiveSessionController(req: AuthRequest, res: Response
         const { getActiveSession } = await import("../services/workLogService.js");
         const session = await getActiveSession(req.user.user_id);
         return res.status(200).json({ session: session || null });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+// Fetch all active sessions on a specific task so co-assigned resources can see live work in progress
+export async function getTaskActiveSessionsController(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        const taskId = Number(req.params.id);
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
+
+        // Verify task exists
+        const task = await getTaskById(taskId) as any;
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        // Verify authorization: resources must be assigned to this task; PM must own the project
+        if (userRole === "RESOURCE") {
+            const isAssigned = (task.assigned_resource_ids || []).includes(userId);
+            if (!isAssigned) {
+                return res.status(403).json({
+                    message: "You are not authorized to view active sessions for this task"
+                });
+            }
+        } else if (userRole === "PROJECT_MANAGER") {
+            const project = await getProjectById(task.project_id);
+            if (!project || project.project_manager_id !== userId) {
+                return res.status(403).json({
+                    message: "You are not authorized to view active sessions for this task"
+                });
+            }
+        }
+
+        // Retrieve active sessions for this task across all assigned co-resources
+        const sessions = await getActiveSessionsForTask(taskId);
+        return res.status(200).json({ sessions });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
