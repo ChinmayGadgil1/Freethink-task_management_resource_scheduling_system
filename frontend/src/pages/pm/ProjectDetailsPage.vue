@@ -786,7 +786,7 @@
                     <q-item clickable @click="openDependencyDialog(props.row)"
                       ><q-item-section avatar
                         ><q-icon name="account_tree" size="18px" color="primary" /></q-item-section
-                      ><q-item-section>Add Dependency</q-item-section></q-item
+                      ><q-item-section>Manage Dependencies</q-item-section></q-item
                     >
                     <q-item clickable @click="toggleTaskComplete(props.row)"
                       ><q-item-section avatar
@@ -984,63 +984,6 @@
         @submit="handleCreateTask"
       />
 
-      <!-- DIALOG: ADD TASK DEPENDENCY -->
-      <q-dialog v-model="showDependencyDialog">
-        <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw; border-radius: 12px">
-          <q-card-section class="row items-center justify-between">
-            <div>
-              <div class="text-caption text-weight-bold text-primary">TASK DEPENDENCY</div>
-              <div class="text-h6 text-weight-bold">Add Task Dependency</div>
-            </div>
-            <q-btn v-close-popup flat round dense icon="close" />
-          </q-card-section>
-
-          <q-form @submit.prevent="handleAddDependency">
-            <q-card-section class="column q-gutter-y-sm">
-              <q-input
-                :model-value="dependencyTaskLabel"
-                outlined
-                dense
-                readonly
-                label="Task"
-                :dark="$q.dark.isActive"
-              />
-
-              <q-select
-                v-model="selectedPredecessorTaskIds"
-                outlined
-                dense
-                multiple
-                clearable
-                :dark="$q.dark.isActive"
-                :display-value="
-                  selectedPredecessorTaskIds.length
-                    ? `${selectedPredecessorTaskIds.length} selected`
-                    : ''
-                "
-                label="Depends On Predecessor(s)"
-                :options="dependencyPredecessorOptions"
-                emit-value
-                map-options
-              />
-            </q-card-section>
-
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn v-close-popup flat no-caps label="Cancel" />
-              <q-btn
-                type="submit"
-                no-caps
-                unelevated
-                label="Add Dependency"
-                color="primary"
-                :loading="dependencySubmitting"
-                :disable="!selectedDependencyTaskId || !selectedPredecessorTaskIds?.length"
-              />
-            </q-card-actions>
-          </q-form>
-        </q-card>
-      </q-dialog>
-
       <!-- DIALOG: EDIT PROJECT -->
       <q-dialog v-model="showEditProjectDialog">
         <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw; border-radius: 12px">
@@ -1230,6 +1173,107 @@
         </q-card>
       </q-dialog>
 
+      <!-- DIALOG: MANAGE TASK DEPENDENCIES -->
+      <q-dialog v-model="showDependencyDialog">
+        <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw; border-radius: 12px">
+          <q-card-section class="row items-center justify-between q-pb-none">
+            <div>
+              <div class="text-caption text-weight-bold text-primary">TASK DEPENDENCIES</div>
+              <div class="text-h6 text-weight-bold">
+                Manage Predecessors for "{{ selectedDependencyTaskName }}"
+              </div>
+            </div>
+            <q-btn v-close-popup flat round dense icon="close" />
+          </q-card-section>
+
+          <!-- Currently active dependencies -->
+          <q-card-section class="q-pt-md">
+            <div class="text-caption text-weight-bold q-mb-xs">Current Predecessor Dependencies:</div>
+            <div
+              v-if="currentTaskPredecessors.length > 0"
+              class="row q-gutter-xs wrap q-mb-md"
+            >
+              <q-chip
+                v-for="pred in currentTaskPredecessors"
+                :key="pred.task_id"
+                removable
+                dense
+                square
+                :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                class="text-weight-bold text-caption"
+                icon="account_tree"
+                @remove="confirmRemoveDependency(pred)"
+              >
+                {{ pred.title }} (#{{ pred.task_id }})
+                <q-tooltip>Remove this dependency</q-tooltip>
+              </q-chip>
+            </div>
+            <div v-else class="text-caption text-grey-6 q-mb-md">
+              No predecessor dependencies linked yet. This task can start independently.
+            </div>
+
+            <q-separator class="q-mb-md" />
+
+            <!-- Add new dependencies -->
+            <div class="text-caption text-weight-bold q-mb-xs">Add New Predecessor:</div>
+            <q-select
+              v-model="selectedPredecessorTaskIds"
+              outlined
+              dense
+              multiple
+              clearable
+              emit-value
+              map-options
+              :dark="$q.dark.isActive"
+              :options="dependencyPredecessorOptions"
+              label="Select Predecessor Task(s)"
+              :display-value="
+                selectedPredecessorTaskIds.length
+                  ? `${selectedPredecessorTaskIds.length} predecessor(s) selected`
+                  : ''
+              "
+            >
+              <template #option="{ itemProps, opt, selected, toggleOption }">
+                <q-item v-bind="itemProps" :disable="opt.alreadyDependent">
+                  <q-item-section side>
+                    <q-checkbox
+                      :model-value="selected || opt.alreadyDependent"
+                      :disable="opt.alreadyDependent"
+                      color="primary"
+                      @update:model-value="toggleOption(opt)"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label :class="{ 'text-grey-6': opt.alreadyDependent }">
+                      {{ opt.label }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section v-if="opt.alreadyDependent" side>
+                    <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 10px">
+                      Linked
+                    </q-chip>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+          </q-card-section>
+
+          <q-card-actions align="right" class="q-pa-md q-pt-none">
+            <q-btn v-close-popup flat no-caps label="Close" />
+            <q-btn
+              no-caps
+              unelevated
+              color="primary"
+              label="Add Selected"
+              :loading="dependencySubmitting"
+              :disable="!selectedPredecessorTaskIds.length"
+              @click="handleAddDependency"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <!-- DIALOG: ADD RESOURCE TO PROJECT -->
       <q-dialog v-model="showAddMemberDialog">
         <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw; border-radius: 12px">
@@ -1322,6 +1366,19 @@
         Are you sure you want to remove <strong>{{ memberToRemove?.name }}</strong> from this
         project?
       </ConfirmActionDialog>
+
+      <!-- CONFIRM REMOVE DEPENDENCY DIALOG -->
+      <ConfirmActionDialog
+        v-model="showRemoveDependencyDialog"
+        title="Remove Task Dependency"
+        subtitle="Unlink dependency constraint"
+        confirm-label="Remove Dependency"
+        :loading="dependencyRemoving"
+        @confirm="handleExecuteRemoveDependency"
+      >
+        Are you sure you want to remove the dependency on
+        <strong>"{{ dependencyToRemove?.title }}"</strong>?
+      </ConfirmActionDialog>
     </div>
   </q-page>
 </template>
@@ -1348,6 +1405,7 @@ import {
   removeProjectMemberApi,
   unassignTaskResourceApi,
   addTaskDependencyApi,
+  removeTaskDependencyApi,
   getGlobalProgressFeedApi,
   calculateResourceWeeklyCapacity,
   type Project,
@@ -1387,6 +1445,9 @@ const showDeleteProjectDialog = ref(false);
 const showDeleteTaskDialog = ref(false);
 const showRemoveMemberDialog = ref(false);
 const showUnassignTaskDialog = ref(false);
+const showRemoveDependencyDialog = ref(false);
+const dependencyRemoving = ref(false);
+const dependencyToRemove = ref<{ task_id: number; title: string } | null>(null);
 
 const selectedTaskForUpdate = ref<Task | null>(null);
 const selectedTaskForUpdateProgress = ref(0);
@@ -1544,12 +1605,19 @@ const availableResourcesToAdd = computed(() => {
   }));
 });
 
-const dependencyTaskLabel = computed(() => {
+const selectedDependencyTaskName = computed(() => {
   if (!selectedDependencyTaskId.value) return '';
   const found = tasks.value.find(
     (t) => Number(t.task_id) === Number(selectedDependencyTaskId.value),
   );
   return found ? `${found.title} (#${found.task_id})` : `Task #${selectedDependencyTaskId.value}`;
+});
+
+const currentTaskPredecessors = computed(() => {
+  if (!selectedDependencyTaskId.value) return [];
+  const currentTaskId = Number(selectedDependencyTaskId.value);
+  const predIds = existingTaskDependencies[currentTaskId] || [];
+  return tasks.value.filter((t) => predIds.includes(Number(t.task_id)));
 });
 
 const dependencyPredecessorOptions = computed(() => {
@@ -2227,13 +2295,48 @@ async function handleAddDependency() {
       await addTaskDependencyApi(taskId, predId);
     }
     $q.notify({ type: 'positive', message: 'Dependency added successfully' });
-    showDependencyDialog.value = false;
-    selectedDependencyTaskId.value = null;
     selectedPredecessorTaskIds.value = [];
+    await refreshData();
+    // Update local reactive record
+    const updatedTask = tasks.value.find((t) => t.task_id === taskId);
+    if (updatedTask) {
+      existingTaskDependencies[taskId] = (updatedTask.predecessor_task_ids || []).map(Number);
+    }
   } catch {
     $q.notify({ type: 'negative', message: 'Failed to add dependency' });
   } finally {
     dependencySubmitting.value = false;
+  }
+}
+
+function confirmRemoveDependency(pred: { task_id: number; title: string }) {
+  dependencyToRemove.value = pred;
+  showRemoveDependencyDialog.value = true;
+}
+
+async function handleExecuteRemoveDependency() {
+  if (!selectedDependencyTaskId.value || !dependencyToRemove.value) return;
+  const taskId = selectedDependencyTaskId.value;
+  const predId = dependencyToRemove.value.task_id;
+  dependencyRemoving.value = true;
+  try {
+    await removeTaskDependencyApi(taskId, predId);
+    $q.notify({
+      type: 'positive',
+      message: `Removed dependency on "${dependencyToRemove.value.title}"`,
+    });
+    showRemoveDependencyDialog.value = false;
+    dependencyToRemove.value = null;
+    await refreshData();
+    // Update local reactive record
+    const updatedTask = tasks.value.find((t) => t.task_id === taskId);
+    if (updatedTask) {
+      existingTaskDependencies[taskId] = (updatedTask.predecessor_task_ids || []).map(Number);
+    }
+  } catch {
+    $q.notify({ type: 'negative', message: 'Failed to remove dependency' });
+  } finally {
+    dependencyRemoving.value = false;
   }
 }
 
