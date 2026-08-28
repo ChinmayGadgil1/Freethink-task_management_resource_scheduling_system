@@ -15,8 +15,8 @@
           v-model="scheduleViewMode"
           toggle-color="primary"
           toggle-text-color="white"
-          color="white"
-          text-color="grey-8"
+          :color="$q.dark.isActive ? 'grey-9' : 'white'"
+          :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
           dense
           unelevated
           class="view-toggle-btn shadow-subtle q-mr-xs"
@@ -383,11 +383,16 @@
     </div>
 
     <!-- 7. DETAILED BREAKDOWN TABLE (List View) -->
-    <q-card v-else-if="scheduleViewMode === 'table'" flat bordered class="table-card">
+    <q-card v-else-if="scheduleViewMode === 'table'" flat bordered :dark="$q.dark.isActive" class="table-card">
       <q-card-section class="row items-center justify-between q-pb-sm">
         <div>
-          <div class="text-subtitle1 text-weight-bold text-dark">Schedule Breakdown</div>
-          <div class="text-caption text-grey-6">
+          <div
+            class="text-subtitle1 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Schedule Breakdown
+          </div>
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
             Detailed timeline records for all {{ filteredTasks.length }} tasks
           </div>
         </div>
@@ -399,6 +404,7 @@
 
       <q-table
         flat
+        :dark="$q.dark.isActive"
         :rows="filteredTasks"
         :columns="tableColumns"
         row-key="task_id"
@@ -588,9 +594,12 @@
 
     <!-- 10. EDIT TASK MODAL -->
     <q-dialog v-model="showEditDialog">
-      <q-card class="dialog-card" style="min-width: 440px; max-width: 95vw">
+      <q-card class="dialog-card">
         <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="text-subtitle1 text-weight-bold text-dark">
+          <div
+            class="text-subtitle1 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             Update Task: {{ editingTaskTitle }}
           </div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />

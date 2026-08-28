@@ -1,15 +1,29 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
-    <q-card class="dialog-card" :style="{ minWidth: minWidth, maxWidth: '90vw' }">
+    <q-card
+      class="dialog-card"
+      :dark="$q.dark.isActive"
+      :style="{ minWidth: minWidth, maxWidth: '90vw' }"
+    >
       <q-card-section class="row items-center q-pb-none">
         <q-avatar :icon="icon" :color="iconColor" text-color="white" size="36px" class="q-mr-sm" />
         <div>
-          <div class="text-subtitle1 text-weight-bold text-dark">{{ title }}</div>
-          <div v-if="subtitle" class="text-caption text-grey-6">{{ subtitle }}</div>
+          <div
+            class="text-subtitle1 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            {{ title }}
+          </div>
+          <div v-if="subtitle" class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+            {{ subtitle }}
+          </div>
         </div>
       </q-card-section>
 
-      <q-card-section class="q-pt-sm text-body2 text-grey-8">
+      <q-card-section
+        class="q-pt-sm text-body2"
+        :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
+      >
         <slot>
           <template v-if="message">
             {{ message }}

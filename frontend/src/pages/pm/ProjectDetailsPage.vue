@@ -1107,6 +1107,9 @@
                     label="Start Date"
                     stack-label
                     :dark="$q.dark.isActive"
+                    :rules="[
+                      (val) => !editProjectForm.deadline || !val || val <= editProjectForm.deadline || 'Start date cannot be after deadline',
+                    ]"
                   />
                 </div>
                 <div class="col-6">
@@ -1118,6 +1121,9 @@
                     label="Deadline"
                     stack-label
                     :dark="$q.dark.isActive"
+                    :rules="[
+                      (val) => !editProjectForm.start_date || !val || val >= editProjectForm.start_date || 'Deadline cannot be before start date',
+                    ]"
                   />
                 </div>
               </div>

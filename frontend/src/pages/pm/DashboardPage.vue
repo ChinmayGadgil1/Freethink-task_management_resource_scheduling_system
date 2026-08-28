@@ -17,10 +17,10 @@
             <StatCard
               title="Total Projects"
               :value="totalProjects"
-              subtitle="↑ 20% vs last week"
+              :subtitle="totalProjects ? `${totalProjects} active workspace${totalProjects === 1 ? '' : 's'}` : 'No active projects'"
               icon="folder"
-              color="#8B6FD8"
-              icon-bg="#F4F0FD"
+              color="purple"
+              note-class="note-purple"
               @click="goToProjects"
             />
           </div>
@@ -28,10 +28,10 @@
             <StatCard
               title="Active Tasks"
               :value="activeTasks"
-              subtitle="↑ 12% vs last week"
+              :subtitle="tasks.length ? `${Math.round((activeTasks / tasks.length) * 100)}% of total tasks` : '0% of total'"
               icon="task_alt"
-              color="#1ABC9C"
-              icon-bg="#E6F7F5"
+              color="teal"
+              note-class="note-teal"
               @click="goToProjects"
             />
           </div>
@@ -39,10 +39,10 @@
             <StatCard
               title="Resources"
               :value="resources.length"
-              subtitle="↑ 8% vs last week"
+              :subtitle="resources.length ? `${resources.length} active team member${resources.length === 1 ? '' : 's'}` : 'No resources'"
               icon="groups"
-              color="#F5841F"
-              icon-bg="#FFF4EB"
+              color="orange"
+              note-class="note-orange"
               @click="goToResources"
             />
           </div>
@@ -50,10 +50,10 @@
             <StatCard
               title="Tasks Completed"
               :value="completedTasks"
-              subtitle="↑ 18% vs last week"
+              :subtitle="tasks.length ? `${Math.round((completedTasks / tasks.length) * 100)}% completion rate` : '0% completed'"
               icon="check_circle"
-              color="#27AE60"
-              icon-bg="#EAF7F0"
+              color="green"
+              note-class="note-green"
               @click="goToProjects"
             />
           </div>
@@ -61,11 +61,11 @@
             <StatCard
               title="Overdue Tasks"
               :value="overdueTasks"
-              subtitle="↓ 5% vs last week"
+              :subtitle="overdueTasks > 0 ? `${overdueTasks} task${overdueTasks === 1 ? '' : 's'} require attention` : 'All tasks on schedule'"
               icon="schedule"
-              color="#E15263"
-              icon-bg="#FDEEF0"
-              :negative="true"
+              color="red"
+              note-class="note-red"
+              :negative="overdueTasks > 0"
               @click="goToProjects"
             />
           </div>
@@ -872,11 +872,15 @@ const allTaskOptions = computed(() =>
   })),
 );
 
-function scrollStrip(containerId: string, delta: number) {
+function scrollStrip(containerId: string, direction: number | 'next' | 'prev') {
   const el = document.getElementById(containerId);
-  if (el) {
-    el.scrollBy({ left: delta, behavior: 'smooth' });
-  }
+  if (!el) return;
+
+  const firstChild = el.firstElementChild as HTMLElement | null;
+  const cardWidth = firstChild ? firstChild.offsetWidth + 16 : 240;
+  const amount = typeof direction === 'number' ? direction : direction === 'prev' ? -cardWidth : cardWidth;
+
+  el.scrollBy({ left: amount, behavior: 'smooth' });
 }
 
 function goToProjects() {

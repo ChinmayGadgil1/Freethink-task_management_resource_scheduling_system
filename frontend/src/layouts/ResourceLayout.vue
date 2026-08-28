@@ -44,9 +44,6 @@
             <template #prepend>
               <q-icon name="search" size="18px" color="grey-6" />
             </template>
-            <template #append>
-              <span class="search-shortcut">⌘K</span>
-            </template>
           </q-input>
         </div>
 

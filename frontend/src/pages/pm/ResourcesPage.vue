@@ -432,7 +432,10 @@
         <!-- TAB 2: TASKS ASSIGNED BY PM -->
         <q-tab-panel name="tasks" class="q-pa-md">
           <div class="row items-center justify-between q-mb-md">
-            <div class="text-subtitle1 text-weight-bold text-dark">
+            <div
+              class="text-subtitle1 text-weight-bold"
+              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+            >
               Tasks Assigned across Managed Projects
             </div>
             <q-chip dense square class="project-badge text-weight-bold">
@@ -442,6 +445,7 @@
 
           <q-table
             flat
+            :dark="$q.dark.isActive"
             :rows="taskList"
             :columns="pmTaskColumns"
             row-key="task_id"
@@ -518,9 +522,14 @@
 
     <!-- ASSIGN RESOURCE TO PROJECT DIALOG (POST /api/projects/:id/members) -->
     <q-dialog v-model="showProjectMemberDialog">
-      <q-card class="dialog-card" style="min-width: 440px; max-width: 95vw">
+      <q-card class="dialog-card" :dark="$q.dark.isActive" style="min-width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="text-subtitle1 text-weight-bold text-dark">Assign Resource to Project</div>
+          <div
+            class="text-subtitle1 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Assign Resource to Project
+          </div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
         </q-card-section>
 
@@ -612,9 +621,12 @@
 
     <!-- ASSIGN TASK DIALOG (POST /api/tasks) -->
     <q-dialog v-model="showAssignDialog">
-      <q-card class="dialog-card" style="min-width: 440px; max-width: 95vw">
+      <q-card class="dialog-card" :dark="$q.dark.isActive" style="min-width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="text-subtitle1 text-weight-bold text-dark">
+          <div
+            class="text-subtitle1 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             Assign Task to {{ getResourceName(selectedResourceId || 0) }}
           </div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -724,11 +736,14 @@
 
     <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
     <q-dialog v-model="showScheduleDialog" persistent>
-      <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px">
+      <q-card :dark="$q.dark.isActive" style="min-width: 440px; max-width: 520px; border-radius: 14px">
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
             <q-icon name="edit_calendar" size="24px" color="primary" />
-            <div class="text-h6 text-weight-bold">
+            <div
+              class="text-h6 text-weight-bold"
+              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+            >
               Work Schedule: {{ scheduleTargetResource?.name || 'Resource' }}
             </div>
           </div>

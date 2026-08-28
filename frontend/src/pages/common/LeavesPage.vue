@@ -162,9 +162,10 @@
     </q-card>
 
     <!-- 4. LEAVES DATA TABLE -->
-    <q-card flat bordered class="table-card">
+    <q-card flat bordered :dark="$q.dark.isActive" class="table-card">
       <q-table
         flat
+        :dark="$q.dark.isActive"
         :rows="leavesList"
         :columns="tableColumns"
         row-key="leave_id"
@@ -221,9 +222,12 @@
 
     <!-- 5. REQUEST LEAVE MODAL DIALOG -->
     <q-dialog v-model="showLeaveDialog">
-      <q-card style="min-width: 400px; border-radius: 12px">
+      <q-card :dark="$q.dark.isActive" style="min-width: 400px; border-radius: 12px">
         <q-card-section class="row items-center justify-between q-pb-none">
-          <div class="text-h6 text-weight-bold">
+          <div
+            class="text-h6 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             {{ isProjectManager ? 'Apply Leave (On Behalf)' : 'Request Leave' }}
           </div>
           <q-btn v-close-popup flat round dense icon="close" />

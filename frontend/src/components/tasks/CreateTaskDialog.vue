@@ -1,10 +1,13 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
-    <q-card class="dialog-card" style="min-width: 520px; max-width: 95vw">
+    <q-card class="dialog-card" :dark="$q.dark.isActive" style="min-width: 520px; max-width: 95vw">
       <q-card-section class="row items-center justify-between q-pb-none">
         <div>
           <div v-if="fixedProjectName" class="modal-eyebrow">NEW TASK</div>
-          <div class="text-subtitle1 text-weight-bold text-dark">
+          <div
+            class="text-subtitle1 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             {{ headerTitle }}
           </div>
         </div>
@@ -353,11 +356,21 @@ watch(
 );
 
 function handleSubmit() {
+  const sanitizedResourceIds = Array.isArray(form.assigned_resource_ids)
+    ? form.assigned_resource_ids.filter((id): id is number => id != null && !isNaN(Number(id))).map(Number)
+    : [];
+
+  const sanitizedPredecessorIds = Array.isArray(form.predecessor_task_ids)
+    ? form.predecessor_task_ids.filter((id): id is number => id != null && !isNaN(Number(id))).map(Number)
+    : [];
+
   emit('submit', {
     ...form,
     project_id: props.fixedProjectId ?? form.project_id,
     title: form.title.trim(),
     description: form.description.trim(),
+    assigned_resource_ids: sanitizedResourceIds,
+    predecessor_task_ids: sanitizedPredecessorIds,
   });
 }
 </script>

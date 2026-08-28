@@ -981,6 +981,9 @@
                   label="Start date"
                   stack-label
                   :dark="$q.dark.isActive"
+                  :rules="[
+                    (val) => !form.deadline || !val || val <= form.deadline || 'Start date cannot be after deadline',
+                  ]"
                 />
               </div>
               <div class="col-6">
@@ -992,6 +995,9 @@
                   label="Deadline"
                   stack-label
                   :dark="$q.dark.isActive"
+                  :rules="[
+                    (val) => !form.start_date || !val || val >= form.start_date || 'Deadline cannot be before start date',
+                  ]"
                 />
               </div>
             </div>
