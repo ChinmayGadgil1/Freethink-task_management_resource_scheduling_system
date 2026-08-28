@@ -73,7 +73,7 @@ export default defineRouter((/* { store, ssrContext } */) => {
       return next({ path: '/login', query: { redirect: to.fullPath } });
     }
 
-    if (publicOnly && token) {
+    if (publicOnly && token && to.path !== '/reset-password' && to.path !== '/forgot-password') {
       if (userRole === 'PROJECT_MANAGER') {
         return next('/pm/projects');
       } else if (userRole === 'RESOURCE') {

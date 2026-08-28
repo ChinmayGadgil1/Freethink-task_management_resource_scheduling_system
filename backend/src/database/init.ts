@@ -7,6 +7,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         console.log("Dropping existing tables...");
         await pool.query("SET FOREIGN_KEY_CHECKS = 0");
         const tables = [
+            "password_reset_tokens",
             "support_tickets",
             "task_schedules",
             "task_sessions",
@@ -244,6 +245,22 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("Support tickets table is ready.");
+
+    // 13. Password Reset Tokens table
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            token VARCHAR(255) NOT NULL UNIQUE,
+            expires_at DATETIME NOT NULL,
+            used BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            INDEX idx_token (token),
+            INDEX idx_user_id (user_id)
+        )
+    `);
+    console.log("Password reset tokens table is ready.");
 
     return pool;
 }

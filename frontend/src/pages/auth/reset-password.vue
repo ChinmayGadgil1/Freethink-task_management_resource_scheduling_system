@@ -5,7 +5,7 @@
       <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold auth-title">Reset Password</div>
         <div class="text-body2 auth-subtitle q-mt-sm">
-          Enter the reset token and your new password below.
+          Enter your new password below.
         </div>
       </q-card-section>
 
@@ -15,20 +15,6 @@
           @submit.prevent="handleResetPassword"
           style="display: flex; flex-direction: column; gap: 18px"
         >
-          <!-- Reset Token -->
-          <q-input
-            v-model="form.token"
-            outlined
-            dense
-            hide-bottom-space
-            label="Reset Token"
-            class="auth-input"
-            :rules="[(val) => !!val || 'Reset token is required']"
-          >
-            <template #prepend>
-              <q-icon name="key" class="auth-icon" />
-            </template>
-          </q-input>
 
           <!-- New Password -->
           <q-input
@@ -121,12 +107,13 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
 
 const form = reactive({
   token: '',
@@ -137,6 +124,14 @@ const form = reactive({
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const loading = ref(false);
+
+// Auto-fill token from URL query param: /reset-password?token=abc123
+onMounted(() => {
+  const tokenFromUrl = route.query.token;
+  if (tokenFromUrl && typeof tokenFromUrl === 'string') {
+    form.token = tokenFromUrl;
+  }
+});
 
 const passwordRules = [
   (val: string) => !!val || 'Password is required',
@@ -150,21 +145,32 @@ const passwordRules = [
 const handleResetPassword = async () => {
   loading.value = true;
   try {
-    console.log('Reset Password:', {
-      token: form.token,
-      newPassword: form.password,
+    const response = await fetch('http://localhost:3000/api/auth/reset-password-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: form.token,
+        newPassword: form.password,
+      }),
     });
-    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Password reset failed');
+    }
+
     $q.notify({
       type: 'positive',
-      message: 'Password reset successful!',
+      message: 'Password reset successful! Please log in with your new password.',
+      timeout: 4000,
     });
     void router.push('/login');
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     $q.notify({
       type: 'negative',
-      message: 'Password reset failed',
+      message: error instanceof Error ? error.message : 'Password reset failed. The link may have expired.',
     });
   } finally {
     loading.value = false;

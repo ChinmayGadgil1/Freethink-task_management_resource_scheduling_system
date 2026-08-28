@@ -81,17 +81,30 @@ const loading = ref(false);
 const handleForgotPassword = async () => {
   loading.value = true;
   try {
-    console.log('Forgot Password:', email.value);
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const response = await fetch('http://localhost:3000/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Something went wrong');
+    }
+
     $q.notify({
       type: 'positive',
-      message: 'Reset instructions will be sent to your email.',
+      message: 'If that email is registered, a reset link has been sent. Check your inbox.',
+      timeout: 5000,
     });
-  } catch (error) {
+
+    email.value = '';
+  } catch (error: unknown) {
     console.error(error);
     $q.notify({
       type: 'negative',
-      message: 'Something went wrong. Please try again.',
+      message: error instanceof Error ? error.message : 'Something went wrong. Please try again.',
     });
   } finally {
     loading.value = false;
