@@ -1539,10 +1539,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.hover-bg-light:hover {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
 .project-grid-card {
   border-radius: 16px;
   transition:
@@ -1567,29 +1563,5 @@ onMounted(() => {
   border-radius: 20px;
   letter-spacing: 0.02em;
   border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-.border-subtle {
-  border: 1px solid var(--wo-border, #eaecef);
-}
-
-.border-left-subtle {
-  border-left: 1px solid var(--wo-border, #eaecef);
-}
-
-.bg-subtle {
-  background: var(--wo-bg-subtle, #f8fafc);
-}
-
-body.body--dark {
-  .border-subtle {
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-  .border-left-subtle {
-    border-left-color: rgba(255, 255, 255, 0.08);
-  }
-  .bg-subtle {
-    background: rgba(255, 255, 255, 0.04);
-  }
 }
 </style>

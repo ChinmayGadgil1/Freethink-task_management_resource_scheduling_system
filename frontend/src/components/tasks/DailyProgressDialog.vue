@@ -38,7 +38,7 @@
 
           <div class="col-12">
             <div class="row items-center justify-between q-mb-xs">
-              <div class="field-label q-mb-none">
+              <div class="text-caption text-weight-bold text-grey-7">
                 Progress
                 <span class="text-primary text-weight-bold"> {{ form.progress_logged }}% </span>
               </div>
@@ -189,12 +189,3 @@ function save() {
   emit('update:modelValue', false);
 }
 </script>
-
-<style scoped lang="scss">
-.field-label {
-  margin-bottom: 4px;
-  color: #667085;
-  font-size: 12px;
-  font-weight: 600;
-}
-</style>

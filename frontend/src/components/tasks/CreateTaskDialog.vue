@@ -361,18 +361,3 @@ function handleSubmit() {
   });
 }
 </script>
-
-<style scoped lang="scss">
-.dialog-card {
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-}
-
-.modal-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--wo-text-muted, #667085);
-  margin-bottom: 2px;
-}
-</style>

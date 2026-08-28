@@ -28,7 +28,9 @@
           </q-banner>
         </div>
 
-        <div class="field-label">Expected Hours (hrs) *</div>
+        <div class="text-caption text-weight-bold text-grey-7 q-mb-xs">
+          Expected Hours (hrs) *
+        </div>
 
         <q-input
           v-model.number="form.estimatedHours"
@@ -41,7 +43,9 @@
           placeholder="e.g. 8"
         />
 
-        <div class="field-label q-mt-md">Task Description</div>
+        <div class="text-caption text-weight-bold text-grey-7 q-mb-xs q-mt-md">
+          Task Description
+        </div>
 
         <q-input
           v-model="form.description"
@@ -167,12 +171,3 @@ function save() {
   emit('update:modelValue', false);
 }
 </script>
-
-<style scoped lang="scss">
-.field-label {
-  margin-bottom: 8px;
-  color: #667085;
-  font-size: 12px;
-  font-weight: 600;
-}
-</style>

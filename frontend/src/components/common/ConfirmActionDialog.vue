@@ -80,10 +80,3 @@ const emit = defineEmits<{
   (e: 'cancel'): void;
 }>();
 </script>
-
-<style scoped lang="scss">
-.dialog-card {
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-}
-</style>

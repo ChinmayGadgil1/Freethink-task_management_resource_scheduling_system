@@ -167,8 +167,8 @@
             v-else-if="filteredResources.length === 0"
             class="row justify-center q-pa-xl text-center"
           >
-            <q-card flat bordered class="empty-state-card q-pa-lg">
-              <q-avatar size="58px" class="empty-avatar">
+            <q-card flat bordered class="table-card q-pa-lg">
+              <q-avatar size="58px" class="stat-purple">
                 <q-icon name="person_off" size="28px" />
               </q-avatar>
               <div class="text-subtitle1 text-weight-bold text-dark q-mt-sm">
@@ -518,7 +518,7 @@
 
     <!-- ASSIGN RESOURCE TO PROJECT DIALOG (POST /api/projects/:id/members) -->
     <q-dialog v-model="showProjectMemberDialog">
-      <q-card class="dialog-card">
+      <q-card class="dialog-card" style="min-width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div class="text-subtitle1 text-weight-bold text-dark">Assign Resource to Project</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -612,7 +612,7 @@
 
     <!-- ASSIGN TASK DIALOG (POST /api/tasks) -->
     <q-dialog v-model="showAssignDialog">
-      <q-card class="dialog-card">
+      <q-card class="dialog-card" style="min-width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div class="text-subtitle1 text-weight-bold text-dark">
             Assign Task to {{ getResourceName(selectedResourceId || 0) }}
@@ -1589,22 +1589,5 @@ async function handleAssignTask() {
   color: var(--wo-text-muted, #64748b);
   font-size: 12px;
   white-space: nowrap;
-}
-
-.empty-state-card {
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #e5e7ec);
-}
-
-.empty-avatar {
-  background: rgba(139, 111, 216, 0.15);
-  color: var(--wo-primary, #8b6fd8);
-}
-
-.dialog-card {
-  min-width: 440px;
-  border-radius: 14px;
-  background: var(--wo-bg-card, #ffffff);
 }
 </style>

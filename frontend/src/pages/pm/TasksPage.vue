@@ -1535,12 +1535,3 @@ async function handleUpdateTask() {
   }
 }
 </script>
-
-<style scoped lang="scss">
-.hover-bg-light:hover {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-.hover-bg-dark:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-</style>

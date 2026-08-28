@@ -384,6 +384,49 @@ body {
   font-weight: 600;
 }
 
+/* Shared Interactive & Border Helpers */
+.hover-bg-light:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.hover-bg-dark:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.border-subtle {
+  border: 1px solid var(--wo-border, #eaecef);
+}
+
+.border-left-subtle {
+  border-left: 1px solid var(--wo-border, #eaecef);
+}
+
+.bg-subtle {
+  background: var(--wo-bg-subtle, #f8fafc);
+}
+
+.metric-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+  box-shadow: var(--wo-card-shadow);
+}
+
+/* Shared Dialog / Modal Styling */
+.dialog-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  color: var(--wo-text-main);
+}
+
+.modal-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--wo-text-muted, #667085);
+  margin-bottom: 2px;
+}
+
 * {
   box-sizing: border-box;
 }

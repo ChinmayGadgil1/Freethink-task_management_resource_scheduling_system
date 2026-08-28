@@ -588,7 +588,7 @@
 
     <!-- 10. EDIT TASK MODAL -->
     <q-dialog v-model="showEditDialog">
-      <q-card class="dialog-card">
+      <q-card class="dialog-card" style="min-width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div class="text-subtitle1 text-weight-bold text-dark">
             Update Task: {{ editingTaskTitle }}
@@ -1789,22 +1789,7 @@ async function handleUpdateTask() {
   }
 }
 
-.dialog-card {
-  min-width: 440px;
-  border-radius: 14px;
-  background: var(--wo-bg-card, #ffffff);
-}
-
-/* ===================================================
-   Schedule Breakdown Table Styles
-   =================================================== */
-.table-card {
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #e5e7ec);
-}
-
-.schedule-table :deep(th) {
+.resources-schedule-table :deep(th) {
   height: 40px;
   padding: 0 14px;
   background: var(--wo-bg-page, #fafbfc);

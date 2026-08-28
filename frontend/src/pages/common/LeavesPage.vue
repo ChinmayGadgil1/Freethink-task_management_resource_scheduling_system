@@ -566,19 +566,3 @@ onMounted(() => {
   void loadData();
 });
 </script>
-
-<style scoped lang="scss">
-.leaves-page {
-  background: var(--wo-bg-page, #f7f7fa);
-}
-
-.metric-card {
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.filter-card,
-.table-card {
-  border-radius: 12px;
-}
-</style>
