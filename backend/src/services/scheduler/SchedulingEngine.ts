@@ -5,12 +5,145 @@ import { getTaskAvailability } from "./DependencyEngine.js";
 import { calculateUrgencyScore, sortTasksByUrgency, type ScoredTask } from "./PriorityEngine.js";
 import { getDownstreamDependencyCount } from "./DependencyEngine.js";
 
+export interface ResourceScheduleConfig {
+    userId: number;
+    nonWorkingDays: Set<string>;
+    dailyHours: number;
+}
+
+const WEEKDAY_NAMES: string[] = [
+    "SUNDAY",
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY"
+];
+
+export function formatDateLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+export function parseDateLocal(dateStr: string): Date {
+    const clean = dateStr.includes("T") ? dateStr.split("T")[0]! : dateStr;
+    const [yearStr, monthStr, dayStr] = clean.split("-");
+    const d = new Date(parseInt(yearStr!, 10), parseInt(monthStr!, 10) - 1, parseInt(dayStr!, 10));
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+export function getWeekdayFromDate(dateInput: Date | string): string {
+    if (typeof dateInput === "string") {
+        const cleanDate = dateInput.includes("T") ? dateInput.split("T")[0]! : dateInput;
+        const [yearStr, monthStr, dayStr] = cleanDate.split("-");
+        if (yearStr && monthStr && dayStr) {
+            const year = parseInt(yearStr, 10);
+            const month = parseInt(monthStr, 10) - 1;
+            const day = parseInt(dayStr, 10);
+            const d = new Date(year, month, day);
+            return WEEKDAY_NAMES[d.getDay()]!;
+        }
+        const d = new Date(cleanDate);
+        return WEEKDAY_NAMES[d.getDay()] ?? "MONDAY";
+    }
+    return WEEKDAY_NAMES[dateInput.getDay()]!;
+}
+
+export function parseResourceScheduleConfig(row: {
+    user_id: number | string;
+    non_working_days?: any;
+    daily_working_hours?: any;
+}): ResourceScheduleConfig {
+    const userId = Number(row.user_id);
+    let nonWorkingDays = new Set<string>();
+
+    if (row.non_working_days !== null && row.non_working_days !== undefined) {
+        try {
+            const raw = typeof row.non_working_days === "string"
+                ? JSON.parse(row.non_working_days)
+                : row.non_working_days;
+            if (Array.isArray(raw)) {
+                for (const d of raw) {
+                    if (typeof d === "string" && d.trim().length > 0) {
+                        nonWorkingDays.add(d.trim().toUpperCase());
+                    }
+                }
+            }
+        } catch {
+            nonWorkingDays = new Set<string>();
+        }
+    }
+
+    let dailyHours = 8.0;
+    if (row.daily_working_hours !== null && row.daily_working_hours !== undefined) {
+        const parsedHours = Number(row.daily_working_hours);
+        if (!isNaN(parsedHours) && parsedHours > 0 && parsedHours <= 24) {
+            dailyHours = parsedHours;
+        }
+    }
+
+    return {
+        userId,
+        nonWorkingDays,
+        dailyHours
+    };
+}
+
+/**
+ * Single source of truth for resource daily available hours calculation.
+ * 1. If date is a company holiday -> 0
+ * 2. If resource's weekday is in users.non_working_days -> 0
+ * 3. Otherwise -> max(0, daily_working_hours - leave_hours - allocated_hours)
+ */
+export function calculateAvailableHours(
+    userId: number,
+    date: string,
+    resourceConfigs: Map<number, ResourceScheduleConfig>,
+    holidays: Set<string>,
+    leaves: Map<number, Map<string, number>>,
+    allocatedSchedule?: Map<number, Map<string, number>>
+): number {
+    // 1. Company holiday -> 0 capacity
+    if (holidays.has(date)) {
+        return 0;
+    }
+
+    const config = resourceConfigs.get(userId);
+    const dailyHours = config?.dailyHours ?? 8.0;
+    const nonWorkingDays = config?.nonWorkingDays;
+
+    // 2. Resource non-working weekday -> 0 capacity
+    const weekday = getWeekdayFromDate(date);
+    if (nonWorkingDays && nonWorkingDays.has(weekday)) {
+        return 0;
+    }
+
+    // 3. Normal working capacity minus leaves and allocations
+    let availableHours = dailyHours;
+
+    const userLeave = leaves.get(userId)?.get(date);
+    if (userLeave !== undefined) {
+        availableHours -= userLeave;
+    }
+
+    const allocatedHours = allocatedSchedule?.get(userId)?.get(date) ?? 0;
+    availableHours -= allocatedHours;
+
+    return Math.max(0, availableHours);
+}
+
 export function canCompleteBy(
     task: Task,
     targetDate: string,
     taskResources: Map<number, number[]>,
     holidays: Set<string>,
-    leaves: Map<number, Map<string, number>>
+    leaves: Map<number, Map<string, number>>,
+    resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
+    initialAllocations?: Map<number, Map<string, number>>
 ): boolean {
     const resourceIds = taskResources.get(task.task_id) ?? [];
 
@@ -28,50 +161,36 @@ export function canCompleteBy(
     }
 
     const riskSchedule = new Map<number, Map<string, number>>();
-
-    const getRiskAvailableHours = (
-        userId: number,
-        date: string
-    ): number => {
-        if (holidays.has(date)) {
-            return 0;
+    if (initialAllocations) {
+        for (const [userId, dateMap] of initialAllocations.entries()) {
+            riskSchedule.set(userId, new Map(dateMap));
         }
-
-        let availableHours = 9;
-
-        const userLeave = leaves.get(userId)?.get(date);
-
-        if (userLeave !== undefined) {
-            availableHours -= userLeave;
-        }
-
-        const allocatedHours =
-            riskSchedule.get(userId)?.get(date) ?? 0;
-
-        availableHours -= allocatedHours;
-
-        return Math.max(0, availableHours);
-    };
+    }
 
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
-    const cleanTargetDate = targetDate.includes("T") ? targetDate.split("T")[0]! : targetDate;
-    const endDate = new Date(`${cleanTargetDate}T00:00:00`);
+    const endDate = parseDateLocal(targetDate);
 
     while (
         currentDate <= endDate &&
         remainingEffort > 0
     ) {
-        const date = currentDate.toISOString().split("T")[0]!;
+        const date = formatDateLocal(currentDate);
 
         for (const userId of resourceIds) {
             if (remainingEffort <= 0) {
                 break;
             }
 
-            const availableHours =
-                getRiskAvailableHours(userId, date);
+            const availableHours = calculateAvailableHours(
+                userId,
+                date,
+                resourceConfigs,
+                holidays,
+                leaves,
+                riskSchedule
+            );
 
             if (availableHours <= 0) {
                 continue;
@@ -109,7 +228,9 @@ export function calculateRisks(
     plannedEnd: string | null,
     taskResources: Map<number, number[]>,
     holidays: Set<string>,
-    leaves: Map<number, Map<string, number>>
+    leaves: Map<number, Map<string, number>>,
+    resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
+    initialAllocations?: Map<number, Map<string, number>>
 ): {
     is_schedule_at_risk: boolean;
     is_deadline_at_risk: boolean;
@@ -121,7 +242,9 @@ export function calculateRisks(
             plannedEnd,
             taskResources,
             holidays,
-            leaves
+            leaves,
+            resourceConfigs,
+            initialAllocations
         );
 
     const isDeadlineAtRisk =
@@ -131,7 +254,9 @@ export function calculateRisks(
             task.deadline,
             taskResources,
             holidays,
-            leaves
+            leaves,
+            resourceConfigs,
+            initialAllocations
         );
 
     return {
@@ -261,6 +386,37 @@ export async function recalculate(projectId: number): Promise<void> {
         [projectId]
     );
 
+    // Fetch non_working_days and daily_working_hours for resources involved in this project
+    const [userRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT
+            u.user_id,
+            u.non_working_days,
+            u.daily_working_hours
+        FROM users u
+        INNER JOIN (
+            SELECT DISTINCT ta.user_id
+            FROM task_assignments ta
+            INNER JOIN tasks t
+                ON ta.task_id = t.task_id
+            WHERE t.project_id = ?
+            UNION
+            SELECT DISTINCT pm.user_id
+            FROM project_members pm
+            WHERE pm.project_id = ?
+        ) project_resources
+            ON u.user_id = project_resources.user_id
+        `,
+        [projectId, projectId]
+    );
+
+    const resourceConfigs = new Map<number, ResourceScheduleConfig>();
+
+    for (const row of userRows) {
+        const config = parseResourceScheduleConfig(row as any);
+        resourceConfigs.set(config.userId, config);
+    }
+
     const holidays = new Set<string>();
 
     for (const row of holidayRows) {
@@ -282,31 +438,55 @@ export async function recalculate(projectId: number): Promise<void> {
     }
 
     const resourceSchedule = new Map<number, Map<string, number>>();
+    const crossProjectAllocations = new Map<number, Map<string, number>>();
+
+    const resourceUserIds = Array.from(resourceConfigs.keys());
+
+    // Preload existing task allocations from other projects for these resources
+    if (resourceUserIds.length > 0) {
+        const [crossProjectAllocRows] = await pool.query<RowDataPacket[]>(
+            `
+            SELECT
+                ts.user_id,
+                DATE_FORMAT(ts.schedule_date, '%Y-%m-%d') AS schedule_date,
+                SUM(ts.allocated_hours) AS busy_hours
+            FROM task_schedules ts
+            INNER JOIN tasks t
+                ON ts.task_id = t.task_id
+            WHERE ts.user_id IN (?)
+              AND t.project_id != ?
+              AND ts.schedule_date >= CURDATE()
+            GROUP BY ts.user_id, DATE_FORMAT(ts.schedule_date, '%Y-%m-%d')
+            `,
+            [resourceUserIds, projectId]
+        );
+
+        for (const row of crossProjectAllocRows) {
+            const userId = Number(row.user_id);
+            const date = String(row.schedule_date);
+            const busyHours = Number(row.busy_hours);
+
+            if (!resourceSchedule.has(userId)) {
+                resourceSchedule.set(userId, new Map());
+            }
+            if (!crossProjectAllocations.has(userId)) {
+                crossProjectAllocations.set(userId, new Map());
+            }
+
+            resourceSchedule.get(userId)!.set(date, busyHours);
+            crossProjectAllocations.get(userId)!.set(date, busyHours);
+        }
+    }
 
     const getAvailableHours = (userId: number, date: string): number => {
-        // Holiday → nobody can work
-        if (holidays.has(date)) {
-            return 0;
-        }
-
-        // Normal working capacity
-        let availableHours = 9;
-
-        // Subtract resource-specific leave
-        const userLeave = leaves.get(userId)?.get(date);
-
-        if (userLeave !== undefined) {
-            availableHours -= userLeave;
-        }
-
-        // Subtract work already allocated during this recalculation
-        const allocatedHours =
-            resourceSchedule.get(userId)?.get(date) ?? 0;
-
-        availableHours -= allocatedHours;
-
-        // Never allow negative capacity
-        return Math.max(0, availableHours);
+        return calculateAvailableHours(
+            userId,
+            date,
+            resourceConfigs,
+            holidays,
+            leaves,
+            resourceSchedule
+        );
     };
 
     const taskScheduleEntries: {
@@ -337,7 +517,7 @@ export async function recalculate(projectId: number): Promise<void> {
         let plannedEnd: string | null = null;
 
         while (remainingEffort > 0) {
-            const date = currentDate.toISOString().split("T")[0]!;
+            const date = formatDateLocal(currentDate);
 
             let dailyCapacity = 0;
 
@@ -406,7 +586,9 @@ export async function recalculate(projectId: number): Promise<void> {
                 plannedEnd,
                 taskResources,
                 holidays,
-                leaves
+                leaves,
+                resourceConfigs,
+                crossProjectAllocations
             );
 
             await pool.query(
@@ -437,7 +619,9 @@ export async function recalculate(projectId: number): Promise<void> {
                 task.planned_end ?? null,
                 taskResources,
                 holidays,
-                leaves
+                leaves,
+                resourceConfigs,
+                crossProjectAllocations
             );
 
             await pool.query(

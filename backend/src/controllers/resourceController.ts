@@ -220,4 +220,58 @@ export async function updateWorkScheduleController(
             message: error.message || "Internal server error"
         });
     }
+}
+
+/**
+ * GET /api/resources/:id/availability (or /api/resources/me/availability)
+ * Retrieve day-by-day resource availability across a requested date range.
+ */
+export async function getResourceAvailabilityController(
+    req: AuthRequest<{ id?: string }>,
+    res: Response
+) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const userRole = req.user.role;
+        const currentUserId = req.user.user_id;
+        const paramId = req.params.id;
+
+        let targetUserId: number;
+
+        if (!paramId || paramId === "me") {
+            targetUserId = currentUserId;
+        } else {
+            const parsed = Number(paramId);
+            if (!Number.isInteger(parsed) || parsed <= 0) {
+                return res.status(400).json({ message: "Invalid resource ID" });
+            }
+            targetUserId = parsed;
+        }
+
+        // Access control: RESOURCE role can only view their own availability
+        if (userRole === "RESOURCE" && targetUserId !== currentUserId) {
+            return res.status(403).json({
+                message: "Access denied. You can only view your own availability."
+            });
+        }
+
+        const startDate = req.query.startDate as string | undefined;
+        const endDate = req.query.endDate as string | undefined;
+
+        const { getResourceAvailability } = await import("../services/schedulerService.js");
+        const availability = await getResourceAvailability(targetUserId, startDate, endDate);
+
+        return res.status(200).json({
+            success: true,
+            data: availability
+        });
+    } catch (error: any) {
+        console.error("Get resource availability error:", error);
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error"
+        });
+    }
 }

@@ -210,7 +210,7 @@
               <!-- Top Left Time Corner Header -->
               <div
                 class="cal-cell flex flex-center"
-                :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '48px' }"
+                :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '56px' }"
               >
                 <span class="text-caption text-weight-bold text-grey-5">Time</span>
               </div>
@@ -219,27 +219,46 @@
               <div
                 v-for="day in displayedDays"
                 :key="day.toISOString()"
-                class="cal-cell row items-center justify-center q-gutter-xs q-pa-xs"
+                class="cal-cell column items-center justify-center q-pa-xs"
                 :style="{
                   background: isSameDay(day, todayDate)
                     ? $q.dark.isActive ? '#25203a' : 'rgba(139,111,216,0.08)'
                     : $q.dark.isActive ? '#181d28' : '#fafbfc',
-                  height: '48px',
+                  height: '56px',
                 }"
               >
-                <span
-                  class="text-caption text-weight-bold"
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                <div class="row items-center gap-xs">
+                  <span
+                    class="text-caption text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                  >
+                    {{ formatWeekdayName(day) }}
+                  </span>
+                  <q-badge
+                    :color="isSameDay(day, todayDate) ? 'primary' : $q.dark.isActive ? 'grey-9' : 'grey-3'"
+                    :text-color="isSameDay(day, todayDate) ? 'white' : $q.dark.isActive ? 'grey-3' : 'dark'"
+                    class="text-weight-bold"
+                  >
+                    {{ day.getDate() }}
+                  </q-badge>
+                </div>
+
+                <!-- Availability Status Chip -->
+                <q-chip
+                  v-if="getDayAvailability(day)"
+                  dense
+                  square
+                  size="xs"
+                  :color="getAvailBadgeColor(getDayAvailability(day)!.status)"
+                  text-color="white"
+                  class="q-mt-xs text-weight-bold"
+                  :icon="getAvailIcon(getDayAvailability(day)!.status)"
                 >
-                  {{ formatWeekdayName(day) }}
-                </span>
-                <q-badge
-                  :color="isSameDay(day, todayDate) ? 'primary' : $q.dark.isActive ? 'grey-9' : 'grey-3'"
-                  :text-color="isSameDay(day, todayDate) ? 'white' : $q.dark.isActive ? 'grey-3' : 'dark'"
-                  class="text-weight-bold"
-                >
-                  {{ day.getDate() }}
-                </q-badge>
+                  {{ getAvailShortLabel(getDayAvailability(day)!) }}
+                  <q-tooltip>
+                    {{ getAvailTooltip(getDayAvailability(day)!) }}
+                  </q-tooltip>
+                </q-chip>
               </div>
 
               <!-- Time Hour Rows & Grid Cells -->
@@ -348,6 +367,23 @@
                     >
                       {{ mDay.date.getDate() }}
                     </q-badge>
+
+                    <!-- Month Cell Availability Chip -->
+                    <q-chip
+                      v-if="getDayAvailability(mDay.date)"
+                      dense
+                      square
+                      size="xs"
+                      :color="getAvailBadgeColor(getDayAvailability(mDay.date)!.status)"
+                      text-color="white"
+                      class="text-weight-bold"
+                      style="font-size: 8px; height: 16px; padding: 0 4px"
+                    >
+                      {{ getAvailShortLabel(getDayAvailability(mDay.date)!) }}
+                      <q-tooltip>
+                        {{ getAvailTooltip(getDayAvailability(mDay.date)!) }}
+                      </q-tooltip>
+                    </q-chip>
                   </div>
 
                   <div class="column q-gutter-xs overflow-auto" style="max-height: 70px">
@@ -508,14 +544,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar, type QTableColumn } from 'quasar';
 import {
   getTasksApi,
   getProjectsApi,
+  getResourceAvailabilityApi,
   type Task,
   type Project,
+  type DailyAvailabilityDTO,
+  type AvailabilityStatus,
 } from '@/services/api';
 import { isOverdue } from '@/utils/taskHelpers';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
@@ -721,7 +760,7 @@ const positionedCalendarTasks = computed(() => {
       task,
       timeRange: `${s.getHours()}:${String(s.getMinutes()).padStart(2, '0')} - ${e.getHours()}:${String(e.getMinutes()).padStart(2, '0')}`,
       style: {
-        top: `calc(${topPct}% + 48px)`,
+        top: `calc(${topPct}% + 56px)`,
         height: `calc(${heightPct}% - 6px)`,
         left: `calc(${leftPct}% + 66px)`,
         width: `calc(${colWidth}% - 8px)`,
@@ -873,12 +912,132 @@ function goToTask(taskId: number | string) {
   void router.push(`/app/resource-dashboard/task-details/${taskId}`);
 }
 
+// ----------------------------------------------------
+// Real Backend Availability Integration ('me')
+// ----------------------------------------------------
+const availabilityMap = ref<Map<string, DailyAvailabilityDTO>>(new Map());
+const availabilityLoading = ref(false);
+
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDayAvailability(d: Date): DailyAvailabilityDTO | undefined {
+  const dateStr = formatLocalDate(d);
+  return availabilityMap.value.get(dateStr);
+}
+
+function getAvailBadgeColor(status: AvailabilityStatus): string {
+  switch (status) {
+    case 'AVAILABLE': return 'positive';
+    case 'PARTIALLY_AVAILABLE': return 'cyan-8';
+    case 'FULLY_BOOKED': return 'amber-9';
+    case 'ON_LEAVE': return 'purple-8';
+    case 'PARTIAL_LEAVE': return 'indigo-7';
+    case 'HOLIDAY': return 'deep-orange-8';
+    case 'NON_WORKING_DAY': return 'grey-7';
+    default: return 'grey-6';
+  }
+}
+
+function getAvailIcon(status: AvailabilityStatus): string {
+  switch (status) {
+    case 'AVAILABLE': return 'check_circle';
+    case 'PARTIALLY_AVAILABLE': return 'timelapse';
+    case 'FULLY_BOOKED': return 'event_busy';
+    case 'ON_LEAVE': return 'beach_access';
+    case 'PARTIAL_LEAVE': return 'event_repeat';
+    case 'HOLIDAY': return 'celebration';
+    case 'NON_WORKING_DAY': return 'nightlight_round';
+    default: return 'help_outline';
+  }
+}
+
+function getAvailShortLabel(day: DailyAvailabilityDTO): string {
+  switch (day.status) {
+    case 'AVAILABLE': return `${day.available_hours}h Free`;
+    case 'PARTIALLY_AVAILABLE': return `${day.available_hours}h Free`;
+    case 'FULLY_BOOKED': return 'Booked';
+    case 'ON_LEAVE': return 'On Leave';
+    case 'PARTIAL_LEAVE': return `Leave (${day.leave_hours}h)`;
+    case 'HOLIDAY': return 'Holiday';
+    case 'NON_WORKING_DAY': return 'Off';
+    default: return day.status;
+  }
+}
+
+function getAvailTooltip(day: DailyAvailabilityDTO): string {
+  switch (day.status) {
+    case 'AVAILABLE': return `Available: ${day.available_hours}h capacity free`;
+    case 'PARTIALLY_AVAILABLE': return `Partially available: ${day.available_hours}h free (${day.allocated_hours}h allocated)`;
+    case 'FULLY_BOOKED': return `Fully booked: ${day.allocated_hours}h allocated of ${day.daily_working_hours}h`;
+    case 'ON_LEAVE': return `On Leave: ${day.leave_hours}h full-day leave`;
+    case 'PARTIAL_LEAVE': return `Partial leave: ${day.leave_hours}h leave (${day.available_hours}h available)`;
+    case 'HOLIDAY': return `Company Holiday (0h working capacity)`;
+    case 'NON_WORKING_DAY': return `Non-Working Day (Scheduled day off)`;
+    default: return day.status;
+  }
+}
+
+async function fetchAvailabilityForVisibleRange() {
+  let startDateStr: string;
+  let endDateStr: string;
+
+  if (scheduleViewMode.value === 'day') {
+    startDateStr = formatLocalDate(currentAnchorDate.value);
+    endDateStr = startDateStr;
+  } else if (scheduleViewMode.value === 'week') {
+    const days = displayedDays.value;
+    if (days.length > 0) {
+      startDateStr = formatLocalDate(days[0]!);
+      endDateStr = formatLocalDate(days[days.length - 1]!);
+    } else {
+      startDateStr = formatLocalDate(currentAnchorDate.value);
+      endDateStr = startDateStr;
+    }
+  } else if (scheduleViewMode.value === 'month') {
+    const matrixDays = monthMatrixDays.value;
+    if (matrixDays.length > 0) {
+      startDateStr = formatLocalDate(matrixDays[0]!.date);
+      endDateStr = formatLocalDate(matrixDays[matrixDays.length - 1]!.date);
+    } else {
+      startDateStr = formatLocalDate(new Date(currentAnchorDate.value.getFullYear(), currentAnchorDate.value.getMonth(), 1));
+      endDateStr = formatLocalDate(new Date(currentAnchorDate.value.getFullYear(), currentAnchorDate.value.getMonth() + 1, 0));
+    }
+  } else {
+    // Gantt or Table view: fetch current month +/- 30 days
+    const anchor = currentAnchorDate.value;
+    startDateStr = formatLocalDate(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+    endDateStr = formatLocalDate(new Date(anchor.getFullYear(), anchor.getMonth() + 2, 0));
+  }
+
+  availabilityLoading.value = true;
+  try {
+    const res = await getResourceAvailabilityApi('me', startDateStr, endDateStr);
+    const newMap = new Map<string, DailyAvailabilityDTO>();
+    if (res && res.days) {
+      for (const d of res.days) {
+        newMap.set(d.date, d);
+      }
+    }
+    availabilityMap.value = newMap;
+  } catch (err) {
+    console.error('Failed to load resource availability for schedule range:', err);
+  } finally {
+    availabilityLoading.value = false;
+  }
+}
+
 async function loadData() {
   loading.value = true;
   try {
     const [tasksRes, projectsRes] = await Promise.all([
       getTasksApi(),
       getProjectsApi(),
+      fetchAvailabilityForVisibleRange(),
     ]);
     tasks.value = tasksRes || [];
     projects.value = projectsRes || [];
@@ -891,6 +1050,10 @@ async function loadData() {
     loading.value = false;
   }
 }
+
+watch([currentAnchorDate, scheduleViewMode], () => {
+  void fetchAvailabilityForVisibleRange();
+});
 
 onMounted(() => {
   void loadData();

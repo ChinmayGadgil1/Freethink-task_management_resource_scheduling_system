@@ -1138,3 +1138,61 @@ export async function updateResourceWorkScheduleApi(
 
   return data.data;
 }
+
+export type AvailabilityStatus =
+  | 'AVAILABLE'
+  | 'PARTIALLY_AVAILABLE'
+  | 'FULLY_BOOKED'
+  | 'ON_LEAVE'
+  | 'PARTIAL_LEAVE'
+  | 'HOLIDAY'
+  | 'NON_WORKING_DAY';
+
+export interface DailyAvailabilityDTO {
+  date: string;
+  weekday: string;
+  daily_working_hours: number;
+  leave_hours: number;
+  allocated_hours: number;
+  available_hours: number;
+  status: AvailabilityStatus;
+}
+
+export interface ResourceAvailabilityResponseDTO {
+  user_id: number;
+  name: string;
+  daily_working_hours: number;
+  non_working_days: DayOfWeek[];
+  start_date: string;
+  end_date: string;
+  total_available_hours: number;
+  total_allocated_hours: number;
+  days: DailyAvailabilityDTO[];
+}
+
+/**
+ * Fetch resource daily availability across a date range
+ * GET /api/resources/:id/availability
+ */
+export async function getResourceAvailabilityApi(
+  resourceId: number | 'me' = 'me',
+  startDate?: string,
+  endDate?: string,
+): Promise<ResourceAvailabilityResponseDTO> {
+  const queryParams = new URLSearchParams();
+  if (startDate) queryParams.append('startDate', startDate);
+  if (endDate) queryParams.append('endDate', endDate);
+
+  const url = `${API_BASE_URL}/resources/${resourceId}/availability${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await authenticatedFetch(url, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch resource availability');
+  }
+
+  return data.data;
+}

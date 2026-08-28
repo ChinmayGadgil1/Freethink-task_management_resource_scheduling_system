@@ -114,6 +114,7 @@
         >
           <q-tab name="tasks" icon="task_alt" label="Assigned Tasks" />
           <q-tab name="projects" icon="folder_open" label="Projects" />
+          <q-tab name="availability" icon="event_available" label="Daily Availability" />
           <q-tab name="workload" icon="speed" label="Capacity & Workload" />
           <q-tab name="leaves" icon="event_busy" label="Leaves & Time Off" />
         </q-tabs>
@@ -230,7 +231,16 @@
             </div>
           </q-tab-panel>
 
-          <!-- TAB 3: WORKLOAD -->
+          <!-- TAB 3: DAILY AVAILABILITY -->
+          <q-tab-panel name="availability" class="q-pa-md">
+            <ResourceAvailabilityCalendar
+              v-if="resourceId"
+              :resource-id="resourceId"
+              initial-days-range="14"
+            />
+          </q-tab-panel>
+
+          <!-- TAB 4: WORKLOAD -->
           <q-tab-panel name="workload" class="q-pa-md">
             <div class="text-h6 text-weight-bold q-mb-md">Weekly Capacity Breakdown</div>
 
@@ -613,6 +623,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import { getInitials, formatHours, formatNumber } from '@/utils/formatters';
+import ResourceAvailabilityCalendar from '@/components/resource/ResourceAvailabilityCalendar.vue';
 import {
   createTaskApi,
   getProjectsApi,

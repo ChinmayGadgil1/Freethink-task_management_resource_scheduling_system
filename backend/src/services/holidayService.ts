@@ -1,6 +1,28 @@
 import { getPool } from "../config/database.js";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import type { Holiday, CreateHolidayDTO, UpdateHolidayDTO } from "../models/holidayModel.js";
+import { recalculate } from "./scheduler/SchedulingEngine.js";
+
+/**
+ * Triggers schedule recalculation for all currently active projects when company holidays change.
+ */
+async function recalculateActiveProjects(): Promise<void> {
+    const pool = getPool();
+    try {
+        const [projectRows] = await pool.query<RowDataPacket[]>(
+            `SELECT project_id FROM projects WHERE status NOT IN ('COMPLETED', 'CANCELLED')`
+        );
+        for (const project of projectRows) {
+            try {
+                await recalculate(Number(project.project_id));
+            } catch (projErr) {
+                console.error(`Warning: Failed to recalculate project ${project.project_id} after holiday update:`, projErr);
+            }
+        }
+    } catch (schedError) {
+        console.error("Warning: Failed to fetch active projects for holiday schedule recalculation:", schedError);
+    }
+}
 
 /**
  * Format a Date object or date string to YYYY-MM-DD
@@ -113,6 +135,9 @@ export async function createHoliday(data: CreateHolidayDTO): Promise<Holiday> {
         [formattedDate, data.description.trim()]
     );
 
+    // Recalculate all active projects to reflect the new holiday
+    await recalculateActiveProjects();
+
     return {
         holiday_id: result.insertId,
         holiday_date: formattedDate,
@@ -167,6 +192,9 @@ export async function updateHoliday(holidayId: number, data: UpdateHolidayDTO): 
         [targetDate, targetDescription, holidayId]
     );
 
+    // Recalculate all active projects to reflect the updated holiday
+    await recalculateActiveProjects();
+
     return {
         holiday_id: holidayId,
         holiday_date: targetDate,
@@ -188,6 +216,9 @@ export async function deleteHoliday(holidayId: number): Promise<boolean> {
         throw error;
     }
 
+    // Recalculate all active projects to reflect the deleted holiday
+    await recalculateActiveProjects();
+
     return true;
 }
 
@@ -201,7 +232,12 @@ export async function getHolidayDatesSet(startDate?: string, endDate?: string): 
     return holidaySet;
 }
 
-// Checks if a given date is a working day (Monday-Friday and not in holidaySet)
+/**
+ * Checks if a given date is a general company working day (Monday-Friday and not in holidaySet).
+ * Note: For resource-specific scheduling and capacity calculations, the scheduler engine's
+ * calculateAvailableHours / ResourceScheduleConfig is authoritative, as resources may have custom
+ * non-working days and daily working hours configured in the users table.
+ */
 export function isWorkingDay(dateInput: Date | string, holidaySet: Set<string>): boolean {
     const dateStr = formatDateKey(dateInput);
     const dateObj = typeof dateInput === "string" ? new Date(`${dateStr}T00:00:00`) : dateInput;

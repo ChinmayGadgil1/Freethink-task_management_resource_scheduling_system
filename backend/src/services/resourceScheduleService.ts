@@ -5,6 +5,7 @@ import type {
     ResourceScheduleDTO,
     UpdateResourceScheduleDTO
 } from "../models/resourceScheduleModel.js";
+import { recalculate } from "./scheduler/SchedulingEngine.js";
 
 export const ALL_DAYS: DayOfWeek[] = [
     "MONDAY",
@@ -174,6 +175,37 @@ export async function updateResourceWorkSchedule(
             [userId]
         );
         finalDailyHours = rows[0]?.daily_working_hours ? Number(rows[0].daily_working_hours) : 8.0;
+    }
+
+    // Recalculate schedules for all active projects this resource is assigned to or a member of
+    try {
+        const [projectRows] = await pool.query<RowDataPacket[]>(
+            `
+            SELECT DISTINCT p.project_id
+            FROM projects p
+            WHERE p.status NOT IN ('COMPLETED', 'CANCELLED')
+              AND (
+                p.project_id IN (SELECT project_id FROM project_members WHERE user_id = ?)
+                OR p.project_id IN (
+                    SELECT t.project_id
+                    FROM tasks t
+                    INNER JOIN task_assignments ta ON t.task_id = ta.task_id
+                    WHERE ta.user_id = ?
+                )
+              )
+            `,
+            [userId, userId]
+        );
+
+        for (const project of projectRows) {
+            try {
+                await recalculate(Number(project.project_id));
+            } catch (projErr) {
+                console.error(`Warning: Failed to recalculate project ${project.project_id} after resource schedule update:`, projErr);
+            }
+        }
+    } catch (schedError) {
+        console.error("Warning: Failed to query active projects for recalculation after resource schedule update:", schedError);
     }
 
     return {

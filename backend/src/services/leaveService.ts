@@ -10,11 +10,10 @@ import { getResourceProjects } from "./resourceService.js";
 export async function applyLeave(data: CreateLeaveDTO): Promise<UserLeave> {
     const pool = getPool();
     const { user_id, leave_date } = data;
-    const leave_hours = data.leave_hours !== undefined ? Number(data.leave_hours) : 8.00;
 
     // 1. Validate resource exists, is active, and has the role RESOURCE
     const [userRows] = await pool.query<RowDataPacket[]>(
-        `SELECT user_id, is_active, role FROM users WHERE user_id = ?`,
+        `SELECT user_id, is_active, role, daily_working_hours FROM users WHERE user_id = ?`,
         [user_id]
     );
 
@@ -35,6 +34,20 @@ export async function applyLeave(data: CreateLeaveDTO): Promise<UserLeave> {
         const error = new Error("User is not a resource.");
         (error as any).status = 400;
         throw error;
+    }
+
+    // Determine leave_hours: if explicitly supplied, use that value.
+    // If omitted, use the resource's configured daily_working_hours (falling back to 8.00 if null/invalid).
+    let leave_hours: number;
+    if (data.leave_hours !== undefined && data.leave_hours !== null) {
+        leave_hours = Number(data.leave_hours);
+    } else {
+        const userDailyHours = user.daily_working_hours !== null && user.daily_working_hours !== undefined
+            ? Number(user.daily_working_hours)
+            : 8.00;
+        leave_hours = !isNaN(userDailyHours) && userDailyHours > 0 && userDailyHours <= 24
+            ? userDailyHours
+            : 8.00;
     }
 
     // 2. Validate leave hours (must be positive and <= 24)

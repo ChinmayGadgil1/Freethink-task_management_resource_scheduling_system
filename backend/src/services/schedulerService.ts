@@ -1,7 +1,22 @@
 import { getPool } from "../config/database.js";
 import type { RowDataPacket } from "mysql2";
-import { recalculate as recalculateSchedule, canCompleteBy, calculateRisks } from "./scheduler/SchedulingEngine.js";
+import {
+    recalculate as recalculateSchedule,
+    canCompleteBy,
+    calculateRisks,
+    parseResourceScheduleConfig,
+    getWeekdayFromDate,
+    formatDateLocal,
+    parseDateLocal,
+    type ResourceScheduleConfig
+} from "./scheduler/SchedulingEngine.js";
 import type { Task, TaskPriority } from "../models/taskModel.js";
+import type {
+    AvailabilityStatus,
+    DailyAvailabilityDTO,
+    ResourceAvailabilityResponseDTO,
+    DayOfWeek
+} from "../models/resourceScheduleModel.js";
 
 export interface TaskWorkload {
     task_id: number;
@@ -209,7 +224,7 @@ export async function getResourceWorkload(resourceId: number) {
 
 /**
  * Checks scheduling impact when assigning or sizing a task for a resource,
- * accounting for 9h daily capacity, company holidays, and leaves.
+ * accounting for resource-specific daily working hours, non-working days, company holidays, and leaves.
  */
 export async function checkSchedulingImpact(
     resourceId: number,
@@ -219,6 +234,17 @@ export async function checkSchedulingImpact(
 ) {
     const pool = getPool();
     const cleanDeadline = deadlineStr.includes("T") ? deadlineStr.split("T")[0]! : deadlineStr;
+
+    // Fetch user schedule configuration (non_working_days, daily_working_hours)
+    const [userRows] = await pool.query<RowDataPacket[]>(
+        `SELECT user_id, non_working_days, daily_working_hours FROM users WHERE user_id = ?`,
+        [resourceId]
+    );
+    const resourceConfigs = new Map<number, ResourceScheduleConfig>();
+    if (userRows.length > 0) {
+        const config = parseResourceScheduleConfig(userRows[0] as any);
+        resourceConfigs.set(config.userId, config);
+    }
 
     // Fetch user leaves
     const [leaveRows] = await pool.query<RowDataPacket[]>(
@@ -259,12 +285,34 @@ export async function checkSchedulingImpact(
         updated_at: new Date()
     };
 
+    // Fetch existing task allocations for this resource from task_schedules
+    const [allocRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT
+            DATE_FORMAT(schedule_date, '%Y-%m-%d') AS schedule_date,
+            SUM(allocated_hours) AS allocated_hours
+        FROM task_schedules
+        WHERE user_id = ? AND schedule_date >= CURDATE()
+        GROUP BY DATE_FORMAT(schedule_date, '%Y-%m-%d')
+        `,
+        [resourceId]
+    );
+
+    const initialAllocations = new Map<number, Map<string, number>>();
+    const userAllocMap = new Map<string, number>();
+    for (const row of allocRows) {
+        userAllocMap.set(String(row.schedule_date), Number(row.allocated_hours));
+    }
+    initialAllocations.set(resourceId, userAllocMap);
+
     const isFeasible = canCompleteBy(
         dummyTask,
         cleanDeadline,
         taskResources,
         holidays,
-        leavesMap
+        leavesMap,
+        resourceConfigs,
+        initialAllocations
     );
 
     const workloadInfo = await getResourceWorkload(resourceId);
@@ -277,7 +325,214 @@ export async function checkSchedulingImpact(
         capacity_exceeded: !isFeasible,
         active_tasks_count: workloadInfo.active_tasks_count,
         warning: !isFeasible
-            ? `Warning: Resource cannot complete ${expectedEffort}h of work before ${cleanDeadline} due to existing capacity/holidays/leaves.`
+            ? `Warning: Resource cannot complete ${expectedEffort}h of work before ${cleanDeadline} due to existing capacity/holidays/leaves/scheduled allocations.`
             : null
+    };
+}
+
+/**
+ * Calculates day-by-day availability for a specific resource across a date range.
+ * Considers non_working_days, daily_working_hours, company holidays, user leaves, and task_schedules.
+ */
+export async function getResourceAvailability(
+    userId: number,
+    startDateStr?: string,
+    endDateStr?: string
+): Promise<ResourceAvailabilityResponseDTO> {
+    const pool = getPool();
+
+    // 1. Validate resource exists, is active, and has role RESOURCE
+    const [userRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT user_id, name, email, role, is_active, non_working_days, daily_working_hours
+        FROM users
+        WHERE user_id = ?
+        LIMIT 1
+        `,
+        [userId]
+    );
+
+    if (userRows.length === 0) {
+        const error = new Error("Resource not found.");
+        (error as any).status = 404;
+        throw error;
+    }
+
+    const userRow = userRows[0]!;
+
+    if (!userRow.is_active) {
+        const error = new Error("Resource is inactive.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    if (userRow.role !== "RESOURCE") {
+        const error = new Error("Only users with role RESOURCE have availability schedules.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    // 2. Validate and normalize date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const defaultStart = formatDateLocal(today);
+    const thirtyDaysAhead = new Date(today.getTime());
+    thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30);
+    const defaultEnd = formatDateLocal(thirtyDaysAhead);
+
+    const cleanStartStr = startDateStr
+        ? (startDateStr.includes("T") ? startDateStr.split("T")[0]! : startDateStr)
+        : defaultStart;
+    const cleanEndStr = endDateStr
+        ? (endDateStr.includes("T") ? endDateStr.split("T")[0]! : endDateStr)
+        : defaultEnd;
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(cleanStartStr) || !dateRegex.test(cleanEndStr)) {
+        const error = new Error("Invalid date format. Expected YYYY-MM-DD.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    const startDate = parseDateLocal(cleanStartStr);
+    const endDate = parseDateLocal(cleanEndStr);
+
+    if (startDate > endDate) {
+        const error = new Error("startDate cannot be after endDate.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    if (diffDays > 366) {
+        const error = new Error("Date range cannot exceed 366 days.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    // 3. Parse resource schedule configuration
+    const resourceConfig = parseResourceScheduleConfig(userRow as any);
+    const dailyWorkingHours = resourceConfig.dailyHours;
+
+    // 4. Fetch company holidays in range
+    const [holidayRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT DATE_FORMAT(holiday_date, '%Y-%m-%d') as holiday_date
+        FROM holidays
+        WHERE holiday_date BETWEEN ? AND ?
+        `,
+        [cleanStartStr, cleanEndStr]
+    );
+
+    const holidays = new Set<string>();
+    for (const row of holidayRows) {
+        holidays.add(String(row.holiday_date));
+    }
+
+    // 5. Fetch user leaves in range
+    const [leaveRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours
+        FROM user_leaves
+        WHERE user_id = ? AND leave_date BETWEEN ? AND ?
+        `,
+        [userId, cleanStartStr, cleanEndStr]
+    );
+
+    const leaves = new Map<string, number>();
+    for (const row of leaveRows) {
+        leaves.set(String(row.leave_date), Number(row.leave_hours));
+    }
+
+    // 6. Fetch task allocations in range
+    const [allocRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT DATE_FORMAT(schedule_date, '%Y-%m-%d') as schedule_date, SUM(allocated_hours) as allocated_hours
+        FROM task_schedules
+        WHERE user_id = ? AND schedule_date BETWEEN ? AND ?
+        GROUP BY DATE_FORMAT(schedule_date, '%Y-%m-%d')
+        `,
+        [userId, cleanStartStr, cleanEndStr]
+    );
+
+    const allocations = new Map<string, number>();
+    for (const row of allocRows) {
+        allocations.set(String(row.schedule_date), Number(row.allocated_hours));
+    }
+
+    // 7. Day-by-day availability calculation
+    const days: DailyAvailabilityDTO[] = [];
+    let totalAvailable = 0;
+    let totalAllocated = 0;
+
+    const currentDate = new Date(startDate.getTime());
+
+    while (currentDate <= endDate) {
+        const dateStr = formatDateLocal(currentDate);
+        const weekday = getWeekdayFromDate(currentDate);
+
+        const isHoliday = holidays.has(dateStr);
+        const isNonWorkingDay = resourceConfig.nonWorkingDays.has(weekday);
+        const leaveHours = leaves.get(dateStr) ?? 0;
+        const allocatedHours = allocations.get(dateStr) ?? 0;
+        const dailyCapacity = dailyWorkingHours;
+
+        let availableHours = 0;
+        let status: AvailabilityStatus;
+
+        if (isHoliday) {
+            availableHours = 0;
+            status = "HOLIDAY";
+        } else if (isNonWorkingDay) {
+            availableHours = 0;
+            status = "NON_WORKING_DAY";
+        } else {
+            const netCapacity = Math.max(0, dailyCapacity - leaveHours);
+            availableHours = Math.max(0, netCapacity - allocatedHours);
+
+            if (availableHours === 0) {
+                if (leaveHours >= dailyCapacity) {
+                    status = "ON_LEAVE";
+                } else {
+                    status = "FULLY_BOOKED";
+                }
+            } else {
+                if (leaveHours > 0) {
+                    status = "PARTIAL_LEAVE";
+                } else if (allocatedHours > 0) {
+                    status = "PARTIALLY_AVAILABLE";
+                } else {
+                    status = "AVAILABLE";
+                }
+            }
+        }
+
+        totalAvailable += availableHours;
+        totalAllocated += allocatedHours;
+
+        days.push({
+            date: dateStr,
+            weekday,
+            daily_working_hours: dailyCapacity,
+            leave_hours: leaveHours,
+            allocated_hours: allocatedHours,
+            available_hours: availableHours,
+            status
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return {
+        user_id: userId,
+        name: userRow.name,
+        daily_working_hours: dailyWorkingHours,
+        non_working_days: Array.from(resourceConfig.nonWorkingDays) as DayOfWeek[],
+        start_date: cleanStartStr,
+        end_date: cleanEndStr,
+        total_available_hours: Number(totalAvailable.toFixed(2)),
+        total_allocated_hours: Number(totalAllocated.toFixed(2)),
+        days
     };
 }
