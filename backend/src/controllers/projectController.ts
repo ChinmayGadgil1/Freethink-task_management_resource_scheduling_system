@@ -16,7 +16,6 @@ import {
 import { getRecentWorkLogsForManager } from "../services/workLogService.js";
 
 const createProjectSchema = z.object({
-    project_manager_id: z.number().int().positive(),
     name: z.string().min(1, "Project name is required"),
     description: z.string().optional(),
     status: z.enum([
@@ -59,6 +58,12 @@ const updateProjectSchema = z.object({
 
 export async function create(req: AuthRequest, res: Response) {
     try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({
+                message: "Only project managers can create projects"
+            });
+        }
+
         const parsedData = createProjectSchema.parse(req.body);
 
         if (
@@ -72,7 +77,7 @@ export async function create(req: AuthRequest, res: Response) {
         }
 
         const project = await createProject(
-            parsedData.project_manager_id,
+            req.user.user_id,
             parsedData.name,
             parsedData.description ?? null,
             parsedData.status,

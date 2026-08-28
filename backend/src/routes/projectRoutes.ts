@@ -13,7 +13,7 @@ import { authenticate } from "../middleware/authMiddleware.js";
 
 const projectRoutes = Router();
 
-projectRoutes.post("/", create);
+projectRoutes.post("/", authenticate, create);
 projectRoutes.get("/", authenticate, getProjects);
 projectRoutes.get("/feed/progress", authenticate, getGlobalProgressFeedController);
 
