@@ -1,7 +1,7 @@
 import { getPool } from "../../config/database.js";
 import type { RowDataPacket } from "mysql2";
 import type { Task, TaskDependency } from "../../models/taskModel.js";
-import { getTaskAvailability } from "./DependencyEngine.js";
+
 import { calculateUrgencyScore, sortTasksByUrgency, type ScoredTask } from "./PriorityEngine.js";
 import { getDownstreamDependencyCount } from "./DependencyEngine.js";
 
@@ -143,7 +143,8 @@ export function canCompleteBy(
     holidays: Set<string>,
     leaves: Map<number, Map<string, number>>,
     resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
-    initialAllocations?: Map<number, Map<string, number>>
+    initialAllocations?: Map<number, Map<string, number>>,
+    earliestStart?: Date
 ): boolean {
     const resourceIds = taskResources.get(task.task_id) ?? [];
 
@@ -167,7 +168,7 @@ export function canCompleteBy(
         }
     }
 
-    const currentDate = new Date();
+    const currentDate = earliestStart ? new Date(earliestStart) : new Date();
     currentDate.setHours(0, 0, 0, 0);
 
     const endDate = parseDateLocal(targetDate);
@@ -230,7 +231,8 @@ export function calculateRisks(
     holidays: Set<string>,
     leaves: Map<number, Map<string, number>>,
     resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
-    initialAllocations?: Map<number, Map<string, number>>
+    initialAllocations?: Map<number, Map<string, number>>,
+    earliestStart?: Date
 ): {
     is_schedule_at_risk: boolean;
     is_deadline_at_risk: boolean;
@@ -244,7 +246,8 @@ export function calculateRisks(
             holidays,
             leaves,
             resourceConfigs,
-            initialAllocations
+            initialAllocations,
+            earliestStart
         );
 
     const isDeadlineAtRisk =
@@ -256,7 +259,8 @@ export function calculateRisks(
             holidays,
             leaves,
             resourceConfigs,
-            initialAllocations
+            initialAllocations,
+            earliestStart
         );
 
     return {
@@ -336,27 +340,38 @@ export async function recalculate(projectId: number): Promise<void> {
         predecessor_task_id: Number(row.predecessor_task_id)
     }));
 
-    const { AVAILABLE } = getTaskAvailability(tasks, dependencies);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const currentDate = new Date();
+    const inDegree = new Map<number, number>();
+    const adjList = new Map<number, number[]>();
 
-    const schedulableTasks = AVAILABLE.filter(
-        task => task.status !== "UNASSIGNED"
-    );
+    for (const task of tasks) {
+        inDegree.set(task.task_id, 0);
+        adjList.set(task.task_id, []);
+    }
 
-    const scoredTasks: ScoredTask[] = schedulableTasks.map(task => {
-        const downstreamCount = getDownstreamDependencyCount(
-            task.task_id,
-            dependencies
-        );
+    for (const dep of dependencies) {
+        if (inDegree.has(dep.task_id) && inDegree.has(dep.predecessor_task_id)) {
+            adjList.get(dep.predecessor_task_id)!.push(dep.task_id);
+            inDegree.set(dep.task_id, inDegree.get(dep.task_id)! + 1);
+        }
+    }
 
-        return {
-            ...task,
-            urgency_score: calculateUrgencyScore(task, downstreamCount, currentDate)
-        };
-    });
+    const downstreamCountMap = new Map<number, number>();
+    for (const task of tasks) {
+        downstreamCountMap.set(task.task_id, getDownstreamDependencyCount(task.task_id, dependencies));
+    }
 
-    const sortedTasks = sortTasksByUrgency(scoredTasks);
+    let availableTasks: ScoredTask[] = [];
+    for (const task of tasks) {
+        if (inDegree.get(task.task_id) === 0) {
+            availableTasks.push({
+                ...task,
+                urgency_score: calculateUrgencyScore(task, downstreamCountMap.get(task.task_id) ?? 0, today)
+            });
+        }
+    }
 
     // Fetch project holidays
     const [holidayRows] = await pool.query<RowDataPacket[]>(
@@ -438,7 +453,6 @@ export async function recalculate(projectId: number): Promise<void> {
     }
 
     const resourceSchedule = new Map<number, Map<string, number>>();
-    const crossProjectAllocations = new Map<number, Map<string, number>>();
 
     const resourceUserIds = Array.from(resourceConfigs.keys());
 
@@ -469,12 +483,8 @@ export async function recalculate(projectId: number): Promise<void> {
             if (!resourceSchedule.has(userId)) {
                 resourceSchedule.set(userId, new Map());
             }
-            if (!crossProjectAllocations.has(userId)) {
-                crossProjectAllocations.set(userId, new Map());
-            }
 
             resourceSchedule.get(userId)!.set(date, busyHours);
-            crossProjectAllocations.get(userId)!.set(date, busyHours);
         }
     }
 
@@ -496,91 +506,106 @@ export async function recalculate(projectId: number): Promise<void> {
         allocated_hours: number;
     }[] = [];
 
-    const scheduledTaskIds = new Set<number>();
+    const earliestStarts = new Map<number, Date>();
+    for (const task of tasks) {
+        earliestStarts.set(task.task_id, new Date(today));
+    }
 
-    for (const task of sortedTasks) {
+    const taskUpdates = new Map<number, {
+        planned_start: string | null;
+        planned_end: string | null;
+        is_schedule_at_risk: boolean;
+        is_deadline_at_risk: boolean;
+    }>();
+
+    while (availableTasks.length > 0) {
+        availableTasks = sortTasksByUrgency(availableTasks);
+        const task = availableTasks.shift()!;
+        
         const resourceIds = taskResources.get(task.task_id) ?? [];
-
         let remainingEffort = Math.max(
             0,
             Number(task.expected_effort) - Number(task.actual_effort)
         );
 
-        if (remainingEffort <= 0 || resourceIds.length === 0) {
-            continue;
-        }
-
-        let currentDate = new Date();
-        currentDate.setHours(0, 0, 0, 0);
-
         let plannedStart: string | null = null;
         let plannedEnd: string | null = null;
+        
+        let taskEarliestStart = earliestStarts.get(task.task_id) ?? new Date(today);
+        let taskFinalEnd: Date | null = null;
 
-        while (remainingEffort > 0) {
-            const date = formatDateLocal(currentDate);
+        if (remainingEffort > 0 && resourceIds.length > 0 && task.status !== "UNASSIGNED") {
+            let currentDate = new Date(taskEarliestStart);
+            currentDate.setHours(0, 0, 0, 0);
 
-            let dailyCapacity = 0;
-
-            for (const userId of resourceIds) {
-                dailyCapacity += getAvailableHours(userId, date);
+            const initialAllocationsForRisk = new Map<number, Map<string, number>>();
+            for (const [uid, datesMap] of resourceSchedule.entries()) {
+                initialAllocationsForRisk.set(uid, new Map(datesMap));
             }
 
-            if (dailyCapacity > 0) {
-                if (plannedStart === null) {
-                    plannedStart = date;
-                }
-
-                let hoursRemainingToday = Math.min(
-                    remainingEffort,
-                    dailyCapacity
-                );
+            while (remainingEffort > 0) {
+                const date = formatDateLocal(currentDate);
+                let dailyCapacity = 0;
 
                 for (const userId of resourceIds) {
-                    if (hoursRemainingToday <= 0) {
-                        break;
-                    }
-
-                    const availableHours = getAvailableHours(userId, date);
-
-                    if (availableHours <= 0) {
-                        continue;
-                    }
-
-                    const hoursToAllocate = Math.min(
-                        availableHours,
-                        hoursRemainingToday
-                    );
-
-                    if (!resourceSchedule.has(userId)) {
-                        resourceSchedule.set(userId, new Map());
-                    }
-
-                    const userSchedule = resourceSchedule.get(userId)!;
-
-                    userSchedule.set(
-                        date,
-                        (userSchedule.get(date) ?? 0) + hoursToAllocate
-                    );
-
-                    taskScheduleEntries.push({
-                        task_id: task.task_id,
-                        user_id: userId,
-                        schedule_date: date,
-                        allocated_hours: hoursToAllocate
-                    });
-
-                    hoursRemainingToday -= hoursToAllocate;
-                    remainingEffort -= hoursToAllocate;
+                    dailyCapacity += getAvailableHours(userId, date);
                 }
 
-                plannedEnd = date;
+                if (dailyCapacity > 0) {
+                    if (plannedStart === null) {
+                        plannedStart = date;
+                    }
+
+                    let hoursRemainingToday = Math.min(
+                        remainingEffort,
+                        dailyCapacity
+                    );
+
+                    for (const userId of resourceIds) {
+                        if (hoursRemainingToday <= 0) {
+                            break;
+                        }
+
+                        const availableHours = getAvailableHours(userId, date);
+
+                        if (availableHours <= 0) {
+                            continue;
+                        }
+
+                        const hoursToAllocate = Math.min(
+                            availableHours,
+                            hoursRemainingToday
+                        );
+
+                        if (!resourceSchedule.has(userId)) {
+                            resourceSchedule.set(userId, new Map());
+                        }
+
+                        const userSchedule = resourceSchedule.get(userId)!;
+
+                        userSchedule.set(
+                            date,
+                            (userSchedule.get(date) ?? 0) + hoursToAllocate
+                        );
+
+                        taskScheduleEntries.push({
+                            task_id: task.task_id,
+                            user_id: userId,
+                            schedule_date: date,
+                            allocated_hours: hoursToAllocate
+                        });
+
+                        hoursRemainingToday -= hoursToAllocate;
+                        remainingEffort -= hoursToAllocate;
+                    }
+
+                    plannedEnd = date;
+                    taskFinalEnd = new Date(currentDate);
+                }
+
+                currentDate.setDate(currentDate.getDate() + 1);
             }
 
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        if (plannedStart !== null && plannedEnd !== null) {
-            scheduledTaskIds.add(task.task_id);
             const risks = calculateRisks(
                 task,
                 plannedEnd,
@@ -588,32 +613,23 @@ export async function recalculate(projectId: number): Promise<void> {
                 holidays,
                 leaves,
                 resourceConfigs,
-                crossProjectAllocations
+                initialAllocationsForRisk,
+                taskEarliestStart
             );
 
-            await pool.query(
-                `
-                UPDATE tasks
-                SET planned_start = ?,
-                    planned_end = ?,
-                    is_schedule_at_risk = ?,
-                    is_deadline_at_risk = ?
-                WHERE task_id = ?
-                `,
-                [
-                    plannedStart,
-                    plannedEnd,
-                    risks.is_schedule_at_risk,
-                    risks.is_deadline_at_risk,
-                    task.task_id
-                ]
-            );
-        }
-    }
+            taskUpdates.set(task.task_id, {
+                planned_start: plannedStart,
+                planned_end: plannedEnd,
+                is_schedule_at_risk: risks.is_schedule_at_risk,
+                is_deadline_at_risk: risks.is_deadline_at_risk
+            });
 
-    // For any uncompleted tasks not scheduled above (e.g. UNASSIGNED, blocked by dependencies, or 0 remaining effort)
-    for (const task of tasks) {
-        if (!scheduledTaskIds.has(task.task_id)) {
+        } else {
+            const initialAllocationsForRisk = new Map<number, Map<string, number>>();
+            for (const [uid, datesMap] of resourceSchedule.entries()) {
+                initialAllocationsForRisk.set(uid, new Map(datesMap));
+            }
+            
             const risks = calculateRisks(
                 task,
                 task.planned_end ?? null,
@@ -621,7 +637,86 @@ export async function recalculate(projectId: number): Promise<void> {
                 holidays,
                 leaves,
                 resourceConfigs,
-                crossProjectAllocations
+                initialAllocationsForRisk,
+                taskEarliestStart
+            );
+            
+            taskUpdates.set(task.task_id, {
+                planned_start: task.planned_start ?? null,
+                planned_end: task.planned_end ?? null,
+                is_schedule_at_risk: risks.is_schedule_at_risk,
+                is_deadline_at_risk: risks.is_deadline_at_risk
+            });
+            
+            taskFinalEnd = new Date(taskEarliestStart);
+        }
+
+        const successors = adjList.get(task.task_id) ?? [];
+        for (const succ of successors) {
+            if (taskFinalEnd) {
+                const currentSuccStart = earliestStarts.get(succ)!;
+                if (taskFinalEnd > currentSuccStart) {
+                    earliestStarts.set(succ, new Date(taskFinalEnd));
+                }
+            }
+            
+            const newInDegree = inDegree.get(succ)! - 1;
+            inDegree.set(succ, newInDegree);
+            
+            if (newInDegree === 0) {
+                const succTask = tasks.find(t => t.task_id === succ)!;
+                availableTasks.push({
+                    ...succTask,
+                    urgency_score: calculateUrgencyScore(succTask, downstreamCountMap.get(succ) ?? 0, today)
+                });
+            }
+        }
+    }
+
+    if (tasks.length > 0) {
+        const taskIds = tasks.map(t => t.task_id);
+        const placeholders = taskIds.map(() => "?").join(", ");
+        
+        await pool.query(
+            `
+            DELETE FROM task_schedules
+            WHERE task_id IN (${placeholders})
+            `,
+            taskIds
+        );
+    }
+    
+    for (const [taskId, update] of taskUpdates.entries()) {
+        await pool.query(
+            `
+            UPDATE tasks
+            SET planned_start = ?,
+                planned_end = ?,
+                is_schedule_at_risk = ?,
+                is_deadline_at_risk = ?
+            WHERE task_id = ?
+            `,
+            [
+                update.planned_start,
+                update.planned_end,
+                update.is_schedule_at_risk,
+                update.is_deadline_at_risk,
+                taskId
+            ]
+        );
+    }
+    
+    for (const task of tasks) {
+        if (!taskUpdates.has(task.task_id)) {
+            const risks = calculateRisks(
+                task,
+                task.planned_end ?? null,
+                taskResources,
+                holidays,
+                leaves,
+                resourceConfigs,
+                resourceSchedule,
+                today
             );
 
             await pool.query(
@@ -638,20 +733,6 @@ export async function recalculate(projectId: number): Promise<void> {
                 ]
             );
         }
-    }
-
-    if (tasks.length > 0) {
-        const taskIds = tasks.map(task => task.task_id);
-
-        const placeholders = taskIds.map(() => "?").join(", ");
-
-        await pool.query(
-            `
-            DELETE FROM task_schedules
-            WHERE task_id IN (${placeholders})
-            `,
-            taskIds
-        );
     }
 
     if (taskScheduleEntries.length > 0) {
