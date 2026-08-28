@@ -12,7 +12,9 @@
       </div>
 
       <div class="effort-hero-display column q-mt-md">
-        <div class="effort-big-number">{{ formatNumber(allocatedHours) }}<span class="unit-text">h</span></div>
+        <div class="effort-big-number">
+          {{ formatNumber(allocatedHours) }}<span class="unit-text">h</span>
+        </div>
         <div class="effort-progress-block q-mt-xs">
           <div class="row justify-between q-mb-xs">
             <span class="text-caption text-weight-bold text-muted-subtle">Effort consumed</span>

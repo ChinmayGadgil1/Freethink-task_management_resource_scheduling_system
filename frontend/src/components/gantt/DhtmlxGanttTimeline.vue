@@ -76,7 +76,11 @@
           type="button"
           class="ctrl-pill-btn columns-toggle-btn row items-center no-wrap"
           :class="{ 'is-active-pill': showExtraColumns }"
-          :title="showExtraColumns ? 'Collapse Status, Priority & Duration columns' : 'Expand Status, Priority & Duration columns'"
+          :title="
+            showExtraColumns
+              ? 'Collapse Status, Priority & Duration columns'
+              : 'Expand Status, Priority & Duration columns'
+          "
           @click="toggleExtraColumns"
         >
           <q-icon
@@ -194,7 +198,9 @@
       </div>
 
       <div class="footer-right row items-center no-wrap text-caption text-grey-6 q-gutter-x-sm">
-        <span>Scale: <strong class="text-uppercase text-grey-8">{{ activeScale }}</strong></span>
+        <span
+          >Scale: <strong class="text-uppercase text-grey-8">{{ activeScale }}</strong></span
+        >
         <span>Showing {{ visibleCount }} of {{ totalCount }} tasks</span>
       </div>
     </div>
@@ -445,21 +451,29 @@ function configureGanttEngine() {
     const text = escapeHtml(task.text || '');
     if (task.type === 'project') {
       const count = task.task_count || 0;
-      return `<div class="gantt-bar-content-wrapper is-project">` +
+      return (
+        `<div class="gantt-bar-content-wrapper is-project">` +
         `<span class="gantt-bar-pct-badge project-pct">${pct}%</span>` +
         `<span class="gantt-bar-title is-project-title ellipsis">📁 ${text} · ${count} ${count === 1 ? 'task' : 'tasks'}</span>` +
-        `</div>`;
+        `</div>`
+      );
     }
     const assignee = task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : '';
-    return `<div class="gantt-bar-content-wrapper">` +
+    return (
+      `<div class="gantt-bar-content-wrapper">` +
       `<span class="gantt-bar-pct-badge">${pct}%</span>` +
       `<span class="gantt-bar-title ellipsis">${text}${assignee}</span>` +
-      `</div>`;
+      `</div>`
+    );
   };
 
   // Custom Grid Row Class (Visual distinction between Project and Task rows)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (gantt.templates as any).grid_row_class = (_start: Date, _end: Date, task: DhtmlxGanttTaskItem) => {
+  (gantt.templates as any).grid_row_class = (
+    _start: Date,
+    _end: Date,
+    task: DhtmlxGanttTaskItem,
+  ) => {
     if (task.type === 'project') {
       return 'dhtmlx-grid-row-project';
     }
@@ -473,24 +487,30 @@ function configureGanttEngine() {
     const projName = escapeHtml(task.project_name || 'TaskFlow Project');
     const pct = Math.round((task.progress || 0) * 100);
     const dateRange = `${formatDate(start)} – ${formatDate(end)}`;
-    const durationDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    const durationDays = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)),
+    );
 
     if (task.type === 'project') {
-      return `<div class="gantt-tooltip-card">` +
+      return (
+        `<div class="gantt-tooltip-card">` +
         `<div class="tooltip-header"><div class="tooltip-title">📁 ${text}</div><div class="tooltip-project-tag">Project Summary</div></div>` +
         `<div class="tooltip-body">` +
         `<div class="tooltip-row"><span class="tooltip-k">Timeline:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
         `<div class="tooltip-row"><span class="tooltip-k">Child Tasks:</span><span class="tooltip-v">${task.task_count || 0} tasks</span></div>` +
         `<div class="tooltip-row"><span class="tooltip-k">Calculated Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
         `</div>` +
-        `</div>`;
+        `</div>`
+      );
     }
 
     const assignee = escapeHtml(task.assignee_name || 'Unassigned');
     const statusText = task.status ? task.status.replace('_', ' ') : '—';
     const priorityText = task.priority || '—';
 
-    return `<div class="gantt-tooltip-card">` +
+    return (
+      `<div class="gantt-tooltip-card">` +
       `<div class="tooltip-header"><div class="tooltip-title">${text}</div><div class="tooltip-project-tag">${projName}</div></div>` +
       `<div class="tooltip-body">` +
       `<div class="tooltip-row"><span class="tooltip-k">Status:</span><span class="tooltip-v">${statusText}</span></div>` +
@@ -499,7 +519,8 @@ function configureGanttEngine() {
       `<div class="tooltip-row"><span class="tooltip-k">Schedule:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
       `</div>` +
-      `</div>`;
+      `</div>`
+    );
   };
 
   // Weekend styling
@@ -532,7 +553,12 @@ function applyScaleMode(scale: 'day' | 'week' | 'month') {
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 46;
     gantt.config.scales = [
-      { unit: 'month', step: 1, format: (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase() },
+      {
+        unit: 'month',
+        step: 1,
+        format: (date: Date) =>
+          date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase(),
+      },
       { unit: 'day', step: 1, format: '%D, %d' },
     ];
   } else if (scale === 'month') {
@@ -540,7 +566,11 @@ function applyScaleMode(scale: 'day' | 'week' | 'month') {
     gantt.config.min_column_width = 80;
     gantt.config.scales = [
       { unit: 'year', step: 1, format: '%Y' },
-      { unit: 'month', step: 1, format: (date: Date) => date.toLocaleDateString(undefined, { month: 'long' }).toUpperCase() },
+      {
+        unit: 'month',
+        step: 1,
+        format: (date: Date) => date.toLocaleDateString(undefined, { month: 'long' }).toUpperCase(),
+      },
     ];
   } else {
     // Week Mode (Default, matching screenshot: JULY 2026 / WEEK #30)
@@ -550,7 +580,8 @@ function applyScaleMode(scale: 'day' | 'week' | 'month') {
       {
         unit: 'month',
         step: 1,
-        format: (date: Date) => date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase(),
+        format: (date: Date) =>
+          date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase(),
       },
       {
         unit: 'week',
@@ -688,13 +719,15 @@ function buildGanttDataset() {
 
     // Iterate through projects that have visible child tasks
     tasksByProjectId.forEach((projectTasks, pId) => {
-      const p = projectMap.value.get(pId) || {
-        project_id: pId,
-        name: projectTasks[0]?.project_name || `Project #${pId}`,
-        status: 'ACTIVE',
-        priority: 'MEDIUM',
-        progress: 0,
-      } as Project;
+      const p =
+        projectMap.value.get(pId) ||
+        ({
+          project_id: pId,
+          name: projectTasks[0]?.project_name || `Project #${pId}`,
+          status: 'ACTIVE',
+          priority: 'MEDIUM',
+          progress: 0,
+        } as Project);
 
       // 1. Calculate Project Timeline: min(child task starts) to max(child task ends)
       let earliestStart: Date | null = null;
@@ -709,7 +742,10 @@ function buildGanttDataset() {
         const tEnd = rawEnd
           ? parseIsoToDate(rawEnd)
           : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
-        const dur = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const dur = Math.max(
+          1,
+          Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
+        );
         const prog = Number(t.progress) || 0;
 
         if (!earliestStart || tStart < earliestStart) earliestStart = tStart;
@@ -721,15 +757,19 @@ function buildGanttDataset() {
 
       const startObj = earliestStart || new Date();
       const endObj = latestEnd || new Date(startObj.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const projDurationDays = Math.max(1, Math.round((endObj.getTime() - startObj.getTime()) / (1000 * 60 * 60 * 24)));
+      const projDurationDays = Math.max(
+        1,
+        Math.round((endObj.getTime() - startObj.getTime()) / (1000 * 60 * 60 * 24)),
+      );
 
       // 2. Calculate Project Progress: Weighted by task duration = Σ(task progress × task duration) / Σ(task duration)
       const calculatedProgress =
         totalDuration > 0
-          ? (totalWeightedProgress / totalDuration) / 100
+          ? totalWeightedProgress / totalDuration / 100
           : projectTasks.length > 0
-          ? projectTasks.reduce((sum, t) => sum + (Number(t.progress) || 0), 0) / (projectTasks.length * 100)
-          : 0;
+            ? projectTasks.reduce((sum, t) => sum + (Number(t.progress) || 0), 0) /
+              (projectTasks.length * 100)
+            : 0;
 
       // 3. Add Project Summary Row
       data.push({
@@ -755,7 +795,10 @@ function buildGanttDataset() {
         const tEnd = rawEnd
           ? parseIsoToDate(rawEnd)
           : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
-        const durationDays = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)));
+        const durationDays = Math.max(
+          1,
+          Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
+        );
 
         const firstAssigneeId = t.assigned_resource_ids?.[0];
         const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
@@ -785,7 +828,10 @@ function buildGanttDataset() {
       const tEnd = rawEnd
         ? parseIsoToDate(rawEnd)
         : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const durationDays = Math.max(1, Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)));
+      const durationDays = Math.max(
+        1,
+        Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
+      );
 
       const p = projectMap.value.get(t.project_id);
       const firstAssigneeId = t.assigned_resource_ids?.[0];
@@ -1199,10 +1245,18 @@ defineExpose({
         border-radius: 50%;
         display: inline-block;
 
-        &.dot-low { background: #10b981; }
-        &.dot-medium { background: #0284c7; }
-        &.dot-high { background: #ea580c; }
-        &.dot-critical { background: #ec4899; }
+        &.dot-low {
+          background: #10b981;
+        }
+        &.dot-medium {
+          background: #0284c7;
+        }
+        &.dot-high {
+          background: #ea580c;
+        }
+        &.dot-critical {
+          background: #ec4899;
+        }
       }
     }
 
@@ -1464,22 +1518,30 @@ defineExpose({
     &.s-completed {
       background: #ecfdf5;
       color: #059669;
-      .status-dot { background: #10b981; }
+      .status-dot {
+        background: #10b981;
+      }
     }
     &.s-in-progress {
       background: #eff6ff;
       color: #0284c7;
-      .status-dot { background: #0284c7; }
+      .status-dot {
+        background: #0284c7;
+      }
     }
     &.s-scheduled {
       background: #f5f3ff;
       color: #7c3aed;
-      .status-dot { background: #8b5cf6; }
+      .status-dot {
+        background: #8b5cf6;
+      }
     }
     &.s-unassigned {
       background: #f1f5f9;
       color: #64748b;
-      .status-dot { background: #94a3b8; }
+      .status-dot {
+        background: #94a3b8;
+      }
     }
   }
 
@@ -1587,7 +1649,9 @@ defineExpose({
     border-radius: 8px !important;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
 
     &:hover {
       transform: translateY(-1px);
@@ -1824,7 +1888,8 @@ body.body--dark {
           background: #334155;
           border-color: #475569;
         }
-        &.is-active-pill, &.links-active {
+        &.is-active-pill,
+        &.links-active {
           border-color: #7c3aed;
           background: rgba(124, 58, 237, 0.2);
           color: #a78bfa;
@@ -1844,7 +1909,8 @@ body.body--dark {
     .gantt-legend-row {
       background: var(--wo-bg-card, #181d28);
       border-top-color: #1e2433;
-      .legend-label, .legend-item {
+      .legend-label,
+      .legend-item {
         color: #94a3b8;
       }
     }
@@ -1855,7 +1921,7 @@ body.body--dark {
 
     .gantt-canvas-wrapper {
       background: #181d28;
-      
+
       .gantt-no-data-overlay {
         background: rgba(24, 29, 40, 0.95);
         .text-dark {

@@ -119,9 +119,7 @@ const isSelf = computed(() => {
       const rawAuth = sessionStorage.getItem('auth');
       if (rawAuth) {
         const parsed = JSON.parse(rawAuth) as { user?: UserLike };
-        currentUserId = Number(
-          parsed?.user?.user_id ?? parsed?.user?.id ?? parsed?.user?.userId,
-        );
+        currentUserId = Number(parsed?.user?.user_id ?? parsed?.user?.id ?? parsed?.user?.userId);
       }
     } catch {
       // ignore

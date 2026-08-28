@@ -83,7 +83,9 @@
             <div>
               <div class="text-caption text-grey-6">Workload Utilization</div>
               <div class="text-h6 text-weight-bold text-primary">{{ utilization }}%</div>
-              <div class="text-caption text-grey-7">{{ formatHours(totalEffort) }} / {{ weeklyStandardCapacity }}h</div>
+              <div class="text-caption text-grey-7">
+                {{ formatHours(totalEffort) }} / {{ weeklyStandardCapacity }}h
+              </div>
             </div>
 
             <div>
@@ -258,7 +260,13 @@
                     </div>
                     <div class="row justify-between text-subtitle2">
                       <span class="text-grey-7">Remaining Capacity</span>
-                      <strong :class="weeklyStandardCapacity - totalEffort < 0 ? 'text-negative' : 'text-positive'">
+                      <strong
+                        :class="
+                          weeklyStandardCapacity - totalEffort < 0
+                            ? 'text-negative'
+                            : 'text-positive'
+                        "
+                      >
                         {{ formatNumber(Math.max(0, weeklyStandardCapacity - totalEffort)) }} Hours
                       </strong>
                     </div>
@@ -287,7 +295,9 @@
                 <q-card flat bordered class="bg-grey-2">
                   <q-card-section class="q-gutter-xs">
                     <div class="row items-center justify-between">
-                      <div class="text-subtitle2 text-weight-bold">Work Schedule & Working Days</div>
+                      <div class="text-subtitle2 text-weight-bold">
+                        Work Schedule & Working Days
+                      </div>
                       <q-btn
                         flat
                         dense
@@ -299,17 +309,26 @@
                       />
                     </div>
                     <div class="text-caption text-grey-8 q-mt-xs">
-                      <strong>Daily Capacity:</strong> {{ scheduleConfig?.daily_working_hours || 8 }}h / day
+                      <strong>Daily Capacity:</strong>
+                      {{ scheduleConfig?.daily_working_hours || 8 }}h / day
                     </div>
                     <div class="text-caption text-grey-8">
                       <strong>Working Days:</strong>
-                      {{ activeWorkingDaysList.length === 0 ? 'None' : activeWorkingDaysList.map(formatDayName).join(', ') }}
+                      {{
+                        activeWorkingDaysList.length === 0
+                          ? 'None'
+                          : activeWorkingDaysList.map(formatDayName).join(', ')
+                      }}
                       ({{ activeWorkingDaysList.length }} days)
                     </div>
                     <div class="text-caption text-grey-8">
                       <strong>Non-Working Days:</strong>
                       <span class="text-deep-orange text-weight-medium">
-                        {{ (scheduleConfig?.non_working_days?.length || 0) === 0 ? 'None' : scheduleConfig?.non_working_days?.map(formatDayName).join(', ') }}
+                        {{
+                          (scheduleConfig?.non_working_days?.length || 0) === 0
+                            ? 'None'
+                            : scheduleConfig?.non_working_days?.map(formatDayName).join(', ')
+                        }}
                       </span>
                     </div>
                     <div class="text-caption text-grey-7 q-mt-xs">
@@ -501,7 +520,7 @@
 
       <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
       <q-dialog v-model="showScheduleDialog" persistent>
-        <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px;">
+        <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px">
           <q-card-section class="row items-center justify-between q-pb-xs">
             <div class="row items-center q-gutter-xs">
               <q-icon name="edit_calendar" size="24px" color="primary" />
@@ -511,19 +530,25 @@
           </q-card-section>
 
           <q-card-section class="text-caption text-grey-6 q-pt-none">
-            As a Project Manager, you can configure non-working days (days off) and daily capacity for this resource.
+            As a Project Manager, you can configure non-working days (days off) and daily capacity
+            for this resource.
           </q-card-section>
 
           <q-separator />
 
-          <q-card-section v-if="scheduleModalLoading" class="row justify-center items-center q-pa-xl">
+          <q-card-section
+            v-if="scheduleModalLoading"
+            class="row justify-center items-center q-pa-xl"
+          >
             <q-spinner color="primary" size="36px" />
           </q-card-section>
 
           <q-card-section v-else class="q-pt-md q-gutter-md">
             <!-- Non-Working Days Selector -->
             <div>
-              <div class="text-subtitle2 text-weight-bold q-mb-xs">Weekly Non-Working Days (Days Off)</div>
+              <div class="text-subtitle2 text-weight-bold q-mb-xs">
+                Weekly Non-Working Days (Days Off)
+              </div>
               <div class="text-caption text-grey-6 q-mb-sm">
                 Click days to mark them as non-working. Unmarked days are active working days.
               </div>
@@ -542,7 +567,10 @@
                   {{ day.label }}
                 </q-chip>
               </div>
-              <div v-if="modalNonWorkingDays.length >= 7" class="text-caption text-negative q-mt-xs">
+              <div
+                v-if="modalNonWorkingDays.length >= 7"
+                class="text-caption text-negative q-mt-xs"
+              >
                 * A resource must have at least one active working day.
               </div>
             </div>
@@ -575,14 +603,22 @@
                 <div class="row items-center justify-between">
                   <span class="text-weight-medium">Non-Working Days:</span>
                   <span class="text-weight-bold text-deep-orange">
-                    {{ modalNonWorkingDays.length === 0 ? 'None (Full 7-day schedule)' : modalNonWorkingDays.map(formatDayName).join(', ') }}
+                    {{
+                      modalNonWorkingDays.length === 0
+                        ? 'None (Full 7-day schedule)'
+                        : modalNonWorkingDays.map(formatDayName).join(', ')
+                    }}
                     ({{ modalNonWorkingDays.length }} days off)
                   </span>
                 </div>
                 <div class="row items-center justify-between q-mt-xs">
                   <span class="text-weight-medium">Active Working Days:</span>
                   <span class="text-weight-bold text-primary">
-                    {{ modalActiveWorkingDays.length === 0 ? 'None' : modalActiveWorkingDays.map(formatDayName).join(', ') }}
+                    {{
+                      modalActiveWorkingDays.length === 0
+                        ? 'None'
+                        : modalActiveWorkingDays.map(formatDayName).join(', ')
+                    }}
                     ({{ modalActiveWorkingDays.length }} working days)
                   </span>
                 </div>
@@ -657,7 +693,15 @@ const resourceInfo = ref<ResourceUser | null>(null);
 const resourceName = computed(() => resourceInfo.value?.name || 'Team Resource');
 
 // PM Work Schedule State
-const ALL_WEEK_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const ALL_WEEK_DAYS: DayOfWeek[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
 const weekDayOptions: { label: string; value: DayOfWeek }[] = [
   { label: 'Monday', value: 'MONDAY' },
   { label: 'Tuesday', value: 'TUESDAY' },
@@ -676,7 +720,8 @@ const modalNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 const modalDailyHours = ref(8.0);
 
 const activeWorkingDaysList = computed(() => {
-  const rawNonWorking = scheduleConfig.value?.non_working_days ?? resourceInfo.value?.non_working_days ?? [];
+  const rawNonWorking =
+    scheduleConfig.value?.non_working_days ?? resourceInfo.value?.non_working_days ?? [];
   let nonWorking: string[] = [];
   if (Array.isArray(rawNonWorking)) {
     nonWorking = rawNonWorking;
@@ -696,7 +741,8 @@ const modalActiveWorkingDays = computed(() => {
 
 const weeklyStandardCapacity = computed(() => {
   const daysCount = activeWorkingDaysList.value.length;
-  const rawHours = scheduleConfig.value?.daily_working_hours ?? resourceInfo.value?.daily_working_hours ?? 8.0;
+  const rawHours =
+    scheduleConfig.value?.daily_working_hours ?? resourceInfo.value?.daily_working_hours ?? 8.0;
   const hours = Number(rawHours) || 8.0;
   return daysCount * hours;
 });
@@ -801,7 +847,13 @@ const leaveForm = reactive({
 
 const leaveColumns: QTableColumn<LeaveItem>[] = [
   { name: 'leave_date', label: 'Date', field: (l) => l.leave_date, align: 'left', sortable: true },
-  { name: 'leave_hours', label: 'Hours', field: (l) => l.leave_hours, align: 'center', sortable: true },
+  {
+    name: 'leave_hours',
+    label: 'Hours',
+    field: (l) => l.leave_hours,
+    align: 'center',
+    sortable: true,
+  },
   { name: 'actions', label: 'Actions', field: () => '', align: 'center' },
 ];
 

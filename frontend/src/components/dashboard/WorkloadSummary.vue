@@ -84,7 +84,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { getResourceWorkloadApi, calculateResourceWeeklyCapacity, type ResourceUser } from '@/services/api';
+import {
+  getResourceWorkloadApi,
+  calculateResourceWeeklyCapacity,
+  type ResourceUser,
+} from '@/services/api';
 import { getInitials } from '@/utils/formatters';
 
 const props = defineProps<{

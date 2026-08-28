@@ -49,7 +49,7 @@
                   square
                   :class="['status-chip', getTaskStatusClass(computedStatus)]"
                   class="text-weight-bold"
-                  style="font-size: 11px; height: 22px;"
+                  style="font-size: 11px; height: 22px"
                 >
                   {{ formatStatusLabel(computedStatus) }}
                 </q-chip>

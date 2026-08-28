@@ -80,4 +80,3 @@ export function formatStatusLabel(status: string | null | undefined): string {
   if (s === 'UNASSIGNED') return 'Unassigned';
   return status.replace(/_/g, ' ');
 }
-

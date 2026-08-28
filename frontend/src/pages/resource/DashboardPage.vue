@@ -52,12 +52,7 @@
               >
                 <div>
                   <div class="row items-center justify-between q-mb-md">
-                    <q-chip
-                      dense
-                      color="white"
-                      text-color="purple-9"
-                      class="text-weight-bold"
-                    >
+                    <q-chip dense color="white" text-color="purple-9" class="text-weight-bold">
                       ✦ TODAY'S FOCUS
                     </q-chip>
                     <q-btn
@@ -74,7 +69,10 @@
                   <h2 class="text-h5 text-weight-bold text-white q-ma-none q-mb-xs">
                     Plan. Prioritize. Achieve.
                   </h2>
-                  <p class="text-body2 q-mb-md" style="max-width: 480px; color: rgba(255, 255, 255, 0.88)">
+                  <p
+                    class="text-body2 q-mb-md"
+                    style="max-width: 480px; color: rgba(255, 255, 255, 0.88)"
+                  >
                     Stay on top of active deliverables, monitor your deadlines, and log progress
                     seamlessly.
                   </p>
@@ -131,11 +129,15 @@
               </div>
 
               <!-- Right Side: Structured Productivity & Overview Panel -->
-              <div class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main">
+              <div
+                class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main"
+              >
                 <div>
                   <div class="row items-center justify-between q-mb-sm">
                     <div>
-                      <div class="text-subtitle1 text-weight-bold text-main">Productivity & Overview</div>
+                      <div class="text-subtitle1 text-weight-bold text-main">
+                        Productivity & Overview
+                      </div>
                       <div class="text-caption text-muted">Workload & effort tracking</div>
                     </div>
                     <q-chip
@@ -211,9 +213,14 @@
                   </div>
                 </div>
 
-                <div class="row items-center justify-between q-mt-md q-pt-sm text-caption text-muted border-top-subtle">
+                <div
+                  class="row items-center justify-between q-mt-md q-pt-sm text-caption text-muted border-top-subtle"
+                >
                   <span>Capacity Allocated: {{ formatHours(workload.expectedEffort) }}</span>
-                  <span class="text-weight-bold" :class="workload.consumedPct > 100 ? 'text-negative' : 'text-positive'">
+                  <span
+                    class="text-weight-bold"
+                    :class="workload.consumedPct > 100 ? 'text-negative' : 'text-positive'"
+                  >
                     {{ workload.consumedPct > 100 ? 'Over Allocated' : 'On Track' }}
                   </span>
                 </div>
@@ -293,9 +300,7 @@
                   <q-avatar
                     size="34px"
                     :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
-                    :text-color="
-                      attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
-                    "
+                    :text-color="attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'"
                     :icon="attentionMeta(t).icon"
                   />
                 </q-item-section>
@@ -310,9 +315,7 @@
                     dense
                     square
                     :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
-                    :text-color="
-                      attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
-                    "
+                    :text-color="attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'"
                     class="text-caption text-weight-bold"
                   >
                     {{ attentionMeta(t).label }}
@@ -419,7 +422,6 @@ const error = ref('');
 const tasks = ref<Task[]>([]);
 const workloadData = ref<ResourceWorkload | null>(null);
 
-
 type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string };
 
 const currentUserId = computed(() => {
@@ -455,7 +457,6 @@ async function loadDashboardData() {
     } catch {
       workloadData.value = null;
     }
-
   } catch (err) {
     console.error('Failed to load dashboard data:', err);
     error.value = err instanceof Error ? err.message : 'Failed to load dashboard data.';

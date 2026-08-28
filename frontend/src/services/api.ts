@@ -498,17 +498,20 @@ export interface ResourceUser {
   created_at?: string;
 }
 
-export function calculateResourceWeeklyCapacity(resource?: {
-  non_working_days?: DayOfWeek[] | string | null;
-  daily_working_hours?: number;
-} | null): number {
+export function calculateResourceWeeklyCapacity(
+  resource?: {
+    non_working_days?: DayOfWeek[] | string | null;
+    daily_working_hours?: number;
+  } | null,
+): number {
   if (!resource) return 40;
   let nonWorkingCount = 0;
   if (resource.non_working_days) {
     try {
-      const days = typeof resource.non_working_days === 'string'
-        ? JSON.parse(resource.non_working_days)
-        : resource.non_working_days;
+      const days =
+        typeof resource.non_working_days === 'string'
+          ? JSON.parse(resource.non_working_days)
+          : resource.non_working_days;
       if (Array.isArray(days)) {
         nonWorkingCount = days.length;
       }
@@ -517,14 +520,15 @@ export function calculateResourceWeeklyCapacity(resource?: {
     }
   }
   const workingDays = Math.max(1, 7 - nonWorkingCount);
-  const dailyHours = resource.daily_working_hours !== undefined && resource.daily_working_hours !== null
-    ? Number(resource.daily_working_hours)
-    : 8.0;
+  const dailyHours =
+    resource.daily_working_hours !== undefined && resource.daily_working_hours !== null
+      ? Number(resource.daily_working_hours)
+      : 8.0;
   return workingDays * dailyHours;
 }
 
 export async function getResourcesApi(
-  params?: number | { project_id?: number; manager_id?: number }
+  params?: number | { project_id?: number; manager_id?: number },
 ): Promise<ResourceUser[]> {
   const queryParams = new URLSearchParams();
 
@@ -850,10 +854,7 @@ export async function recalculateProjectScheduleApi(
  * Fetch all holidays with optional date filters
  * GET /api/holidays
  */
-export async function getHolidaysApi(
-  startDate?: string,
-  endDate?: string,
-): Promise<HolidayItem[]> {
+export async function getHolidaysApi(startDate?: string, endDate?: string): Promise<HolidayItem[]> {
   const queryParams = new URLSearchParams();
   if (startDate) queryParams.append('startDate', startDate);
   if (endDate) queryParams.append('endDate', endDate);
@@ -1070,13 +1071,7 @@ export async function getSupportTicketsApi(): Promise<SupportTicket[]> {
 }
 
 export type DayOfWeek =
-  | 'MONDAY'
-  | 'TUESDAY'
-  | 'WEDNESDAY'
-  | 'THURSDAY'
-  | 'FRIDAY'
-  | 'SATURDAY'
-  | 'SUNDAY';
+  'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 
 export interface ResourceScheduleConfig {
   user_id: number;

@@ -145,7 +145,9 @@
             </div>
 
             <!-- Right Side: Structured Metadata Panel -->
-            <div class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main">
+            <div
+              class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main"
+            >
               <div>
                 <div class="row items-center justify-between q-mb-sm">
                   <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
@@ -176,13 +178,17 @@
                   <div class="col-6 q-pa-xs">
                     <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
                       <div class="text-caption text-grey-6">STATUS</div>
-                      <div class="text-weight-bold text-main">{{ formatStatus(featuredProject.status) }}</div>
+                      <div class="text-weight-bold text-main">
+                        {{ formatStatus(featuredProject.status) }}
+                      </div>
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
                     <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
                       <div class="text-caption text-grey-6">DEADLINE</div>
-                      <div class="text-weight-bold text-main">{{ formatDate(featuredProject.deadline) }}</div>
+                      <div class="text-weight-bold text-main">
+                        {{ formatDate(featuredProject.deadline) }}
+                      </div>
                     </div>
                   </div>
                   <div class="col-6 q-pa-xs">
@@ -602,7 +608,12 @@
                         }"
                       >
                         <div class="row items-center justify-between no-wrap q-mb-sm">
-                          <q-avatar size="32px" color="white" :style="{ color: getProjectTheme(project, index).accent }" class="shadow-1">
+                          <q-avatar
+                            size="32px"
+                            color="white"
+                            :style="{ color: getProjectTheme(project, index).accent }"
+                            class="shadow-1"
+                          >
                             <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
                           </q-avatar>
 
@@ -610,7 +621,15 @@
                             <span class="priority-frosted-pill">
                               {{ project.priority || 'Medium' }}
                             </span>
-                            <q-btn flat round dense icon="more_vert" color="white" size="sm" @click.stop>
+                            <q-btn
+                              flat
+                              round
+                              dense
+                              icon="more_vert"
+                              color="white"
+                              size="sm"
+                              @click.stop
+                            >
                               <q-menu auto-close>
                                 <q-list style="min-width: 150px">
                                   <q-item clickable @click="goToProject(project.project_id)">
@@ -635,11 +654,20 @@
                           </div>
                         </div>
 
-                        <div class="text-subtitle1 text-weight-bold ellipsis text-white" :title="project.name">
+                        <div
+                          class="text-subtitle1 text-weight-bold ellipsis text-white"
+                          :title="project.name"
+                        >
                           {{ project.name }}
                         </div>
-                        <div class="text-caption text-white-8 ellipsis-2-lines q-mt-xs" style="line-height: 1.35">
-                          {{ project.description || 'Sprint deliverables, task assignments, and progress tracking.' }}
+                        <div
+                          class="text-caption text-white-8 ellipsis-2-lines q-mt-xs"
+                          style="line-height: 1.35"
+                        >
+                          {{
+                            project.description ||
+                            'Sprint deliverables, task assignments, and progress tracking.'
+                          }}
                         </div>
                       </div>
 
@@ -648,20 +676,28 @@
                         <!-- Dual Pill Info Badges (like Image 4) -->
                         <div class="row q-col-gutter-xs q-mb-md">
                           <div class="col-6">
-                            <div class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle">
+                            <div
+                              class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                            >
                               <q-icon name="assignment" size="13px" color="grey-6" />
                               <div class="ellipsis">
                                 <span>Status: </span>
-                                <strong class="text-main">{{ formatStatus(project.status) }}</strong>
+                                <strong class="text-main">{{
+                                  formatStatus(project.status)
+                                }}</strong>
                               </div>
                             </div>
                           </div>
                           <div class="col-6">
-                            <div class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle">
+                            <div
+                              class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                            >
                               <q-icon name="event" size="13px" color="grey-6" />
                               <div class="ellipsis">
                                 <span>Due: </span>
-                                <strong class="text-main">{{ formatDate(project.deadline) }}</strong>
+                                <strong class="text-main">{{
+                                  formatDate(project.deadline)
+                                }}</strong>
                               </div>
                             </div>
                           </div>
@@ -671,7 +707,10 @@
                         <div class="q-mb-md">
                           <div class="row items-center justify-between text-caption q-mb-xs">
                             <span class="text-grey-6 text-weight-medium">Progress</span>
-                            <span class="text-weight-bold" :style="{ color: getProjectTheme(project, index).accent }">
+                            <span
+                              class="text-weight-bold"
+                              :style="{ color: getProjectTheme(project, index).accent }"
+                            >
                               {{ Number(project.progress) || 0 }}%
                             </span>
                           </div>

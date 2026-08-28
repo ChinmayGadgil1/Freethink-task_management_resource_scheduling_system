@@ -1,6 +1,9 @@
 <template>
   <div class="feature-card column gap-md">
-    <div class="feature-icon-wrapper flex flex-center no-shrink" :style="{ background: iconBg, color: iconColor }">
+    <div
+      class="feature-icon-wrapper flex flex-center no-shrink"
+      :style="{ background: iconBg, color: iconColor }"
+    >
       <q-icon :name="icon" size="24px" />
     </div>
 

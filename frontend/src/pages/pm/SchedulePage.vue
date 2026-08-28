@@ -475,11 +475,18 @@
           <q-td :props="props" class="date-cell">
             <div class="column">
               <div class="row items-center no-wrap">
-                <span>{{ formatDate(props.row.planned_start || props.row.actual_start || props.row.start_date) }}</span>
+                <span>{{
+                  formatDate(
+                    props.row.planned_start || props.row.actual_start || props.row.start_date,
+                  )
+                }}</span>
                 <span class="q-mx-xs text-grey-5">→</span>
                 <span>{{ formatDate(props.row.planned_end || props.row.deadline) }}</span>
               </div>
-              <div v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk" class="row items-center gap-xs q-mt-xs">
+              <div
+                v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk"
+                class="row items-center gap-xs q-mt-xs"
+              >
                 <q-chip
                   v-if="props.row.is_deadline_at_risk"
                   dense
@@ -905,12 +912,12 @@ const monthMatrixDays = computed(() => {
 function getTasksOnDate(date: Date): Task[] {
   const targetDateStr = date.toISOString().slice(0, 10);
   return filteredTasks.value.filter((t) => {
-    const startStr = (t.planned_start || t.actual_start || t.start_date)
-      ? (t.planned_start || t.actual_start || t.start_date)!.slice(0, 10)
-      : '';
-    const endStr = (t.planned_end || t.deadline)
-      ? (t.planned_end || t.deadline)!.slice(0, 10)
-      : startStr;
+    const startStr =
+      t.planned_start || t.actual_start || t.start_date
+        ? (t.planned_start || t.actual_start || t.start_date)!.slice(0, 10)
+        : '';
+    const endStr =
+      t.planned_end || t.deadline ? (t.planned_end || t.deadline)!.slice(0, 10) : startStr;
 
     if (!startStr && !endStr) return false;
     if (startStr && !endStr) return startStr === targetDateStr;
@@ -953,12 +960,14 @@ const positionedCalendarTasks = computed<PositionedTask[]>(() => {
   }
 
   filteredTasks.value.forEach((task) => {
-    const taskStartStr = (task.planned_start || task.actual_start || task.start_date)
-      ? (task.planned_start || task.actual_start || task.start_date)!.slice(0, 10)
-      : '';
-    const taskEndStr = (task.planned_end || task.deadline)
-      ? (task.planned_end || task.deadline)!.slice(0, 10)
-      : taskStartStr;
+    const taskStartStr =
+      task.planned_start || task.actual_start || task.start_date
+        ? (task.planned_start || task.actual_start || task.start_date)!.slice(0, 10)
+        : '';
+    const taskEndStr =
+      task.planned_end || task.deadline
+        ? (task.planned_end || task.deadline)!.slice(0, 10)
+        : taskStartStr;
 
     days.forEach((dayObj, colIdx) => {
       const curDateStr = dayObj.toISOString().slice(0, 10);
@@ -1166,8 +1175,6 @@ const filteredTasks = computed(() => {
   });
 });
 
-
-
 function getProjectName(projectId: number): string {
   const p = projects.value.find((proj) => proj.project_id === projectId);
   return p ? p.name : `Project #${projectId}`;
@@ -1290,7 +1297,10 @@ function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS
     editForm.progress = 100;
   } else if (newStatus === 'SCHEDULED') {
     editForm.progress = 0;
-  } else if (newStatus === 'IN_PROGRESS' && (editForm.progress === 0 || editForm.progress === 100)) {
+  } else if (
+    newStatus === 'IN_PROGRESS' &&
+    (editForm.progress === 0 || editForm.progress === 100)
+  ) {
     editForm.progress = 50;
   }
 }

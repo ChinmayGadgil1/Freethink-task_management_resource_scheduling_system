@@ -11,9 +11,16 @@
     <div class="card-divider" />
 
     <div class="projects-list-body">
-      <div v-for="(row, idx) in showcaseProjects" :key="row.project" class="project-row row items-center gap-md">
+      <div
+        v-for="(row, idx) in showcaseProjects"
+        :key="row.project"
+        class="project-row row items-center gap-md"
+      >
         <div class="project-info-col row items-center gap-sm">
-          <div class="project-icon-box flex flex-center no-shrink" :class="getProjectThemeClass(idx)">
+          <div
+            class="project-icon-box flex flex-center no-shrink"
+            :class="getProjectThemeClass(idx)"
+          >
             <q-icon :name="getProjectIcon(idx)" size="18px" />
           </div>
           <div class="project-text-wrap">

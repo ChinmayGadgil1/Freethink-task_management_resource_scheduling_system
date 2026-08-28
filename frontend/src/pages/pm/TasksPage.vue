@@ -276,7 +276,9 @@
                 <div class="q-mt-xs">
                   <div class="row items-center justify-between text-caption q-mb-xs">
                     <span class="text-weight-bold">{{ Number(task.progress) || 0 }}%</span>
-                    <span class="text-grey-6">{{ formatHours(task.expected_effort || 8) }} effort</span>
+                    <span class="text-grey-6"
+                      >{{ formatHours(task.expected_effort || 8) }} effort</span
+                    >
                   </div>
                   <q-linear-progress
                     rounded
@@ -1489,7 +1491,10 @@ function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS
     editForm.progress = 100;
   } else if (newStatus === 'SCHEDULED') {
     editForm.progress = 0;
-  } else if (newStatus === 'IN_PROGRESS' && (editForm.progress === 0 || editForm.progress === 100)) {
+  } else if (
+    newStatus === 'IN_PROGRESS' &&
+    (editForm.progress === 0 || editForm.progress === 100)
+  ) {
     editForm.progress = 50;
   }
 }

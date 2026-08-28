@@ -36,8 +36,12 @@
               icon="event"
             />
             <div class="column">
-              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1">Total Holidays</span>
-              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{ holidays.length }}</span>
+              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1"
+                >Total Holidays</span
+              >
+              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{
+                holidays.length
+              }}</span>
             </div>
           </q-card>
 
@@ -56,8 +60,12 @@
               icon="upcoming"
             />
             <div class="column">
-              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1">This Month</span>
-              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{ currentMonthHolidaysCount }}</span>
+              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1"
+                >This Month</span
+              >
+              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{
+                currentMonthHolidaysCount
+              }}</span>
             </div>
           </q-card>
 
@@ -115,30 +123,24 @@
         class="rounded-borders overflow-hidden"
       >
         <!-- Calendar Toolbar & Month Switcher -->
-        <q-card-section class="row items-center justify-between q-pa-md wrap q-col-gutter-sm border-bottom">
+        <q-card-section
+          class="row items-center justify-between q-pa-md wrap q-col-gutter-sm border-bottom"
+        >
           <!-- Month Navigation -->
           <div class="row items-center q-gutter-xs">
-            <q-btn
-              flat
-              dense
-              round
-              icon="chevron_left"
-              @click="prevMonth"
-            >
+            <q-btn flat dense round icon="chevron_left" @click="prevMonth">
               <q-tooltip>Previous Month</q-tooltip>
             </q-btn>
 
-            <div class="text-subtitle1 text-weight-bold q-px-sm" style="min-width: 160px; text-align: center">
-              {{ currentMonthName }} <span class="text-grey-6 text-weight-medium">{{ currentYear }}</span>
+            <div
+              class="text-subtitle1 text-weight-bold q-px-sm"
+              style="min-width: 160px; text-align: center"
+            >
+              {{ currentMonthName }}
+              <span class="text-grey-6 text-weight-medium">{{ currentYear }}</span>
             </div>
 
-            <q-btn
-              flat
-              dense
-              round
-              icon="chevron_right"
-              @click="nextMonth"
-            >
+            <q-btn flat dense round icon="chevron_right" @click="nextMonth">
               <q-tooltip>Next Month</q-tooltip>
             </q-btn>
 
@@ -178,11 +180,18 @@
             class="weekday-col-header text-caption text-weight-bold"
             :class="{ 'is-weekend-header': idx === 0 || idx === 6 }"
             :style="{
-              background: idx === 0 || idx === 6
-                ? ($q.dark.isActive ? '#10141e' : '#f1f5f9')
-                : ($q.dark.isActive ? '#131722' : '#f8fafc'),
+              background:
+                idx === 0 || idx === 6
+                  ? $q.dark.isActive
+                    ? '#10141e'
+                    : '#f1f5f9'
+                  : $q.dark.isActive
+                    ? '#131722'
+                    : '#f8fafc',
               color: $q.dark.isActive ? '#94a3b8' : '#64748b',
-              borderBottom: $q.dark.isActive ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+              borderBottom: $q.dark.isActive
+                ? '1px solid rgba(255,255,255,0.08)'
+                : '1px solid #e2e8f0',
             }"
           >
             {{ day }}
@@ -292,10 +301,7 @@
         >
           <template #body-cell-holiday_date="props">
             <q-td :props="props">
-              <div
-                class="text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
+              <div class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
                 {{ formatPrettyDate(props.row.holiday_date) }}
               </div>
               <div class="text-caption text-grey-6">
@@ -316,7 +322,9 @@
                 :style="{
                   background: $q.dark.isActive ? 'rgba(245, 158, 11, 0.14)' : '#fff8e6',
                   color: $q.dark.isActive ? '#fbbf24' : '#b45309',
-                  border: $q.dark.isActive ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a',
+                  border: $q.dark.isActive
+                    ? '1px solid rgba(245, 158, 11, 0.25)'
+                    : '1px solid #fde68a',
                   borderLeft: '3px solid #f59e0b',
                 }"
               />
@@ -386,12 +394,16 @@
               dense
               stack-label
               mask="####-##-##"
-              :rules="[val => !!val || 'Holiday date is required', validateDate]"
+              :rules="[(val) => !!val || 'Holiday date is required', validateDate]"
             >
               <template #append>
                 <q-icon name="event" class="cursor-pointer text-primary">
                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-date v-model="holidayDialog.form.holiday_date" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                    <q-date
+                      v-model="holidayDialog.form.holiday_date"
+                      mask="YYYY-MM-DD"
+                      :dark="$q.dark.isActive"
+                    >
                       <div class="row items-center justify-end">
                         <q-btn v-close-popup label="Close" color="primary" flat />
                       </div>
@@ -409,7 +421,7 @@
               outlined
               dense
               stack-label
-              :rules="[val => !!val && val.trim().length > 0 || 'Description is required']"
+              :rules="[(val) => (!!val && val.trim().length > 0) || 'Description is required']"
             />
           </q-card-section>
 
@@ -456,8 +468,10 @@
         </q-card-section>
 
         <q-card-section class="text-body2 q-pt-md">
-          Are you sure you want to remove <strong>{{ deleteDialog.holiday?.description }}</strong> on
-          <strong>{{ deleteDialog.holiday?.holiday_date }}</strong>? This will restore regular working capacity.
+          Are you sure you want to remove
+          <strong>{{ deleteDialog.holiday?.description }}</strong> on
+          <strong>{{ deleteDialog.holiday?.holiday_date }}</strong
+          >? This will restore regular working capacity.
         </q-card-section>
 
         <q-card-actions align="right" class="q-pa-md">
@@ -522,7 +536,7 @@ const holidaysByDate = computed(() => {
 const currentMonthHolidaysCount = computed(() => {
   const monthStr = String(currentMonth.value + 1).padStart(2, '0');
   const prefix = `${currentYear.value}-${monthStr}`;
-  return holidays.value.filter(h => h.holiday_date.startsWith(prefix)).length;
+  return holidays.value.filter((h) => h.holiday_date.startsWith(prefix)).length;
 });
 
 // Generate 35-42 calendar grid cells for current month view

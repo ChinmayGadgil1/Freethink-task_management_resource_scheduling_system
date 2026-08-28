@@ -17,7 +17,10 @@
         <div v-for="step in steps" :key="step.number" class="col-12 col-md-4">
           <div class="step-card column gap-sm">
             <div class="step-badge">{{ step.number }}</div>
-            <div class="step-icon-box flex flex-center" :style="{ background: step.iconBg, color: step.iconColor }">
+            <div
+              class="step-icon-box flex flex-center"
+              :style="{ background: step.iconBg, color: step.iconColor }"
+            >
               <q-icon :name="step.icon" size="26px" />
             </div>
             <h3 class="step-title">{{ step.title }}</h3>

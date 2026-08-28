@@ -24,12 +24,11 @@ export const useSessionStore = defineStore('session', {
     hasActiveSession: (state): boolean => !!state.activeSession,
     activeTaskId: (state): number | null =>
       state.activeSession ? Number(state.activeSession.task_id) : null,
-    isTaskSessionActive: (state) => (taskId: number): boolean => {
-      return (
-        !!state.activeSession &&
-        Number(state.activeSession.task_id) === Number(taskId)
-      );
-    },
+    isTaskSessionActive:
+      (state) =>
+      (taskId: number): boolean => {
+        return !!state.activeSession && Number(state.activeSession.task_id) === Number(taskId);
+      },
   },
 
   actions: {

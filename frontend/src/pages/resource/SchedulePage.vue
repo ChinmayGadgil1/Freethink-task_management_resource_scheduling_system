@@ -222,8 +222,12 @@
                 class="cal-cell column items-center justify-center q-pa-xs"
                 :style="{
                   background: isSameDay(day, todayDate)
-                    ? $q.dark.isActive ? '#25203a' : 'rgba(139,111,216,0.08)'
-                    : $q.dark.isActive ? '#181d28' : '#fafbfc',
+                    ? $q.dark.isActive
+                      ? '#25203a'
+                      : 'rgba(139,111,216,0.08)'
+                    : $q.dark.isActive
+                      ? '#181d28'
+                      : '#fafbfc',
                   height: '56px',
                 }"
               >
@@ -235,8 +239,12 @@
                     {{ formatWeekdayName(day) }}
                   </span>
                   <q-badge
-                    :color="isSameDay(day, todayDate) ? 'primary' : $q.dark.isActive ? 'grey-9' : 'grey-3'"
-                    :text-color="isSameDay(day, todayDate) ? 'white' : $q.dark.isActive ? 'grey-3' : 'dark'"
+                    :color="
+                      isSameDay(day, todayDate) ? 'primary' : $q.dark.isActive ? 'grey-9' : 'grey-3'
+                    "
+                    :text-color="
+                      isSameDay(day, todayDate) ? 'white' : $q.dark.isActive ? 'grey-3' : 'dark'
+                    "
                     class="text-weight-bold"
                   >
                     {{ day.getDate() }}
@@ -275,7 +283,9 @@
                   class="cal-cell"
                   :style="{
                     background: isSameDay(day, todayDate)
-                      ? $q.dark.isActive ? 'rgba(139,111,216,0.06)' : 'rgba(139,111,216,0.02)'
+                      ? $q.dark.isActive
+                        ? 'rgba(139,111,216,0.06)'
+                        : 'rgba(139,111,216,0.02)'
                       : 'transparent',
                     height: '54px',
                   }"
@@ -329,7 +339,9 @@
                 class="row text-center"
                 :style="{
                   background: $q.dark.isActive ? '#181d28' : '#fafbfc',
-                  borderBottom: $q.dark.isActive ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eef0f4',
+                  borderBottom: $q.dark.isActive
+                    ? '1px solid rgba(255,255,255,0.08)'
+                    : '1px solid #eef0f4',
                 }"
               >
                 <div
@@ -348,9 +360,13 @@
                   class="month-day-cell column justify-between"
                   :style="{
                     background: isSameDay(mDay.date, todayDate)
-                      ? $q.dark.isActive ? 'rgba(139,111,216,0.1)' : 'rgba(139,111,216,0.04)'
+                      ? $q.dark.isActive
+                        ? 'rgba(139,111,216,0.1)'
+                        : 'rgba(139,111,216,0.04)'
                       : !mDay.isCurrentMonth
-                        ? $q.dark.isActive ? 'rgba(0,0,0,0.2)' : '#fafbfc'
+                        ? $q.dark.isActive
+                          ? 'rgba(0,0,0,0.2)'
+                          : '#fafbfc'
                         : 'transparent',
                     borderColor: $q.dark.isActive ? 'rgba(255,255,255,0.08)' : '#f0f2f5',
                   }"
@@ -361,7 +377,9 @@
                       :text-color="
                         isSameDay(mDay.date, todayDate)
                           ? 'white'
-                          : $q.dark.isActive ? 'grey-4' : 'dark'
+                          : $q.dark.isActive
+                            ? 'grey-4'
+                            : 'dark'
                       "
                       class="text-caption text-weight-bold"
                     >
@@ -547,15 +565,8 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar, type QTableColumn } from 'quasar';
-import {
-  getTasksApi,
-  getProjectsApi,
-  getResourceAvailabilityApi,
-  type Task,
-  type Project,
-  type DailyAvailabilityDTO,
-  type AvailabilityStatus,
-} from '@/services/api';
+import { getTasksApi, getProjectsApi, getResourceAvailabilityApi } from '@/services/api';
+import type { Task, Project, DailyAvailabilityDTO, AvailabilityStatus } from '@/services/api';
 import { isOverdue } from '@/utils/taskHelpers';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import StatCard from '@/components/dashboard/StatCard.vue';
@@ -593,9 +604,7 @@ const TIME_HOURS = [
 const inProgressCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
 );
-const completedCount = computed(
-  () => tasks.value.filter((t) => t.status === 'COMPLETED').length,
-);
+const completedCount = computed(() => tasks.value.filter((t) => t.status === 'COMPLETED').length);
 const overdueCount = computed(() => {
   return tasks.value.filter((t) => isOverdue(t) && t.status !== 'COMPLETED').length;
 });
@@ -832,79 +841,107 @@ function getMonthTaskPillStyle(task: Task) {
         ? 'rgba(245,158,11,0.15)'
         : 'rgba(139,111,216,0.15)';
   const color =
-    task.priority === 'CRITICAL'
-      ? '#ef4444'
-      : task.priority === 'HIGH'
-        ? '#f59e0b'
-        : '#8b6fd8';
+    task.priority === 'CRITICAL' ? '#ef4444' : task.priority === 'HIGH' ? '#f59e0b' : '#8b6fd8';
   return { background: bg, color, fontWeight: '600' };
 }
 
 function priorityColor(priority: string) {
   if ($q.dark.isActive) {
     switch (priority) {
-      case 'CRITICAL': return 'red-10';
-      case 'HIGH': return 'orange-10';
-      case 'MEDIUM': return 'purple-10';
-      default: return 'blue-10';
+      case 'CRITICAL':
+        return 'red-10';
+      case 'HIGH':
+        return 'orange-10';
+      case 'MEDIUM':
+        return 'purple-10';
+      default:
+        return 'blue-10';
     }
   }
   switch (priority) {
-    case 'CRITICAL': return 'red-1';
-    case 'HIGH': return 'orange-1';
-    case 'MEDIUM': return 'purple-1';
-    default: return 'blue-1';
+    case 'CRITICAL':
+      return 'red-1';
+    case 'HIGH':
+      return 'orange-1';
+    case 'MEDIUM':
+      return 'purple-1';
+    default:
+      return 'blue-1';
   }
 }
 
 function priorityTextColor(priority: string) {
   if ($q.dark.isActive) {
     switch (priority) {
-      case 'CRITICAL': return 'red-2';
-      case 'HIGH': return 'orange-2';
-      case 'MEDIUM': return 'purple-2';
-      default: return 'blue-2';
+      case 'CRITICAL':
+        return 'red-2';
+      case 'HIGH':
+        return 'orange-2';
+      case 'MEDIUM':
+        return 'purple-2';
+      default:
+        return 'blue-2';
     }
   }
   switch (priority) {
-    case 'CRITICAL': return 'negative';
-    case 'HIGH': return 'deep-orange';
-    case 'MEDIUM': return 'primary';
-    default: return 'blue-8';
+    case 'CRITICAL':
+      return 'negative';
+    case 'HIGH':
+      return 'deep-orange';
+    case 'MEDIUM':
+      return 'primary';
+    default:
+      return 'blue-8';
   }
 }
 
 function statusColor(status: string) {
   if ($q.dark.isActive) {
     switch (status) {
-      case 'COMPLETED': return 'green-10';
-      case 'IN_PROGRESS': return 'blue-10';
-      case 'SCHEDULED': return 'purple-10';
-      default: return 'grey-9';
+      case 'COMPLETED':
+        return 'green-10';
+      case 'IN_PROGRESS':
+        return 'blue-10';
+      case 'SCHEDULED':
+        return 'purple-10';
+      default:
+        return 'grey-9';
     }
   }
   switch (status) {
-    case 'COMPLETED': return 'green-1';
-    case 'IN_PROGRESS': return 'blue-1';
-    case 'SCHEDULED': return 'purple-1';
-    default: return 'grey-3';
+    case 'COMPLETED':
+      return 'green-1';
+    case 'IN_PROGRESS':
+      return 'blue-1';
+    case 'SCHEDULED':
+      return 'purple-1';
+    default:
+      return 'grey-3';
   }
 }
 
 function statusTextColor(status: string) {
   if ($q.dark.isActive) {
     switch (status) {
-      case 'COMPLETED': return 'green-2';
-      case 'IN_PROGRESS': return 'blue-2';
-      case 'SCHEDULED': return 'purple-2';
-      default: return 'grey-4';
+      case 'COMPLETED':
+        return 'green-2';
+      case 'IN_PROGRESS':
+        return 'blue-2';
+      case 'SCHEDULED':
+        return 'purple-2';
+      default:
+        return 'grey-4';
     }
   }
   switch (status) {
-    case 'COMPLETED': return 'positive';
-    case 'IN_PROGRESS': return 'blue-8';
-    case 'SCHEDULED': return 'primary';
-    default: return 'grey-8';
+    case 'COMPLETED':
+      return 'positive';
+    case 'IN_PROGRESS':
+      return 'blue-8';
+    case 'SCHEDULED':
+      return 'primary';
+    default:
+      return 'grey-8';
   }
 }
 
@@ -932,53 +969,85 @@ function getDayAvailability(d: Date): DailyAvailabilityDTO | undefined {
 
 function getAvailBadgeColor(status: AvailabilityStatus): string {
   switch (status) {
-    case 'AVAILABLE': return 'positive';
-    case 'PARTIALLY_AVAILABLE': return 'cyan-8';
-    case 'FULLY_BOOKED': return 'amber-9';
-    case 'ON_LEAVE': return 'purple-8';
-    case 'PARTIAL_LEAVE': return 'indigo-7';
-    case 'HOLIDAY': return 'deep-orange-8';
-    case 'NON_WORKING_DAY': return 'grey-7';
-    default: return 'grey-6';
+    case 'AVAILABLE':
+      return 'positive';
+    case 'PARTIALLY_AVAILABLE':
+      return 'cyan-8';
+    case 'FULLY_BOOKED':
+      return 'amber-9';
+    case 'ON_LEAVE':
+      return 'purple-8';
+    case 'PARTIAL_LEAVE':
+      return 'indigo-7';
+    case 'HOLIDAY':
+      return 'deep-orange-8';
+    case 'NON_WORKING_DAY':
+      return 'grey-7';
+    default:
+      return 'grey-6';
   }
 }
 
 function getAvailIcon(status: AvailabilityStatus): string {
   switch (status) {
-    case 'AVAILABLE': return 'check_circle';
-    case 'PARTIALLY_AVAILABLE': return 'timelapse';
-    case 'FULLY_BOOKED': return 'event_busy';
-    case 'ON_LEAVE': return 'beach_access';
-    case 'PARTIAL_LEAVE': return 'event_repeat';
-    case 'HOLIDAY': return 'celebration';
-    case 'NON_WORKING_DAY': return 'nightlight_round';
-    default: return 'help_outline';
+    case 'AVAILABLE':
+      return 'check_circle';
+    case 'PARTIALLY_AVAILABLE':
+      return 'timelapse';
+    case 'FULLY_BOOKED':
+      return 'event_busy';
+    case 'ON_LEAVE':
+      return 'beach_access';
+    case 'PARTIAL_LEAVE':
+      return 'event_repeat';
+    case 'HOLIDAY':
+      return 'celebration';
+    case 'NON_WORKING_DAY':
+      return 'nightlight_round';
+    default:
+      return 'help_outline';
   }
 }
 
 function getAvailShortLabel(day: DailyAvailabilityDTO): string {
   switch (day.status) {
-    case 'AVAILABLE': return `${day.available_hours}h Free`;
-    case 'PARTIALLY_AVAILABLE': return `${day.available_hours}h Free`;
-    case 'FULLY_BOOKED': return 'Booked';
-    case 'ON_LEAVE': return 'On Leave';
-    case 'PARTIAL_LEAVE': return `Leave (${day.leave_hours}h)`;
-    case 'HOLIDAY': return 'Holiday';
-    case 'NON_WORKING_DAY': return 'Off';
-    default: return day.status;
+    case 'AVAILABLE':
+      return `${day.available_hours}h Free`;
+    case 'PARTIALLY_AVAILABLE':
+      return `${day.available_hours}h Free`;
+    case 'FULLY_BOOKED':
+      return 'Booked';
+    case 'ON_LEAVE':
+      return 'On Leave';
+    case 'PARTIAL_LEAVE':
+      return `Leave (${day.leave_hours}h)`;
+    case 'HOLIDAY':
+      return 'Holiday';
+    case 'NON_WORKING_DAY':
+      return 'Off';
+    default:
+      return day.status;
   }
 }
 
 function getAvailTooltip(day: DailyAvailabilityDTO): string {
   switch (day.status) {
-    case 'AVAILABLE': return `Available: ${day.available_hours}h capacity free`;
-    case 'PARTIALLY_AVAILABLE': return `Partially available: ${day.available_hours}h free (${day.allocated_hours}h allocated)`;
-    case 'FULLY_BOOKED': return `Fully booked: ${day.allocated_hours}h allocated of ${day.daily_working_hours}h`;
-    case 'ON_LEAVE': return `On Leave: ${day.leave_hours}h full-day leave`;
-    case 'PARTIAL_LEAVE': return `Partial leave: ${day.leave_hours}h leave (${day.available_hours}h available)`;
-    case 'HOLIDAY': return `Company Holiday (0h working capacity)`;
-    case 'NON_WORKING_DAY': return `Non-Working Day (Scheduled day off)`;
-    default: return day.status;
+    case 'AVAILABLE':
+      return `Available: ${day.available_hours}h capacity free`;
+    case 'PARTIALLY_AVAILABLE':
+      return `Partially available: ${day.available_hours}h free (${day.allocated_hours}h allocated)`;
+    case 'FULLY_BOOKED':
+      return `Fully booked: ${day.allocated_hours}h allocated of ${day.daily_working_hours}h`;
+    case 'ON_LEAVE':
+      return `On Leave: ${day.leave_hours}h full-day leave`;
+    case 'PARTIAL_LEAVE':
+      return `Partial leave: ${day.leave_hours}h leave (${day.available_hours}h available)`;
+    case 'HOLIDAY':
+      return `Company Holiday (0h working capacity)`;
+    case 'NON_WORKING_DAY':
+      return `Non-Working Day (Scheduled day off)`;
+    default:
+      return day.status;
   }
 }
 
@@ -1004,8 +1073,12 @@ async function fetchAvailabilityForVisibleRange() {
       startDateStr = formatLocalDate(matrixDays[0]!.date);
       endDateStr = formatLocalDate(matrixDays[matrixDays.length - 1]!.date);
     } else {
-      startDateStr = formatLocalDate(new Date(currentAnchorDate.value.getFullYear(), currentAnchorDate.value.getMonth(), 1));
-      endDateStr = formatLocalDate(new Date(currentAnchorDate.value.getFullYear(), currentAnchorDate.value.getMonth() + 1, 0));
+      startDateStr = formatLocalDate(
+        new Date(currentAnchorDate.value.getFullYear(), currentAnchorDate.value.getMonth(), 1),
+      );
+      endDateStr = formatLocalDate(
+        new Date(currentAnchorDate.value.getFullYear(), currentAnchorDate.value.getMonth() + 1, 0),
+      );
     }
   } else {
     // Gantt or Table view: fetch current month +/- 30 days

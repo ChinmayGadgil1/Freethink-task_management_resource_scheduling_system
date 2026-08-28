@@ -89,4 +89,3 @@ export function formatHours(hours: number | string | null | undefined, fallback 
   const rounded = formatNumber(num, 0, 2);
   return `${rounded}h`;
 }
-

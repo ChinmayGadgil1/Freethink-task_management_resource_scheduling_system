@@ -177,7 +177,10 @@
 
               <div class="row items-center justify-between text-caption text-grey-5 q-mt-xs">
                 <span>{{ completedTasksCount }} of {{ totalTasksCount }} tasks done</span>
-                <span>{{ formatHours(totalEffortLogged) }} / {{ formatHours(totalEffortExpected) }} effort</span>
+                <span
+                  >{{ formatHours(totalEffortLogged) }} /
+                  {{ formatHours(totalEffortExpected) }} effort</span
+                >
               </div>
             </q-card>
 
@@ -2010,9 +2013,7 @@ function openQuickUpdate(task: Task) {
   showQuickUpdateDialog.value = true;
 }
 
-function onQuickUpdateStatusClick(
-  stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED',
-) {
+function onQuickUpdateStatusClick(stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
   if (!selectedTaskForUpdate.value) return;
   selectedTaskForUpdate.value.status = stVal;
   if (stVal === 'COMPLETED') {

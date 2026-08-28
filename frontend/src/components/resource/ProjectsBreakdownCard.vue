@@ -26,7 +26,10 @@
     <div v-else class="projects-list-body">
       <div v-for="(row, idx) in projects" :key="row.project" class="project-row">
         <div class="project-info-col row items-center gap-sm">
-          <div class="project-icon-box flex flex-center no-shrink" :class="getProjectThemeClass(idx)">
+          <div
+            class="project-icon-box flex flex-center no-shrink"
+            :class="getProjectThemeClass(idx)"
+          >
             <q-icon :name="getProjectIcon(idx)" size="18px" />
           </div>
           <div class="project-text-wrap">

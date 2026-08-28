@@ -1,6 +1,11 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
-    <q-card v-if="task" class="details-popup-card" :dark="$q.dark.isActive" style="min-width: 480px; max-width: 95vw">
+    <q-card
+      v-if="task"
+      class="details-popup-card"
+      :dark="$q.dark.isActive"
+      style="min-width: 480px; max-width: 95vw"
+    >
       <q-card-section class="row items-center justify-between q-pb-none">
         <div class="row items-center gap-xs">
           <q-chip dense square :class="['priority-chip', getPriorityClass(task.priority)]">
@@ -201,7 +206,11 @@
             <q-item v-for="log in workLogs" :key="log.log_id" dense class="q-py-sm">
               <q-item-section avatar top style="min-width: 32px">
                 <q-avatar size="24px" class="avatar-purple">
-                  {{ getInitials(log.author_name || resolveResourceName(log.user_id), 'U').charAt(0).toUpperCase() }}
+                  {{
+                    getInitials(log.author_name || resolveResourceName(log.user_id), 'U')
+                      .charAt(0)
+                      .toUpperCase()
+                  }}
                 </q-avatar>
               </q-item-section>
 
@@ -228,7 +237,9 @@
                 <div class="row items-center gap-xs q-mt-xs text-caption text-grey-7">
                   <span class="text-weight-medium">{{ formatHours(log.hours_logged) }} worked</span>
                   <span>·</span>
-                  <span class="text-weight-medium text-primary">{{ Number(log.progress_logged) }}% progress</span>
+                  <span class="text-weight-medium text-primary"
+                    >{{ Number(log.progress_logged) }}% progress</span
+                  >
                   <q-chip
                     v-if="log.status"
                     dense
@@ -283,7 +294,13 @@
 import { computed, ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth'; // Auth store to identify current user
 import { getWorkLogsApi, type Task, type WorkLog } from '@/services/api';
-import { formatDate, formatStatus, formatHours, formatNumber, getInitials } from '@/utils/formatters';
+import {
+  formatDate,
+  formatStatus,
+  formatHours,
+  formatNumber,
+  getInitials,
+} from '@/utils/formatters';
 import { isTaskOverdue, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 
 export interface TaskDetailsDialogProps {
@@ -323,8 +340,11 @@ const emit = defineEmits<{
 const authStore = useAuthStore();
 // Extract current logged-in user id to highlight their own updates with strong typing
 const currentUserId = computed<number | null>(() => {
-  const u = (authStore.user || authStore.currentUser) as { user_id?: number | string; id?: number | string } | null;
-  return u?.user_id ? Number(u.user_id) : (u?.id ? Number(u.id) : null);
+  const u = (authStore.user || authStore.currentUser) as {
+    user_id?: number | string;
+    id?: number | string;
+  } | null;
+  return u?.user_id ? Number(u.user_id) : u?.id ? Number(u.id) : null;
 });
 
 const workLogs = ref<WorkLog[]>([]);

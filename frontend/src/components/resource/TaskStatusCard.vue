@@ -33,7 +33,11 @@
 
       <!-- Status Legend List -->
       <div class="status-list column gap-sm q-mt-md">
-        <div v-for="item in items" :key="item.label" class="status-row row items-center justify-between">
+        <div
+          v-for="item in items"
+          :key="item.label"
+          class="status-row row items-center justify-between"
+        >
           <div class="row items-center no-wrap">
             <span class="status-dot" :style="{ background: item.color }" />
             <span class="status-item-label">{{ item.label }}</span>

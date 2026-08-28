@@ -4,9 +4,7 @@
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold auth-title">Reset Password</div>
-        <div class="text-body2 auth-subtitle q-mt-sm">
-          Enter your new password below.
-        </div>
+        <div class="text-body2 auth-subtitle q-mt-sm">Enter your new password below.</div>
       </q-card-section>
 
       <!-- Reset Password Form -->
@@ -15,7 +13,6 @@
           @submit.prevent="handleResetPassword"
           style="display: flex; flex-direction: column; gap: 18px"
         >
-
           <!-- New Password -->
           <q-input
             v-model="form.password"
@@ -170,7 +167,10 @@ const handleResetPassword = async () => {
     console.error(error);
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Password reset failed. The link may have expired.',
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Password reset failed. The link may have expired.',
     });
   } finally {
     loading.value = false;

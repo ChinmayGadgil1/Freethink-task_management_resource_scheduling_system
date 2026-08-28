@@ -237,7 +237,7 @@
                       icon="folder"
                       :label="item.project_name || `Project #${item.project_id}`"
                       class="text-weight-bold ellipsis"
-                      style="max-width: 140px;"
+                      style="max-width: 140px"
                     />
 
                     <q-chip
@@ -317,8 +317,24 @@
                       dense
                       square
                       size="sm"
-                      :color="isTaskOverdue(item) ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'grey-9' : 'grey-2')"
-                      :text-color="isTaskOverdue(item) ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                      :color="
+                        isTaskOverdue(item)
+                          ? $q.dark.isActive
+                            ? 'red-10'
+                            : 'red-1'
+                          : $q.dark.isActive
+                            ? 'grey-9'
+                            : 'grey-2'
+                      "
+                      :text-color="
+                        isTaskOverdue(item)
+                          ? $q.dark.isActive
+                            ? 'red-2'
+                            : 'negative'
+                          : $q.dark.isActive
+                            ? 'grey-4'
+                            : 'grey-7'
+                      "
                       icon="event"
                       :label="item.deadline ? formatDate(item.deadline) : 'TBD'"
                       class="text-weight-medium"
@@ -672,8 +688,24 @@
                     :key="rId"
                     dense
                     square
-                    :color="Number(rId) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-10' : 'purple-1') : ($q.dark.isActive ? 'grey-9' : 'grey-2')"
-                    :text-color="Number(rId) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-2' : 'primary') : ($q.dark.isActive ? 'grey-3' : 'grey-8')"
+                    :color="
+                      Number(rId) === getCurrentUserId()
+                        ? $q.dark.isActive
+                          ? 'purple-10'
+                          : 'purple-1'
+                        : $q.dark.isActive
+                          ? 'grey-9'
+                          : 'grey-2'
+                    "
+                    :text-color="
+                      Number(rId) === getCurrentUserId()
+                        ? $q.dark.isActive
+                          ? 'purple-2'
+                          : 'primary'
+                        : $q.dark.isActive
+                          ? 'grey-3'
+                          : 'grey-8'
+                    "
                     class="text-weight-medium"
                   >
                     <q-avatar
@@ -707,8 +739,24 @@
                       <q-avatar
                         size="34px"
                         rounded
-                        :color="isTaskOverdue(task) ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'blue-10' : 'blue-1')"
-                        :text-color="isTaskOverdue(task) ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'blue-2' : 'blue-8')"
+                        :color="
+                          isTaskOverdue(task)
+                            ? $q.dark.isActive
+                              ? 'red-10'
+                              : 'red-1'
+                            : $q.dark.isActive
+                              ? 'blue-10'
+                              : 'blue-1'
+                        "
+                        :text-color="
+                          isTaskOverdue(task)
+                            ? $q.dark.isActive
+                              ? 'red-2'
+                              : 'negative'
+                            : $q.dark.isActive
+                              ? 'blue-2'
+                              : 'blue-8'
+                        "
                         icon="event_available"
                       />
                     </q-item-section>
@@ -750,7 +798,7 @@
                       icon="play_arrow"
                       label="Start"
                       class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px;"
+                      style="border-radius: 8px; height: 40px"
                       :loading="sessionStore.loading"
                       @click="handleStartSession(task.task_id)"
                     />
@@ -762,7 +810,7 @@
                       icon="stop"
                       label="Stop"
                       class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px;"
+                      style="border-radius: 8px; height: 40px"
                       :loading="sessionStore.loading"
                       @click="promptStopSession"
                     />
@@ -775,7 +823,7 @@
                       icon="edit_note"
                       label="Add Update"
                       class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px;"
+                      style="border-radius: 8px; height: 40px"
                       @click="updateDialog = true"
                     />
                   </div>
@@ -791,7 +839,7 @@
                       icon="edit"
                       label="Edit Task Details"
                       class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px;"
+                      style="border-radius: 8px; height: 40px"
                       @click="openUpdateTaskDialog(task)"
                     />
                   </div>
@@ -951,7 +999,8 @@
                       class="text-h6 text-weight-bolder"
                       :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                      {{ formatNumber(remainingHours) }} <span class="text-caption text-weight-bold">hrs</span>
+                      {{ formatNumber(remainingHours) }}
+                      <span class="text-caption text-weight-bold">hrs</span>
                     </div>
                   </div>
                 </q-card-section>
@@ -981,7 +1030,8 @@
                 Daily Updates & Session History
               </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                Collaborative timeline of start/stop sessions, work notes, and progress logged by all assigned resources.
+                Collaborative timeline of start/stop sessions, work notes, and progress logged by
+                all assigned resources.
               </div>
             </div>
           </div>
@@ -1013,7 +1063,8 @@
             <div class="text-weight-medium text-caption">
               <!-- Render notice for each co-assignee with an active timer -->
               <span v-for="s in otherActiveSessions" :key="s.session_id" class="q-mr-md">
-                🟢 <b>{{ s.user_name || resolveMemberName(s.user_id) }}</b> is currently working on this task (started {{ formatHistoryTime(s.start_time) }}).
+                🟢 <b>{{ s.user_name || resolveMemberName(s.user_id) }}</b> is currently working on
+                this task (started {{ formatHistoryTime(s.start_time) }}).
               </span>
             </div>
           </q-banner>
@@ -1074,8 +1125,24 @@
               <q-item-section avatar top style="min-width: 40px">
                 <q-avatar
                   size="36px"
-                  :color="Number(log.user_id) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-10' : 'purple-1') : ($q.dark.isActive ? 'teal-10' : 'teal-1')"
-                  :text-color="Number(log.user_id) === getCurrentUserId() ? ($q.dark.isActive ? 'purple-2' : 'primary') : ($q.dark.isActive ? 'teal-2' : 'teal-9')"
+                  :color="
+                    Number(log.user_id) === getCurrentUserId()
+                      ? $q.dark.isActive
+                        ? 'purple-10'
+                        : 'purple-1'
+                      : $q.dark.isActive
+                        ? 'teal-10'
+                        : 'teal-1'
+                  "
+                  :text-color="
+                    Number(log.user_id) === getCurrentUserId()
+                      ? $q.dark.isActive
+                        ? 'purple-2'
+                        : 'primary'
+                      : $q.dark.isActive
+                        ? 'teal-2'
+                        : 'teal-9'
+                  "
                   class="text-weight-bold"
                 >
                   {{ getInitials(log.author_name || resolveMemberName(log.user_id), 'U') }}
@@ -1125,11 +1192,16 @@
                 <!-- Hours logged & progress metrics -->
                 <div class="row items-center gap-xs q-mt-xs text-caption text-grey-7">
                   <q-icon name="timer" size="14px" color="primary" class="q-mr-xs" />
-                  <span class="text-weight-medium" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
+                  <span
+                    class="text-weight-medium"
+                    :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                  >
                     {{ formatHours(log.hours_logged) }} logged
                   </span>
                   <span class="q-mx-xs">·</span>
-                  <span class="text-weight-medium text-primary">{{ Number(log.progress_logged) }}% progress</span>
+                  <span class="text-weight-medium text-primary"
+                    >{{ Number(log.progress_logged) }}% progress</span
+                  >
                 </div>
 
                 <!-- Session summary / update notes -->
@@ -1195,7 +1267,9 @@
                   square
                   size="sm"
                   :color="statusBgColor(getStatusFromProgress(stopSessionForm.progress_logged))"
-                  :text-color="statusTextColor(getStatusFromProgress(stopSessionForm.progress_logged))"
+                  :text-color="
+                    statusTextColor(getStatusFromProgress(stopSessionForm.progress_logged))
+                  "
                   :label="formatStatusLabel(getStatusFromProgress(stopSessionForm.progress_logged))"
                   class="text-weight-bold"
                 />
@@ -1467,7 +1541,9 @@ const authStore = useAuthStore();
 const viewMode = ref<'board' | 'table'>('board');
 
 // Active working sessions currently in progress on this task by any assigned resource
-const activeCoAssigneeSessions = ref<Array<TaskSession & { user_name?: string; user_email?: string }>>([]);
+const activeCoAssigneeSessions = ref<
+  Array<TaskSession & { user_name?: string; user_email?: string }>
+>([]);
 
 // Map of resource user ID to display name populated from logs and sessions
 const resourceNamesMap = ref<Record<number, string>>({});
@@ -1495,10 +1571,17 @@ function resolveMemberName(userId?: number | null): string {
 function formatHistoryTime(dateStr: string | Date | undefined): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? String(dateStr) : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return isNaN(d.getTime())
+    ? String(dateStr)
+    : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-type UserLike = { user_id?: number | string; id?: number | string; userId?: number | string; name?: string };
+type UserLike = {
+  user_id?: number | string;
+  id?: number | string;
+  userId?: number | string;
+  name?: string;
+};
 type TaskLike = {
   created_by?: number | string;
   createdBy?: number | string;

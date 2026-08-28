@@ -180,7 +180,9 @@
               <q-avatar color="primary" text-color="white" size="24px">
                 {{ getResourceInitials(props.row.user_id) }}
               </q-avatar>
-              <span class="text-weight-medium text-main">{{ getResourceName(props.row.user_id) }}</span>
+              <span class="text-weight-medium text-main">{{
+                getResourceName(props.row.user_id)
+              }}</span>
             </div>
           </q-td>
         </template>
@@ -274,7 +276,7 @@
               :rules="[
                 (val) => !!val || 'Leave hours is required',
                 (val) => val > 0 || 'Hours must be positive',
-                (val) => val <= 24 || 'Hours cannot exceed 24'
+                (val) => val <= 24 || 'Hours cannot exceed 24',
               ]"
             />
           </q-card-section>
@@ -385,7 +387,7 @@ const tableColumns = computed<QTableColumn<LeaveItem>[]>(() => {
       label: 'Actions',
       field: () => '',
       align: 'center',
-    }
+    },
   );
 
   return cols;
@@ -396,7 +398,7 @@ const resourceOptions = computed(() =>
   resourcesList.value.map((r) => ({
     label: r.name,
     value: Number(r.user_id),
-  }))
+  })),
 );
 
 // Summary metrics computed properties
@@ -432,7 +434,7 @@ async function loadData() {
   try {
     if (isProjectManager.value) {
       const dbResources = await getResourcesApi(
-        currentUserId.value !== null ? { manager_id: currentUserId.value } : undefined
+        currentUserId.value !== null ? { manager_id: currentUserId.value } : undefined,
       );
       resourcesList.value = dbResources;
     }
@@ -477,7 +479,7 @@ watch(
   () => ({ ...filters }),
   () => {
     void loadLeaves();
-  }
+  },
 );
 
 // Reset operations
@@ -575,7 +577,8 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.filter-card, .table-card {
+.filter-card,
+.table-card {
   border-radius: 12px;
 }
 </style>

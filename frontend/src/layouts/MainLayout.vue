@@ -299,7 +299,7 @@
     </q-page-container>
     <!-- Reset Password Dialog -->
     <q-dialog v-model="resetPasswordDialog" persistent>
-      <q-card style="min-width: 350px; border-radius: 12px;">
+      <q-card style="min-width: 350px; border-radius: 12px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6 text-weight-bold">Reset Password</div>
           <q-space />
@@ -315,7 +315,7 @@
               outlined
               dense
               lazy-rules
-              :rules="[val => !!val || 'Current password is required']"
+              :rules="[(val) => !!val || 'Current password is required']"
             >
               <template #append>
                 <q-btn
@@ -336,11 +336,13 @@
               dense
               lazy-rules
               :rules="[
-                val => !!val || 'New password is required',
-                val => val.length >= 6 || 'New password must be at least 6 characters',
-                val => /^[A-Z]/.test(val) || 'New password must start with a capital letter',
-                val => /[0-9]/.test(val) || 'New password must contain at least one number',
-                val => /[^A-Za-z0-9]/.test(val) || 'New password must contain at least one special character'
+                (val) => !!val || 'New password is required',
+                (val) => val.length >= 6 || 'New password must be at least 6 characters',
+                (val) => /^[A-Z]/.test(val) || 'New password must start with a capital letter',
+                (val) => /[0-9]/.test(val) || 'New password must contain at least one number',
+                (val) =>
+                  /[^A-Za-z0-9]/.test(val) ||
+                  'New password must contain at least one special character',
               ]"
             >
               <template #append>
@@ -362,8 +364,8 @@
               dense
               lazy-rules
               :rules="[
-                val => !!val || 'Please confirm your new password',
-                val => val === resetForm.newPassword || 'New passwords do not match'
+                (val) => !!val || 'Please confirm your new password',
+                (val) => val === resetForm.newPassword || 'New passwords do not match',
               ]"
             >
               <template #append>
@@ -636,7 +638,9 @@ function handleLogout() {
       persistent: true,
     }).onOk(() => {
       if (sessionStore.activeTaskId) {
-        void router.push(`/app/resource-dashboard/task-details?taskId=${sessionStore.activeTaskId}`);
+        void router.push(
+          `/app/resource-dashboard/task-details?taskId=${sessionStore.activeTaskId}`,
+        );
       }
     });
     return;

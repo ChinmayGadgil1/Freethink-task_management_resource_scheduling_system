@@ -11,7 +11,11 @@
       <div class="text-caption text-grey-6 q-mt-sm">Nothing coming up — you're all caught up.</div>
     </div>
 
-    <div v-for="task in tasks" :key="task.id" class="task-row row items-center justify-between gap-sm">
+    <div
+      v-for="task in tasks"
+      :key="task.id"
+      class="task-row row items-center justify-between gap-sm"
+    >
       <div class="task-info">
         <div class="task-title">{{ task.name }}</div>
         <div class="task-project">{{ task.project }}</div>

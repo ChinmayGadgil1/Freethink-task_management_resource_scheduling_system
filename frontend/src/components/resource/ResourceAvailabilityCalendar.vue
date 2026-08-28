@@ -44,7 +44,11 @@
             <template #append>
               <q-icon name="event" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-date v-model="customStartDate" mask="YYYY-MM-DD" @update:model-value="loadAvailability">
+                  <q-date
+                    v-model="customStartDate"
+                    mask="YYYY-MM-DD"
+                    @update:model-value="loadAvailability"
+                  >
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Close" color="primary" flat />
                     </div>
@@ -65,7 +69,11 @@
             <template #append>
               <q-icon name="event" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-date v-model="customEndDate" mask="YYYY-MM-DD" @update:model-value="loadAvailability">
+                  <q-date
+                    v-model="customEndDate"
+                    mask="YYYY-MM-DD"
+                    @update:model-value="loadAvailability"
+                  >
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Close" color="primary" flat />
                     </div>
@@ -143,9 +151,7 @@
         <q-card flat bordered class="metric-mini-card bg-leave-soft">
           <q-card-section class="q-pa-sm">
             <div class="text-caption text-grey-7">Total Leave Hours</div>
-            <div class="text-h6 text-weight-bold text-purple-8">
-              {{ totalLeaveHours }}h
-            </div>
+            <div class="text-h6 text-weight-bold text-purple-8">{{ totalLeaveHours }}h</div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
               Approved time off in range
             </div>
@@ -176,7 +182,11 @@
     </div>
 
     <!-- 4. ERROR STATE -->
-    <q-banner v-else-if="errorMessage" class="bg-red-1 text-negative rounded-borders q-mb-md" rounded>
+    <q-banner
+      v-else-if="errorMessage"
+      class="bg-red-1 text-negative rounded-borders q-mb-md"
+      rounded
+    >
       <template #avatar>
         <q-icon name="error_outline" color="negative" />
       </template>
@@ -239,9 +249,18 @@
 
             <!-- Visual Capacity Bar -->
             <div class="capacity-bar-container q-my-sm">
-              <div class="row items-center justify-between text-caption q-mb-xs" style="font-size: 11px">
-                <span class="text-grey-7">Daily Base: <strong>{{ day.daily_working_hours }}h</strong></span>
-                <span :class="day.available_hours > 0 ? 'text-positive text-weight-bold' : 'text-grey-6'">
+              <div
+                class="row items-center justify-between text-caption q-mb-xs"
+                style="font-size: 11px"
+              >
+                <span class="text-grey-7"
+                  >Daily Base: <strong>{{ day.daily_working_hours }}h</strong></span
+                >
+                <span
+                  :class="
+                    day.available_hours > 0 ? 'text-positive text-weight-bold' : 'text-grey-6'
+                  "
+                >
                   {{ day.available_hours }}h Free
                 </span>
               </div>
@@ -335,7 +354,11 @@
 
           <template #body-cell-allocated_hours="props">
             <q-td :props="props">
-              <span :class="props.row.allocated_hours > 0 ? 'text-primary text-weight-medium' : 'text-grey-5'">
+              <span
+                :class="
+                  props.row.allocated_hours > 0 ? 'text-primary text-weight-medium' : 'text-grey-5'
+                "
+              >
                 {{ props.row.allocated_hours }}h
               </span>
             </q-td>
@@ -343,7 +366,11 @@
 
           <template #body-cell-leave_hours="props">
             <q-td :props="props">
-              <span :class="props.row.leave_hours > 0 ? 'text-purple-8 text-weight-medium' : 'text-grey-5'">
+              <span
+                :class="
+                  props.row.leave_hours > 0 ? 'text-purple-8 text-weight-medium' : 'text-grey-5'
+                "
+              >
                 {{ props.row.leave_hours }}h
               </span>
             </q-td>
@@ -462,16 +489,27 @@ function isToday(dateStr: string): boolean {
 function formatShortDate(dateStr: string): string {
   const parts = dateStr.split('-');
   if (parts.length < 3) return dateStr;
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   const monthIdx = Number(parts[1]) - 1;
   return `${parts[2]} ${monthNames[monthIdx] ?? parts[1]}`;
 }
 
 function formatNonWorkingDays(days?: DayOfWeek[]): string {
   if (!days || days.length === 0) return 'None (Full 7-day schedule)';
-  return days
-    .map((d) => d.charAt(0) + d.slice(1).toLowerCase())
-    .join(', ');
+  return days.map((d) => d.charAt(0) + d.slice(1).toLowerCase()).join(', ');
 }
 
 function getBarPct(value: number, total: number): number {
@@ -544,7 +582,13 @@ const tableColumns: QTableColumn<DailyAvailabilityDTO>[] = [
   { name: 'date', label: 'Date', field: 'date', align: 'left', sortable: true },
   { name: 'weekday', label: 'Day', field: 'weekday', align: 'left', sortable: true },
   { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true },
-  { name: 'daily_working_hours', label: 'Capacity', field: 'daily_working_hours', align: 'right', format: (val) => `${val}h` },
+  {
+    name: 'daily_working_hours',
+    label: 'Capacity',
+    field: 'daily_working_hours',
+    align: 'right',
+    format: (val) => `${val}h`,
+  },
   { name: 'available_hours', label: 'Available', field: 'available_hours', align: 'right' },
   { name: 'allocated_hours', label: 'Allocated', field: 'allocated_hours', align: 'right' },
   { name: 'leave_hours', label: 'Leave', field: 'leave_hours', align: 'right' },

@@ -118,7 +118,10 @@
 
     <!-- Non-Working Days Configuration Dialog -->
     <q-dialog v-model="workingDaysDialog" persistent>
-      <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px;" :dark="$q.dark.isActive">
+      <q-card
+        style="min-width: 440px; max-width: 520px; border-radius: 14px"
+        :dark="$q.dark.isActive"
+      >
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
             <q-icon name="event_busy" size="24px" color="primary" />
@@ -128,7 +131,8 @@
         </q-card-section>
 
         <q-card-section class="text-caption text-grey-6 q-pt-none">
-          Select your weekly non-working days (days off). Any day not selected is automatically treated as a regular working day for task scheduling.
+          Select your weekly non-working days (days off). Any day not selected is automatically
+          treated as a regular working day for task scheduling.
         </q-card-section>
 
         <q-separator />
@@ -140,7 +144,9 @@
         <q-card-section v-else class="q-pt-md q-gutter-md">
           <!-- Non-Working Days Selector -->
           <div>
-            <div class="text-subtitle2 text-weight-bold q-mb-xs">Weekly Non-Working Days (Days Off)</div>
+            <div class="text-subtitle2 text-weight-bold q-mb-xs">
+              Weekly Non-Working Days (Days Off)
+            </div>
             <div class="text-caption text-grey-6 q-mb-sm">
               Click days to mark them as non-working. Unmarked days are your active working days.
             </div>
@@ -150,8 +156,16 @@
                 v-for="day in weekDayOptions"
                 :key="day.value"
                 clickable
-                :color="isNonWorkingDay(day.value) ? 'deep-orange-7' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
-                :text-color="isNonWorkingDay(day.value) ? 'white' : ($q.dark.isActive ? 'grey-4' : 'grey-8')"
+                :color="
+                  isNonWorkingDay(day.value)
+                    ? 'deep-orange-7'
+                    : $q.dark.isActive
+                      ? 'grey-9'
+                      : 'grey-3'
+                "
+                :text-color="
+                  isNonWorkingDay(day.value) ? 'white' : $q.dark.isActive ? 'grey-4' : 'grey-8'
+                "
                 :icon="isNonWorkingDay(day.value) ? 'event_busy' : 'check_circle_outline'"
                 class="text-weight-bold cursor-pointer transition-all"
                 @click="toggleNonWorkingDay(day.value)"
@@ -159,7 +173,10 @@
                 {{ day.label }}
               </q-chip>
             </div>
-            <div v-if="selectedNonWorkingDays.length >= 7" class="text-caption text-negative q-mt-xs">
+            <div
+              v-if="selectedNonWorkingDays.length >= 7"
+              class="text-caption text-negative q-mt-xs"
+            >
               * A resource must have at least one active working day.
             </div>
           </div>
@@ -192,14 +209,22 @@
               <div class="row items-center justify-between">
                 <span class="text-weight-medium">Non-Working Days:</span>
                 <span class="text-weight-bold text-deep-orange">
-                  {{ selectedNonWorkingDays.length === 0 ? 'None (Full 7-day schedule)' : selectedNonWorkingDays.map(formatDayName).join(', ') }}
+                  {{
+                    selectedNonWorkingDays.length === 0
+                      ? 'None (Full 7-day schedule)'
+                      : selectedNonWorkingDays.map(formatDayName).join(', ')
+                  }}
                   ({{ selectedNonWorkingDays.length }} days off)
                 </span>
               </div>
               <div class="row items-center justify-between q-mt-xs">
                 <span class="text-weight-medium">Active Working Days:</span>
                 <span class="text-weight-bold text-primary">
-                  {{ activeWorkingDays.length === 0 ? 'None' : activeWorkingDays.map(formatDayName).join(', ') }}
+                  {{
+                    activeWorkingDays.length === 0
+                      ? 'None'
+                      : activeWorkingDays.map(formatDayName).join(', ')
+                  }}
                   ({{ activeWorkingDays.length }} working days)
                 </span>
               </div>
@@ -233,7 +258,7 @@
 
     <!-- Reset Password Dialog -->
     <q-dialog v-model="resetPasswordDialog" persistent>
-      <q-card style="min-width: 350px; border-radius: 12px;">
+      <q-card style="min-width: 350px; border-radius: 12px">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6 text-weight-bold">Reset Password</div>
           <q-space />
@@ -249,7 +274,7 @@
               outlined
               dense
               lazy-rules
-              :rules="[val => !!val || 'Current password is required']"
+              :rules="[(val) => !!val || 'Current password is required']"
             >
               <template #append>
                 <q-btn
@@ -270,11 +295,13 @@
               dense
               lazy-rules
               :rules="[
-                val => !!val || 'New password is required',
-                val => val.length >= 6 || 'New password must be at least 6 characters',
-                val => /^[A-Z]/.test(val) || 'New password must start with a capital letter',
-                val => /[0-9]/.test(val) || 'New password must contain at least one number',
-                val => /[^A-Za-z0-9]/.test(val) || 'New password must contain at least one special character'
+                (val) => !!val || 'New password is required',
+                (val) => val.length >= 6 || 'New password must be at least 6 characters',
+                (val) => /^[A-Z]/.test(val) || 'New password must start with a capital letter',
+                (val) => /[0-9]/.test(val) || 'New password must contain at least one number',
+                (val) =>
+                  /[^A-Za-z0-9]/.test(val) ||
+                  'New password must contain at least one special character',
               ]"
             >
               <template #append>
@@ -296,8 +323,8 @@
               dense
               lazy-rules
               :rules="[
-                val => !!val || 'Confirm new password is required',
-                val => val === resetForm.newPassword || 'Passwords do not match'
+                (val) => !!val || 'Confirm new password is required',
+                (val) => val === resetForm.newPassword || 'Passwords do not match',
               ]"
             >
               <template #append>
@@ -348,7 +375,15 @@ const leftDrawerOpen = ref(true);
 const isMini = ref(false);
 
 // Non-Working Days State
-const ALL_WEEK_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const ALL_WEEK_DAYS: DayOfWeek[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
 const workingDaysDialog = ref(false);
 const scheduleLoading = ref(false);
 const scheduleSubmitting = ref(false);
@@ -366,11 +401,11 @@ const weekDayOptions: { label: string; value: DayOfWeek }[] = [
 ];
 
 const activeWorkingDays = computed(() => {
-  return ALL_WEEK_DAYS.filter(day => !selectedNonWorkingDays.value.includes(day));
+  return ALL_WEEK_DAYS.filter((day) => !selectedNonWorkingDays.value.includes(day));
 });
 
 function formatDayName(day: DayOfWeek): string {
-  const match = weekDayOptions.find(o => o.value === day);
+  const match = weekDayOptions.find((o) => o.value === day);
   return match ? match.label : day;
 }
 
@@ -380,7 +415,7 @@ function isNonWorkingDay(day: DayOfWeek): boolean {
 
 function toggleNonWorkingDay(day: DayOfWeek) {
   if (selectedNonWorkingDays.value.includes(day)) {
-    selectedNonWorkingDays.value = selectedNonWorkingDays.value.filter(d => d !== day);
+    selectedNonWorkingDays.value = selectedNonWorkingDays.value.filter((d) => d !== day);
   } else {
     selectedNonWorkingDays.value = [...selectedNonWorkingDays.value, day];
   }

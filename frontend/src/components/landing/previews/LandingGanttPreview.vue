@@ -53,7 +53,8 @@
               <div class="task-meta-row row items-center gap-xs">
                 <span class="project-pill">{{ task.project }}</span>
                 <span class="effort-pill"
-                  >{{ formatHours(task.actualEffort) }} / {{ formatHours(task.expectedEffort) }}</span
+                  >{{ formatHours(task.actualEffort) }} /
+                  {{ formatHours(task.expectedEffort) }}</span
                 >
               </div>
             </div>

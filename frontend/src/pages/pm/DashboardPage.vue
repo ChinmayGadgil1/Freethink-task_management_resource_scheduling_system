@@ -634,11 +634,16 @@
                     <q-chip
                       dense
                       square
-                      :class="['status-chip', getTaskStatusClass(getStatusFromProgress(logProgressForm.progress_logged))]"
+                      :class="[
+                        'status-chip',
+                        getTaskStatusClass(getStatusFromProgress(logProgressForm.progress_logged)),
+                      ]"
                       class="text-weight-bold"
                       style="font-size: 11px; height: 18px"
                     >
-                      {{ formatStatusLabel(getStatusFromProgress(logProgressForm.progress_logged)) }}
+                      {{
+                        formatStatusLabel(getStatusFromProgress(logProgressForm.progress_logged))
+                      }}
                     </q-chip>
                   </div>
                   <q-input
@@ -1061,7 +1066,11 @@ const positionedTimelineRows = computed(() => {
   return tasks.value.slice(0, 10).map((t) => {
     const rawStart = t.planned_start || t.actual_start || t.start_date;
     const startStr = rawStart ? rawStart.slice(0, 10) : days[0]!.key;
-    const endStr = t.planned_end ? t.planned_end.slice(0, 10) : (t.deadline ? t.deadline.slice(0, 10) : days[days.length - 1]!.key);
+    const endStr = t.planned_end
+      ? t.planned_end.slice(0, 10)
+      : t.deadline
+        ? t.deadline.slice(0, 10)
+        : days[days.length - 1]!.key;
 
     const startMs = new Date(startStr).getTime();
     const endMs = new Date(endStr).getTime();

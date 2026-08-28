@@ -196,7 +196,12 @@
               :key="res.resource_id"
               class="col-12 col-sm-6 col-md-4"
             >
-              <q-card flat bordered class="resource-grid-card full-height column justify-between cursor-pointer" @click="goToDetails(res.resource_id)">
+              <q-card
+                flat
+                bordered
+                class="resource-grid-card full-height column justify-between cursor-pointer"
+                @click="goToDetails(res.resource_id)"
+              >
                 <q-card-section class="q-pa-md">
                   <!-- CARD TOP: AVATAR, NAME, CHIP -->
                   <div class="row items-center justify-between no-wrap q-mb-md">
@@ -222,7 +227,9 @@
                     <div class="row justify-between text-caption q-mb-xs">
                       <span class="text-grey-7 text-weight-medium">Workload Effort</span>
                       <span class="text-weight-bold text-dark"
-                        >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{ res.utilization }}%)</span
+                        >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{
+                          res.utilization
+                        }}%)</span
                       >
                     </div>
                     <q-linear-progress
@@ -717,17 +724,20 @@
 
     <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
     <q-dialog v-model="showScheduleDialog" persistent>
-      <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px;">
+      <q-card style="min-width: 440px; max-width: 520px; border-radius: 14px">
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
             <q-icon name="edit_calendar" size="24px" color="primary" />
-            <div class="text-h6 text-weight-bold">Work Schedule: {{ scheduleTargetResource?.name || 'Resource' }}</div>
+            <div class="text-h6 text-weight-bold">
+              Work Schedule: {{ scheduleTargetResource?.name || 'Resource' }}
+            </div>
           </div>
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-card-section class="text-caption text-grey-6 q-pt-none">
-          Configure weekly non-working days (days off) and daily working hours capacity for this resource.
+          Configure weekly non-working days (days off) and daily working hours capacity for this
+          resource.
         </q-card-section>
 
         <q-separator />
@@ -739,7 +749,9 @@
         <q-card-section v-else class="q-pt-md q-gutter-md">
           <!-- Non-Working Days Selector -->
           <div>
-            <div class="text-subtitle2 text-weight-bold q-mb-xs">Weekly Non-Working Days (Days Off)</div>
+            <div class="text-subtitle2 text-weight-bold q-mb-xs">
+              Weekly Non-Working Days (Days Off)
+            </div>
             <div class="text-caption text-grey-6 q-mb-sm">
               Click days to mark them as non-working. Unmarked days are active working days.
             </div>
@@ -791,14 +803,22 @@
               <div class="row items-center justify-between">
                 <span class="text-weight-medium">Non-Working Days:</span>
                 <span class="text-weight-bold text-deep-orange">
-                  {{ modalNonWorkingDays.length === 0 ? 'None (Full 7-day schedule)' : modalNonWorkingDays.map(formatDayName).join(', ') }}
+                  {{
+                    modalNonWorkingDays.length === 0
+                      ? 'None (Full 7-day schedule)'
+                      : modalNonWorkingDays.map(formatDayName).join(', ')
+                  }}
                   ({{ modalNonWorkingDays.length }} days off)
                 </span>
               </div>
               <div class="row items-center justify-between q-mt-xs">
                 <span class="text-weight-medium">Active Working Days:</span>
                 <span class="text-weight-bold text-primary">
-                  {{ modalActiveWorkingDays.length === 0 ? 'None' : modalActiveWorkingDays.map(formatDayName).join(', ') }}
+                  {{
+                    modalActiveWorkingDays.length === 0
+                      ? 'None'
+                      : modalActiveWorkingDays.map(formatDayName).join(', ')
+                  }}
                   ({{ modalActiveWorkingDays.length }} working days)
                 </span>
               </div>
@@ -839,7 +859,13 @@ import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
-import { formatDate, formatStatus as formatTaskStatus, formatHours, formatNumber, getInitials } from '@/utils/formatters';
+import {
+  formatDate,
+  formatStatus as formatTaskStatus,
+  formatHours,
+  formatNumber,
+  getInitials,
+} from '@/utils/formatters';
 import { getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
   assignProjectMemberApi,
@@ -862,7 +888,15 @@ const $q = useQuasar();
 const router = useRouter();
 
 // PM Work Schedule Modal State
-const ALL_WEEK_DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const ALL_WEEK_DAYS: DayOfWeek[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
 const weekDayOptions: { label: string; value: DayOfWeek }[] = [
   { label: 'Monday', value: 'MONDAY' },
   { label: 'Tuesday', value: 'TUESDAY' },
@@ -876,7 +910,11 @@ const weekDayOptions: { label: string; value: DayOfWeek }[] = [
 const showScheduleDialog = ref(false);
 const scheduleModalLoading = ref(false);
 const scheduleModalSubmitting = ref(false);
-const scheduleTargetResource = ref<{ resource_id?: number; user_id?: number; name?: string } | null>(null);
+const scheduleTargetResource = ref<{
+  resource_id?: number;
+  user_id?: number;
+  name?: string;
+} | null>(null);
 const modalNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 const modalDailyHours = ref(8.0);
 
@@ -901,7 +939,11 @@ function toggleScheduleNonWorkingDay(day: DayOfWeek) {
   }
 }
 
-async function openResourceScheduleDialog(resource: { resource_id?: number; user_id?: number; name?: string }) {
+async function openResourceScheduleDialog(resource: {
+  resource_id?: number;
+  user_id?: number;
+  name?: string;
+}) {
   scheduleTargetResource.value = resource;
   const targetId = resource.resource_id || resource.user_id;
   if (!targetId) return;
@@ -924,7 +966,8 @@ async function openResourceScheduleDialog(resource: { resource_id?: number; user
 }
 
 async function handleSaveResourceSchedule() {
-  const targetId = scheduleTargetResource.value?.resource_id || scheduleTargetResource.value?.user_id;
+  const targetId =
+    scheduleTargetResource.value?.resource_id || scheduleTargetResource.value?.user_id;
   if (!targetId) return;
 
   if (modalNonWorkingDays.value.length >= 7) {
@@ -1066,7 +1109,12 @@ const tableColumns: QTableColumn<ResourceAggregate>[] = [
   { name: 'name', label: 'Resource Member', field: (r) => r.name, align: 'left' },
   { name: 'tasks', label: 'Assigned Tasks', field: (r) => r.tasks.length, align: 'center' },
   { name: 'projects', label: 'Projects Working On', field: (r) => r.projectsCount, align: 'left' },
-  { name: 'effort', label: 'Allocated Hours', field: (r) => formatNumber(r.totalEffort), align: 'center' },
+  {
+    name: 'effort',
+    label: 'Allocated Hours',
+    field: (r) => formatNumber(r.totalEffort),
+    align: 'center',
+  },
   { name: 'utilization', label: 'Utilization', field: (r) => r.utilization, align: 'left' },
   { name: 'status', label: 'Status', field: (r) => r.status, align: 'center' },
   { name: 'actions', label: 'Actions', field: () => '', align: 'center' },
