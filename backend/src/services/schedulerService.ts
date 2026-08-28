@@ -91,6 +91,23 @@ export async function getProjectSchedule(projectId: number) {
         `SELECT holiday_id, holiday_date, description FROM holidays ORDER BY holiday_date ASC`
     );
 
+    const scheduleMap = new Map<number, any[]>();
+    for (const s of schedules) {
+        const tId = Number(s.task_id);
+        if (!scheduleMap.has(tId)) {
+            scheduleMap.set(tId, []);
+        }
+        scheduleMap.get(tId)!.push({
+            schedule_id: Number(s.schedule_id),
+            task_id: tId,
+            user_id: Number(s.user_id),
+            schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
+            allocated_hours: Number(s.allocated_hours),
+            schedule_version: Number(s.schedule_version),
+            resource_name: s.resource_name || undefined
+        });
+    }
+
     // 5. Transform tasks with risk and pacing indicators
     const todayStr = new Date().toISOString().split("T")[0]!;
     const formattedTasks = tasks.map(t => {
@@ -125,6 +142,7 @@ export async function getProjectSchedule(projectId: number) {
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
                 : [],
+            schedules: scheduleMap.get(Number(t.task_id)) || [],
             pacing: {
                 is_overrun: isOverrun,
                 is_behind_schedule: isBehindSchedule,

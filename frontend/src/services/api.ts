@@ -89,6 +89,7 @@ export interface Task {
   assigned_resource_ids?: number[];
   predecessor_task_ids?: number[];
   pacing?: TaskPacing;
+  schedules?: TaskScheduleItem[];
 }
 
 export interface WorkLog {

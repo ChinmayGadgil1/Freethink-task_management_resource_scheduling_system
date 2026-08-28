@@ -135,14 +135,46 @@ export async function getTasksList(filters: {
     query += " GROUP BY t.task_id ORDER BY t.created_at DESC";
 
     const [tasks] = await pool.query<RowDataPacket[]>(query, params);
+    if (tasks.length === 0) {
+        return [];
+    }
+
+    const taskIds = tasks.map(t => t.task_id);
+    const [schedules] = await pool.query<RowDataPacket[]>(
+        `SELECT ts.schedule_id, ts.task_id, ts.user_id, ts.schedule_date, ts.allocated_hours, ts.schedule_version, u.name as resource_name
+         FROM task_schedules ts
+         LEFT JOIN users u ON ts.user_id = u.user_id
+         WHERE ts.task_id IN (?)
+         ORDER BY ts.schedule_date ASC`,
+        [taskIds]
+    );
+
+    const scheduleMap = new Map<number, any[]>();
+    for (const s of schedules) {
+        const tId = Number(s.task_id);
+        if (!scheduleMap.has(tId)) {
+            scheduleMap.set(tId, []);
+        }
+        scheduleMap.get(tId)!.push({
+            schedule_id: Number(s.schedule_id),
+            task_id: tId,
+            user_id: Number(s.user_id),
+            schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
+            allocated_hours: Number(s.allocated_hours),
+            schedule_version: Number(s.schedule_version),
+            resource_name: s.resource_name || undefined
+        });
+    }
+
     return tasks.map(t => ({
         ...t,
         assigned_resource_ids: t.assigned_resource_ids
-            ? t.assigned_resource_ids.split(",").map(Number)
+            ? String(t.assigned_resource_ids).split(",").map(Number)
             : [],
         predecessor_task_ids: t.predecessor_task_ids
-            ? t.predecessor_task_ids.split(",").map(Number)
-            : []
+            ? String(t.predecessor_task_ids).split(",").map(Number)
+            : [],
+        schedules: scheduleMap.get(Number(t.task_id)) || []
     }));
 }
 
@@ -170,14 +202,35 @@ export async function getTaskById(taskId: number) {
     if (!task) {
         return null;
     }
+
+    const [schedules] = await pool.query<RowDataPacket[]>(
+        `SELECT ts.schedule_id, ts.task_id, ts.user_id, ts.schedule_date, ts.allocated_hours, ts.schedule_version, u.name as resource_name
+         FROM task_schedules ts
+         LEFT JOIN users u ON ts.user_id = u.user_id
+         WHERE ts.task_id = ?
+         ORDER BY ts.schedule_date ASC`,
+        [taskId]
+    );
+
+    const formattedSchedules = schedules.map(s => ({
+        schedule_id: Number(s.schedule_id),
+        task_id: Number(s.task_id),
+        user_id: Number(s.user_id),
+        schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
+        allocated_hours: Number(s.allocated_hours),
+        schedule_version: Number(s.schedule_version),
+        resource_name: s.resource_name || undefined
+    }));
+
     return {
         ...task,
         assigned_resource_ids: task.assigned_resource_ids
-            ? task.assigned_resource_ids.split(",").map(Number)
+            ? String(task.assigned_resource_ids).split(",").map(Number)
             : [],
         predecessor_task_ids: task.predecessor_task_ids
-            ? task.predecessor_task_ids.split(",").map(Number)
-            : []
+            ? String(task.predecessor_task_ids).split(",").map(Number)
+            : [],
+        schedules: formattedSchedules
     } as any;
 }
 

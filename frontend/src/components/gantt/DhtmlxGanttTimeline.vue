@@ -193,7 +193,7 @@
       <div class="footer-left row items-center no-wrap">
         <q-icon name="check_circle" size="15px" color="positive" class="q-mr-xs" />
         <span class="text-positive text-caption text-weight-medium">
-          Interactive timeline with project hierarchy &amp; dependencies
+          Interactive timeline with actual scheduled work segments &amp; dependencies
         </span>
       </div>
 
@@ -223,6 +223,16 @@ export interface GanttTimelineProps {
   groupByProject?: boolean;
 }
 
+export interface TaskWorkSegment {
+  startDate: Date;
+  endDate: Date;
+  startStr: string;
+  endStr: string;
+  durationDays: number;
+  allocatedHours: number;
+  daysCount: number;
+}
+
 export interface DhtmlxGanttTaskItem {
   id: string | number;
   text: string;
@@ -239,6 +249,9 @@ export interface DhtmlxGanttTaskItem {
   project_id?: number;
   assignee_name?: string;
   task_count?: number;
+  segments?: TaskWorkSegment[];
+  total_hours?: number;
+  is_segmented?: boolean;
   $open?: boolean;
 }
 
@@ -287,6 +300,199 @@ const projectMap = computed(() => {
 const totalCount = computed(() => props.tasks.length);
 const visibleCount = ref(0);
 const showExtraColumns = ref(false); // Collapsed/compact by default (only TASK & PROJECT visible)
+
+// ----------------------------------------------------
+// Date & Segmentation Utilities
+// ----------------------------------------------------
+function parseDateLocal(dateStr: string): Date {
+  const cleanStr = String(dateStr).split('T')[0]!;
+  const parts = cleanStr.split('-');
+  const y = parseInt(parts[0]!, 10);
+  const m = parseInt(parts[1]!, 10) - 1;
+  const d = parseInt(parts[2]!, 10);
+  return new Date(y, m, d, 0, 0, 0, 0);
+}
+
+function parseIsoToDate(val: string | Date | undefined | null): Date {
+  if (!val) return new Date();
+  if (val instanceof Date) return new Date(val.getTime());
+  return parseDateLocal(String(val));
+}
+
+function addDays(d: Date, days: number): Date {
+  const res = new Date(d.getTime());
+  res.setDate(res.getDate() + days);
+  return res;
+}
+
+function formatDateIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatGanttDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d} ${h}:${min}`;
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Calculates continuous work segments from task_schedules, creating gaps on
+ * non-working days, holidays, weekends, leave, or 0-allocation dates.
+ */
+function getTaskWorkSegments(task: Task): {
+  segments: TaskWorkSegment[];
+  earliestStart: Date;
+  latestEnd: Date;
+  totalHours: number;
+} {
+  const validSchedules = (task.schedules || [])
+    .filter((s) => Number(s.allocated_hours) > 0)
+    .sort((a, b) => {
+      const dateA = String(a.schedule_date).split('T')[0]!;
+      const dateB = String(b.schedule_date).split('T')[0]!;
+      return dateA.localeCompare(dateB);
+    });
+
+  if (validSchedules.length > 0) {
+    const segments: TaskWorkSegment[] = [];
+    let currentSegSchedules: typeof validSchedules = [];
+
+    for (let i = 0; i < validSchedules.length; i++) {
+      const curr = validSchedules[i]!;
+      const currDateStr = String(curr.schedule_date).split('T')[0]!;
+
+      if (currentSegSchedules.length === 0) {
+        currentSegSchedules.push(curr);
+      } else {
+        const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
+        const lastDateStr = String(lastInSeg.schedule_date).split('T')[0]!;
+        const lastDate = parseDateLocal(lastDateStr);
+        const expectedNextDateStr = formatDateIso(addDays(lastDate, 1));
+
+        if (currDateStr === expectedNextDateStr) {
+          // Contiguous working day
+          currentSegSchedules.push(curr);
+        } else {
+          // Gap detected (weekend, holiday, leave, non-working day)
+          const segStartStr = String(currentSegSchedules[0]!.schedule_date).split('T')[0]!;
+          const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
+          const segStartDate = parseDateLocal(segStartStr);
+          const segEndDate = addDays(parseDateLocal(segEndStr), 1);
+          const segHours = currentSegSchedules.reduce(
+            (sum, s) => sum + Number(s.allocated_hours),
+            0,
+          );
+
+          segments.push({
+            startDate: segStartDate,
+            endDate: segEndDate,
+            startStr: segStartStr,
+            endStr: segEndStr,
+            durationDays: Math.max(
+              1,
+              Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
+            ),
+            allocatedHours: Math.round(segHours * 10) / 10,
+            daysCount: currentSegSchedules.length,
+          });
+
+          currentSegSchedules = [curr];
+        }
+      }
+    }
+
+    if (currentSegSchedules.length > 0) {
+      const segStartStr = String(currentSegSchedules[0]!.schedule_date).split('T')[0]!;
+      const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
+      const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
+      const segStartDate = parseDateLocal(segStartStr);
+      const segEndDate = addDays(parseDateLocal(segEndStr), 1);
+      const segHours = currentSegSchedules.reduce((sum, s) => sum + Number(s.allocated_hours), 0);
+
+      segments.push({
+        startDate: segStartDate,
+        endDate: segEndDate,
+        startStr: segStartStr,
+        endStr: segEndStr,
+        durationDays: Math.max(
+          1,
+          Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
+        ),
+        allocatedHours: Math.round(segHours * 10) / 10,
+        daysCount: currentSegSchedules.length,
+      });
+    }
+
+    const earliestStart = segments[0]!.startDate;
+    const latestEnd = segments[segments.length - 1]!.endDate;
+    const totalHours = segments.reduce((sum, s) => sum + s.allocatedHours, 0);
+
+    return {
+      segments,
+      earliestStart,
+      latestEnd,
+      totalHours: Math.round(totalHours * 10) / 10,
+    };
+  }
+
+  // Fallback: No schedule allocations yet (e.g. unassigned or pending recalculation)
+  const rawStart = task.planned_start || task.actual_start || task.start_date;
+  const rawEnd = task.planned_end || task.deadline || task.actual_end;
+  const startDate = rawStart ? parseDateLocal(rawStart) : new Date();
+  startDate.setHours(0, 0, 0, 0);
+
+  const rawEndDate = rawEnd ? parseDateLocal(rawEnd) : addDays(startDate, 1);
+  rawEndDate.setHours(0, 0, 0, 0);
+
+  const endDate =
+    rawEndDate.getTime() <= startDate.getTime() ? addDays(startDate, 1) : addDays(rawEndDate, 1);
+
+  const durationDays = Math.max(
+    1,
+    Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)),
+  );
+  const fallbackHours = Number(task.expected_effort) || 0;
+
+  const singleSegment: TaskWorkSegment = {
+    startDate,
+    endDate,
+    startStr: formatDateIso(startDate),
+    endStr: formatDateIso(addDays(endDate, -1)),
+    durationDays,
+    allocatedHours: fallbackHours,
+    daysCount: durationDays,
+  };
+
+  return {
+    segments: [singleSegment],
+    earliestStart: startDate,
+    latestEnd: endDate,
+    totalHours: fallbackHours,
+  };
+}
 
 // ----------------------------------------------------
 // DHTMLX Configuration & Column Definitions
@@ -388,11 +594,11 @@ function applyColumnsConfig() {
   if (showExtraColumns.value) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (gantt.config as any).columns = [baseColumn, ...extraColumns];
-    gantt.config.grid_width = 430; // 190 + 95 + 80 + 65 = 430px
+    gantt.config.grid_width = 430;
   } else {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (gantt.config as any).columns = [baseColumn];
-    gantt.config.grid_width = 250; // Compact state: full timeline space
+    gantt.config.grid_width = 250;
   }
 }
 
@@ -425,10 +631,10 @@ function configureGanttEngine() {
   gantt.config.select_task = false;
   gantt.config.open_tree_initially = true;
 
-  // Apply column configuration (Collapsed / Compact by default)
+  // Apply column configuration
   applyColumnsConfig();
 
-  // Custom Task Bar CSS Classes (Color-coded by Priority with gradients for tasks, distinct slate-indigo bar for projects)
+  // Custom Task Bar CSS Classes
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (gantt.templates as any).task_class = (_start: Date, _end: Date, task: DhtmlxGanttTaskItem) => {
     if (task.type === 'project') {
@@ -444,11 +650,12 @@ function configureGanttEngine() {
     return classes.join(' ');
   };
 
-  // Custom Task Text Template inside Bar (Left progress badge pill + task title + assignee)
+  // Custom Task Text Template inside Bar (Projects use project summary bar; tasks render discrete segmented pills)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (gantt.templates as any).task_text = (_start: Date, _end: Date, task: DhtmlxGanttTaskItem) => {
+  (gantt.templates as any).task_text = (start: Date, _end: Date, task: DhtmlxGanttTaskItem) => {
     const pct = Math.round((task.progress || 0) * 100);
     const text = escapeHtml(task.text || '');
+
     if (task.type === 'project') {
       const count = task.task_count || 0;
       return (
@@ -458,16 +665,64 @@ function configureGanttEngine() {
         `</div>`
       );
     }
-    const assignee = task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : '';
-    return (
-      `<div class="gantt-bar-content-wrapper">` +
-      `<span class="gantt-bar-pct-badge">${pct}%</span>` +
-      `<span class="gantt-bar-title ellipsis">${text}${assignee}</span>` +
-      `</div>`
-    );
+
+    const segments = task.segments || [];
+    if (segments.length === 0) {
+      const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
+      const sClass = `bar-s-${(task.status || 'scheduled').toLowerCase().replace('_', '-')}`;
+      const assignee = task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : '';
+      return (
+        `<div class="gantt-segments-container">` +
+        `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: 0; width: 100%;">` +
+        `<div class="segment-progress-fill" style="width: ${pct}%;"></div>` +
+        `<span class="segment-pct-badge">${pct}%</span>` +
+        `<span class="segment-title ellipsis">${text}${assignee}</span>` +
+        `</div>` +
+        `</div>`
+      );
+    }
+
+    const taskStartD = parseIsoToDate(task.start_date) || start;
+    const taskStartX = gantt.posFromDate(taskStartD);
+    const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
+    const sClass = `bar-s-${(task.status || 'scheduled').toLowerCase().replace('_', '-')}`;
+
+    const segHtmlList = segments.map((seg) => {
+      const segStartX = gantt.posFromDate(seg.startDate);
+      const segEndX = gantt.posFromDate(seg.endDate);
+      const segLeft = Math.max(0, segStartX - taskStartX);
+      const segWidth = Math.max(30, segEndX - segStartX);
+
+      const hoursBadge =
+        seg.allocatedHours > 0
+          ? `<span class="segment-hours-badge">${seg.allocatedHours}h</span>`
+          : '';
+
+      let innerContent: string;
+      if (segWidth >= 120) {
+        const assignee = task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : '';
+        innerContent =
+          `<span class="segment-pct-badge">${pct}%</span>` +
+          `<span class="segment-title ellipsis">${text}${assignee}</span>` +
+          hoursBadge;
+      } else if (segWidth >= 60) {
+        innerContent = `<span class="segment-pct-badge">${pct}%</span>` + hoursBadge;
+      } else {
+        innerContent = hoursBadge || `<span class="segment-pct-badge">${pct}%</span>`;
+      }
+
+      return (
+        `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: ${segLeft}px; width: ${segWidth}px;">` +
+        `<div class="segment-progress-fill" style="width: ${pct}%;"></div>` +
+        innerContent +
+        `</div>`
+      );
+    });
+
+    return `<div class="gantt-segments-container">${segHtmlList.join('')}</div>`;
   };
 
-  // Custom Grid Row Class (Visual distinction between Project and Task rows)
+  // Custom Grid Row Class
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (gantt.templates as any).grid_row_class = (
     _start: Date,
@@ -480,13 +735,14 @@ function configureGanttEngine() {
     return 'dhtmlx-grid-row-task';
   };
 
-  // Tooltip
+  // Tooltip Template with Segments Breakdown
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (gantt.templates as any).tooltip_text = (start: Date, end: Date, task: DhtmlxGanttTaskItem) => {
     const text = escapeHtml(task.text || '');
     const projName = escapeHtml(task.project_name || 'TaskFlow Project');
     const pct = Math.round((task.progress || 0) * 100);
-    const dateRange = `${formatDate(start)} – ${formatDate(end)}`;
+    const displayEnd = new Date(end.getTime() - 1000 * 60 * 60 * 24);
+    const dateRange = `${formatDate(start)} – ${formatDate(displayEnd)}`;
     const durationDays = Math.max(
       1,
       Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)),
@@ -506,8 +762,20 @@ function configureGanttEngine() {
     }
 
     const assignee = escapeHtml(task.assignee_name || 'Unassigned');
-    const statusText = task.status ? task.status.replace('_', ' ') : '—';
+    const statusText = task.status ? task.status.replace(/_/g, ' ') : '—';
     const priorityText = task.priority || '—';
+    const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
+
+    let segmentsHtml = '';
+    if (task.segments && task.segments.length > 1) {
+      const segsList = task.segments
+        .map((s) => {
+          const sEnd = new Date(s.endDate.getTime() - 1000 * 60 * 60 * 24);
+          return `<div class="tooltip-seg-item">${formatDate(s.startDate)} – ${formatDate(sEnd)} (${s.allocatedHours}h)</div>`;
+        })
+        .join('');
+      segmentsHtml = `<div class="tooltip-row column items-start"><span class="tooltip-k q-mb-xs">Work Segments (${task.segments.length}):</span><div class="tooltip-segments-list">${segsList}</div></div>`;
+    }
 
     return (
       `<div class="gantt-tooltip-card">` +
@@ -516,20 +784,13 @@ function configureGanttEngine() {
       `<div class="tooltip-row"><span class="tooltip-k">Status:</span><span class="tooltip-v">${statusText}</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Priority:</span><span class="tooltip-v">${priorityText}</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Assignee:</span><span class="tooltip-v">${assignee}</span></div>` +
-      `<div class="tooltip-row"><span class="tooltip-k">Schedule:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">Overall Span:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
+      segmentsHtml +
       `<div class="tooltip-row"><span class="tooltip-k">Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
       `</div>` +
       `</div>`
     );
-  };
-
-  // Weekend styling
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (gantt.templates as any).timeline_cell_class = (_task: unknown, date: Date) => {
-    if (date.getDay() === 0 || date.getDay() === 6) {
-      return 'dhtmlx-weekend-cell';
-    }
-    return '';
   };
 
   // Add Today Marker
@@ -573,7 +834,7 @@ function applyScaleMode(scale: 'day' | 'week' | 'month') {
       },
     ];
   } else {
-    // Week Mode (Default, matching screenshot: JULY 2026 / WEEK #30)
+    // Week Mode (Default: JULY 2026 / WEEK #30)
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 54;
     gantt.config.scales = [
@@ -619,22 +880,11 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   let maxTime = -Infinity;
 
   visibleTasks.forEach((t) => {
-    const rawStart = t.planned_start || t.actual_start || t.start_date;
-    if (rawStart) {
-      const d = parseIsoToDate(rawStart).getTime();
-      if (!isNaN(d)) {
-        if (d < minTime) minTime = d;
-        if (d > maxTime) maxTime = d;
-      }
-    }
-    const rawEnd = t.planned_end || t.deadline || t.actual_end;
-    if (rawEnd) {
-      const d = parseIsoToDate(rawEnd).getTime();
-      if (!isNaN(d)) {
-        if (d < minTime) minTime = d;
-        if (d > maxTime) maxTime = d;
-      }
-    }
+    const { earliestStart, latestEnd } = getTaskWorkSegments(t);
+    const startMs = earliestStart.getTime();
+    const endMs = latestEnd.getTime();
+    if (!isNaN(startMs) && startMs < minTime) minTime = startMs;
+    if (!isNaN(endMs) && endMs > maxTime) maxTime = endMs;
   });
 
   if (minTime === Infinity || maxTime === -Infinity) {
@@ -645,7 +895,6 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
 
   const minDate = new Date(minTime);
   const maxDate = new Date(maxTime);
-
   const scale = activeScale.value;
 
   if (scale === 'day') {
@@ -660,7 +909,6 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
     gantt.config.start_date = start;
     gantt.config.end_date = end;
   } else if (scale === 'week') {
-    // Snap to Monday of minDate - 1 week, snap to Sunday of maxDate + 1 week
     const start = new Date(minDate);
     const startDay = start.getDay();
     const startDiff = start.getDate() - startDay + (startDay === 0 ? -6 : 1);
@@ -717,7 +965,6 @@ function buildGanttDataset() {
       tasksByProjectId.get(pId)!.push(t);
     });
 
-    // Iterate through projects that have visible child tasks
     tasksByProjectId.forEach((projectTasks, pId) => {
       const p =
         projectMap.value.get(pId) ||
@@ -729,19 +976,20 @@ function buildGanttDataset() {
           progress: 0,
         } as Project);
 
-      // 1. Calculate Project Timeline: min(child task starts) to max(child task ends)
       let earliestStart: Date | null = null;
       let latestEnd: Date | null = null;
       let totalWeightedProgress = 0;
       let totalDuration = 0;
 
+      const childTaskDataItems: Array<Record<string, unknown>> = [];
+
       projectTasks.forEach((t) => {
-        const rawStart = t.planned_start || t.actual_start || t.start_date;
-        const rawEnd = t.planned_end || t.deadline || t.actual_end;
-        const tStart = rawStart ? parseIsoToDate(rawStart) : new Date();
-        const tEnd = rawEnd
-          ? parseIsoToDate(rawEnd)
-          : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
+        const {
+          segments,
+          earliestStart: tStart,
+          latestEnd: tEnd,
+          totalHours,
+        } = getTaskWorkSegments(t);
         const dur = Math.max(
           1,
           Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
@@ -753,16 +1001,36 @@ function buildGanttDataset() {
 
         totalWeightedProgress += prog * dur;
         totalDuration += dur;
+
+        const firstAssigneeId = t.assigned_resource_ids?.[0];
+        const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
+
+        childTaskDataItems.push({
+          id: t.task_id,
+          text: t.title,
+          start_date: formatGanttDate(tStart),
+          end_date: formatGanttDate(tEnd),
+          duration: dur,
+          progress: (Number(t.progress) || 0) / 100,
+          parent: `proj_${p.project_id}`,
+          priority: t.priority,
+          status: t.status,
+          project_name: p.name,
+          assignee_name: resourceObj?.name,
+          type: 'task',
+          segments,
+          total_hours: totalHours,
+          is_segmented: segments.length > 1,
+        });
       });
 
       const startObj = earliestStart || new Date();
-      const endObj = latestEnd || new Date(startObj.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const endObj = latestEnd || addDays(startObj, 1);
       const projDurationDays = Math.max(
         1,
         Math.round((endObj.getTime() - startObj.getTime()) / (1000 * 60 * 60 * 24)),
       );
 
-      // 2. Calculate Project Progress: Weighted by task duration = Σ(task progress × task duration) / Σ(task duration)
       const calculatedProgress =
         totalDuration > 0
           ? totalWeightedProgress / totalDuration / 100
@@ -771,7 +1039,7 @@ function buildGanttDataset() {
               (projectTasks.length * 100)
             : 0;
 
-      // 3. Add Project Summary Row
+      // Add Project Summary Row
       data.push({
         id: `proj_${p.project_id}`,
         text: p.name,
@@ -787,47 +1055,18 @@ function buildGanttDataset() {
         priority: p.priority,
       });
 
-      // 4. Add Child Task Rows
-      projectTasks.forEach((t) => {
-        const rawStart = t.planned_start || t.actual_start || t.start_date;
-        const rawEnd = t.planned_end || t.deadline || t.actual_end;
-        const tStart = rawStart ? parseIsoToDate(rawStart) : new Date();
-        const tEnd = rawEnd
-          ? parseIsoToDate(rawEnd)
-          : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
-        const durationDays = Math.max(
-          1,
-          Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
-        );
-
-        const firstAssigneeId = t.assigned_resource_ids?.[0];
-        const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
-
-        data.push({
-          id: t.task_id,
-          text: t.title,
-          start_date: formatGanttDate(tStart),
-          end_date: formatGanttDate(tEnd),
-          duration: durationDays,
-          progress: (Number(t.progress) || 0) / 100,
-          parent: `proj_${p.project_id}`,
-          priority: t.priority,
-          status: t.status,
-          project_name: p.name,
-          assignee_name: resourceObj?.name,
-          type: 'task',
-        });
-      });
+      // Add Child Tasks
+      childTaskDataItems.forEach((item) => data.push(item));
     });
   } else {
     // Flat task list
     filteredTasks.forEach((t) => {
-      const rawStart = t.planned_start || t.actual_start || t.start_date;
-      const rawEnd = t.planned_end || t.deadline || t.actual_end;
-      const tStart = rawStart ? parseIsoToDate(rawStart) : new Date();
-      const tEnd = rawEnd
-        ? parseIsoToDate(rawEnd)
-        : new Date(tStart.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const {
+        segments,
+        earliestStart: tStart,
+        latestEnd: tEnd,
+        totalHours,
+      } = getTaskWorkSegments(t);
       const durationDays = Math.max(
         1,
         Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
@@ -849,11 +1088,14 @@ function buildGanttDataset() {
         project_name: p?.name || '—',
         assignee_name: resourceObj?.name,
         type: 'task',
+        segments,
+        total_hours: totalHours,
+        is_segmented: segments.length > 1,
       });
     });
   }
 
-  // Predecessor Dependency Links (connecting task to task, not projects)
+  // Predecessor Dependency Links (connecting task to task)
   if (showDependencies.value) {
     let linkCounter = 1;
     filteredTasks.forEach((t) => {
@@ -958,41 +1200,6 @@ function toggleDependencies() {
 }
 
 // ----------------------------------------------------
-// Helper Utilities
-// ----------------------------------------------------
-function parseIsoToDate(isoString: string): Date {
-  const parsed = new Date(isoString);
-  if (isNaN(parsed.getTime())) return new Date();
-  return parsed;
-}
-
-function formatGanttDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${d} ${h}:${min}`;
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-// ----------------------------------------------------
 // Lifecycle Hooks & Event Listeners
 // ----------------------------------------------------
 let onTaskClickId: string | null = null;
@@ -1007,16 +1214,13 @@ onMounted(() => {
   configureGanttEngine();
   gantt.init(ganttContainer.value);
 
-  // Disable dragging, resizing, link creation, and default lightboxes completely
   onBeforeDragId = gantt.attachEvent('onBeforeTaskDrag', () => false);
   onBeforeLinkId = gantt.attachEvent('onBeforeLinkAdd', () => false);
   onDblClickId = gantt.attachEvent('onTaskDblClick', () => false);
   onLightboxId = gantt.attachEvent('onBeforeLightbox', () => false);
 
-  // Task click handler: Open details modal while preventing default selection / stray lightbox
   onTaskClickId = gantt.attachEvent('onTaskClick', (id: string | number) => {
     try {
-      // Hide any active Gantt tooltip so it doesn't linger over the opened modal
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (gantt as any).ext?.tooltips?.tooltip?.hide?.();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1207,16 +1411,16 @@ defineExpose({
     .ctrl-icon-pill-btn {
       border: 1px solid #e2e8f0;
       background: #ffffff;
-      padding: 4px 8px;
-      border-radius: 16px;
+      padding: 4px 6px;
+      border-radius: 20px;
       cursor: pointer;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.15s ease;
 
       &:hover {
-        background: #f1f5f9;
+        background: #f8fafc;
         border-color: #cbd5e1;
       }
     }
@@ -1224,18 +1428,18 @@ defineExpose({
 
   /* 2. Subheader Legend Row */
   .gantt-legend-row {
-    background: #ffffff;
+    background: #f8fafc;
     border-top: 1px solid #f1f5f9;
-    min-height: 36px;
+    min-height: 34px;
 
     .legend-label {
+      color: #64748b;
       font-weight: 600;
-      color: #475569;
-      font-size: 11.5px;
+      font-size: 11px;
     }
 
     .legend-item {
-      font-size: 11.5px;
+      font-size: 11px;
       color: #475569;
       font-weight: 500;
 
@@ -1255,25 +1459,18 @@ defineExpose({
           background: #ea580c;
         }
         &.dot-critical {
-          background: #ec4899;
+          background: #db2777;
         }
       }
     }
-
-    .legend-dependency-indicator {
-      font-size: 11.5px;
-    }
-  }
-
-  .header-divider {
-    background: #e2e8f0;
   }
 
   /* 3. Gantt Canvas Viewport */
   .gantt-canvas-wrapper {
     position: relative;
     width: 100%;
-    height: 540px;
+    min-height: 480px;
+    height: 600px;
     background: #ffffff;
 
     .gantt-chart-viewport {
@@ -1283,16 +1480,19 @@ defineExpose({
 
     .gantt-no-data-overlay {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(255, 255, 255, 0.95);
-      z-index: 20;
+      z-index: 10;
     }
   }
 
   /* 4. Footer Row */
   .gantt-footer-row {
-    background: #ffffff;
-    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
     min-height: 38px;
   }
 
@@ -1344,7 +1544,7 @@ defineExpose({
     letter-spacing: 0.03em;
   }
 
-  /* Tree Expander Chevrons (Expandable / Collapsible Projects) */
+  /* Tree Expander Chevrons */
   .gantt_tree_icon {
     &.gantt_open {
       background-image: none !important;
@@ -1486,7 +1686,7 @@ defineExpose({
     }
   }
 
-  /* Badges in Left Table (Status, Priority, Duration) */
+  /* Badges in Left Table */
   .status-badge {
     display: inline-flex;
     align-items: center;
@@ -1605,7 +1805,6 @@ defineExpose({
 
   /* ----------------------------------------------------
      Project Summary Bar & Task Bar Styling
-     Palette: Pink, Green, Blue, Orange
      ---------------------------------------------------- */
   /* Project Summary Bar */
   .dhtmlx-bar-project {
@@ -1644,10 +1843,51 @@ defineExpose({
     }
   }
 
-  /* Individual Task Bars */
+  /* Task Bar Container & Content Overrides */
   .dhtmlx-bar-task {
-    border-radius: 8px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    cursor: pointer;
+
+    .gantt_task_progress {
+      display: none !important;
+    }
+
+    .gantt_task_content {
+      overflow: visible !important;
+      position: static !important;
+      width: 100% !important;
+      height: 100% !important;
+      padding: 0 !important;
+    }
+  }
+
+  /* Custom Segments Container & Pills (renders gaps accurately on non-working days) */
+  .gantt-segments-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 28px;
+    pointer-events: auto;
+  }
+
+  .gantt-segment-pill {
+    position: absolute;
+    top: 0;
+    height: 28px;
+    border-radius: 7px;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    gap: 4px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    box-sizing: border-box;
     cursor: pointer;
     transition:
       transform 0.15s ease,
@@ -1655,63 +1895,76 @@ defineExpose({
 
     &:hover {
       transform: translateY(-1px);
+      z-index: 5;
     }
 
-    .gantt_task_progress {
-      background: rgba(0, 0, 0, 0.16) !important;
-      border-radius: 8px 0 0 8px;
-    }
-
-    /* Content inside bar */
-    .gantt-bar-content-wrapper {
-      display: flex;
-      align-items: center;
-      width: 100%;
+    .segment-progress-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
       height: 100%;
-      padding: 0 8px 0 4px;
-      gap: 6px;
+      background: rgba(0, 0, 0, 0.18);
+      pointer-events: none;
+      border-radius: 7px 0 0 7px;
+    }
+
+    .segment-title {
+      position: relative;
+      z-index: 2;
+      font-size: 11px;
+      font-weight: 600;
       color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-      .gantt-bar-pct-badge {
-        background: rgba(0, 0, 0, 0.45);
-        color: #ffffff;
-        font-size: 10px;
-        font-weight: 800;
-        padding: 2px 6px;
-        border-radius: 5px;
-        flex-shrink: 0;
-        line-height: 1.2;
-      }
+    .segment-pct-badge {
+      position: relative;
+      z-index: 2;
+      background: rgba(0, 0, 0, 0.45);
+      color: #ffffff;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
 
-      .gantt-bar-title {
-        font-size: 11px;
-        font-weight: 600;
-        color: #ffffff;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+    .segment-hours-badge {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      line-height: 1.2;
+      margin-left: auto;
     }
 
     /* 1. Pink (Critical Priority) */
     &.bar-p-critical {
       background: linear-gradient(90deg, #db2777 0%, #f43f5e 100%) !important;
       border: 1px solid #be185d !important;
-      box-shadow: 0 3px 10px rgba(219, 39, 119, 0.35) !important;
+      box-shadow: 0 2px 8px rgba(219, 39, 119, 0.35) !important;
     }
 
     /* 2. Orange (High Priority) */
     &.bar-p-high {
       background: linear-gradient(90deg, #ea580c 0%, #f97316 100%) !important;
       border: 1px solid #c2410c !important;
-      box-shadow: 0 3px 10px rgba(234, 88, 12, 0.35) !important;
+      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35) !important;
     }
 
     /* 3. Blue (Medium Priority) */
     &.bar-p-medium {
       background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%) !important;
       border: 1px solid #0284c7 !important;
-      box-shadow: 0 3px 10px rgba(2, 132, 199, 0.35) !important;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
     }
 
     /* 4. Green (Low Priority / Completed) */
@@ -1719,7 +1972,7 @@ defineExpose({
     &.bar-s-completed {
       background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
       border: 1px solid #047857 !important;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35) !important;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35) !important;
     }
   }
 
@@ -1737,11 +1990,6 @@ defineExpose({
     background: #8b5cf6 !important;
     border: 2px solid #ffffff !important;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Weekend Cell */
-  .dhtmlx-weekend-cell {
-    background-color: #fafbfc;
   }
 
   /* Today Marker */
@@ -1780,8 +2028,8 @@ defineExpose({
     border: 1px solid #e2e8f0;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     padding: 12px 14px;
-    min-width: 230px;
-    max-width: 320px;
+    min-width: 240px;
+    max-width: 340px;
     font-family: var(--font-primary, sans-serif);
 
     .tooltip-header {
@@ -1840,6 +2088,20 @@ defineExpose({
               border-radius: 3px;
             }
           }
+        }
+      }
+
+      .tooltip-segments-list {
+        font-size: 10.5px;
+        color: #475569;
+        background: #f8fafc;
+        border-radius: 6px;
+        padding: 4px 8px;
+        width: 100%;
+        border: 1px solid #e2e8f0;
+
+        .tooltip-seg-item {
+          padding: 1px 0;
         }
       }
     }
@@ -2008,10 +2270,6 @@ body.body--dark {
       }
     }
 
-    .dhtmlx-weekend-cell {
-      background-color: #121620;
-    }
-
     .gantt_resizer {
       background-color: #1e2433 !important;
     }
@@ -2102,6 +2360,12 @@ body.body--dark {
               background: #334155;
             }
           }
+        }
+
+        .tooltip-segments-list {
+          color: #cbd5e1;
+          background: #111827;
+          border-color: #334155;
         }
       }
     }
