@@ -1,5 +1,5 @@
 <template>
-  <q-card class="dashboard-card">
+  <q-card class="dashboard-card overflow-hidden">
     <q-card-section>
       <div class="row items-center justify-between">
         <div>
@@ -49,11 +49,3 @@ const tasks = [
   },
 ];
 </script>
-
-<style scoped>
-.dashboard-card {
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
-}
-</style>

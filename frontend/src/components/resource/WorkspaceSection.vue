@@ -1,6 +1,6 @@
 <template>
   <section class="workspace-section">
-    <div class="section-intro">
+    <div class="section-intro column">
       <div class="section-number">{{ number }}</div>
       <div class="section-label">{{ label }}</div>
       <h2 class="section-title">{{ title }}</h2>
@@ -44,8 +44,6 @@ defineEmits<{ (e: 'action'): void }>();
 }
 
 .section-intro {
-  display: flex;
-  flex-direction: column;
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #eaecef);
   border-radius: 12px;

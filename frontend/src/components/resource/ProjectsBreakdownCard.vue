@@ -23,7 +23,7 @@
       <div class="text-body2 text-grey-6 q-mt-sm">No active projects assigned.</div>
     </div>
 
-    <div v-else class="projects-list-body">
+    <div v-else class="column">
       <div v-for="(row, idx) in projects" :key="row.project" class="project-row">
         <div class="project-info-col row items-center gap-sm">
           <div
@@ -115,11 +115,6 @@ function getProjectIcon(idx: number): string {
   font-weight: 700;
   background: var(--wo-bg-tag, #f1f5f9) !important;
   color: var(--wo-text-main, #1e293b) !important;
-}
-
-.projects-list-body {
-  display: flex;
-  flex-direction: column;
 }
 
 .project-row {

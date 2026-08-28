@@ -2,7 +2,7 @@
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
     <q-card
       v-if="task"
-      class="details-popup-card"
+      class="dialog-card"
       :dark="$q.dark.isActive"
       style="min-width: 480px; max-width: 95vw"
     >
@@ -406,11 +406,6 @@ function handleUnassignClick(resourceId: number) {
 </script>
 
 <style scoped lang="scss">
-.details-popup-card {
-  border-radius: 14px;
-  background: var(--wo-bg-card, #ffffff);
-}
-
 .popup-details-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -455,30 +450,5 @@ function handleUnassignClick(resourceId: number) {
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
-}
-
-body.body--dark {
-  .details-popup-card {
-    background: var(--wo-bg-card, #181d28);
-    border: 1px solid var(--wo-border, #283042);
-  }
-
-  .detail-item {
-    background: var(--wo-bg-tag, #222938);
-    border-color: var(--wo-border, #283042);
-  }
-
-  .detail-label {
-    color: var(--wo-text-muted, #94a3b8);
-  }
-
-  .detail-val {
-    color: var(--wo-text-main, #f3f4f6);
-  }
-
-  .resource-chip {
-    background: var(--wo-bg-tag, #222938);
-    color: var(--wo-text-main, #f3f4f6);
-  }
 }
 </style>
