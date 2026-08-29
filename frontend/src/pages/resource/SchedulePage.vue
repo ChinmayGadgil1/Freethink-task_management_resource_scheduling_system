@@ -1,563 +1,507 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
-    <div class="q-mx-auto" style="max-width: 1380px">
-      <!-- 1. PAGE HEADER -->
-      <div class="row items-end justify-between q-mb-lg q-col-gutter-md">
-        <div>
-          <div
-            class="text-h5 text-weight-bold"
-            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-          >
-            Schedule & Roadmap
-          </div>
-          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-            Plan, monitor deadlines, and track your scheduled tasks across projects
-          </div>
-        </div>
-
-        <div class="row items-center q-gutter-sm">
-          <!-- View Toggle Buttons: Week, Day, Month, Gantt, Table -->
-          <q-btn-toggle
-            v-model="scheduleViewMode"
-            toggle-color="primary"
-            toggle-text-color="white"
-            :color="$q.dark.isActive ? 'grey-9' : 'white'"
-            :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
-            dense
-            unelevated
-            :options="[
-              { label: 'Week', value: 'week', icon: 'view_week' },
-              { label: 'Day', value: 'day', icon: 'view_day' },
-              { label: 'Month', value: 'month', icon: 'calendar_month' },
-              { label: 'Gantt', value: 'gantt', icon: 'timeline' },
-              { label: 'List', value: 'table', icon: 'table_rows' },
-            ]"
-          />
-
-          <q-btn
-            outline
-            no-caps
-            :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
-            icon="refresh"
-            label="Refresh"
-            :loading="loading"
-            @click="loadData"
-          />
+  <q-page class="pm-page schedule-page">
+    <!-- 1. PAGE HEADER -->
+    <div class="page-header-row">
+      <div class="header-left">
+        <div class="page-title">Schedule</div>
+        <div class="page-subtitle">
+          Plan and track your work across projects and milestones
         </div>
       </div>
 
-      <!-- 2. STAT SUMMARY CARDS -->
-      <div class="row q-col-gutter-md q-mb-md">
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="Assigned Tasks"
-            :value="tasks.length"
-            subtitle="Across all projects"
-            icon="event_note"
-            color="purple"
-            note-class="note-purple"
-          />
-        </div>
+      <div class="header-actions row items-center q-gutter-sm">
+        <!-- View Toggle Buttons: Week, Day, Month, Gantt, Table -->
+        <q-btn-toggle
+          v-model="scheduleViewMode"
+          toggle-color="primary"
+          toggle-text-color="white"
+          color="white"
+          text-color="grey-8"
+          dense
+          unelevated
+          class="view-toggle-btn shadow-subtle q-mr-xs"
+          :options="[
+            { label: 'Week', value: 'week', icon: 'view_week' },
+            { label: 'Day', value: 'day', icon: 'view_day' },
+            { label: 'Month', value: 'month', icon: 'calendar_month' },
+            { label: 'Gantt', value: 'gantt', icon: 'timeline' },
+            { label: 'List', value: 'table', icon: 'table_rows' },
+          ]"
+        />
 
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="In Progress"
-            :value="inProgressCount"
-            subtitle="Actively moving"
-            icon="sync"
-            color="blue"
-            note-class="note-blue"
-          />
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="Completed"
-            :value="completedCount"
-            subtitle="Milestones reached"
-            icon="check_circle"
-            color="green"
-            note-class="note-green"
-          />
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="Overdue / Urgent"
-            :value="overdueCount"
-            subtitle="Requires attention"
-            icon="warning"
-            color="red"
-            note-class="note-red"
-            :negative="overdueCount > 0"
-          />
-        </div>
+        <q-btn
+          outline
+          no-caps
+          icon="refresh"
+          label="Refresh"
+          class="action-btn-outline"
+          :loading="loading"
+          @click="loadData"
+        />
       </div>
+    </div>
 
-      <!-- 3. CALENDAR TOOLBAR & FILTERS -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-mb-md">
-        <q-card-section class="row items-center justify-between q-pa-sm wrap q-col-gutter-sm">
-          <!-- Date Navigation Controls -->
-          <div class="row items-center q-gutter-xs">
-            <q-btn
-              flat
-              round
-              dense
-              icon="chevron_left"
-              size="sm"
-              title="Previous"
-              @click="navigateDate(-1)"
-            />
-            <q-btn
-              flat
-              round
-              dense
-              icon="chevron_right"
-              size="sm"
-              title="Next"
-              @click="navigateDate(1)"
-            />
-            <q-btn
-              outline
-              dense
-              no-caps
-              label="Today"
-              class="q-px-sm"
-              :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
-              @click="goToToday"
-            />
-            <div class="q-ml-sm text-subtitle2 text-weight-bold">
-              {{ formattedDateRangeHeader }}
-            </div>
-          </div>
-
-          <!-- Filter Controls -->
-          <div class="row items-center q-gutter-xs wrap">
-            <q-input
-              v-model="searchQuery"
-              outlined
-              dense
-              clearable
-              placeholder="Search tasks..."
-              style="width: 160px"
-            >
-              <template #prepend>
-                <q-icon name="search" size="16px" />
-              </template>
-            </q-input>
-
-            <q-select
-              v-model="projectFilter"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              :options="projectFilterOptions"
-              label="Project"
-              style="width: 140px"
-            />
-
-            <q-select
-              v-model="statusFilter"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              :options="statusFilterOptions"
-              label="Status"
-              style="width: 130px"
-            />
-
-            <q-select
-              v-model="priorityFilter"
-              outlined
-              dense
-              clearable
-              emit-value
-              map-options
-              :options="priorityFilterOptions"
-              label="Priority"
-              style="width: 130px"
-            />
+    <!-- 2. STAT SUMMARY CARDS -->
+    <div class="stats-grid q-mb-md">
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="46px" class="stat-icon stat-purple">
+            <q-icon name="event_note" size="22px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Assigned Tasks</div>
+            <div class="stat-value">{{ tasks.length }}</div>
+            <div class="stat-note stat-purple-text">Across all projects</div>
           </div>
         </q-card-section>
       </q-card>
 
-      <!-- 4. LOADING STATE -->
-      <div v-if="loading" class="row justify-center q-pa-xl">
-        <q-spinner color="primary" size="44px" />
-      </div>
-
-      <!-- 5. MAIN SCHEDULE VIEWS -->
-      <div v-else>
-        <!-- A. WEEK / DAY TIME-GRID VIEW -->
-        <q-card
-          v-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'"
-          flat
-          bordered
-          :dark="$q.dark.isActive"
-          class="rounded-borders overflow-hidden q-mb-lg"
-        >
-          <div class="calendar-scroll-wrapper">
-            <div
-              class="calendar-table-grid"
-              :style="{
-                gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '320px' : '130px'}, 1fr))`,
-              }"
-            >
-              <!-- Top Left Time Corner Header -->
-              <div
-                class="cal-cell flex flex-center"
-                :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '56px' }"
-              >
-                <span class="text-caption text-weight-bold text-grey-5">Time</span>
-              </div>
-
-              <!-- Date Column Headers -->
-              <div
-                v-for="day in displayedDays"
-                :key="day.toISOString()"
-                class="cal-cell column items-center justify-center q-pa-xs"
-                :style="{
-                  background: isSameDay(day, todayDate)
-                    ? $q.dark.isActive
-                      ? '#25203a'
-                      : 'rgba(139,111,216,0.08)'
-                    : $q.dark.isActive
-                      ? '#181d28'
-                      : '#fafbfc',
-                  height: '56px',
-                }"
-              >
-                <div class="row items-center gap-xs">
-                  <span
-                    class="text-caption text-weight-bold"
-                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                  >
-                    {{ formatWeekdayName(day) }}
-                  </span>
-                  <q-badge
-                    :color="
-                      isSameDay(day, todayDate) ? 'primary' : $q.dark.isActive ? 'grey-9' : 'grey-3'
-                    "
-                    :text-color="
-                      isSameDay(day, todayDate) ? 'white' : $q.dark.isActive ? 'grey-3' : 'dark'
-                    "
-                    class="text-weight-bold"
-                  >
-                    {{ day.getDate() }}
-                  </q-badge>
-                </div>
-
-                <!-- Availability Status Chip -->
-                <q-chip
-                  v-if="getDayAvailability(day)"
-                  dense
-                  square
-                  size="xs"
-                  :color="getAvailBadgeColor(getDayAvailability(day)!.status)"
-                  text-color="white"
-                  class="q-mt-xs text-weight-bold"
-                  :icon="getAvailIcon(getDayAvailability(day)!.status)"
-                >
-                  {{ getAvailShortLabel(getDayAvailability(day)!) }}
-                  <q-tooltip>
-                    {{ getAvailTooltip(getDayAvailability(day)!) }}
-                  </q-tooltip>
-                </q-chip>
-              </div>
-
-              <!-- Time Hour Rows & Grid Cells -->
-              <template v-for="hour in TIME_HOURS" :key="hour">
-                <div
-                  class="cal-cell flex flex-center"
-                  :style="{ background: $q.dark.isActive ? '#181d28' : '#fafbfc', height: '54px' }"
-                >
-                  <span class="text-caption text-grey-5">{{ hour }}</span>
-                </div>
-                <div
-                  v-for="day in displayedDays"
-                  :key="`${day.toISOString()}-${hour}`"
-                  class="cal-cell"
-                  :style="{
-                    background: isSameDay(day, todayDate)
-                      ? $q.dark.isActive
-                        ? 'rgba(139,111,216,0.06)'
-                        : 'rgba(139,111,216,0.02)'
-                      : 'transparent',
-                    height: '54px',
-                  }"
-                />
-              </template>
-
-              <!-- Rendered Task Blocks -->
-              <div
-                v-for="item in positionedCalendarTasks"
-                :key="item.task.task_id"
-                class="calendar-task-block cursor-pointer"
-                :style="item.style"
-                @click="goToTask(item.task.task_id)"
-              >
-                <div class="row items-center justify-between no-wrap text-caption text-weight-bold">
-                  <span style="font-size: 9.5px; opacity: 0.9">{{ item.timeRange }}</span>
-                  <q-badge
-                    rounded
-                    :color="
-                      item.task.priority === 'CRITICAL'
-                        ? 'negative'
-                        : item.task.priority === 'HIGH'
-                          ? 'warning'
-                          : 'primary'
-                    "
-                    style="width: 6px; height: 6px"
-                  />
-                </div>
-                <div class="text-subtitle2 text-weight-bold ellipsis" :title="item.task.title">
-                  {{ item.task.title }}
-                </div>
-                <div class="text-caption ellipsis" style="font-size: 10px; opacity: 0.85">
-                  {{ item.task.project_name }}
-                </div>
-              </div>
-            </div>
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="46px" class="stat-icon stat-blue-bg">
+            <q-icon name="sync" size="22px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">In Progress</div>
+            <div class="stat-value">{{ inProgressCount }}</div>
+            <div class="stat-note stat-blue">Actively moving</div>
           </div>
-        </q-card>
+        </q-card-section>
+      </q-card>
 
-        <!-- B. MONTH MATRIX VIEW -->
-        <q-card
-          v-else-if="scheduleViewMode === 'month'"
-          flat
-          bordered
-          :dark="$q.dark.isActive"
-          class="rounded-borders overflow-hidden q-mb-lg"
-        >
-          <div class="calendar-scroll-wrapper">
-            <div class="month-grid-container">
-              <div
-                class="row text-center"
-                :style="{
-                  background: $q.dark.isActive ? '#181d28' : '#fafbfc',
-                  borderBottom: $q.dark.isActive
-                    ? '1px solid rgba(255,255,255,0.08)'
-                    : '1px solid #eef0f4',
-                }"
-              >
-                <div
-                  v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']"
-                  :key="wDay"
-                  class="col q-pa-xs text-caption text-weight-bold text-grey-5"
-                >
-                  {{ wDay }}
-                </div>
-              </div>
-
-              <div class="month-days-matrix">
-                <div
-                  v-for="mDay in monthMatrixDays"
-                  :key="mDay.date.toISOString()"
-                  class="month-day-cell column justify-between"
-                  :style="{
-                    background: isSameDay(mDay.date, todayDate)
-                      ? $q.dark.isActive
-                        ? 'rgba(139,111,216,0.1)'
-                        : 'rgba(139,111,216,0.04)'
-                      : !mDay.isCurrentMonth
-                        ? $q.dark.isActive
-                          ? 'rgba(0,0,0,0.2)'
-                          : '#fafbfc'
-                        : 'transparent',
-                    borderColor: $q.dark.isActive ? 'rgba(255,255,255,0.08)' : '#f0f2f5',
-                  }"
-                >
-                  <div class="row items-center justify-between">
-                    <q-badge
-                      :color="isSameDay(mDay.date, todayDate) ? 'primary' : 'transparent'"
-                      :text-color="
-                        isSameDay(mDay.date, todayDate)
-                          ? 'white'
-                          : $q.dark.isActive
-                            ? 'grey-4'
-                            : 'dark'
-                      "
-                      class="text-caption text-weight-bold"
-                    >
-                      {{ mDay.date.getDate() }}
-                    </q-badge>
-
-                    <!-- Month Cell Availability Chip -->
-                    <q-chip
-                      v-if="getDayAvailability(mDay.date)"
-                      dense
-                      square
-                      size="xs"
-                      :color="getAvailBadgeColor(getDayAvailability(mDay.date)!.status)"
-                      text-color="white"
-                      class="text-weight-bold"
-                      style="font-size: 8px; height: 16px; padding: 0 4px"
-                    >
-                      {{ getAvailShortLabel(getDayAvailability(mDay.date)!) }}
-                      <q-tooltip>
-                        {{ getAvailTooltip(getDayAvailability(mDay.date)!) }}
-                      </q-tooltip>
-                    </q-chip>
-                  </div>
-
-                  <div class="column q-gutter-xs overflow-auto" style="max-height: 70px">
-                    <div
-                      v-for="t in getTasksOnDate(mDay.date)"
-                      :key="t.task_id"
-                      class="cursor-pointer ellipsis text-caption q-pa-xs rounded-borders"
-                      :style="getMonthTaskPillStyle(t)"
-                      @click.stop="goToTask(t.task_id)"
-                    >
-                      {{ t.title }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="46px" class="stat-icon stat-green-bg">
+            <q-icon name="check_circle" size="22px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Completed</div>
+            <div class="stat-value">{{ completedCount }}</div>
+            <div class="stat-note stat-green">Milestones reached</div>
           </div>
-        </q-card>
+        </q-card-section>
+      </q-card>
 
-        <!-- C. GANTT ROADMAP VIEW (DHTMLX GANTT) -->
-        <div v-else-if="scheduleViewMode === 'gantt'" class="q-mb-lg">
-          <DhtmlxGanttTimeline
-            :tasks="filteredTasks"
-            :projects="projects"
-            title="My Schedule & Roadmap"
-            @task-click="(task) => goToTask(task.task_id)"
+      <q-card flat bordered class="stat-card">
+        <q-card-section class="stat-section">
+          <q-avatar size="46px" class="stat-icon stat-red-bg">
+            <q-icon name="warning" size="22px" />
+          </q-avatar>
+          <div class="stat-copy">
+            <div class="stat-label">Overdue Tasks</div>
+            <div class="stat-value">{{ overdueCount }}</div>
+            <div class="stat-note stat-red">Requires attention</div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+
+    <!-- 3. CALENDAR TOOLBAR & FILTERS -->
+    <q-card flat bordered class="calendar-toolbar-card q-mb-md">
+      <div class="toolbar-content row items-center justify-between q-pa-sm">
+        <!-- Date Navigation Controls -->
+        <div class="date-nav-block row items-center gap-xs">
+          <q-btn
+            flat
+            round
+            dense
+            icon="chevron_left"
+            size="sm"
+            class="nav-arrow-btn"
+            title="Previous"
+            @click="navigateDate(-1)"
           />
+          <q-btn
+            flat
+            round
+            dense
+            icon="chevron_right"
+            size="sm"
+            class="nav-arrow-btn"
+            title="Next"
+            @click="navigateDate(1)"
+          />
+          <q-btn outline dense no-caps label="Today" class="today-btn q-px-sm" @click="goToToday" />
+          <div class="current-range-label q-ml-sm">
+            {{ formattedDateRangeHeader }}
+          </div>
         </div>
 
-        <!-- D. LIST TABLE VIEW -->
-        <q-card
-          v-else-if="scheduleViewMode === 'table'"
-          flat
-          bordered
-          :dark="$q.dark.isActive"
-          class="rounded-borders overflow-hidden q-mb-lg"
-        >
-          <q-table
-            flat
-            :dark="$q.dark.isActive"
-            :rows="filteredTasks"
-            :columns="tableColumns"
-            row-key="task_id"
-            :pagination="{ rowsPerPage: 10 }"
+        <!-- Filter Selects -->
+        <div class="filter-controls-row row items-center gap-xs">
+          <q-input
+            v-model="searchQuery"
+            outlined
+            dense
+            clearable
+            placeholder="Search tasks..."
+            class="filter-input-search"
           >
-            <template #body-cell-title="props">
-              <q-td :props="props">
-                <div class="cursor-pointer" @click="goToTask(props.row.task_id)">
-                  <div
-                    class="text-weight-bold ellipsis"
-                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                  >
-                    {{ props.row.title }}
-                  </div>
-                  <div
-                    v-if="props.row.description"
-                    class="text-caption ellipsis"
-                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
-                  >
-                    {{ props.row.description }}
-                  </div>
-                  <div
-                    v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk"
-                    class="row items-center q-gutter-xs q-mt-xs"
-                  >
-                    <q-chip
-                      v-if="props.row.is_deadline_at_risk"
-                      dense
-                      square
-                      size="sm"
-                      :color="$q.dark.isActive ? 'red-10' : 'red-1'"
-                      :text-color="$q.dark.isActive ? 'red-2' : 'negative'"
-                      icon="warning"
-                      label="Deadline Risk"
-                      class="text-weight-bold"
-                    />
-                    <q-chip
-                      v-if="props.row.is_schedule_at_risk"
-                      dense
-                      square
-                      size="sm"
-                      :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
-                      :text-color="$q.dark.isActive ? 'orange-2' : 'orange-9'"
-                      icon="schedule"
-                      label="Schedule Risk"
-                      class="text-weight-bold"
-                    />
-                  </div>
-                </div>
-              </q-td>
+            <template #prepend>
+              <q-icon name="search" size="16px" color="grey-6" />
             </template>
+          </q-input>
 
-            <template #body-cell-project="props">
-              <q-td :props="props">
-                <q-chip
-                  dense
-                  square
-                  size="sm"
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  icon="folder"
-                  :label="props.row.project_name || `Project #${props.row.project_id}`"
-                  class="text-weight-bold"
-                />
-              </q-td>
-            </template>
+          <q-select
+            v-model="projectFilter"
+            outlined
+            dense
+            emit-value
+            map-options
+            :options="projectFilterOptions"
+            label="Project"
+            class="filter-select-box"
+          />
 
-            <template #body-cell-priority="props">
-              <q-td :props="props">
-                <q-chip
-                  dense
-                  square
-                  size="sm"
-                  :color="priorityColor(props.row.priority)"
-                  :text-color="priorityTextColor(props.row.priority)"
-                  :label="props.row.priority"
-                  class="text-weight-bold"
-                />
-              </q-td>
-            </template>
+          <q-select
+            v-model="statusFilter"
+            outlined
+            dense
+            emit-value
+            map-options
+            :options="statusFilterOptions"
+            label="Status"
+            class="filter-select-box"
+          />
 
-            <template #body-cell-status="props">
-              <q-td :props="props">
-                <q-chip
-                  dense
-                  square
-                  size="sm"
-                  :color="statusColor(props.row.status)"
-                  :text-color="statusTextColor(props.row.status)"
-                  :label="props.row.status.replace('_', ' ')"
-                  class="text-weight-bold"
-                />
-              </q-td>
-            </template>
-
-            <template #body-cell-progress="props">
-              <q-td :props="props">
-                <div class="row items-center q-gutter-xs no-wrap">
-                  <q-linear-progress
-                    :value="(Number(props.row.progress) || 0) / 100"
-                    size="6px"
-                    rounded
-                    color="primary"
-                    :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                    style="width: 70px"
-                  />
-                  <span class="text-caption text-weight-bold">
-                    {{ Number(props.row.progress) || 0 }}%
-                  </span>
-                </div>
-              </q-td>
-            </template>
-          </q-table>
-        </q-card>
+          <q-select
+            v-model="priorityFilter"
+            outlined
+            dense
+            emit-value
+            map-options
+            :options="priorityFilterOptions"
+            label="Priority"
+            class="filter-select-box"
+          />
+        </div>
       </div>
+    </q-card>
+
+    <!-- LOADING STATE -->
+    <div v-if="loading" class="row justify-center q-pa-xl">
+      <q-spinner color="primary" size="44px" />
     </div>
+
+    <!-- 4. CALENDAR TIME-GRID VIEW (Week & Day Views) -->
+    <q-card
+      v-else-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'"
+      flat
+      bordered
+      class="calendar-grid-card q-mb-lg"
+    >
+      <div class="calendar-scroll-wrapper">
+        <div
+          class="calendar-table-grid"
+          :style="{
+            gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '360px' : '150px'}, 1fr))`,
+          }"
+        >
+          <!-- Top Left Time Corner Header -->
+          <div class="cal-cell time-corner-header">
+            <span class="time-header-text">Time</span>
+          </div>
+
+          <!-- Date Column Headers -->
+          <div
+            v-for="day in displayedDays"
+            :key="day.toISOString()"
+            class="cal-cell date-col-header"
+            :class="{ 'is-today-col': isSameDay(day, todayDate), 'is-weekend-col': isWeekend(day) }"
+          >
+            <div class="col-weekday-name">{{ formatWeekdayName(day) }}</div>
+            <div class="col-day-badge" :class="{ 'today-day-badge': isSameDay(day, todayDate) }">
+              {{ day.getDate() }}
+            </div>
+            <div v-if="isSameDay(day, todayDate)" class="today-tag-pill">TODAY</div>
+
+            <!-- Resource Availability Status Chip -->
+            <q-chip
+              v-if="getDayAvailability(day)"
+              dense
+              square
+              size="xs"
+              :color="getAvailBadgeColor(getDayAvailability(day)!.status)"
+              text-color="white"
+              class="avail-status-chip text-weight-bold"
+              :icon="getAvailIcon(getDayAvailability(day)!.status)"
+            >
+              {{ getAvailShortLabel(getDayAvailability(day)!) }}
+              <q-tooltip>
+                {{ getAvailTooltip(getDayAvailability(day)!) }}
+              </q-tooltip>
+            </q-chip>
+          </div>
+
+          <!-- Hour Rows (08:00 to 18:00) -->
+          <template v-for="hour in TIME_HOURS" :key="hour">
+            <!-- Time Column Label -->
+            <div class="cal-cell time-label-cell">
+              <span class="time-slot-label">{{ hour }}</span>
+            </div>
+
+            <!-- Day Track Cells for this Hour -->
+            <div
+              v-for="day in displayedDays"
+              :key="`${day.toISOString()}-${hour}`"
+              class="cal-cell time-track-cell"
+              :class="{
+                'is-today-col': isSameDay(day, todayDate),
+                'is-weekend-col': isWeekend(day),
+              }"
+            />
+          </template>
+
+          <!-- Rendered Task Blocks placed over the Grid -->
+          <div
+            v-for="item in positionedCalendarTasks"
+            :key="item.task.task_id"
+            class="calendar-task-block cursor-pointer"
+            :style="item.style"
+            @click="goToTask(item.task.task_id)"
+          >
+            <div class="task-block-inner">
+              <div class="block-top-row row items-center justify-between no-wrap">
+                <span class="block-time-range">{{ item.timeRange }}</span>
+                <span
+                  class="block-priority-dot"
+                  :class="`prio-dot-${item.task.priority.toLowerCase()}`"
+                />
+              </div>
+
+              <div class="block-task-title ellipsis" :title="item.task.title">
+                {{ item.task.title }}
+              </div>
+
+              <div
+                class="block-project-name ellipsis"
+                :title="getProjectName(item.task.project_id)"
+              >
+                {{ getProjectName(item.task.project_id) }}
+              </div>
+
+              <!-- Bottom Row: Status & Progress -->
+              <div class="block-bottom-row row items-center justify-between no-wrap q-mt-xs">
+                <span class="block-status-tag">{{ item.task.status.replace('_', ' ') }}</span>
+                <div class="block-progress-pill font-bold">
+                  {{ Number(item.task.progress) || 0 }}%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </q-card>
+
+    <!-- 5. MONTH VIEW (Calendar Matrix) -->
+    <q-card v-else-if="scheduleViewMode === 'month'" flat bordered class="month-grid-card q-mb-lg">
+      <div class="month-calendar-wrapper">
+        <!-- Weekday header strip -->
+        <div class="month-weekday-header-grid">
+          <div
+            v-for="wDay in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']"
+            :key="wDay"
+            class="month-wday-cell"
+          >
+            {{ wDay }}
+          </div>
+        </div>
+
+        <!-- Month Day Cells Matrix -->
+        <div class="month-days-matrix">
+          <div
+            v-for="mDay in monthMatrixDays"
+            :key="mDay.date.toISOString()"
+            class="month-day-cell"
+            :class="{
+              'is-current-month': mDay.isCurrentMonth,
+              'is-other-month': !mDay.isCurrentMonth,
+              'is-month-today': isSameDay(mDay.date, todayDate),
+            }"
+          >
+            <div class="month-day-top row items-center justify-between no-wrap">
+              <div class="row items-center gap-xs">
+                <span class="m-day-number">{{ mDay.date.getDate() }}</span>
+                <span v-if="isSameDay(mDay.date, todayDate)" class="today-badge-micro">TODAY</span>
+              </div>
+
+              <!-- Month Cell Availability Chip -->
+              <q-chip
+                v-if="getDayAvailability(mDay.date)"
+                dense
+                square
+                size="xs"
+                :color="getAvailBadgeColor(getDayAvailability(mDay.date)!.status)"
+                text-color="white"
+                class="text-weight-bold"
+                style="font-size: 8px; height: 16px; padding: 0 4px"
+              >
+                {{ getAvailShortLabel(getDayAvailability(mDay.date)!) }}
+                <q-tooltip>
+                  {{ getAvailTooltip(getDayAvailability(mDay.date)!) }}
+                </q-tooltip>
+              </q-chip>
+            </div>
+
+            <!-- Tasks on this month day -->
+            <div class="month-day-tasks-list">
+              <div
+                v-for="task in getTasksOnDate(mDay.date)"
+                :key="task.task_id"
+                class="month-task-pill cursor-pointer ellipsis"
+                :style="getMonthTaskPillStyle(task)"
+                :title="`${task.title} (${getProjectName(task.project_id)})`"
+                @click.stop="goToTask(task.task_id)"
+              >
+                <span class="pill-dot" />
+                <span class="pill-text">{{ task.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </q-card>
+
+    <!-- 6. GANTT ROADMAP VIEW (DHTMLX GANTT) -->
+    <div v-else-if="scheduleViewMode === 'gantt'" class="q-mb-lg">
+      <DhtmlxGanttTimeline
+        :tasks="filteredTasks"
+        :projects="projects"
+        title="Gantt Timeline Roadmap"
+        @task-click="(task) => goToTask(task.task_id)"
+      />
+    </div>
+
+    <!-- 7. DETAILED BREAKDOWN TABLE (List View) -->
+    <q-card v-else-if="scheduleViewMode === 'table'" flat bordered class="table-card">
+      <q-card-section class="row items-center justify-between q-pb-sm">
+        <div>
+          <div class="text-subtitle1 text-weight-bold text-dark">
+            Schedule Breakdown
+          </div>
+          <div class="text-caption text-grey-6">
+            Detailed timeline records for all {{ filteredTasks.length }} tasks
+          </div>
+        </div>
+
+        <q-chip dense square class="project-badge text-weight-bold">
+          {{ filteredTasks.length }} Tasks
+        </q-chip>
+      </q-card-section>
+
+      <q-table
+        flat
+        :rows="filteredTasks"
+        :columns="tableColumns"
+        row-key="task_id"
+        :loading="loading"
+        :pagination="{ rowsPerPage: 10 }"
+        class="schedule-table"
+      >
+        <template #body-cell-title="props">
+          <q-td :props="props">
+            <div class="task-title-cell cursor-pointer" @click="goToTask(props.row.task_id)">
+              <div class="task-cell-title ellipsis" :title="props.row.title">
+                {{ props.row.title }}
+              </div>
+              <div
+                v-if="props.row.description"
+                class="task-cell-desc ellipsis"
+                :title="props.row.description"
+              >
+                {{ props.row.description }}
+              </div>
+            </div>
+          </q-td>
+        </template>
+
+        <template #body-cell-project="props">
+          <q-td :props="props">
+            <q-chip dense square class="project-badge">
+              <q-icon name="folder" size="12px" class="q-mr-xs" />
+              {{ getProjectName(props.row.project_id) }}
+            </q-chip>
+          </q-td>
+        </template>
+
+        <template #body-cell-priority="props">
+          <q-td :props="props">
+            <q-chip dense square :class="['priority-chip', getPriorityClass(props.row.priority)]">
+              {{ props.row.priority }}
+            </q-chip>
+          </q-td>
+        </template>
+
+        <template #body-cell-status="props">
+          <q-td :props="props">
+            <q-chip dense square :class="['status-chip', getTaskStatusClass(props.row.status)]">
+              {{ formatStatus(props.row.status) }}
+            </q-chip>
+          </q-td>
+        </template>
+
+        <template #body-cell-dates="props">
+          <q-td :props="props" class="date-cell">
+            <div class="column">
+              <div class="row items-center no-wrap">
+                <span>{{
+                  formatDate(
+                    props.row.planned_start || props.row.actual_start || props.row.start_date,
+                  )
+                }}</span>
+                <span class="q-mx-xs text-grey-5">→</span>
+                <span>{{ formatDate(props.row.planned_end || props.row.deadline) }}</span>
+              </div>
+              <div
+                v-if="props.row.is_deadline_at_risk || props.row.is_schedule_at_risk"
+                class="row items-center gap-xs q-mt-xs"
+              >
+                <q-chip
+                  v-if="props.row.is_deadline_at_risk"
+                  dense
+                  square
+                  color="red-1"
+                  text-color="red-9"
+                  icon="warning"
+                  style="font-size: 10px; height: 18px"
+                >
+                  Deadline Risk
+                </q-chip>
+                <q-chip
+                  v-if="props.row.is_schedule_at_risk"
+                  dense
+                  square
+                  color="amber-1"
+                  text-color="amber-9"
+                  icon="schedule"
+                  style="font-size: 10px; height: 18px"
+                >
+                  Schedule Risk
+                </q-chip>
+              </div>
+            </div>
+          </q-td>
+        </template>
+
+        <template #body-cell-progress="props">
+          <q-td :props="props">
+            <div class="progress-cell-wrapper">
+              <div class="progress-label-row row justify-between">
+                <span class="text-weight-bold">{{ Number(props.row.progress) || 0 }}%</span>
+                <span class="text-caption text-grey-6">{{ Number(props.row.actual_effort) || 0 }}h logged</span>
+              </div>
+              <q-linear-progress
+                :value="(Number(props.row.progress) || 0) / 100"
+                rounded
+                size="6px"
+                color="primary"
+                track-color="grey-3"
+              />
+            </div>
+          </q-td>
+        </template>
+      </q-table>
+    </q-card>
   </q-page>
 </template>
 
@@ -569,7 +513,6 @@ import { getTasksApi, getProjectsApi, getResourceAvailabilityApi } from '@/servi
 import type { Task, Project, DailyAvailabilityDTO, AvailabilityStatus } from '@/services/api';
 import { isOverdue } from '@/utils/taskHelpers';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
-import StatCard from '@/components/dashboard/StatCard.vue';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -600,6 +543,36 @@ const TIME_HOURS = [
   '17:00',
   '18:00',
 ];
+
+interface TaskPastelTheme {
+  bg: string;
+  border: string;
+  text: string;
+  badge: string;
+}
+
+const DEFAULT_TASK_THEME: TaskPastelTheme = {
+  bg: '#EDE7FF',
+  border: '#C7B5F8',
+  text: '#4C1D95',
+  badge: '#7c3aed',
+};
+
+const TASK_PASTEL_THEMES: TaskPastelTheme[] = [
+  DEFAULT_TASK_THEME,
+  { bg: '#E0F2FE', border: '#BAE0FD', text: '#0369A1', badge: '#0284c7' }, // Sky
+  { bg: '#ECFDF5', border: '#B3ECC9', text: '#047857', badge: '#059669' }, // Mint
+  { bg: '#FFF7ED', border: '#FED7AA', text: '#C2410C', badge: '#ea580c' }, // Peach
+  { bg: '#FCE7F3', border: '#FBCFE8', text: '#BE185D', badge: '#db2777' }, // Rose
+  { bg: '#FEF3C7', border: '#FDE68A', text: '#B45309', badge: '#d97706' }, // Amber
+];
+
+function getTaskPastelTheme(task: Task): TaskPastelTheme {
+  const idx =
+    Math.abs(Number(task.task_id) || Number(task.project_id) || 0) % TASK_PASTEL_THEMES.length;
+  const theme = TASK_PASTEL_THEMES[idx];
+  return theme ?? DEFAULT_TASK_THEME;
+}
 
 const inProgressCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
@@ -652,151 +625,9 @@ const filteredTasks = computed(() => {
   });
 });
 
-const displayedDays = computed(() => {
-  const days: Date[] = [];
-  const anchor = new Date(currentAnchorDate.value);
-
-  if (scheduleViewMode.value === 'day') {
-    days.push(new Date(anchor));
-  } else {
-    // Week view: Monday to Sunday
-    const dayOfWeek = anchor.getDay(); // 0 is Sun, 1 is Mon
-    const diff = anchor.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const startOfWeek = new Date(anchor.setDate(diff));
-
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + i);
-      days.push(d);
-    }
-  }
-  return days;
-});
-
-const formattedDateRangeHeader = computed(() => {
-  if (scheduleViewMode.value === 'day') {
-    return currentAnchorDate.value.toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  }
-  if (scheduleViewMode.value === 'month') {
-    return currentAnchorDate.value.toLocaleDateString('en-GB', {
-      month: 'long',
-      year: 'numeric',
-    });
-  }
-  if (!displayedDays.value.length) return '';
-  const first = displayedDays.value[0]!;
-  const last = displayedDays.value[displayedDays.value.length - 1]!;
-  return `${first.getDate()} ${first.toLocaleDateString('en-GB', { month: 'short' })} – ${last.getDate()} ${last.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
-});
-
-const monthMatrixDays = computed(() => {
-  const anchor = new Date(currentAnchorDate.value);
-  const year = anchor.getFullYear();
-  const month = anchor.getMonth();
-
-  const firstOfMonth = new Date(year, month, 1);
-  const lastOfMonth = new Date(year, month + 1, 0);
-
-  const days: { date: Date; isCurrentMonth: boolean }[] = [];
-
-  const firstDayWeek = firstOfMonth.getDay(); // 0 Sun, 1 Mon
-  const prevDaysCount = firstDayWeek === 0 ? 6 : firstDayWeek - 1;
-  for (let i = prevDaysCount; i > 0; i--) {
-    const d = new Date(year, month, 1 - i);
-    days.push({ date: d, isCurrentMonth: false });
-  }
-
-  for (let i = 1; i <= lastOfMonth.getDate(); i++) {
-    days.push({ date: new Date(year, month, i), isCurrentMonth: true });
-  }
-
-  const remainder = 42 - days.length;
-  for (let i = 1; i <= remainder; i++) {
-    days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
-  }
-
-  return days;
-});
-
-const positionedCalendarTasks = computed(() => {
-  const result: { task: Task; timeRange: string; style: Record<string, string> }[] = [];
-  const days = displayedDays.value;
-  if (!days.length) return result;
-
-  const startHour = 8;
-  const endHour = 18;
-  const totalHours = endHour - startHour;
-
-  filteredTasks.value.forEach((task, idx) => {
-    const startDate = task.planned_start || task.actual_start || task.start_date;
-    const endDate = task.planned_end || task.deadline || task.actual_end;
-    if (!startDate) return;
-
-    const s = new Date(startDate);
-    const e = endDate ? new Date(endDate) : new Date(s.getTime() + 2 * 3600 * 1000);
-
-    const dayIndex = days.findIndex((d) => isSameDay(d, s));
-    if (dayIndex === -1) return;
-
-    const taskStartHour = s.getHours() + s.getMinutes() / 60;
-    const taskEndHour = e.getHours() + e.getMinutes() / 60;
-
-    const clampedStart = Math.max(startHour, Math.min(endHour, taskStartHour));
-    const clampedEnd = Math.max(clampedStart + 0.5, Math.min(endHour, taskEndHour));
-
-    const topPct = ((clampedStart - startHour) / totalHours) * 100;
-    const heightPct = ((clampedEnd - clampedStart) / totalHours) * 100;
-
-    const colWidth = 100 / days.length;
-    const leftPct = (dayIndex / days.length) * 100;
-
-    const colors = [
-      'linear-gradient(135deg, rgba(139,111,216,0.15), rgba(139,111,216,0.25))',
-      'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.25))',
-      'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.25))',
-      'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.25))',
-    ];
-    const borderColors = ['#8b6fd8', '#3b82f6', '#10b981', '#f59e0b'];
-    const chosenColor = colors[idx % colors.length]!;
-    const chosenBorder = borderColors[idx % borderColors.length]!;
-
-    result.push({
-      task,
-      timeRange: `${s.getHours()}:${String(s.getMinutes()).padStart(2, '0')} - ${e.getHours()}:${String(e.getMinutes()).padStart(2, '0')}`,
-      style: {
-        top: `calc(${topPct}% + 56px)`,
-        height: `calc(${heightPct}% - 6px)`,
-        left: `calc(${leftPct}% + 66px)`,
-        width: `calc(${colWidth}% - 8px)`,
-        background: chosenColor,
-        borderLeft: `4px solid ${chosenBorder}`,
-      },
-    });
-  });
-
-  return result;
-});
-
-const tableColumns: QTableColumn<Task>[] = [
-  { name: 'title', label: 'Task Title', field: 'title', align: 'left', sortable: true },
-  { name: 'project', label: 'Project', field: 'project_name', align: 'left', sortable: true },
-  { name: 'priority', label: 'Priority', field: 'priority', align: 'center', sortable: true },
-  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true },
-  { name: 'progress', label: 'Progress', field: 'progress', align: 'left', sortable: true },
-  {
-    name: 'deadline',
-    label: 'Due Date',
-    field: (row: Task) => row.deadline || row.actual_end || '—',
-    align: 'right',
-    sortable: true,
-  },
-];
-
+// ----------------------------------------------------
+// Date Navigation & Range Computation
+// ----------------------------------------------------
 function isSameDay(d1: Date, d2: Date): boolean {
   return (
     d1.getFullYear() === d2.getFullYear() &&
@@ -805,143 +636,304 @@ function isSameDay(d1: Date, d2: Date): boolean {
   );
 }
 
-function formatWeekdayName(day: Date): string {
-  return day.toLocaleDateString('en-GB', { weekday: 'short' });
+function isWeekend(d: Date): boolean {
+  const day = d.getDay();
+  return day === 0 || day === 6;
 }
 
-function navigateDate(direction: number) {
-  const newDate = new Date(currentAnchorDate.value);
-  if (scheduleViewMode.value === 'day') {
-    newDate.setDate(newDate.getDate() + direction);
-  } else if (scheduleViewMode.value === 'month') {
-    newDate.setMonth(newDate.getMonth() + direction);
-  } else {
-    newDate.setDate(newDate.getDate() + direction * 7);
-  }
-  currentAnchorDate.value = newDate;
+function formatWeekdayName(d: Date): string {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(d);
 }
 
 function goToToday() {
   currentAnchorDate.value = new Date();
 }
 
+function navigateDate(direction: number) {
+  const cur = new Date(currentAnchorDate.value);
+  if (scheduleViewMode.value === 'day') {
+    cur.setDate(cur.getDate() + direction);
+  } else if (scheduleViewMode.value === 'month') {
+    cur.setMonth(cur.getMonth() + direction);
+  } else {
+    cur.setDate(cur.getDate() + direction * 7);
+  }
+  currentAnchorDate.value = cur;
+}
+
+const displayedDays = computed<Date[]>(() => {
+  const anchor = new Date(currentAnchorDate.value);
+  if (scheduleViewMode.value === 'day') {
+    return [anchor];
+  }
+
+  // Week Mode: start on Monday of the current anchor's week
+  const dayOfWeek = anchor.getDay(); // 0 = Sun, 1 = Mon ...
+  const diffToMon = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const monday = new Date(anchor);
+  monday.setDate(anchor.getDate() + diffToMon);
+
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
+  }
+  return days;
+});
+
+const formattedDateRangeHeader = computed<string>(() => {
+  if (scheduleViewMode.value === 'day') {
+    return new Intl.DateTimeFormat('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(currentAnchorDate.value);
+  }
+
+  if (scheduleViewMode.value === 'month') {
+    return new Intl.DateTimeFormat('en-GB', {
+      month: 'long',
+      year: 'numeric',
+    }).format(currentAnchorDate.value);
+  }
+
+  if (displayedDays.value.length >= 7) {
+    const first = displayedDays.value[0];
+    const last = displayedDays.value[6];
+    if (first && last) {
+      const fStr = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(
+        first,
+      );
+      const lStr = new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(last);
+      return `${fStr} – ${lStr}`;
+    }
+  }
+
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(
+    currentAnchorDate.value,
+  );
+});
+
+// Month matrix calculation (42 cells: 6 rows of 7 days)
+const monthMatrixDays = computed(() => {
+  const anchor = new Date(currentAnchorDate.value);
+  const currentMonth = anchor.getMonth();
+  const currentYear = anchor.getFullYear();
+
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+  const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sun
+  const diffToMon = (startDayOfWeek === 0 ? -6 : 1) - startDayOfWeek;
+
+  const startDate = new Date(firstDayOfMonth);
+  startDate.setDate(firstDayOfMonth.getDate() + diffToMon);
+
+  const days = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    days.push({
+      date: d,
+      isCurrentMonth: d.getMonth() === currentMonth,
+    });
+  }
+  return days;
+});
+
 function getTasksOnDate(date: Date): Task[] {
+  const targetDateStr = date.toISOString().slice(0, 10);
   return filteredTasks.value.filter((t) => {
-    const s = t.planned_start || t.actual_start || t.start_date;
-    if (!s) return false;
-    return isSameDay(new Date(s), date);
+    const startStr =
+      t.planned_start || t.actual_start || t.start_date
+        ? (t.planned_start || t.actual_start || t.start_date)!.slice(0, 10)
+        : '';
+    const endStr =
+      t.planned_end || t.deadline ? (t.planned_end || t.deadline)!.slice(0, 10) : startStr;
+
+    if (!startStr && !endStr) return false;
+    if (startStr && !endStr) return startStr === targetDateStr;
+    if (!startStr && endStr) return endStr === targetDateStr;
+    return targetDateStr >= startStr && targetDateStr <= endStr;
   });
 }
 
 function getMonthTaskPillStyle(task: Task) {
-  const bg =
-    task.priority === 'CRITICAL'
-      ? 'rgba(239,68,68,0.15)'
-      : task.priority === 'HIGH'
-        ? 'rgba(245,158,11,0.15)'
-        : 'rgba(139,111,216,0.15)';
-  const color =
-    task.priority === 'CRITICAL' ? '#ef4444' : task.priority === 'HIGH' ? '#f59e0b' : '#8b6fd8';
-  return { background: bg, color, fontWeight: '600' };
+  const theme = getTaskPastelTheme(task);
+  return {
+    background: theme.bg,
+    color: theme.text,
+    borderLeft: `3px solid ${theme.badge}`,
+  };
 }
 
-function priorityColor(priority: string) {
-  if ($q.dark.isActive) {
-    switch (priority) {
-      case 'CRITICAL':
-        return 'red-10';
-      case 'HIGH':
-        return 'orange-10';
-      case 'MEDIUM':
-        return 'purple-10';
-      default:
-        return 'blue-10';
-    }
+// ----------------------------------------------------
+// Calendar Task Positioning (Time Grid)
+// ----------------------------------------------------
+interface PositionedTask {
+  task: Task;
+  timeRange: string;
+  style: Record<string, string | number>;
+}
+
+const positionedCalendarTasks = computed<PositionedTask[]>(() => {
+  const results: PositionedTask[] = [];
+  const days = displayedDays.value;
+  if (!days.length) return results;
+
+  const startHour = 8; // 08:00
+  const hourHeightPx = 54; // Height per hour in css
+  const headerHeightPx = 48; // Column header row height
+
+  // Group tasks to compute horizontal stacking if overlapping
+  const dayBuckets: Record<number, Task[]> = {};
+  for (let d = 0; d < days.length; d++) {
+    dayBuckets[d] = [];
   }
-  switch (priority) {
-    case 'CRITICAL':
-      return 'red-1';
-    case 'HIGH':
-      return 'orange-1';
-    case 'MEDIUM':
-      return 'purple-1';
-    default:
-      return 'blue-1';
+
+  filteredTasks.value.forEach((task) => {
+    const taskStartStr =
+      task.planned_start || task.actual_start || task.start_date
+        ? (task.planned_start || task.actual_start || task.start_date)!.slice(0, 10)
+        : '';
+    const taskEndStr =
+      task.planned_end || task.deadline
+        ? (task.planned_end || task.deadline)!.slice(0, 10)
+        : taskStartStr;
+
+    days.forEach((dayObj, colIdx) => {
+      const curDateStr = dayObj.toISOString().slice(0, 10);
+      const isScheduledToday =
+        (taskStartStr && curDateStr >= taskStartStr && curDateStr <= taskEndStr) ||
+        (!taskStartStr && taskEndStr === curDateStr);
+
+      if (isScheduledToday) {
+        if (!dayBuckets[colIdx]) {
+          dayBuckets[colIdx] = [];
+        }
+        dayBuckets[colIdx]?.push(task);
+      }
+    });
+  });
+
+  days.forEach((dayObj, colIdx) => {
+    const bucket = dayBuckets[colIdx] || [];
+    bucket.forEach((task, taskIdx) => {
+      // Determine hour slot
+      let startH = 9 + (taskIdx % 5) * 1.5; // Stagger default start hours cleanly (09:00, 10:30, 12:00, etc.)
+      const effortNum = Number(task.expected_effort) || 8;
+      let durationHours = Math.min(4, Math.max(1, effortNum / 3));
+
+      // Parse time if present in ISO string
+      const rawStart = task.planned_start || task.actual_start || task.start_date;
+      if (rawStart && rawStart.includes('T')) {
+        const timePart = rawStart.split('T')[1];
+        if (timePart) {
+          const [hh, mm] = timePart.split(':').map(Number);
+          if (hh !== undefined && !Number.isNaN(hh)) {
+            startH = Math.max(8, Math.min(16, hh + (mm ? mm / 60 : 0)));
+          }
+        }
+      }
+
+      if (startH + durationHours > 18) {
+        durationHours = Math.max(1, 18 - startH);
+      }
+
+      const topOffsetPx = headerHeightPx + (startH - startHour) * hourHeightPx;
+      const heightPx = Math.max(48, durationHours * hourHeightPx - 6);
+
+      const endH = startH + durationHours;
+      const fmtH = (h: number) => {
+        const fullH = Math.floor(h);
+        const mins = Math.round((h - fullH) * 60);
+        return `${String(fullH).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+      };
+
+      const timeRange = `${fmtH(startH)} – ${fmtH(endH)}`;
+      const theme = getTaskPastelTheme(task);
+
+      results.push({
+        task,
+        timeRange,
+        style: {
+          gridColumn: colIdx + 2,
+          top: `${topOffsetPx}px`,
+          height: `${heightPx}px`,
+          background: theme.bg,
+          borderColor: theme.border,
+          color: theme.text,
+          borderLeft: `4px solid ${theme.badge}`,
+        },
+      });
+    });
+  });
+
+  return results;
+});
+
+const tableColumns: QTableColumn<Task>[] = [
+  { name: 'title', label: 'Task Title', field: 'title', align: 'left', sortable: true },
+  { name: 'project', label: 'Project', field: 'project_name', align: 'left', sortable: true },
+  { name: 'priority', label: 'Priority', field: 'priority', align: 'center', sortable: true },
+  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true },
+  { name: 'dates', label: 'Timeline Dates', field: (row) => row.planned_start, align: 'left', sortable: true },
+  { name: 'progress', label: 'Progress', field: 'progress', align: 'left', sortable: true },
+];
+
+function getProjectName(projectId?: number) {
+  if (!projectId) return 'General';
+  const p = projects.value.find((proj) => Number(proj.project_id) === Number(projectId));
+  return p ? p.name : `Project #${projectId}`;
+}
+
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(d);
+  } catch {
+    return String(dateStr);
   }
 }
 
-function priorityTextColor(priority: string) {
-  if ($q.dark.isActive) {
-    switch (priority) {
-      case 'CRITICAL':
-        return 'red-2';
-      case 'HIGH':
-        return 'orange-2';
-      case 'MEDIUM':
-        return 'purple-2';
-      default:
-        return 'blue-2';
-    }
-  }
-  switch (priority) {
-    case 'CRITICAL':
-      return 'negative';
-    case 'HIGH':
-      return 'deep-orange';
-    case 'MEDIUM':
-      return 'primary';
-    default:
-      return 'blue-8';
-  }
+function formatStatus(status?: string): string {
+  if (!status) return '—';
+  return status.replace(/_/g, ' ');
 }
 
-function statusColor(status: string) {
-  if ($q.dark.isActive) {
-    switch (status) {
-      case 'COMPLETED':
-        return 'green-10';
-      case 'IN_PROGRESS':
-        return 'blue-10';
-      case 'SCHEDULED':
-        return 'purple-10';
-      default:
-        return 'grey-9';
-    }
-  }
+function getTaskStatusClass(status?: string): string {
   switch (status) {
     case 'COMPLETED':
-      return 'green-1';
+      return 'status-completed';
     case 'IN_PROGRESS':
-      return 'blue-1';
+      return 'status-in-progress';
     case 'SCHEDULED':
-      return 'purple-1';
+      return 'status-scheduled';
     default:
-      return 'grey-3';
+      return 'status-unassigned';
   }
 }
 
-function statusTextColor(status: string) {
-  if ($q.dark.isActive) {
-    switch (status) {
-      case 'COMPLETED':
-        return 'green-2';
-      case 'IN_PROGRESS':
-        return 'blue-2';
-      case 'SCHEDULED':
-        return 'purple-2';
-      default:
-        return 'grey-4';
-    }
-  }
-  switch (status) {
-    case 'COMPLETED':
-      return 'positive';
-    case 'IN_PROGRESS':
-      return 'blue-8';
-    case 'SCHEDULED':
-      return 'primary';
+function getPriorityClass(priority?: string): string {
+  switch (priority) {
+    case 'CRITICAL':
+      return 'prio-critical';
+    case 'HIGH':
+      return 'prio-high';
+    case 'MEDIUM':
+      return 'prio-medium';
     default:
-      return 'grey-8';
+      return 'prio-low';
   }
 }
 
@@ -1134,16 +1126,112 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.schedule-page {
+  padding: 20px 28px 36px;
+  background: var(--wo-bg-page, #f8f9fa);
+  min-height: 100vh;
+}
+
+.view-toggle-btn {
+  border: 1px solid var(--wo-border, #e2e8f0);
+  background: var(--wo-bg-card, #ffffff);
+
+  :deep(.q-btn) {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+  }
+}
+
+/* ===================================================
+   Calendar Toolbar & Filter Strip
+   =================================================== */
+.calendar-toolbar-card {
+  border-radius: 12px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+}
+
+.toolbar-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.date-nav-block {
+  .nav-arrow-btn {
+    color: var(--wo-text-muted, #64748b);
+    border: 1px solid var(--wo-border, #e2e8f0);
+    border-radius: 8px;
+    &:hover {
+      color: var(--wo-primary, #8b6fd8);
+      background: rgba(139, 111, 216, 0.08);
+    }
+  }
+
+  .today-btn {
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 8px;
+    color: var(--wo-text-main, #334155);
+    border-color: var(--wo-border, #e2e8f0);
+  }
+
+  .current-range-label {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--wo-text-main, #1e293b);
+  }
+}
+
+.filter-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .filter-input-search {
+    width: 140px;
+  }
+
+  .filter-select-box {
+    width: 125px;
+  }
+
+  :deep(.q-field__control) {
+    min-height: 34px;
+    border-radius: 8px;
+  }
+
+  :deep(.q-field__label),
+  :deep(.q-field__native),
+  :deep(.q-field__input) {
+    font-size: 11.5px;
+  }
+}
+
+/* ===================================================
+   Calendar Time-Grid Layout (Week / Day)
+   =================================================== */
+.calendar-grid-card {
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
+  overflow: hidden;
+}
+
 .calendar-scroll-wrapper {
   width: 100%;
   overflow-x: auto;
-  padding-bottom: 8px;
+  overflow-y: visible;
 }
 
 .calendar-table-grid {
   display: grid;
   position: relative;
-  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
 }
 
 .cal-cell {
@@ -1151,38 +1239,414 @@ onMounted(() => {
   border-bottom: 1px solid var(--wo-border-subtle, #eef0f4);
 }
 
+.time-corner-header {
+  height: 48px;
+  background: var(--wo-bg-page, #fafbfc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--wo-border, #e5e7ec);
+  border-right: 1px solid var(--wo-border, #e5e7ec);
+
+  .time-header-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--wo-text-muted, #94a3b8);
+    text-transform: uppercase;
+  }
+}
+
+.date-col-header {
+  height: 48px;
+  padding: 6px 10px;
+  background: var(--wo-bg-page, #fafbfc);
+  border-bottom: 1px solid var(--wo-border, #e5e7ec);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+
+  .col-weekday-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--wo-text-muted, #64748b);
+  }
+
+  .col-day-badge {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--wo-text-main, #1e293b);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.today-day-badge {
+      background: var(--wo-primary, #8b6fd8);
+      color: #ffffff;
+    }
+  }
+
+  .today-tag-pill {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: var(--wo-primary, #8b6fd8);
+    background: rgba(139, 111, 216, 0.12);
+    padding: 1px 3px;
+    border-radius: 3px;
+  }
+
+  .avail-status-chip {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 8px !important;
+    height: 15px !important;
+    padding: 0 4px !important;
+  }
+
+  &.is-today-col {
+    background: rgba(139, 111, 216, 0.04);
+  }
+
+  &.is-weekend-col {
+    background: rgba(241, 245, 249, 0.4);
+  }
+}
+
+.time-label-cell {
+  height: 54px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+  background: var(--wo-bg-page, #fafbfc);
+  border-right: 1px solid var(--wo-border, #e5e7ec);
+
+  .time-slot-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--wo-text-muted, #94a3b8);
+  }
+}
+
+.time-track-cell {
+  height: 54px;
+
+  &.is-today-col {
+    background: rgba(139, 111, 216, 0.02);
+  }
+
+  &.is-weekend-col {
+    background: rgba(241, 245, 249, 0.25);
+  }
+}
+
+/* ===================================================
+   Calendar Task Block (Rendered overlay)
+   =================================================== */
 .calendar-task-block {
   position: absolute;
+  left: calc(var(--q-gutter, 0px) + 3px);
+  right: 3px;
   z-index: 5;
-  border-radius: 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
   padding: 6px 8px;
-  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.08);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12);
+    z-index: 10;
+  }
+
+  .block-top-row {
+    margin-bottom: 2px;
+  }
+
+  .block-time-range {
+    font-size: 9.5px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+
+  .block-priority-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+
+    &.prio-dot-critical {
+      background: #ef4444;
+    }
+    &.prio-dot-high {
+      background: #f97316;
+    }
+    &.prio-dot-medium {
+      background: #8b6fd8;
+    }
+    &.prio-dot-low {
+      background: #10b981;
+    }
+  }
+
+  .block-task-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .block-project-name {
+    font-size: 10px;
+    opacity: 0.8;
+  }
+
+  .block-status-tag {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: capitalize;
+    opacity: 0.8;
+  }
+
+  .block-progress-pill {
+    font-size: 9.5px;
+    opacity: 0.9;
+  }
+}
+
+/* ===================================================
+   Month Matrix Grid View
+   =================================================== */
+.month-grid-card {
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
   overflow: hidden;
 }
 
-.month-grid-container {
-  width: 100%;
-  min-width: 650px;
+.month-weekday-header-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--wo-bg-page, #fafbfc);
+  border-bottom: 1px solid var(--wo-border, #e5e7ec);
+
+  .month-wday-cell {
+    padding: 8px;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--wo-text-muted, #64748b);
+  }
 }
 
 .month-days-matrix {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  width: 100%;
-  min-height: 480px;
-}
+  min-height: 500px;
 
-.month-day-cell {
-  min-height: 90px;
-  border-right: 1px solid #f0f2f5;
-  border-bottom: 1px solid #f0f2f5;
-  padding: 6px;
-}
-
-body.body--dark {
-  .cal-cell,
   .month-day-cell {
-    border-color: rgba(255, 255, 255, 0.08) !important;
+    min-height: 95px;
+    border-right: 1px solid var(--wo-border-subtle, #f0f2f5);
+    border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+
+    &.is-other-month {
+      background: rgba(248, 250, 252, 0.4);
+      .m-day-number {
+        opacity: 0.35;
+      }
+    }
+
+    &.is-month-today {
+      background: rgba(139, 111, 216, 0.03);
+      .m-day-number {
+        background: var(--wo-primary, #8b6fd8);
+        color: #ffffff;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
   }
+
+  .month-day-top {
+    margin-bottom: 4px;
+  }
+
+  .m-day-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--wo-text-main, #334155);
+  }
+
+  .today-badge-micro {
+    font-size: 8px;
+    font-weight: 800;
+    color: var(--wo-primary, #8b6fd8);
+  }
+
+  .month-day-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow-y: auto;
+    max-height: 70px;
+  }
+
+  .month-task-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .pill-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+  }
+}
+
+.table-card {
+  border-radius: 14px;
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e5e7ec);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
+  overflow: hidden;
+}
+
+.schedule-table :deep(th) {
+  height: 40px;
+  padding: 0 14px;
+  background: var(--wo-bg-page, #fafbfc);
+  color: var(--wo-text-muted, #647087);
+  font-size: 11px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--wo-border, #e9ebef);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.schedule-table :deep(td) {
+  height: 52px;
+  padding: 8px 14px;
+  color: var(--wo-text-main, #334155);
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--wo-border-subtle, #eef0f3);
+}
+
+.schedule-table :deep(tbody tr:hover) {
+  background: var(--wo-bg-card-hover, #faf9ff);
+}
+
+.task-title-cell {
+  max-width: 280px;
+}
+
+.task-cell-title {
+  color: var(--wo-text-main, #172033);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-cell-desc {
+  font-size: 11.5px;
+  color: var(--wo-text-muted, #64748b);
+  margin-top: 2px;
+}
+
+.project-badge {
+  background: rgba(139, 111, 216, 0.12);
+  color: var(--wo-primary, #8b6fd8);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.status-chip,
+.priority-chip {
+  min-height: 24px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.status-completed {
+  background: rgba(19, 174, 118, 0.12);
+  color: #13ae76;
+}
+
+.status-in-progress {
+  background: rgba(46, 144, 250, 0.12);
+  color: #2e90fa;
+}
+
+.status-scheduled {
+  background: rgba(139, 111, 216, 0.12);
+  color: #8b6fd8;
+}
+
+.status-unassigned {
+  background: #f1f3f7;
+  color: #64748b;
+}
+
+.prio-critical {
+  background: rgba(237, 91, 103, 0.12);
+  color: #ed5b67;
+}
+
+.prio-high {
+  background: rgba(242, 138, 23, 0.12);
+  color: #f28a17;
+}
+
+.prio-medium {
+  background: rgba(139, 111, 216, 0.12);
+  color: #8b6fd8;
+}
+
+.prio-low {
+  background: rgba(19, 174, 118, 0.12);
+  color: #13ae76;
+}
+
+.progress-cell-wrapper {
+  min-width: 130px;
+}
+
+.progress-label-row {
+  font-size: 11.5px;
+  margin-bottom: 4px;
+  color: var(--wo-text-main, #1e293b);
+}
+
+.date-cell {
+  color: var(--wo-text-muted, #64748b);
+  font-size: 12px;
+  white-space: nowrap;
 }
 </style>

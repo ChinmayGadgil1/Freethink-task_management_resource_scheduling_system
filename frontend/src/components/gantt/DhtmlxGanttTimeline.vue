@@ -300,6 +300,7 @@ const projectMap = computed(() => {
 const totalCount = computed(() => props.tasks.length);
 const visibleCount = ref(0);
 const showExtraColumns = ref(false); // Collapsed/compact by default (only TASK & PROJECT visible)
+const projectOpenStates = ref<Record<string, boolean>>({});
 
 // ----------------------------------------------------
 // Date & Segmentation Utilities
@@ -1039,16 +1040,23 @@ function buildGanttDataset() {
               (projectTasks.length * 100)
             : 0;
 
+      const projNodeId = `proj_${p.project_id}`;
+      const isProjectOpen =
+        projectOpenStates.value[projNodeId] !== undefined
+          ? projectOpenStates.value[projNodeId]
+          : true;
+
       // Add Project Summary Row
       data.push({
-        id: `proj_${p.project_id}`,
+        id: projNodeId,
         text: p.name,
         start_date: formatGanttDate(startObj),
         end_date: formatGanttDate(endObj),
         duration: projDurationDays,
         progress: Math.min(1, Math.max(0, calculatedProgress)),
         type: 'project',
-        open: true,
+        open: isProjectOpen,
+        $open: isProjectOpen,
         project_id: p.project_id,
         task_count: projectTasks.length,
         status: p.status,
@@ -1174,6 +1182,10 @@ function toggleHierarchy() {
 function expandAll() {
   gantt.eachTask((task) => {
     task.$open = true;
+    task.open = true;
+    if (String(task.id).startsWith('proj_')) {
+      projectOpenStates.value[String(task.id)] = true;
+    }
   });
   gantt.render();
 }
@@ -1181,6 +1193,10 @@ function expandAll() {
 function collapseAll() {
   gantt.eachTask((task) => {
     task.$open = false;
+    task.open = false;
+    if (String(task.id).startsWith('proj_')) {
+      projectOpenStates.value[String(task.id)] = false;
+    }
   });
   gantt.render();
 }
@@ -1207,6 +1223,8 @@ let onBeforeDragId: string | null = null;
 let onBeforeLinkId: string | null = null;
 let onDblClickId: string | null = null;
 let onLightboxId: string | null = null;
+let onTaskOpenedId: string | null = null;
+let onTaskClosedId: string | null = null;
 
 onMounted(() => {
   if (!ganttContainer.value) return;
@@ -1219,6 +1237,16 @@ onMounted(() => {
   onDblClickId = gantt.attachEvent('onTaskDblClick', () => false);
   onLightboxId = gantt.attachEvent('onBeforeLightbox', () => false);
 
+  onTaskOpenedId = gantt.attachEvent('onTaskOpened', (id: string | number) => {
+    projectOpenStates.value[String(id)] = true;
+    return true;
+  });
+
+  onTaskClosedId = gantt.attachEvent('onTaskClosed', (id: string | number) => {
+    projectOpenStates.value[String(id)] = false;
+    return true;
+  });
+
   onTaskClickId = gantt.attachEvent('onTaskClick', (id: string | number) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1227,6 +1255,23 @@ onMounted(() => {
       (gantt as any).hideTooltip?.();
     } catch {
       // Ignore
+    }
+
+    // Toggle project branch open/close on project row or chevron click
+    if (String(id).startsWith('proj_')) {
+      if (gantt.isTaskExists(id)) {
+        const taskObj = gantt.getTask(id);
+        const nextOpen = !taskObj.$open;
+        taskObj.$open = nextOpen;
+        taskObj.open = nextOpen;
+        projectOpenStates.value[String(id)] = nextOpen;
+        if (nextOpen) {
+          gantt.open(id);
+        } else {
+          gantt.close(id);
+        }
+      }
+      return false;
     }
 
     if (typeof id === 'number' || (!String(id).startsWith('proj_') && !isNaN(Number(id)))) {
@@ -1248,6 +1293,8 @@ onBeforeUnmount(() => {
   if (onBeforeLinkId) gantt.detachEvent(onBeforeLinkId);
   if (onDblClickId) gantt.detachEvent(onDblClickId);
   if (onLightboxId) gantt.detachEvent(onLightboxId);
+  if (onTaskOpenedId) gantt.detachEvent(onTaskOpenedId);
+  if (onTaskClosedId) gantt.detachEvent(onTaskClosedId);
   gantt.clearAll();
 });
 
@@ -1546,9 +1593,40 @@ defineExpose({
 
   /* Tree Expander Chevrons */
   .gantt_tree_icon {
-    &.gantt_open {
+    cursor: pointer;
+
+    &:before {
+      display: none !important;
+      content: '' !important;
+    }
+
+    &.gantt_open,
+    &.gantt_close {
       background-image: none !important;
+      background: none !important;
       position: relative;
+      cursor: pointer;
+      width: 20px !important;
+      height: 20px !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      user-select: none;
+      transition: transform 0.15s ease, color 0.15s ease;
+
+      &:before {
+        display: none !important;
+        content: '' !important;
+      }
+
+      &:hover::after {
+        color: #6d28d9;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+    }
+
+    &.gantt_open {
       &::after {
         content: '▾';
         position: absolute;
@@ -1558,11 +1636,11 @@ defineExpose({
         font-size: 13px;
         font-weight: 800;
         color: #7c3aed;
+        transition: transform 0.15s ease, color 0.15s ease;
       }
     }
+
     &.gantt_close {
-      background-image: none !important;
-      position: relative;
       &::after {
         content: '▸';
         position: absolute;
@@ -1572,13 +1650,16 @@ defineExpose({
         font-size: 13px;
         font-weight: 800;
         color: #7c3aed;
+        transition: transform 0.15s ease, color 0.15s ease;
       }
     }
+
     &.gantt_file,
     &.gantt_folder_open,
     &.gantt_folder_closed {
       background-image: none !important;
-      width: 4px !important;
+      display: none !important;
+      width: 0 !important;
     }
   }
 
@@ -1603,6 +1684,7 @@ defineExpose({
     background: #f8fafc !important;
     font-weight: 700;
     border-bottom: 1px solid #e2e8f0 !important;
+    cursor: pointer;
 
     .gantt_cell {
       color: #0f172a;
