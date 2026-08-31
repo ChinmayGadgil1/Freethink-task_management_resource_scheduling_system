@@ -793,10 +793,8 @@ import {
   getTasksApi,
   unassignTaskResourceApi,
   updateTaskApi,
-  type Project,
-  type ResourceUser,
-  type Task,
 } from '@/services/api';
+import type { Project, ResourceUser, Task } from '@/services/api';
 
 const $q = useQuasar();
 

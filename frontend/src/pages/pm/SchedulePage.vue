@@ -383,7 +383,13 @@
     </div>
 
     <!-- 7. DETAILED BREAKDOWN TABLE (List View) -->
-    <q-card v-else-if="scheduleViewMode === 'table'" flat bordered :dark="$q.dark.isActive" class="table-card">
+    <q-card
+      v-else-if="scheduleViewMode === 'table'"
+      flat
+      bordered
+      :dark="$q.dark.isActive"
+      class="table-card"
+    >
       <q-card-section class="row items-center justify-between q-pb-sm">
         <div>
           <div
@@ -718,10 +724,9 @@ import {
   createTaskApi,
   updateTaskApi,
   getProjectScheduleDataApi,
-  type Project,
-  type Task,
-  type ResourceUser,
+  getResourceScheduleDataApi,
 } from '@/services/api';
+import type { Project, Task, ResourceUser } from '@/services/api';
 
 const $q = useQuasar();
 
@@ -1135,15 +1140,27 @@ async function loadData() {
   }
 }
 
-watch(projectFilter, async (newVal) => {
-  if (newVal !== 'ALL') {
+watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
+  if (newAssignee !== 'ALL') {
     try {
-      const scheduleRes = await getProjectScheduleDataApi(Number(newVal));
+      const resSchedule = await getResourceScheduleDataApi(Number(newAssignee));
+      if (resSchedule && resSchedule.tasks) {
+        tasks.value = resSchedule.tasks;
+        return;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (newProj !== 'ALL') {
+    try {
+      const scheduleRes = await getProjectScheduleDataApi(Number(newProj));
       if (scheduleRes && scheduleRes.tasks) {
         tasks.value = scheduleRes.tasks;
       }
     } catch {
-      tasks.value = await getTasksApi(Number(newVal)).catch(() => tasks.value);
+      tasks.value = await getTasksApi(Number(newProj)).catch(() => tasks.value);
     }
   } else {
     tasks.value = await getTasksApi().catch(() => tasks.value);
@@ -1193,6 +1210,15 @@ function getProjectName(projectId: number): string {
 // Details Modal, Create & Edit Handlers
 // ----------------------------------------------------
 function openTaskDetailsDialog(task: Task) {
+  if (task.is_external) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message:
+        'This task belongs to another project not managed by you. Detailed information is private.',
+    });
+    return;
+  }
   selectedTaskDetails.value = task;
   showTaskDetailsDialog.value = true;
 }

@@ -406,12 +406,8 @@ import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.v
 import StatCard from '@/components/dashboard/StatCard.vue';
 import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
-import {
-  getTasksApi,
-  getResourceWorkloadApi,
-  type Task,
-  type ResourceWorkload,
-} from '@/services/api';
+import { getTasksApi, getResourceWorkloadApi } from '@/services/api';
+import type { Task, ResourceWorkload } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();

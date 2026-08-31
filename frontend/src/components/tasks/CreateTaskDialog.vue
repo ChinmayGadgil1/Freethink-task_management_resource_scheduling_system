@@ -357,11 +357,15 @@ watch(
 
 function handleSubmit() {
   const sanitizedResourceIds = Array.isArray(form.assigned_resource_ids)
-    ? form.assigned_resource_ids.filter((id): id is number => id != null && !isNaN(Number(id))).map(Number)
+    ? form.assigned_resource_ids
+        .filter((id): id is number => id != null && !isNaN(Number(id)))
+        .map(Number)
     : [];
 
   const sanitizedPredecessorIds = Array.isArray(form.predecessor_task_ids)
-    ? form.predecessor_task_ids.filter((id): id is number => id != null && !isNaN(Number(id))).map(Number)
+    ? form.predecessor_task_ids
+        .filter((id): id is number => id != null && !isNaN(Number(id)))
+        .map(Number)
     : [];
 
   emit('submit', {

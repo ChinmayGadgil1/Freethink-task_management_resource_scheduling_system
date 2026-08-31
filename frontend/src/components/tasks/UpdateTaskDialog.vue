@@ -28,9 +28,7 @@
           </q-banner>
         </div>
 
-        <div class="text-caption text-weight-bold text-grey-7 q-mb-xs">
-          Expected Hours (hrs) *
-        </div>
+        <div class="text-caption text-weight-bold text-grey-7 q-mb-xs">Expected Hours (hrs) *</div>
 
         <q-input
           v-model.number="form.estimatedHours"

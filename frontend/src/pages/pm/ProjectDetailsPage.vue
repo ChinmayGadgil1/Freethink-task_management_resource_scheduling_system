@@ -1051,7 +1051,11 @@
                     stack-label
                     :dark="$q.dark.isActive"
                     :rules="[
-                      (val) => !editProjectForm.deadline || !val || val <= editProjectForm.deadline || 'Start date cannot be after deadline',
+                      (val) =>
+                        !editProjectForm.deadline ||
+                        !val ||
+                        val <= editProjectForm.deadline ||
+                        'Start date cannot be after deadline',
                     ]"
                   />
                 </div>
@@ -1065,7 +1069,11 @@
                     stack-label
                     :dark="$q.dark.isActive"
                     :rules="[
-                      (val) => !editProjectForm.start_date || !val || val >= editProjectForm.start_date || 'Deadline cannot be before start date',
+                      (val) =>
+                        !editProjectForm.start_date ||
+                        !val ||
+                        val >= editProjectForm.start_date ||
+                        'Deadline cannot be before start date',
                     ]"
                   />
                 </div>
@@ -1188,11 +1196,10 @@
 
           <!-- Currently active dependencies -->
           <q-card-section class="q-pt-md">
-            <div class="text-caption text-weight-bold q-mb-xs">Current Predecessor Dependencies:</div>
-            <div
-              v-if="currentTaskPredecessors.length > 0"
-              class="row q-gutter-xs wrap q-mb-md"
-            >
+            <div class="text-caption text-weight-bold q-mb-xs">
+              Current Predecessor Dependencies:
+            </div>
+            <div v-if="currentTaskPredecessors.length > 0" class="row q-gutter-xs wrap q-mb-md">
               <q-chip
                 v-for="pred in currentTaskPredecessors"
                 :key="pred.task_id"

@@ -1,11 +1,6 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
-import {
-  startTaskSessionApi,
-  stopTaskSessionApi,
-  getActiveTaskSessionApi,
-  type TaskSession,
-  type StopSessionPayload,
-} from '@/services/api';
+import { startTaskSessionApi, stopTaskSessionApi, getActiveTaskSessionApi } from '@/services/api';
+import type { TaskSession, StopSessionPayload } from '@/services/api';
 
 export interface SessionState {
   activeSession: TaskSession | null;

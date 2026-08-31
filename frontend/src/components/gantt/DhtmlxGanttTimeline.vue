@@ -260,6 +260,7 @@ export interface DhtmlxGanttTaskItem {
   segments?: TaskWorkSegment[];
   total_hours?: number;
   is_segmented?: boolean;
+  is_external?: boolean;
   $open?: boolean;
 }
 
@@ -526,6 +527,14 @@ function applyColumnsConfig() {
           `</div>`
         );
       }
+      if (task.is_external) {
+        return (
+          `<div class="gantt-col-task is-external-task" title="External / Other Project Task (Details hidden)">` +
+          `<span class="task-icon-lock">🔒</span>` +
+          `<span class="task-title ellipsis text-grey-7" style="font-style: italic;">${text}</span>` +
+          `</div>`
+        );
+      }
       return (
         `<div class="gantt-col-task" title="${text}">` +
         `<span class="task-icon-dot"></span>` +
@@ -545,6 +554,7 @@ function applyColumnsConfig() {
       max_width: 110,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
+        if (task.is_external) return '<span class="text-grey-6 text-caption">🔒 Busy</span>';
         if (!task.status) return '<span class="text-muted">—</span>';
         const s = task.status.toUpperCase();
         let label = task.status.replace(/_/g, ' ');
@@ -577,6 +587,7 @@ function applyColumnsConfig() {
       max_width: 90,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
+        if (task.is_external) return '<span class="text-grey-5">—</span>';
         if (!task.priority) return '<span class="text-muted">—</span>';
         const p = task.priority.toLowerCase();
         const pLabel = task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase();
@@ -649,6 +660,9 @@ function configureGanttEngine() {
     if (task.type === 'project') {
       return 'dhtmlx-bar-project';
     }
+    if (task.is_external) {
+      return 'dhtmlx-bar-task dhtmlx-bar-external';
+    }
     const classes = ['dhtmlx-bar-task'];
     if (task.priority) {
       classes.push(`bar-p-${task.priority.toLowerCase()}`);
@@ -671,6 +685,16 @@ function configureGanttEngine() {
         `<div class="gantt-bar-content-wrapper is-project">` +
         `<span class="gantt-bar-pct-badge project-pct">${pct}%</span>` +
         `<span class="gantt-bar-title is-project-title ellipsis">📁 ${text} · ${count} ${count === 1 ? 'task' : 'tasks'}</span>` +
+        `</div>`
+      );
+    }
+
+    if (task.is_external) {
+      return (
+        `<div class="gantt-segments-container">` +
+        `<div class="gantt-segment-pill bar-external-pill" style="left: 0; width: 100%;">` +
+        `<span class="segment-title ellipsis">🔒 ${text}</span>` +
+        `</div>` +
         `</div>`
       );
     }
@@ -741,6 +765,9 @@ function configureGanttEngine() {
     if (task.type === 'project') {
       return 'dhtmlx-grid-row-project';
     }
+    if (task.is_external) {
+      return 'dhtmlx-grid-row-task is-external-row';
+    }
     return 'dhtmlx-grid-row-task';
   };
 
@@ -765,6 +792,20 @@ function configureGanttEngine() {
         `<div class="tooltip-row"><span class="tooltip-k">Timeline:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
         `<div class="tooltip-row"><span class="tooltip-k">Child Tasks:</span><span class="tooltip-v">${task.task_count || 0} tasks</span></div>` +
         `<div class="tooltip-row"><span class="tooltip-k">Calculated Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
+        `</div>` +
+        `</div>`
+      );
+    }
+
+    if (task.is_external) {
+      const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
+      return (
+        `<div class="gantt-tooltip-card">` +
+        `<div class="tooltip-header"><div class="tooltip-title">🔒 ${text}</div><div class="tooltip-project-tag">${projName}</div></div>` +
+        `<div class="tooltip-body">` +
+        `<div class="tooltip-row"><span class="text-caption text-amber-9">🔒 Managed by another Project Manager. Details hidden.</span></div>` +
+        `<div class="tooltip-row"><span class="tooltip-k">Timeline:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
+        `<div class="tooltip-row"><span class="tooltip-k">Allocated Capacity:</span><span class="tooltip-v text-grey-8">${totalHoursText}</span></div>` +
         `</div>` +
         `</div>`
       );
@@ -916,7 +957,7 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   if (scale === 'hour') {
     const start = new Date(minDate);
     start.setHours(start.getHours() - 12);
-    
+
     const end = new Date(maxDate);
     end.setHours(end.getHours() + 12);
 
@@ -1046,6 +1087,7 @@ function buildGanttDataset() {
           segments,
           total_hours: totalHours,
           is_segmented: segments.length > 1,
+          is_external: Boolean(t.is_external),
         });
       });
 
@@ -1123,6 +1165,7 @@ function buildGanttDataset() {
         segments,
         total_hours: totalHours,
         is_segmented: segments.length > 1,
+        is_external: Boolean(t.is_external),
       });
     });
   }
@@ -1637,7 +1680,9 @@ defineExpose({
       justify-content: center;
       flex-shrink: 0;
       user-select: none;
-      transition: transform 0.15s ease, color 0.15s ease;
+      transition:
+        transform 0.15s ease,
+        color 0.15s ease;
 
       &:before {
         display: none !important;
@@ -1660,7 +1705,9 @@ defineExpose({
         font-size: 13px;
         font-weight: 800;
         color: #7c3aed;
-        transition: transform 0.15s ease, color 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          color 0.15s ease;
       }
     }
 
@@ -1674,7 +1721,9 @@ defineExpose({
         font-size: 13px;
         font-weight: 800;
         color: #7c3aed;
-        transition: transform 0.15s ease, color 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          color 0.15s ease;
       }
     }
 
@@ -2476,5 +2525,46 @@ body.body--dark {
       }
     }
   }
+}
+
+/* External / Masked Tasks Styling */
+.dhtmlx-bar-external {
+  background: repeating-linear-gradient(
+    45deg,
+    #f8fafc,
+    #f8fafc 8px,
+    #f1f5f9 8px,
+    #f1f5f9 16px
+  ) !important;
+  border: 1px dashed #94a3b8 !important;
+  opacity: 0.88;
+
+  .gantt_task_progress {
+    display: none !important;
+  }
+}
+
+.bar-external-pill {
+  background: #f1f5f9 !important;
+  border: 1px dashed #94a3b8 !important;
+  color: #64748b !important;
+  font-style: italic;
+
+  .segment-progress-fill {
+    display: none !important;
+  }
+}
+
+.is-external-row {
+  background: rgba(241, 245, 249, 0.4) !important;
+}
+
+.is-external-task {
+  opacity: 0.85;
+}
+
+.task-icon-lock {
+  font-size: 11px;
+  margin-right: 4px;
 }
 </style>

@@ -522,7 +522,11 @@
 
     <!-- ASSIGN RESOURCE TO PROJECT DIALOG (POST /api/projects/:id/members) -->
     <q-dialog v-model="showProjectMemberDialog">
-      <q-card class="dialog-card" :dark="$q.dark.isActive" style="min-width: 440px; max-width: 95vw">
+      <q-card
+        class="dialog-card"
+        :dark="$q.dark.isActive"
+        style="min-width: 440px; max-width: 95vw"
+      >
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
             class="text-subtitle1 text-weight-bold"
@@ -621,7 +625,11 @@
 
     <!-- ASSIGN TASK DIALOG (POST /api/tasks) -->
     <q-dialog v-model="showAssignDialog">
-      <q-card class="dialog-card" :dark="$q.dark.isActive" style="min-width: 440px; max-width: 95vw">
+      <q-card
+        class="dialog-card"
+        :dark="$q.dark.isActive"
+        style="min-width: 440px; max-width: 95vw"
+      >
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
             class="text-subtitle1 text-weight-bold"
@@ -736,7 +744,10 @@
 
     <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
     <q-dialog v-model="showScheduleDialog" persistent>
-      <q-card :dark="$q.dark.isActive" style="min-width: 440px; max-width: 520px; border-radius: 14px">
+      <q-card
+        :dark="$q.dark.isActive"
+        style="min-width: 440px; max-width: 520px; border-radius: 14px"
+      >
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
             <q-icon name="edit_calendar" size="24px" color="primary" />
@@ -893,11 +904,8 @@ import {
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
   calculateResourceWeeklyCapacity,
-  type Project,
-  type ResourceUser,
-  type Task,
-  type DayOfWeek,
 } from '@/services/api';
+import type { Project, ResourceUser, Task, DayOfWeek } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();

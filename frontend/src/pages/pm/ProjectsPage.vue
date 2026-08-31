@@ -1049,15 +1049,8 @@ import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import {
-  createProjectApi,
-  deleteProjectApi,
-  getProjectsApi,
-  type CreateProjectPayload,
-  type Project,
-  type ProjectPriority,
-  type ProjectStatus,
-} from '@/services/api';
+import { createProjectApi, deleteProjectApi, getProjectsApi } from '@/services/api';
+import type { CreateProjectPayload, Project, ProjectPriority, ProjectStatus } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();

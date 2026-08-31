@@ -726,12 +726,8 @@ import StatCard from '@/components/dashboard/StatCard.vue';
 import { formatDate, formatHours } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 
-import {
-  getTasksApi,
-  getResourceWorkloadApi,
-  type Task,
-  type ResourceWorkload,
-} from '@/services/api';
+import { getTasksApi, getResourceWorkloadApi } from '@/services/api';
+import type { Task, ResourceWorkload } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();

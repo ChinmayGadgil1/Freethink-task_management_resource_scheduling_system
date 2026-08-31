@@ -1,7 +1,8 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { getProjectById, isProjectMember } from "../services/projectService.js";
-import { getProjectSchedule, recalculateProjectSchedule } from "../services/schedulerService.js";
+import { getProjectById, isProjectMember, getProjectsByManager } from "../services/projectService.js";
+import { getProjectSchedule, getResourceSchedule, recalculateProjectSchedule } from "../services/schedulerService.js";
+import { getResourceById } from "../services/resourceService.js";
 
 /**
  * Controller to serve calculated schedule data for Gantt chart visualization
@@ -47,6 +48,61 @@ export async function getProjectScheduleData(req: AuthRequest<{ projectId: strin
 }
 
 /**
+ * Controller to serve calculated schedule data for Resource Gantt chart visualization.
+ * When requested by a Project Manager:
+ * The resource's schedule across all projects is returned, but tasks under projects NOT managed
+ * by this PM have sensitive details (title, description, project name, logs) masked.
+ * GET /api/scheduler/resource/:resourceId
+ */
+export async function getResourceScheduleData(req: AuthRequest<{ resourceId: string }>, res: Response) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const userRole = req.user.role;
+        const currentUserId = req.user.user_id;
+        const paramId = req.params.resourceId;
+
+        let targetResourceId: number;
+
+        if (!paramId || paramId === "me") {
+            targetResourceId = currentUserId;
+        } else {
+            const parsed = Number(paramId);
+            if (!Number.isInteger(parsed) || parsed <= 0) {
+                return res.status(400).json({ message: "Invalid resource ID" });
+            }
+            targetResourceId = parsed;
+        }
+
+        // Access control: RESOURCE role can only view their own schedule
+        if (userRole === "RESOURCE" && targetResourceId !== currentUserId) {
+            return res.status(403).json({
+                message: "Access denied. You can only view your own schedule."
+            });
+        }
+
+        let pmProjectIds: Set<number> | undefined = undefined;
+
+        if (userRole === "PROJECT_MANAGER") {
+            const pmProjects = await getProjectsByManager(currentUserId);
+            pmProjectIds = new Set(pmProjects.map(p => Number(p.project_id)));
+        }
+
+        const scheduleData = await getResourceSchedule(targetResourceId, pmProjectIds);
+        if (!scheduleData) {
+            return res.status(404).json({ message: "Resource schedule not found" });
+        }
+
+        return res.status(200).json(scheduleData);
+    } catch (error: any) {
+        console.error("Error fetching resource schedule data:", error);
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+/**
  * Controller to manually trigger full recalculation of project schedule
  * POST /api/scheduler/project/:projectId/recalculate
  */
@@ -81,3 +137,4 @@ export async function triggerRecalculateController(req: AuthRequest<{ projectId:
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
+

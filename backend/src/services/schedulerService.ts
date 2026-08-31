@@ -33,6 +33,7 @@ export interface TaskWorkload {
     progress: number;
     is_schedule_at_risk: boolean;
     is_deadline_at_risk: boolean;
+    is_external?: boolean;
 }
 
 /**
@@ -143,6 +144,7 @@ export async function getProjectSchedule(projectId: number) {
                 ? String(t.predecessor_task_ids).split(",").map(Number)
                 : [],
             schedules: scheduleMap.get(Number(t.task_id)) || [],
+            is_external: false,
             pacing: {
                 is_overrun: isOverrun,
                 is_behind_schedule: isBehindSchedule,
@@ -170,12 +172,161 @@ export async function getProjectSchedule(projectId: number) {
 }
 
 /**
- * Calculates a resource's workload across all projects, including daily scheduled allocations.
+ * Fetches the schedule dataset for a specific resource for Gantt visualization.
+ * When requested by a Project Manager (pmProjectIds is provided):
+ * ONLY tasks belonging to the PM's managed projects are returned (other projects' tasks are completely skipped/omitted).
  */
-export async function getResourceWorkload(resourceId: number) {
+export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set<number>) {
     const pool = getPool();
 
-    // Fetch all active/scheduled tasks assigned to the resource across all projects
+    // 1. Fetch resource details
+    const [userRows] = await pool.query<RowDataPacket[]>(
+        `SELECT user_id, name, email, role, is_active, non_working_days, daily_working_hours
+         FROM users
+         WHERE user_id = ?`,
+        [resourceId]
+    );
+
+    if (userRows.length === 0) {
+        return null;
+    }
+    const resource = userRows[0]!;
+
+    // 2. Fetch all tasks assigned to the resource
+    const [tasks] = await pool.query<RowDataPacket[]>(
+        `SELECT t.*,
+                p.name as project_name,
+                p.project_manager_id,
+                GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
+                GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
+         FROM tasks t
+         JOIN task_assignments ta ON t.task_id = ta.task_id
+         JOIN projects p ON t.project_id = p.project_id
+         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
+         WHERE ta.user_id = ?
+         GROUP BY t.task_id
+         ORDER BY t.planned_start ASC, t.created_at ASC`,
+        [resourceId]
+    );
+
+    // If pmProjectIds is provided, strictly filter to tasks belonging to PM-controlled projects (skip others entirely)
+    const visibleTasks = pmProjectIds
+        ? tasks.filter(t => pmProjectIds.has(Number(t.project_id)))
+        : tasks;
+
+    const visibleTaskIds = new Set(visibleTasks.map(t => Number(t.task_id)));
+
+    // 3. Fetch task_schedules for this resource
+    const [schedules] = await pool.query<RowDataPacket[]>(
+        `SELECT ts.*, u.name as resource_name
+         FROM task_schedules ts
+         JOIN tasks t ON ts.task_id = t.task_id
+         LEFT JOIN users u ON ts.user_id = u.user_id
+         WHERE ts.user_id = ?
+         ORDER BY ts.schedule_date ASC`,
+        [resourceId]
+    );
+
+    const visibleSchedules = pmProjectIds
+        ? schedules.filter(s => visibleTaskIds.has(Number(s.task_id)))
+        : schedules;
+
+    // 4. Fetch holidays
+    const [holidays] = await pool.query<RowDataPacket[]>(
+        `SELECT holiday_id, holiday_date, description FROM holidays ORDER BY holiday_date ASC`
+    );
+
+    const scheduleMap = new Map<number, any[]>();
+    for (const s of visibleSchedules) {
+        const tId = Number(s.task_id);
+        if (!scheduleMap.has(tId)) {
+            scheduleMap.set(tId, []);
+        }
+        scheduleMap.get(tId)!.push({
+            schedule_id: Number(s.schedule_id),
+            task_id: tId,
+            user_id: Number(s.user_id),
+            schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
+            allocated_hours: Number(s.allocated_hours),
+            schedule_version: Number(s.schedule_version),
+            resource_name: s.resource_name || undefined
+        });
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0]!;
+
+    // 5. Transform visible tasks
+    const formattedTasks = visibleTasks.map(t => {
+        const projectId = Number(t.project_id);
+        const expected = Number(t.expected_effort || 0);
+        const actual = Number(t.actual_effort || 0);
+        const isOverrun = actual > expected;
+        const isBehindSchedule = !['COMPLETED'].includes(t.status) && (
+            (t.deadline && String(t.deadline).split("T")[0]! < todayStr) ||
+            isOverrun
+        );
+
+        return {
+            task_id: Number(t.task_id),
+            project_id: projectId,
+            project_name: t.project_name,
+            title: t.title,
+            description: t.description,
+            priority: t.priority,
+            status: t.status,
+            deadline: t.deadline ? String(t.deadline).split("T")[0]! : null,
+            planned_start: t.planned_start ? String(t.planned_start).split("T")[0]! : null,
+            planned_end: t.planned_end ? String(t.planned_end).split("T")[0]! : null,
+            actual_start: t.actual_start ?? null,
+            actual_end: t.actual_end ?? null,
+            expected_effort: expected,
+            actual_effort: actual,
+            progress: Number(t.progress || 0),
+            is_schedule_at_risk: Boolean(t.is_schedule_at_risk),
+            is_deadline_at_risk: Boolean(t.is_deadline_at_risk),
+            assigned_resource_ids: t.assigned_resource_ids
+                ? String(t.assigned_resource_ids).split(",").map(Number)
+                : [resourceId],
+            predecessor_task_ids: t.predecessor_task_ids
+                ? String(t.predecessor_task_ids).split(",").map(Number)
+                : [],
+            schedules: scheduleMap.get(Number(t.task_id)) || [],
+            is_external: false,
+            pacing: {
+                is_overrun: isOverrun,
+                is_behind_schedule: isBehindSchedule,
+                warning: t.is_deadline_at_risk
+                    ? "Deadline at risk"
+                    : (t.is_schedule_at_risk ? "Schedule at risk" : (isBehindSchedule ? "Past deadline" : null))
+            }
+        };
+    });
+
+    return {
+        resource: {
+            user_id: resource.user_id,
+            name: resource.name,
+            email: resource.email,
+            role: resource.role,
+            is_active: resource.is_active,
+            daily_working_hours: resource.daily_working_hours
+        },
+        tasks: formattedTasks,
+        schedules: visibleSchedules,
+        holidays,
+        pm_project_ids: pmProjectIds ? Array.from(pmProjectIds) : undefined
+    };
+}
+
+/**
+ * Calculates a resource's workload.
+ * When requested by a Project Manager (pmProjectIds is provided):
+ * ONLY tasks belonging to the PM's managed projects are counted.
+ */
+export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set<number>) {
+    const pool = getPool();
+
+    // Fetch active/scheduled tasks assigned to the resource
     const [tasks] = await pool.query<RowDataPacket[]>(
         `
         SELECT t.*, p.name as project_name
@@ -188,28 +339,49 @@ export async function getResourceWorkload(resourceId: number) {
         [resourceId]
     );
 
+    const visibleTasks = pmProjectIds
+        ? tasks.filter(t => pmProjectIds.has(Number(t.project_id)))
+        : tasks;
+
+    const visibleTaskIds = new Set(visibleTasks.map(t => Number(t.task_id)));
+
     // Fetch daily allocated hours from task_schedules for this resource
     const [scheduleRows] = await pool.query<RowDataPacket[]>(
         `
-        SELECT schedule_date, SUM(allocated_hours) as total_hours
-        FROM task_schedules
-        WHERE user_id = ? AND schedule_date >= CURDATE()
-        GROUP BY schedule_date
-        ORDER BY schedule_date ASC
+        SELECT ts.schedule_date, ts.task_id, ts.allocated_hours
+        FROM task_schedules ts
+        WHERE ts.user_id = ? AND ts.schedule_date >= CURDATE()
+        ORDER BY ts.schedule_date ASC
         `,
         [resourceId]
     );
+
+    const visibleScheduleRows = pmProjectIds
+        ? scheduleRows.filter(s => visibleTaskIds.has(Number(s.task_id)))
+        : scheduleRows;
+
+    const dailyMap = new Map<string, number>();
+    for (const r of visibleScheduleRows) {
+        const d = String(r.schedule_date).split("T")[0]!;
+        dailyMap.set(d, (dailyMap.get(d) || 0) + Number(r.allocated_hours));
+    }
+    const dailyAllocations = Array.from(dailyMap.entries()).map(([date, allocated_hours]) => ({
+        date,
+        allocated_hours
+    }));
 
     let totalExpectedEffort = 0;
     let totalActualEffort = 0;
     const taskDetails: TaskWorkload[] = [];
 
-    for (const row of tasks) {
+    for (const row of visibleTasks) {
         totalExpectedEffort += Number(row.expected_effort);
         totalActualEffort += Number(row.actual_effort);
+        const projectId = Number(row.project_id);
+
         taskDetails.push({
             task_id: Number(row.task_id),
-            project_id: Number(row.project_id),
+            project_id: projectId,
             project_name: row.project_name,
             title: row.title,
             priority: row.priority,
@@ -221,14 +393,10 @@ export async function getResourceWorkload(resourceId: number) {
             actual_effort: Number(row.actual_effort),
             progress: Number(row.progress),
             is_schedule_at_risk: Boolean(row.is_schedule_at_risk),
-            is_deadline_at_risk: Boolean(row.is_deadline_at_risk)
+            is_deadline_at_risk: Boolean(row.is_deadline_at_risk),
+            is_external: false
         });
     }
-
-    const dailyAllocations = scheduleRows.map(row => ({
-        date: String(row.schedule_date).split("T")[0]!,
-        allocated_hours: Number(row.total_hours)
-    }));
 
     return {
         resource_id: resourceId,

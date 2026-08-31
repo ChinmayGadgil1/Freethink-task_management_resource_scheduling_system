@@ -64,6 +64,14 @@ export interface ProjectScheduleResponse {
   holidays: HolidayItem[];
 }
 
+export interface ResourceScheduleResponse {
+  resource: ResourceUser;
+  tasks: Task[];
+  schedules: TaskScheduleItem[];
+  holidays: HolidayItem[];
+  pm_project_ids?: number[];
+}
+
 export interface Task {
   task_id: number;
   project_id: number;
@@ -90,6 +98,7 @@ export interface Task {
   predecessor_task_ids?: number[];
   pacing?: TaskPacing;
   schedules?: TaskScheduleItem[];
+  is_external?: boolean;
 }
 
 export interface WorkLog {
@@ -431,6 +440,25 @@ export async function getProjectScheduleDataApi(
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch project schedule data');
+  }
+
+  return data;
+}
+
+/**
+ * Fetch resource schedule dataset for Gantt visualization.
+ * When called by a Project Manager, tasks outside their controlled projects are returned with privacy masking.
+ * GET /api/scheduler/resource/:resourceId
+ */
+export async function getResourceScheduleDataApi(
+  resourceId: number | 'me',
+): Promise<ResourceScheduleResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/scheduler/resource/${resourceId}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch resource schedule data');
   }
 
   return data;
