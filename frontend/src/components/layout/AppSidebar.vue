@@ -111,14 +111,6 @@
               <span class="nav-text" :class="{ 'font-bold': isLinkActive(item.to) }">
                 {{ item.title }}
               </span>
-              <q-badge
-                v-if="item.count !== undefined"
-                color="grey-3"
-                text-color="dark"
-                class="count-pill"
-              >
-                {{ item.count }}
-              </q-badge>
               <span v-if="isLinkActive(item.to)" class="active-indicator-bar" />
             </router-link>
           </nav>
@@ -157,7 +149,6 @@ export interface SidebarNavItem {
   icon: string;
   colorClass: string;
   bgClass: string;
-  count?: number | string;
 }
 
 export interface WorkspaceItem {
@@ -448,13 +439,6 @@ function handleQuickAction() {
 
   .nav-text {
     flex: 1;
-  }
-
-  .count-pill {
-    font-size: 10.5px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 10px;
   }
 }
 

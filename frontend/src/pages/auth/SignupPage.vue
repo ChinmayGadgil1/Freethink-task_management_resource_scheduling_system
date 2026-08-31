@@ -1,6 +1,21 @@
 <template>
   <div class="q-px-md" style="width: 100%; max-width: 480px">
-    <q-card class="auth-card q-pa-xl">
+    <q-card class="auth-card q-pa-xl relative-position">
+      <!-- Back Navigation Button -->
+      <div class="absolute-top-left q-pa-md" style="z-index: 2">
+        <q-btn
+          flat
+          round
+          dense
+          icon="arrow_back"
+          :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+          aria-label="Go back"
+          @click="handleGoBack"
+        >
+          <q-tooltip>Back</q-tooltip>
+        </q-btn>
+      </div>
+
       <!-- Card Header -->
       <q-card-section class="text-center q-pb-md">
         <div class="text-h5 text-weight-bold auth-title">Create Account</div>
@@ -257,6 +272,14 @@ const handleSignup = async () => {
 
 const goToLogin = () => {
   void router.push('/login');
+};
+
+const handleGoBack = () => {
+  if (window.history.state?.back) {
+    router.back();
+  } else {
+    void router.push('/');
+  }
 };
 </script>
 

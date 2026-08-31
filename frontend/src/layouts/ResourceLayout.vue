@@ -121,15 +121,19 @@
       >
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
-            <q-icon name="event_busy" size="24px" color="primary" />
-            <div class="text-h6 text-weight-bold">My Non-Working Days</div>
+            <q-icon :name="isScheduleConfigured ? 'lock' : 'event_busy'" size="24px" color="primary" />
+            <div class="text-h6 text-weight-bold">My Work Schedule</div>
           </div>
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-card-section class="text-caption text-grey-6 q-pt-none">
-          Select your weekly non-working days (days off). Any day not selected is automatically
-          treated as a regular working day for task scheduling.
+          <span v-if="isScheduleConfigured">
+            Your weekly work schedule has been configured. View your non-working days and daily capacity below.
+          </span>
+          <span v-else>
+            Select your weekly non-working days (days off). This configuration is set once during setup. Any unmarked day is treated as a regular working day.
+          </span>
         </q-card-section>
 
         <q-separator />
@@ -139,20 +143,42 @@
         </q-card-section>
 
         <q-card-section v-else class="q-pt-md q-gutter-md">
-          <!-- Non-Working Days Selector -->
+          <!-- Locked Notice Banner for Configured Schedule -->
+          <q-banner
+            v-if="isScheduleConfigured"
+            rounded
+            class="q-pa-sm"
+            :class="$q.dark.isActive ? 'bg-grey-9 text-amber-3' : 'bg-amber-1 text-brown-9'"
+            style="border: 1px solid rgba(245, 158, 11, 0.3)"
+          >
+            <template #avatar>
+              <q-icon name="lock" color="amber-8" size="22px" />
+            </template>
+            <div class="text-weight-bold text-caption">Schedule Configuration Locked</div>
+            <div class="text-caption" style="font-size: 0.78rem">
+              🔒 Schedule configuration is locked after initial setup. Contact your Project Manager if your schedule needs to be changed.
+            </div>
+          </q-banner>
+
+          <!-- Non-Working Days Selector / Display -->
           <div>
             <div class="text-subtitle2 text-weight-bold q-mb-xs">
               Weekly Non-Working Days (Days Off)
             </div>
             <div class="text-caption text-grey-6 q-mb-sm">
-              Click days to mark them as non-working. Unmarked days are your active working days.
+              <span v-if="isScheduleConfigured">
+                Saved non-working days (days off) for scheduling:
+              </span>
+              <span v-else>
+                Click days to mark them as non-working. Unmarked days are your active working days.
+              </span>
             </div>
 
             <div class="row q-gutter-xs wrap">
               <q-chip
                 v-for="day in weekDayOptions"
                 :key="day.value"
-                clickable
+                :clickable="!isScheduleConfigured"
                 :color="
                   isNonWorkingDay(day.value)
                     ? 'deep-orange-7'
@@ -164,40 +190,34 @@
                   isNonWorkingDay(day.value) ? 'white' : $q.dark.isActive ? 'grey-4' : 'grey-8'
                 "
                 :icon="isNonWorkingDay(day.value) ? 'event_busy' : 'check_circle_outline'"
-                class="text-weight-bold cursor-pointer transition-all"
-                @click="toggleNonWorkingDay(day.value)"
+                :class="[
+                  'text-weight-bold transition-all',
+                  isScheduleConfigured ? 'cursor-default' : 'cursor-pointer'
+                ]"
+                @click="!isScheduleConfigured && toggleNonWorkingDay(day.value)"
               >
                 {{ day.label }}
               </q-chip>
             </div>
             <div
-              v-if="selectedNonWorkingDays.length >= 7"
+              v-if="!isScheduleConfigured && selectedNonWorkingDays.length >= 7"
               class="text-caption text-negative q-mt-xs"
             >
               * A resource must have at least one active working day.
             </div>
           </div>
 
-          <!-- Daily Working Hours Input -->
+          <!-- Fixed Daily Working Hours (Informational Only - No Slider) -->
           <div class="q-mt-sm">
             <div class="row items-center justify-between q-mb-xs">
-              <span class="text-subtitle2 text-weight-bold">Daily Standard Capacity</span>
-              <span class="text-weight-bold text-primary">{{ dailyHours }} Hours / Day</span>
+              <span class="text-subtitle2 text-weight-bold">Daily Working Capacity</span>
+              <q-badge color="primary" class="text-weight-bold q-px-sm q-py-xs" style="font-size: 0.85rem">
+                8 Hours / Day
+              </q-badge>
             </div>
-            <div class="text-caption text-grey-6 q-mb-sm">
-              Standard working hours capacity per working day (Default: 8.0h).
+            <div class="text-caption text-grey-6">
+              Standard fixed working capacity per working day (8.0 Hours / Day).
             </div>
-
-            <q-slider
-              v-model="dailyHours"
-              :min="1"
-              :max="16"
-              :step="0.5"
-              label
-              label-always
-              color="primary"
-              class="q-mt-md"
-            />
           </div>
 
           <!-- Schedule Summary Breakdown -->
@@ -228,7 +248,7 @@
               <div class="row items-center justify-between q-mt-xs">
                 <span class="text-weight-medium">Weekly Total Capacity:</span>
                 <span class="text-weight-bold text-teal">
-                  {{ (activeWorkingDays.length * dailyHours).toFixed(1) }} Hours / Week
+                  {{ (activeWorkingDays.length * 8.0).toFixed(1) }} Hours / Week
                 </span>
               </div>
             </div>
@@ -238,17 +258,29 @@
         <q-separator />
 
         <q-card-actions align="right" class="q-pa-md">
-          <q-btn flat label="Cancel" no-caps v-close-popup color="grey-7" />
-          <q-btn
-            unelevated
-            label="Save Settings"
-            color="primary"
-            no-caps
-            class="text-weight-bold q-px-md"
-            :loading="scheduleSubmitting"
-            :disable="selectedNonWorkingDays.length >= 7 || scheduleLoading"
-            @click="handleSaveScheduleConfig"
-          />
+          <template v-if="isScheduleConfigured">
+            <q-btn
+              unelevated
+              label="Close"
+              no-caps
+              v-close-popup
+              color="primary"
+              class="text-weight-bold q-px-lg"
+            />
+          </template>
+          <template v-else>
+            <q-btn flat label="Cancel" no-caps v-close-popup color="grey-7" />
+            <q-btn
+              unelevated
+              label="Save Settings"
+              color="primary"
+              no-caps
+              class="text-weight-bold q-px-md"
+              :loading="scheduleSubmitting"
+              :disable="selectedNonWorkingDays.length >= 7 || scheduleLoading"
+              @click="handleSaveScheduleConfig"
+            />
+          </template>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -384,6 +416,7 @@ const ALL_WEEK_DAYS: DayOfWeek[] = [
 const workingDaysDialog = ref(false);
 const scheduleLoading = ref(false);
 const scheduleSubmitting = ref(false);
+const isScheduleConfigured = ref(false);
 const selectedNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 const dailyHours = ref(8.0);
 
@@ -411,6 +444,7 @@ function isNonWorkingDay(day: DayOfWeek): boolean {
 }
 
 function toggleNonWorkingDay(day: DayOfWeek) {
+  if (isScheduleConfigured.value) return;
   if (selectedNonWorkingDays.value.includes(day)) {
     selectedNonWorkingDays.value = selectedNonWorkingDays.value.filter((d) => d !== day);
   } else {
@@ -424,7 +458,8 @@ async function openWorkingDaysDialog() {
   try {
     const config = await getResourceWorkScheduleApi('me');
     selectedNonWorkingDays.value = config.non_working_days || [];
-    dailyHours.value = config.daily_working_hours || 8.0;
+    isScheduleConfigured.value = Boolean(config.schedule_configured);
+    dailyHours.value = 8.0;
   } catch (error) {
     const err = error as Error;
     $q.notify({
@@ -437,6 +472,14 @@ async function openWorkingDaysDialog() {
 }
 
 async function handleSaveScheduleConfig() {
+  if (isScheduleConfigured.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Your working schedule has already been configured and cannot be changed.',
+    });
+    return;
+  }
+
   if (selectedNonWorkingDays.value.length >= 7) {
     $q.notify({
       type: 'warning',
@@ -447,10 +490,11 @@ async function handleSaveScheduleConfig() {
 
   scheduleSubmitting.value = true;
   try {
-    await updateResourceWorkScheduleApi('me', {
+    const updated = await updateResourceWorkScheduleApi('me', {
       non_working_days: selectedNonWorkingDays.value,
-      daily_working_hours: dailyHours.value,
     });
+    isScheduleConfigured.value = Boolean(updated.schedule_configured);
+    selectedNonWorkingDays.value = updated.non_working_days || [];
     $q.notify({
       type: 'positive',
       message: 'Schedule settings saved successfully',

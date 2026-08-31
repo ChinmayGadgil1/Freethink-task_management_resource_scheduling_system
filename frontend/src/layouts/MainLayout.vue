@@ -445,7 +445,6 @@ const pmNavItems = computed<SidebarNavItem[]>(() => [
     icon: 'task_alt',
     colorClass: 'text-teal',
     bgClass: 'bg-teal-soft',
-    count: tasks.value.length || '12',
   },
   {
     title: 'Resources',

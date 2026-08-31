@@ -31,7 +31,8 @@ export async function getResourceWorkSchedule(userId: number): Promise<ResourceS
             user_id,
             role,
             non_working_days,
-            daily_working_hours
+            daily_working_hours,
+            schedule_configured
         FROM users
         WHERE user_id = ?
         LIMIT 1
@@ -66,30 +67,52 @@ export async function getResourceWorkSchedule(userId: number): Promise<ResourceS
     // All days not present in non_working_days are automatically working days
     const workingDays = ALL_DAYS.filter(d => !nonWorkingDays.includes(d));
 
-    const dailyHours = row.daily_working_hours !== null && row.daily_working_hours !== undefined
-        ? Number(row.daily_working_hours)
-        : 8.0;
-
     return {
         user_id: userId,
         non_working_days: nonWorkingDays,
         working_days: workingDays,
-        daily_working_hours: dailyHours,
-        is_custom: isCustom
+        daily_working_hours: 8.0,
+        is_custom: isCustom,
+        schedule_configured: Boolean(row.schedule_configured)
     };
 }
 
 /**
- * Update resource non-working days and daily working hours in the users table.
- * PMs can update any resource, and resources can update their own schedule.
+ * Update resource non-working days and lock daily working hours to 8.00 in the users table.
+ * PMs can update any resource multiple times.
+ * Resources can configure their schedule ONLY ONCE; subsequent updates by a RESOURCE are rejected with 403.
  */
 export async function updateResourceWorkSchedule(
     userId: number,
-    data: UpdateResourceScheduleDTO
+    data: UpdateResourceScheduleDTO,
+    userRole?: string
 ): Promise<ResourceScheduleDTO> {
     const pool = getPool();
 
-    // 1. Validate non_working_days
+    // 1. Check if user exists, is a resource, and check one-time lock for RESOURCE role
+    const [userCheck] = await pool.query<RowDataPacket[]>(
+        `SELECT user_id, role, schedule_configured FROM users WHERE user_id = ?`,
+        [userId]
+    );
+    if (userCheck.length === 0) {
+        const error = new Error("Resource not found.");
+        (error as any).status = 404;
+        throw error;
+    }
+    if (userCheck[0]?.role !== "RESOURCE") {
+        const error = new Error("Only users with role RESOURCE can have a work schedule configured.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    // Backend enforcement: RESOURCE role can only configure schedule once
+    if (userRole === "RESOURCE" && Boolean(userCheck[0]?.schedule_configured)) {
+        const error = new Error("Your working schedule has already been configured and cannot be changed. Contact your Project Manager if your schedule needs to be changed.");
+        (error as any).status = 403;
+        throw error;
+    }
+
+    // 2. Validate non_working_days
     if (!Array.isArray(data.non_working_days)) {
         const error = new Error("non_working_days must be an array.");
         (error as any).status = 400;
@@ -112,70 +135,25 @@ export async function updateResourceWorkSchedule(
         throw error;
     }
 
-    // 2. Validate daily_working_hours if provided
-    let dailyHours: number | undefined;
-    if (data.daily_working_hours !== undefined) {
-        const hoursNum = Number(data.daily_working_hours);
-        if (isNaN(hoursNum) || hoursNum < 0.5 || hoursNum > 24) {
-            const error = new Error("daily_working_hours must be a number between 0.5 and 24 hours.");
-            (error as any).status = 400;
-            throw error;
-        }
-        dailyHours = hoursNum;
-    }
-
+    // 3. Daily capacity is strictly 8.00 hours (ignore/override any client input)
     const jsonString = JSON.stringify(uniqueNonWorkingDays);
 
-    let query: string;
-    let params: any[];
-
-    if (dailyHours !== undefined) {
-        query = `
-            UPDATE users
-            SET non_working_days = ?, daily_working_hours = ?
-            WHERE user_id = ? AND role = 'RESOURCE'
-        `;
-        params = [jsonString, dailyHours, userId];
-    } else {
-        query = `
-            UPDATE users
-            SET non_working_days = ?
-            WHERE user_id = ? AND role = 'RESOURCE'
-        `;
-        params = [jsonString, userId];
-    }
-
-    const [result] = await pool.query<ResultSetHeader>(query, params);
+    const [result] = await pool.query<ResultSetHeader>(
+        `
+        UPDATE users
+        SET non_working_days = ?, daily_working_hours = 8.00, schedule_configured = TRUE
+        WHERE user_id = ? AND role = 'RESOURCE'
+        `,
+        [jsonString, userId]
+    );
 
     if (result.affectedRows === 0) {
-        // Check if user exists and is a resource
-        const [userCheck] = await pool.query<RowDataPacket[]>(
-            `SELECT user_id, role, daily_working_hours FROM users WHERE user_id = ?`,
-            [userId]
-        );
-        if (userCheck.length === 0) {
-            const error = new Error("Resource not found.");
-            (error as any).status = 404;
-            throw error;
-        }
-        if (userCheck[0]?.role !== "RESOURCE") {
-            const error = new Error("Only users with role RESOURCE can have a work schedule configured.");
-            (error as any).status = 400;
-            throw error;
-        }
+        const error = new Error("Resource not found or failed to update schedule.");
+        (error as any).status = 404;
+        throw error;
     }
 
     const workingDays = ALL_DAYS.filter(d => !uniqueNonWorkingDays.includes(d));
-
-    // Fetch latest daily hours if not updated
-    let finalDailyHours = dailyHours;
-    if (finalDailyHours === undefined) {
-        const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT daily_working_hours FROM users WHERE user_id = ?`,
-            [userId]
-        );
-        finalDailyHours = rows[0]?.daily_working_hours ? Number(rows[0].daily_working_hours) : 8.0;
-    }
 
     // Recalculate schedules for all active projects this resource is assigned to or a member of
     try {
@@ -212,7 +190,8 @@ export async function updateResourceWorkSchedule(
         user_id: userId,
         non_working_days: uniqueNonWorkingDays,
         working_days: workingDays,
-        daily_working_hours: finalDailyHours,
-        is_custom: true
+        daily_working_hours: 8.0,
+        is_custom: true,
+        schedule_configured: true
     };
 }
