@@ -811,15 +811,15 @@ const modalDailyHours = ref(8.0);
 
 const activeWorkingDaysList = computed(() => {
   const rawNonWorking =
-    scheduleConfig.value?.non_working_days ?? resourceInfo.value?.non_working_days ?? [];
-  let nonWorking: string[] = [];
+    scheduleConfig.value?.non_working_days ?? resourceInfo.value?.non_working_days ?? ['SATURDAY', 'SUNDAY'];
+  let nonWorking: string[] = ['SATURDAY', 'SUNDAY'];
   if (Array.isArray(rawNonWorking)) {
     nonWorking = rawNonWorking;
   } else if (typeof rawNonWorking === 'string') {
     try {
       nonWorking = JSON.parse(rawNonWorking);
     } catch {
-      nonWorking = [];
+      nonWorking = ['SATURDAY', 'SUNDAY'];
     }
   }
   return ALL_WEEK_DAYS.filter((d) => !nonWorking.includes(d));
@@ -860,7 +860,9 @@ async function openScheduleDialog() {
   try {
     const config = await getResourceWorkScheduleApi(resourceId.value);
     scheduleConfig.value = config;
-    modalNonWorkingDays.value = config.non_working_days || [];
+    modalNonWorkingDays.value = Array.isArray(config.non_working_days)
+      ? config.non_working_days
+      : ['SATURDAY', 'SUNDAY'];
     modalDailyHours.value = 8.0;
   } catch (error) {
     const err = error as Error;

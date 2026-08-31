@@ -457,7 +457,9 @@ async function openWorkingDaysDialog() {
   scheduleLoading.value = true;
   try {
     const config = await getResourceWorkScheduleApi('me');
-    selectedNonWorkingDays.value = config.non_working_days || [];
+    selectedNonWorkingDays.value = Array.isArray(config.non_working_days)
+      ? config.non_working_days
+      : ['SATURDAY', 'SUNDAY'];
     isScheduleConfigured.value = Boolean(config.schedule_configured);
     dailyHours.value = 8.0;
   } catch (error) {

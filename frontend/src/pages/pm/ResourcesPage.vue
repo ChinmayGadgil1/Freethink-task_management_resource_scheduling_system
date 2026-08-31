@@ -966,7 +966,9 @@ async function openResourceScheduleDialog(resource: {
   scheduleModalLoading.value = true;
   try {
     const config = await getResourceWorkScheduleApi(targetId);
-    modalNonWorkingDays.value = config.non_working_days || [];
+    modalNonWorkingDays.value = Array.isArray(config.non_working_days)
+      ? config.non_working_days
+      : ['SATURDAY', 'SUNDAY'];
     modalDailyHours.value = 8.0;
   } catch (error) {
     const err = error as Error;
