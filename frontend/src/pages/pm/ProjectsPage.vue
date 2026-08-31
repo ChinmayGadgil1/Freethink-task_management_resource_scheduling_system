@@ -982,7 +982,11 @@
                   stack-label
                   :dark="$q.dark.isActive"
                   :rules="[
-                    (val) => !form.deadline || !val || val <= form.deadline || 'Start date cannot be after deadline',
+                    (val) =>
+                      !form.deadline ||
+                      !val ||
+                      val <= form.deadline ||
+                      'Start date cannot be after deadline',
                   ]"
                 />
               </div>
@@ -996,7 +1000,11 @@
                   stack-label
                   :dark="$q.dark.isActive"
                   :rules="[
-                    (val) => !form.start_date || !val || val >= form.start_date || 'Deadline cannot be before start date',
+                    (val) =>
+                      !form.start_date ||
+                      !val ||
+                      val >= form.start_date ||
+                      'Deadline cannot be before start date',
                   ]"
                 />
               </div>
@@ -1489,7 +1497,7 @@ async function handleCreateProject() {
   if (!userId) {
     $q.notify({
       type: 'negative',
-      message: 'Please sign in again',
+      message: 'Please login again',
     });
     return;
   }

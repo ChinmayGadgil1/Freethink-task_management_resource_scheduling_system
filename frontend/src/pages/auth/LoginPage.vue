@@ -74,7 +74,7 @@
             />
           </div>
 
-          <!-- Sign In Button -->
+          <!-- login Button -->
           <q-btn
             type="submit"
             unelevated
@@ -111,7 +111,7 @@
 import { reactive, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
-import { signinApi } from '@/services/api';
+import { loginApi } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
@@ -129,7 +129,7 @@ const loading = ref(false);
 const handleLogin = async () => {
   loading.value = true;
   try {
-    const data = await signinApi({
+    const data = await loginApi({
       identifier: form.identifier,
       password: form.password,
     });
@@ -143,7 +143,7 @@ const handleLogin = async () => {
     }
 
     const messageText = data.user?.name
-      ? `Signed in successfully! Welcome ${data.user.name}`
+      ? `Logged in successfully! Welcome ${data.user.name}`
       : data.message || 'LOg in successful!';
 
     sessionStorage.setItem('flashMessage', messageText);

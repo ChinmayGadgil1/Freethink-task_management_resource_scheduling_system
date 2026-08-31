@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Request, Response } from "express";
-import { signupUser, signinUser, resetPassword, requestPasswordReset, resetPasswordWithToken } from "../services/authService.js";
+import { signupUser, loginUser, resetPassword, requestPasswordReset, resetPasswordWithToken } from "../services/authService.js";
 
 
 const signupSchema = z.object({
@@ -18,7 +18,7 @@ const signupSchema = z.object({
     }),
 });
 
-const signinSchema = z.object({
+const loginSchema = z.object({
     identifier: z.string().min(1, "Username or Email is required").optional(),
     email: z.string().optional(),
     username: z.string().optional(),
@@ -87,12 +87,12 @@ export async function signup(
     }
 }
 
-export async function signin(req: Request, res: Response) {
+export async function login(req: Request, res: Response) {
     try {
-        const parsedData = signinSchema.parse(req.body);
+        const parsedData = loginSchema.parse(req.body);
         const loginIdentifier = (parsedData.identifier || parsedData.email || parsedData.username || "").trim();
 
-        const user = await signinUser(
+        const user = await loginUser(
             loginIdentifier,
             parsedData.password
         );
@@ -103,7 +103,7 @@ export async function signin(req: Request, res: Response) {
         });
     }
     catch (error: any) {
-        console.error("SignIn error", error);
+        console.error("Login error", error);
 
         if (error instanceof z.ZodError) {
             return res.status(400).json({

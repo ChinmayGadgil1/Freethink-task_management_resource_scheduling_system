@@ -93,7 +93,7 @@
             flat
             dense
             no-caps
-            label="Sign in"
+            label="login"
             class="q-pa-none text-weight-bold auth-login-link"
             @click="goToLogin"
           />

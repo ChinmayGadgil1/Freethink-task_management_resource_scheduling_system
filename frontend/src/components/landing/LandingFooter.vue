@@ -66,8 +66,8 @@
             <div class="col-6 col-sm-6">
               <h4 class="column-title">Account</h4>
               <ul class="footer-link-list">
-                <li><a href="javascript:void(0)" @click.prevent="goToLogin">Log in</a></li>
-                <li><a href="javascript:void(0)" @click.prevent="goToSignup">Sign up</a></li>
+                <li><a href="/login" @click.prevent="goToLogin">Log in</a></li>
+                <li><a href="/signup" @click.prevent="goToSignup">Sign up</a></li>
               </ul>
             </div>
           </div>

@@ -55,7 +55,7 @@ export async function signupUser(
   };
 }
 
-export async function signinUser(identifier: string, password: string) {
+export async function loginUser(identifier: string, password: string) {
   const pool = getPool();
 
   const isEmail = identifier.includes("@");

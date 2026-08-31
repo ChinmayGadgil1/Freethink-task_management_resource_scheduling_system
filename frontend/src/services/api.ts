@@ -11,7 +11,7 @@ export interface SignupPayload {
   role: 'PROJECT_MANAGER' | 'RESOURCE';
 }
 
-export interface SigninPayload {
+export interface LoginPayload {
   identifier?: string;
   email?: string;
   username?: string;
@@ -186,8 +186,8 @@ export async function signupApi(payload: SignupPayload) {
   return data;
 }
 
-export async function signinApi(payload: SigninPayload) {
-  const response = await fetch(`${AUTH_BASE_URL}/signin`, {
+export async function loginApi(payload: LoginPayload) {
+  const response = await fetch(`${AUTH_BASE_URL}/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -198,7 +198,7 @@ export async function signinApi(payload: SigninPayload) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Sign in failed');
+    throw new Error(data.message || 'Login failed');
   }
 
   return data;

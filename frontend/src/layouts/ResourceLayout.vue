@@ -99,7 +99,7 @@
                   <q-item-section avatar>
                     <q-icon name="logout" color="negative" />
                   </q-item-section>
-                  <q-item-section>Sign out</q-item-section>
+                  <q-item-section>logout</q-item-section>
                 </q-item>
               </q-list>
             </q-menu>
