@@ -635,6 +635,10 @@ function isSameDay(d1: Date, d2: Date): boolean {
 }
 
 function isWeekend(d: Date): boolean {
+  const avail = getDayAvailability(d);
+  if (avail) {
+    return avail.status === 'NON_WORKING_DAY';
+  }
   const day = d.getDay();
   return day === 0 || day === 6;
 }
