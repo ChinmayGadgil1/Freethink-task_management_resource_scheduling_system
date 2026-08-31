@@ -163,7 +163,7 @@
             </div>
             <div class="row items-center q-gutter-xs">
               <q-badge rounded color="grey-6" style="width: 8px; height: 8px" />
-              <span>Weekend (Off)</span>
+              <span>Non-Working Day (Off)</span>
             </div>
             <div class="row items-center q-gutter-xs">
               <q-badge rounded outline color="grey-7" style="width: 8px; height: 8px" />
@@ -178,10 +178,10 @@
             v-for="(day, idx) in weekDays"
             :key="day"
             class="weekday-col-header text-caption text-weight-bold"
-            :class="{ 'is-weekend-header': idx === 0 || idx === 6 }"
+            :class="{ 'is-weekend-header': isWeekdayHeaderNonWorking(idx) }"
             :style="{
               background:
-                idx === 0 || idx === 6
+                isWeekdayHeaderNonWorking(idx)
                   ? $q.dark.isActive
                     ? '#10141e'
                     : '#f1f5f9'
@@ -500,7 +500,9 @@ import {
   createHolidayApi,
   updateHolidayApi,
   deleteHolidayApi,
+  getResourceWorkScheduleApi,
   type HolidayItem,
+  type DayOfWeek,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -511,6 +513,29 @@ const isProjectManager = computed(() => authStore.user?.role === 'PROJECT_MANAGE
 const loading = ref(false);
 const viewMode = ref<'grid' | 'list'>('grid');
 const holidays = ref<HolidayItem[]>([]);
+const userNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
+
+const DAY_OF_WEEK_INDEX: Record<number, DayOfWeek> = {
+  0: 'SUNDAY',
+  1: 'MONDAY',
+  2: 'TUESDAY',
+  3: 'WEDNESDAY',
+  4: 'THURSDAY',
+  5: 'FRIDAY',
+  6: 'SATURDAY',
+};
+
+function isDateNonWorking(d: Date): boolean {
+  const dayName = DAY_OF_WEEK_INDEX[d.getDay()];
+  if (!dayName) return false;
+  return userNonWorkingDays.value.includes(dayName);
+}
+
+function isWeekdayHeaderNonWorking(dayIdx: number): boolean {
+  const dayName = DAY_OF_WEEK_INDEX[dayIdx];
+  if (!dayName) return false;
+  return userNonWorkingDays.value.includes(dayName);
+}
 
 // Calendar navigation state
 const currentYear = ref(new Date().getFullYear());
@@ -570,7 +595,7 @@ const calendarCells = computed<CalendarCell[]>(() => {
       dayNumber: dayNum,
       isCurrentMonth: false,
       isToday: dateKey === todayStr,
-      isWeekend: prevDate.getDay() === 0 || prevDate.getDay() === 6,
+      isWeekend: isDateNonWorking(prevDate),
       holiday: holidaysByDate.value.get(dateKey),
     });
   }
@@ -584,7 +609,7 @@ const calendarCells = computed<CalendarCell[]>(() => {
       dayNumber: day,
       isCurrentMonth: true,
       isToday: dateKey === todayStr,
-      isWeekend: curDate.getDay() === 0 || curDate.getDay() === 6,
+      isWeekend: isDateNonWorking(curDate),
       holiday: holidaysByDate.value.get(dateKey),
     });
   }
@@ -600,7 +625,7 @@ const calendarCells = computed<CalendarCell[]>(() => {
         dayNumber: day,
         isCurrentMonth: false,
         isToday: dateKey === todayStr,
-        isWeekend: nextDate.getDay() === 0 || nextDate.getDay() === 6,
+        isWeekend: isDateNonWorking(nextDate),
         holiday: holidaysByDate.value.get(dateKey),
       });
     }
@@ -849,8 +874,22 @@ const columns = computed<QTableColumn[]>(() => {
   return baseCols;
 });
 
+async function loadUserData() {
+  if (authStore.user?.role === 'RESOURCE') {
+    try {
+      const schedule = await getResourceWorkScheduleApi('me');
+      if (schedule && Array.isArray(schedule.non_working_days)) {
+        userNonWorkingDays.value = schedule.non_working_days;
+      }
+    } catch (e) {
+      console.error('Failed to load user schedule in calendar:', e);
+    }
+  }
+}
+
 onMounted(() => {
   void loadHolidays();
+  void loadUserData();
 });
 </script>
 
