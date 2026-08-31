@@ -116,6 +116,7 @@
         >
           <q-tab name="tasks" icon="task_alt" label="Assigned Tasks" />
           <q-tab name="projects" icon="folder_open" label="Projects" />
+          <q-tab name="gantt" icon="timeline" label="Gantt Timeline" />
           <q-tab name="availability" icon="event_available" label="Daily Availability" />
           <q-tab name="workload" icon="speed" label="Capacity & Workload" />
           <q-tab name="leaves" icon="event_busy" label="Leaves & Time Off" />
@@ -233,7 +234,31 @@
             </div>
           </q-tab-panel>
 
-          <!-- TAB 3: DAILY AVAILABILITY -->
+          <!-- TAB 3: GANTT TIMELINE -->
+          <q-tab-panel name="gantt" class="q-pa-md">
+            <div class="row items-center justify-between q-mb-md">
+              <div>
+                <div class="text-h6 text-weight-bold">Gantt Timeline: {{ resourceName }}</div>
+                <div class="text-caption text-grey-6">
+                  Schedule timeline for tasks under your managed projects.
+                </div>
+              </div>
+              <q-chip dense color="deep-purple-1" text-color="primary">
+                {{ resourceGanttTasks.length }} Scheduled Tasks
+              </q-chip>
+            </div>
+
+            <DhtmlxGanttTimeline
+              :tasks="resourceGanttTasks"
+              :projects="allProjects"
+              :resources="resourceInfo ? [resourceInfo] : []"
+              :title="`Schedule Roadmap: ${resourceName}`"
+              :group-by-project="false"
+              @task-click="handleGanttTaskClick"
+            />
+          </q-tab-panel>
+
+          <!-- TAB 4: DAILY AVAILABILITY -->
           <q-tab-panel name="availability" class="q-pa-md">
             <ResourceAvailabilityCalendar
               v-if="resourceId"
@@ -649,9 +674,22 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <!-- TASK DETAILS POPUP DIALOG -->
+      <TaskDetailsDialog
+        v-model="showTaskDetailsDialog"
+        :task="selectedTaskDetails"
+        :project-name="selectedTaskDetails ? getProjectName(selectedTaskDetails.project_id) : ''"
+        :resource-names-map="resourceNamesMap"
+        :allow-unassign="false"
+        :allow-assign-member="false"
+        :allow-add-dependency="false"
+        :show-dependencies="false"
+      />
     </template>
   </q-page>
 </template>
+
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
@@ -660,12 +698,15 @@ import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import { getInitials, formatHours, formatNumber } from '@/utils/formatters';
 import ResourceAvailabilityCalendar from '@/components/resource/ResourceAvailabilityCalendar.vue';
+import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
+import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
 import {
   createTaskApi,
   getProjectsApi,
   getResourceByIdApi,
   getResourceProjectsApi,
   getResourceWorkloadApi,
+  getResourceScheduleDataApi,
   getTasksApi,
   getLeavesApi,
   createLeaveApi,
@@ -676,6 +717,7 @@ import {
   type ResourceUser,
   type Task,
   type ResourceWorkload,
+  type ResourceScheduleResponse,
   type LeaveItem,
   type DayOfWeek,
   type ResourceScheduleConfig,
@@ -819,6 +861,38 @@ const allTasks = ref<Task[]>([]);
 const allProjects = ref<Project[]>([]);
 const directMemberProjects = ref<Project[]>([]);
 const backendWorkload = ref<ResourceWorkload | null>(null);
+const resourceScheduleData = ref<ResourceScheduleResponse | null>(null);
+const resourceGanttTasks = computed(() => resourceScheduleData.value?.tasks || []);
+
+const showTaskDetailsDialog = ref(false);
+const selectedTaskDetails = ref<Task | null>(null);
+
+const resourceNamesMap = computed(() => {
+  const map: Record<number, string> = {};
+  if (resourceInfo.value) {
+    map[resourceInfo.value.user_id] = resourceInfo.value.name;
+  }
+  return map;
+});
+
+function getProjectName(projectId?: number) {
+  if (!projectId) return 'Other Project';
+  const p = allProjects.value.find((proj) => proj.project_id === projectId);
+  return p ? p.name : `Project #${projectId}`;
+}
+
+function handleGanttTaskClick(task: Task) {
+  if (task.is_external) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message: 'This task belongs to another project not managed by you. Detailed information is private.',
+    });
+    return;
+  }
+  selectedTaskDetails.value = task;
+  showTaskDetailsDialog.value = true;
+}
 
 const showAssignDialog = ref(false);
 const submitting = ref(false);
@@ -875,15 +949,17 @@ const taskColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tasks, projects, workload, resUser, memberProjs, leaves, sched] = await Promise.all([
-      getTasksApi(),
-      getProjectsApi(),
-      getResourceWorkloadApi(resourceId.value).catch(() => null),
-      getResourceByIdApi(resourceId.value).catch(() => null),
-      getResourceProjectsApi(resourceId.value).catch(() => []),
-      getLeavesApi({ user_id: resourceId.value }).catch(() => []),
-      getResourceWorkScheduleApi(resourceId.value).catch(() => null),
-    ]);
+    const [tasks, projects, workload, resUser, memberProjs, leaves, sched, schedData] =
+      await Promise.all([
+        getTasksApi(),
+        getProjectsApi(),
+        getResourceWorkloadApi(resourceId.value).catch(() => null),
+        getResourceByIdApi(resourceId.value).catch(() => null),
+        getResourceProjectsApi(resourceId.value).catch(() => []),
+        getLeavesApi({ user_id: resourceId.value }).catch(() => []),
+        getResourceWorkScheduleApi(resourceId.value).catch(() => null),
+        getResourceScheduleDataApi(resourceId.value).catch(() => null),
+      ]);
     allTasks.value = tasks;
     allProjects.value = projects;
     directMemberProjects.value = memberProjs;
@@ -896,6 +972,9 @@ async function loadData() {
     }
     if (sched) {
       scheduleConfig.value = sched;
+    }
+    if (schedData) {
+      resourceScheduleData.value = schedData;
     }
     if (projects.length > 0) {
       assignForm.project_id = projects[0]!.project_id;

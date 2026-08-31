@@ -718,6 +718,7 @@ import {
   createTaskApi,
   updateTaskApi,
   getProjectScheduleDataApi,
+  getResourceScheduleDataApi,
   type Project,
   type Task,
   type ResourceUser,
@@ -1135,15 +1136,27 @@ async function loadData() {
   }
 }
 
-watch(projectFilter, async (newVal) => {
-  if (newVal !== 'ALL') {
+watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
+  if (newAssignee !== 'ALL') {
     try {
-      const scheduleRes = await getProjectScheduleDataApi(Number(newVal));
+      const resSchedule = await getResourceScheduleDataApi(Number(newAssignee));
+      if (resSchedule && resSchedule.tasks) {
+        tasks.value = resSchedule.tasks;
+        return;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  if (newProj !== 'ALL') {
+    try {
+      const scheduleRes = await getProjectScheduleDataApi(Number(newProj));
       if (scheduleRes && scheduleRes.tasks) {
         tasks.value = scheduleRes.tasks;
       }
     } catch {
-      tasks.value = await getTasksApi(Number(newVal)).catch(() => tasks.value);
+      tasks.value = await getTasksApi(Number(newProj)).catch(() => tasks.value);
     }
   } else {
     tasks.value = await getTasksApi().catch(() => tasks.value);
@@ -1172,7 +1185,8 @@ const filteredTasks = computed(() => {
       pName.includes(q) ||
       (t.description && t.description.toLowerCase().includes(q));
 
-    const matchesProject = projectFilter.value === 'ALL' || t.project_id === projectFilter.value;
+    const matchesProject =
+      projectFilter.value === 'ALL' || t.project_id === projectFilter.value;
     const matchesStatus = statusFilter.value === 'ALL' || t.status === statusFilter.value;
     const matchesPriority = priorityFilter.value === 'ALL' || t.priority === priorityFilter.value;
 
@@ -1193,6 +1207,14 @@ function getProjectName(projectId: number): string {
 // Details Modal, Create & Edit Handlers
 // ----------------------------------------------------
 function openTaskDetailsDialog(task: Task) {
+  if (task.is_external) {
+    $q.notify({
+      type: 'info',
+      icon: 'lock',
+      message: 'This task belongs to another project not managed by you. Detailed information is private.',
+    });
+    return;
+  }
   selectedTaskDetails.value = task;
   showTaskDetailsDialog.value = true;
 }

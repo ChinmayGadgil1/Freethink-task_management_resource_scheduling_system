@@ -294,7 +294,13 @@ export async function getResourceWorkloadController(req: AuthRequest<{ resourceI
             return res.status(403).json({ message: "Resource cannot view other resources' workload" });
         }
 
-        const workload = await getResourceWorkload(resourceId);
+        let pmProjectIds: Set<number> | undefined = undefined;
+        if (userRole === "PROJECT_MANAGER") {
+            const pmProjects = await getProjectsByManager(userId);
+            pmProjectIds = new Set(pmProjects.map(p => Number(p.project_id)));
+        }
+
+        const workload = await getResourceWorkload(resourceId, pmProjectIds);
         return res.status(200).json(workload);
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
