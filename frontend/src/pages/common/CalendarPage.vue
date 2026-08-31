@@ -172,113 +172,104 @@
           </div>
         </q-card-section>
 
-        <!-- Days of Week Header (SUN - SAT) -->
-        <div class="calendar-weekdays-header">
-          <div
-            v-for="(day, idx) in weekDays"
-            :key="day"
-            class="weekday-col-header text-caption text-weight-bold"
-            :class="{ 'is-weekend-header': isWeekdayHeaderNonWorking(idx) }"
-            :style="{
-              background:
-                isWeekdayHeaderNonWorking(idx)
-                  ? $q.dark.isActive
-                    ? '#10141e'
-                    : '#f1f5f9'
-                  : $q.dark.isActive
-                    ? '#131722'
-                    : '#f8fafc',
-              color: $q.dark.isActive ? '#94a3b8' : '#64748b',
-              borderBottom: $q.dark.isActive
-                ? '1px solid rgba(255,255,255,0.08)'
-                : '1px solid #e2e8f0',
-            }"
-          >
-            {{ day }}
-          </div>
-        </div>
+        <!-- Quasar QCalendar Month Component -->
+        <q-calendar-month
+          ref="calendarRef"
+          v-model="selectedDate"
+          :dark="$q.dark.isActive"
+          :bordered="false"
+          :hoverable="true"
+          :focusable="true"
+          :day-min-height="115"
+          :weekdays="[0, 1, 2, 3, 4, 5, 6]"
+          class="q-calendar-custom"
+        >
+          <template #day="{ scope: { timestamp } }">
+            <div
+              class="calendar-day-content full-height column justify-between"
+              :class="{
+                'is-weekend-day': isDateKeyNonWorking(timestamp.date, timestamp.weekday),
+                'is-today-day': timestamp.current,
+                'is-outside': timestamp.outside,
+                'has-holiday-day': !!holidaysByDate.get(timestamp.date),
+              }"
+              @click="onDayClick(timestamp.date)"
+            >
+              <!-- Cell Top: Day Number & Add Action -->
+              <div class="row items-center justify-between q-mb-xs">
+                <div class="row items-center q-gutter-xs">
+                  <span
+                    class="day-number-badge"
+                    :class="{
+                      'today-highlight': timestamp.current,
+                      'text-grey-6':
+                        isDateKeyNonWorking(timestamp.date, timestamp.weekday) &&
+                        !timestamp.current,
+                    }"
+                  >
+                    {{ timestamp.day }}
+                  </span>
 
-        <!-- Calendar Month Days Grid -->
-        <div class="calendar-days-grid">
-          <div
-            v-for="cell in calendarCells"
-            :key="cell.dateKey"
-            class="calendar-day-cell"
-            :class="{
-              'is-other-month': !cell.isCurrentMonth,
-              'is-today': cell.isToday,
-              'is-weekend': cell.isWeekend,
-              'has-holiday': !!cell.holiday,
-            }"
-            @click="onCellClick(cell)"
-          >
-            <!-- Cell Top: Day Number & Add Action -->
-            <div class="row items-center justify-between q-mb-xs">
-              <div class="row items-center q-gutter-xs">
-                <span
-                  class="day-number-badge"
-                  :class="{
-                    'today-highlight': cell.isToday,
-                    'text-grey-6': cell.isWeekend && !cell.isToday,
-                  }"
-                >
-                  {{ cell.dayNumber }}
-                </span>
+                  <q-badge
+                    v-if="
+                      isDateKeyNonWorking(timestamp.date, timestamp.weekday) && !timestamp.outside
+                    "
+                    :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                    :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                    class="text-weight-bold"
+                    style="font-size: 9px; padding: 1px 4px"
+                  >
+                    OFF
+                  </q-badge>
+                </div>
 
-                <q-badge
-                  v-if="cell.isWeekend && cell.isCurrentMonth"
-                  :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                  :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                  class="text-weight-bold"
-                  style="font-size: 9px; padding: 1px 4px"
+                <!-- Quick Add (+) on Hover for PMs -->
+                <q-btn
+                  v-if="isProjectManager && !holidaysByDate.get(timestamp.date)"
+                  flat
+                  round
+                  dense
+                  icon="add"
+                  size="xs"
+                  color="primary"
+                  class="quick-add-btn"
+                  @click.stop="openAddHolidayDialog(timestamp.date)"
                 >
-                  OFF
-                </q-badge>
+                  <q-tooltip>Add holiday on {{ timestamp.date }}</q-tooltip>
+                </q-btn>
               </div>
 
-              <!-- Quick Add (+) on Hover for PMs -->
-              <q-btn
-                v-if="isProjectManager && !cell.holiday"
-                flat
-                round
-                dense
-                icon="add"
-                size="xs"
-                color="primary"
-                class="quick-add-btn"
-                @click.stop="openAddHolidayDialog(cell.dateKey)"
-              >
-                <q-tooltip>Add holiday on {{ cell.dateKey }}</q-tooltip>
-              </q-btn>
-            </div>
+              <!-- Cell Center / Holiday Badge -->
+              <div class="col column justify-start" style="min-width: 0">
+                <div
+                  v-if="holidaysByDate.get(timestamp.date)"
+                  class="holiday-badge-card"
+                  :class="{ 'is-clickable': isProjectManager }"
+                  @click.stop="onHolidayClick(holidaysByDate.get(timestamp.date)!)"
+                >
+                  <div class="row items-start justify-between no-wrap">
+                    <div class="row items-start no-wrap q-gutter-xs" style="min-width: 0; flex: 1">
+                      <span class="holiday-indicator-dot q-mt-xs"></span>
+                      <span
+                        class="holiday-title-text"
+                        :title="holidaysByDate.get(timestamp.date)!.description"
+                      >
+                        {{ holidaysByDate.get(timestamp.date)!.description }}
+                      </span>
+                    </div>
 
-            <!-- Cell Center / Holiday Badge -->
-            <div class="col column justify-start" style="min-width: 0">
-              <div
-                v-if="cell.holiday"
-                class="holiday-badge-card"
-                :class="{ 'is-clickable': isProjectManager }"
-                @click.stop="onHolidayClick(cell.holiday)"
-              >
-                <div class="row items-start justify-between no-wrap">
-                  <div class="row items-start no-wrap q-gutter-xs" style="min-width: 0; flex: 1">
-                    <span class="holiday-indicator-dot q-mt-xs"></span>
-                    <span class="holiday-title-text" :title="cell.holiday.description">
-                      {{ cell.holiday.description }}
-                    </span>
+                    <q-icon
+                      v-if="isProjectManager"
+                      name="edit"
+                      size="12px"
+                      class="q-ml-xs q-mt-xs flex-shrink-0"
+                    />
                   </div>
-
-                  <q-icon
-                    v-if="isProjectManager"
-                    name="edit"
-                    size="12px"
-                    class="q-ml-xs q-mt-xs flex-shrink-0"
-                  />
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </q-calendar-month>
       </q-card>
 
       <!-- 3. LIST / TABLE VIEW -->
@@ -494,6 +485,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
+import { QCalendarMonth } from '@quasar/quasar-ui-qcalendar';
+import '@quasar/quasar-ui-qcalendar/dist/QCalendarMonth.min.css';
 import { useAuthStore } from '@/stores/auth';
 import {
   getHolidaysApi,
@@ -515,6 +508,15 @@ const viewMode = ref<'grid' | 'list'>('grid');
 const holidays = ref<HolidayItem[]>([]);
 const userNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 
+interface QCalendarMonthInstance {
+  prev: () => void;
+  next: () => void;
+  moveToToday: () => void;
+}
+
+const calendarRef = ref<QCalendarMonthInstance | null>(null);
+const selectedDate = ref(formatDate(new Date()));
+
 const DAY_OF_WEEK_INDEX: Record<number, DayOfWeek> = {
   0: 'SUNDAY',
   1: 'MONDAY',
@@ -531,17 +533,25 @@ function isDateNonWorking(d: Date): boolean {
   return userNonWorkingDays.value.includes(dayName);
 }
 
-function isWeekdayHeaderNonWorking(dayIdx: number): boolean {
-  const dayName = DAY_OF_WEEK_INDEX[dayIdx];
-  if (!dayName) return false;
-  return userNonWorkingDays.value.includes(dayName);
+function isDateKeyNonWorking(dateStr: string, weekday?: number): boolean {
+  if (weekday !== undefined) {
+    const dayName = DAY_OF_WEEK_INDEX[weekday];
+    if (dayName) return userNonWorkingDays.value.includes(dayName);
+  }
+  const cleanStr = dateStr.includes('T') ? dateStr.split('T')[0]! : dateStr;
+  const d = new Date(`${cleanStr}T00:00:00`);
+  return isDateNonWorking(d);
 }
 
-// Calendar navigation state
-const currentYear = ref(new Date().getFullYear());
-const currentMonth = ref(new Date().getMonth()); // 0-11
+const currentYear = computed(() => {
+  if (!selectedDate.value) return new Date().getFullYear();
+  return parseInt(selectedDate.value.split('-')[0]!, 10);
+});
 
-const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const currentMonth = computed(() => {
+  if (!selectedDate.value) return new Date().getMonth();
+  return parseInt(selectedDate.value.split('-')[1]!, 10) - 1;
+});
 
 const currentMonthName = computed(() => {
   const date = new Date(currentYear.value, currentMonth.value, 1);
@@ -562,76 +572,6 @@ const currentMonthHolidaysCount = computed(() => {
   const monthStr = String(currentMonth.value + 1).padStart(2, '0');
   const prefix = `${currentYear.value}-${monthStr}`;
   return holidays.value.filter((h) => h.holiday_date.startsWith(prefix)).length;
-});
-
-// Generate 35-42 calendar grid cells for current month view
-interface CalendarCell {
-  dateKey: string;
-  dayNumber: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  isWeekend: boolean;
-  holiday?: HolidayItem | undefined;
-}
-
-const calendarCells = computed<CalendarCell[]>(() => {
-  const cells: CalendarCell[] = [];
-  const year = currentYear.value;
-  const month = currentMonth.value;
-
-  const todayStr = formatDate(new Date());
-
-  const firstDayIndex = new Date(year, month, 1).getDay();
-  const lastDateOfMonth = new Date(year, month + 1, 0).getDate();
-  const lastDateOfPrevMonth = new Date(year, month, 0).getDate();
-
-  // 1. Previous month trailing days
-  for (let i = firstDayIndex - 1; i >= 0; i--) {
-    const dayNum = lastDateOfPrevMonth - i;
-    const prevDate = new Date(year, month - 1, dayNum);
-    const dateKey = formatDate(prevDate);
-    cells.push({
-      dateKey,
-      dayNumber: dayNum,
-      isCurrentMonth: false,
-      isToday: dateKey === todayStr,
-      isWeekend: isDateNonWorking(prevDate),
-      holiday: holidaysByDate.value.get(dateKey),
-    });
-  }
-
-  // 2. Current month days
-  for (let day = 1; day <= lastDateOfMonth; day++) {
-    const curDate = new Date(year, month, day);
-    const dateKey = formatDate(curDate);
-    cells.push({
-      dateKey,
-      dayNumber: day,
-      isCurrentMonth: true,
-      isToday: dateKey === todayStr,
-      isWeekend: isDateNonWorking(curDate),
-      holiday: holidaysByDate.value.get(dateKey),
-    });
-  }
-
-  // 3. Next month leading days to complete grid (multiples of 7)
-  const remaining = 7 - (cells.length % 7);
-  if (remaining < 7) {
-    for (let day = 1; day <= remaining; day++) {
-      const nextDate = new Date(year, month + 1, day);
-      const dateKey = formatDate(nextDate);
-      cells.push({
-        dateKey,
-        dayNumber: day,
-        isCurrentMonth: false,
-        isToday: dateKey === todayStr,
-        isWeekend: isDateNonWorking(nextDate),
-        holiday: holidaysByDate.value.get(dateKey),
-      });
-    }
-  }
-
-  return cells;
 });
 
 function formatDate(d: Date): string {
@@ -662,27 +602,28 @@ function validateDate(val: string): boolean | string {
 }
 
 function prevMonth() {
-  if (currentMonth.value === 0) {
-    currentMonth.value = 11;
-    currentYear.value--;
+  if (calendarRef.value) {
+    calendarRef.value.prev();
   } else {
-    currentMonth.value--;
+    const cur = new Date(currentYear.value, currentMonth.value - 1, 1);
+    selectedDate.value = formatDate(cur);
   }
 }
 
 function nextMonth() {
-  if (currentMonth.value === 11) {
-    currentMonth.value = 0;
-    currentYear.value++;
+  if (calendarRef.value) {
+    calendarRef.value.next();
   } else {
-    currentMonth.value++;
+    const cur = new Date(currentYear.value, currentMonth.value + 1, 1);
+    selectedDate.value = formatDate(cur);
   }
 }
 
 function goToToday() {
-  const today = new Date();
-  currentYear.value = today.getFullYear();
-  currentMonth.value = today.getMonth();
+  selectedDate.value = formatDate(new Date());
+  if (calendarRef.value) {
+    calendarRef.value.moveToToday();
+  }
 }
 
 async function loadHolidays() {
@@ -737,12 +678,13 @@ function openEditHolidayDialog(holiday: HolidayItem) {
   };
 }
 
-function onCellClick(cell: CalendarCell) {
+function onDayClick(dateKey: string) {
   if (!isProjectManager.value) return;
-  if (cell.holiday) {
-    openEditHolidayDialog(cell.holiday);
+  const holiday = holidaysByDate.value.get(dateKey);
+  if (holiday) {
+    openEditHolidayDialog(holiday);
   } else {
-    openAddHolidayDialog(cell.dateKey);
+    openAddHolidayDialog(dateKey);
   }
 }
 
@@ -898,63 +840,89 @@ onMounted(() => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.calendar-weekdays-header {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+.q-calendar-custom {
   width: 100%;
+
+  :deep(.q-calendar-month__head) {
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    background: #f8fafc;
+    border-bottom: 1px solid #cbd5e1;
+  }
+
+  :deep(.q-calendar-month__head--weekday) {
+    border-right: 1px solid #cbd5e1 !important;
+    padding: 10px 0;
+    text-align: center;
+    &:last-child {
+      border-right: none !important;
+    }
+  }
+
+  :deep(.q-calendar-month__week--wrapper) {
+    border-bottom: 1px solid #cbd5e1 !important;
+    &:last-child {
+      border-bottom: none !important;
+    }
+  }
+
+  :deep(.q-calendar-month__day) {
+    padding: 0;
+    vertical-align: top;
+    border-right: 1px solid #cbd5e1 !important;
+    background: #ffffff;
+
+    &:last-child {
+      border-right: none !important;
+    }
+  }
+
+  /* Hide QCalendar default date label wrapper so date number is not duplicated */
+  :deep(.q-calendar-month__day--label__wrapper) {
+    display: none !important;
+  }
+
+  :deep(.q-calendar-month__day--disabled),
+  :deep(.q-calendar-month__day--outside) {
+    opacity: 1;
+  }
 }
 
-.weekday-col-header {
-  padding: 10px 4px;
-  text-align: center;
-  font-size: 11.5px;
-  letter-spacing: 0.04em;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.calendar-days-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-auto-rows: minmax(118px, 1fr);
-  width: 100%;
-}
-
-.calendar-day-cell {
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+.calendar-day-content {
   padding: 8px;
-  display: flex;
-  flex-direction: column;
-  background: transparent;
-  min-width: 0;
-  overflow: hidden;
+  min-height: 120px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
   transition: background 0.12s ease;
+  cursor: pointer;
 
-  &:nth-child(7n) {
-    border-right: none;
-  }
   &:hover {
-    background: rgba(0, 0, 0, 0.02);
+    background: #f1f5f9;
   }
-  &.is-weekend {
-    background: rgba(0, 0, 0, 0.03);
+  &.is-weekend-day {
+    background: #f8fafc;
   }
-  &.is-other-month {
-    opacity: 0.4;
+  &.is-outside {
+    background: #f8fafc;
+    opacity: 0.55;
+    .day-number-badge {
+      color: #94a3b8 !important;
+    }
   }
-  &.is-today {
-    background: rgba(59, 130, 246, 0.08);
+  &.is-today-day {
+    background: #eff6ff;
     outline: 2px solid var(--q-primary);
     outline-offset: -2px;
   }
-  &.has-holiday {
-    background: rgba(245, 158, 11, 0.06);
+  &.has-holiday-day {
+    background: #fffbeb;
   }
 }
 
 .day-number-badge {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   width: 24px;
   height: 24px;
@@ -974,7 +942,7 @@ onMounted(() => {
   transition: opacity 0.12s ease;
 }
 
-.calendar-day-cell:hover .quick-add-btn {
+.calendar-day-content:hover .quick-add-btn {
   opacity: 1;
 }
 
@@ -1018,27 +986,70 @@ onMounted(() => {
 
 body.body--dark {
   .border-bottom {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
   }
-  .calendar-day-cell {
-    border-color: rgba(255, 255, 255, 0.08);
+
+  .q-calendar-custom {
+    :deep(.q-calendar-month__head) {
+      background: #181d28;
+      border-bottom: 1px solid #334155 !important;
+      color: #94a3b8;
+    }
+
+    :deep(.q-calendar-month__head--weekday) {
+      border-right: 1px solid #334155 !important;
+      &:last-child {
+        border-right: none !important;
+      }
+    }
+
+    :deep(.q-calendar-month__week--wrapper) {
+      border-bottom: 1px solid #334155 !important;
+      &:last-child {
+        border-bottom: none !important;
+      }
+    }
+
+    :deep(.q-calendar-month__day) {
+      border-right: 1px solid #334155 !important;
+      background: #11151f;
+
+      &:last-child {
+        border-right: none !important;
+      }
+    }
+  }
+
+  .calendar-day-content {
+    background: #11151f;
+
     &:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.05);
     }
-    &.is-weekend {
-      background: #10141e;
+    &.is-weekend-day {
+      background: #161c28;
     }
-    &.is-other-month {
-      background: #0d1017;
+    &.is-outside {
+      background: #0c0f16;
+      opacity: 0.5;
+      .day-number-badge {
+        color: #475569 !important;
+      }
     }
-    &.has-holiday {
-      background: rgba(245, 158, 11, 0.08);
+    &.is-today-day {
+      background: rgba(59, 130, 246, 0.14);
+      outline: 2px solid #3b82f6;
+      outline-offset: -2px;
+    }
+    &.has-holiday-day {
+      background: rgba(245, 158, 11, 0.1);
     }
   }
+
   .holiday-badge-card {
-    background: rgba(245, 158, 11, 0.12);
+    background: rgba(245, 158, 11, 0.16);
     color: #fbbf24;
-    border-color: rgba(245, 158, 11, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.35);
     border-left: 3px solid #f59e0b;
   }
 }
