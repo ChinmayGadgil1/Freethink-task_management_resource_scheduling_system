@@ -1264,7 +1264,9 @@
                 :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
               >
                 Progress
-                <span class="text-primary text-weight-bold"> {{ stopSessionForm.progress_logged }}% </span>
+                <span class="text-primary text-weight-bold">
+                  {{ stopSessionForm.progress_logged }}%
+                </span>
               </div>
               <div class="row items-center q-gutter-xs">
                 <span class="text-caption text-grey-6 text-weight-medium">Status:</span>
@@ -1519,11 +1521,13 @@ import {
   getWorkLogsApi,
   getTaskActiveSessionsApi, // Added API to fetch live active sessions of co-assigned resources
   updateTaskApi,
-  type CreateWorkLogPayload,
-  type Project,
-  type Task,
-  type TaskSession, // Added TaskSession type for active session states
-  type WorkLog,
+} from '@/services/api';
+import type {
+  CreateWorkLogPayload,
+  Project,
+  Task,
+  TaskSession, // Added TaskSession type for active session states
+  WorkLog,
 } from '@/services/api';
 
 import { Notify, useQuasar } from 'quasar';

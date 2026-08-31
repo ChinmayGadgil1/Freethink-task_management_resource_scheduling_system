@@ -464,7 +464,6 @@ export async function getResourceScheduleDataApi(
   return data;
 }
 
-
 export async function assignProjectMemberApi(projectId: number, userId: number) {
   const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}/members`, {
     method: 'POST',

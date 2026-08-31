@@ -4,9 +4,7 @@
     <div class="page-header-row">
       <div class="header-left">
         <div class="page-title">Schedule</div>
-        <div class="page-subtitle">
-          Plan and track your work across projects and milestones
-        </div>
+        <div class="page-subtitle">Plan and track your work across projects and milestones</div>
       </div>
 
       <div class="header-actions row items-center q-gutter-sm">
@@ -376,9 +374,7 @@
     <q-card v-else-if="scheduleViewMode === 'table'" flat bordered class="table-card">
       <q-card-section class="row items-center justify-between q-pb-sm">
         <div>
-          <div class="text-subtitle1 text-weight-bold text-dark">
-            Schedule Breakdown
-          </div>
+          <div class="text-subtitle1 text-weight-bold text-dark">Schedule Breakdown</div>
           <div class="text-caption text-grey-6">
             Detailed timeline records for all {{ filteredTasks.length }} tasks
           </div>
@@ -488,7 +484,9 @@
             <div class="progress-cell-wrapper">
               <div class="progress-label-row row justify-between">
                 <span class="text-weight-bold">{{ Number(props.row.progress) || 0 }}%</span>
-                <span class="text-caption text-grey-6">{{ Number(props.row.actual_effort) || 0 }}h logged</span>
+                <span class="text-caption text-grey-6"
+                  >{{ Number(props.row.actual_effort) || 0 }}h logged</span
+                >
               </div>
               <q-linear-progress
                 :value="(Number(props.row.progress) || 0) / 100"
@@ -881,7 +879,13 @@ const tableColumns: QTableColumn<Task>[] = [
   { name: 'project', label: 'Project', field: 'project_name', align: 'left', sortable: true },
   { name: 'priority', label: 'Priority', field: 'priority', align: 'center', sortable: true },
   { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true },
-  { name: 'dates', label: 'Timeline Dates', field: (row) => row.planned_start, align: 'left', sortable: true },
+  {
+    name: 'dates',
+    label: 'Timeline Dates',
+    field: (row) => row.planned_start,
+    align: 'left',
+    sortable: true,
+  },
   { name: 'progress', label: 'Progress', field: 'progress', align: 'left', sortable: true },
 ];
 

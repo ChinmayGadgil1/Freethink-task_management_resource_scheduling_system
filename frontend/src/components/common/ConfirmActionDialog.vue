@@ -14,7 +14,11 @@
           >
             {{ title }}
           </div>
-          <div v-if="subtitle" class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+          <div
+            v-if="subtitle"
+            class="text-caption"
+            :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+          >
             {{ subtitle }}
           </div>
         </div>

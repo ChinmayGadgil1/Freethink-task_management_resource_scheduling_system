@@ -383,7 +383,13 @@
     </div>
 
     <!-- 7. DETAILED BREAKDOWN TABLE (List View) -->
-    <q-card v-else-if="scheduleViewMode === 'table'" flat bordered :dark="$q.dark.isActive" class="table-card">
+    <q-card
+      v-else-if="scheduleViewMode === 'table'"
+      flat
+      bordered
+      :dark="$q.dark.isActive"
+      class="table-card"
+    >
       <q-card-section class="row items-center justify-between q-pb-sm">
         <div>
           <div
@@ -719,10 +725,8 @@ import {
   updateTaskApi,
   getProjectScheduleDataApi,
   getResourceScheduleDataApi,
-  type Project,
-  type Task,
-  type ResourceUser,
 } from '@/services/api';
+import type { Project, Task, ResourceUser } from '@/services/api';
 
 const $q = useQuasar();
 
@@ -1185,8 +1189,7 @@ const filteredTasks = computed(() => {
       pName.includes(q) ||
       (t.description && t.description.toLowerCase().includes(q));
 
-    const matchesProject =
-      projectFilter.value === 'ALL' || t.project_id === projectFilter.value;
+    const matchesProject = projectFilter.value === 'ALL' || t.project_id === projectFilter.value;
     const matchesStatus = statusFilter.value === 'ALL' || t.status === statusFilter.value;
     const matchesPriority = priorityFilter.value === 'ALL' || t.priority === priorityFilter.value;
 
@@ -1211,7 +1214,8 @@ function openTaskDetailsDialog(task: Task) {
     $q.notify({
       type: 'info',
       icon: 'lock',
-      message: 'This task belongs to another project not managed by you. Detailed information is private.',
+      message:
+        'This task belongs to another project not managed by you. Detailed information is private.',
     });
     return;
   }

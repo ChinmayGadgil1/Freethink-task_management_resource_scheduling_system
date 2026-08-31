@@ -982,7 +982,11 @@
                   stack-label
                   :dark="$q.dark.isActive"
                   :rules="[
-                    (val) => !form.deadline || !val || val <= form.deadline || 'Start date cannot be after deadline',
+                    (val) =>
+                      !form.deadline ||
+                      !val ||
+                      val <= form.deadline ||
+                      'Start date cannot be after deadline',
                   ]"
                 />
               </div>
@@ -996,7 +1000,11 @@
                   stack-label
                   :dark="$q.dark.isActive"
                   :rules="[
-                    (val) => !form.start_date || !val || val >= form.start_date || 'Deadline cannot be before start date',
+                    (val) =>
+                      !form.start_date ||
+                      !val ||
+                      val >= form.start_date ||
+                      'Deadline cannot be before start date',
                   ]"
                 />
               </div>
@@ -1041,15 +1049,8 @@ import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import {
-  createProjectApi,
-  deleteProjectApi,
-  getProjectsApi,
-  type CreateProjectPayload,
-  type Project,
-  type ProjectPriority,
-  type ProjectStatus,
-} from '@/services/api';
+import { createProjectApi, deleteProjectApi, getProjectsApi } from '@/services/api';
+import type { CreateProjectPayload, Project, ProjectPriority, ProjectStatus } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();

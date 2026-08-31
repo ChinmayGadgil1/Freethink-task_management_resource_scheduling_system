@@ -957,7 +957,7 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   if (scale === 'hour') {
     const start = new Date(minDate);
     start.setHours(start.getHours() - 12);
-    
+
     const end = new Date(maxDate);
     end.setHours(end.getHours() + 12);
 
@@ -1680,7 +1680,9 @@ defineExpose({
       justify-content: center;
       flex-shrink: 0;
       user-select: none;
-      transition: transform 0.15s ease, color 0.15s ease;
+      transition:
+        transform 0.15s ease,
+        color 0.15s ease;
 
       &:before {
         display: none !important;
@@ -1703,7 +1705,9 @@ defineExpose({
         font-size: 13px;
         font-weight: 800;
         color: #7c3aed;
-        transition: transform 0.15s ease, color 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          color 0.15s ease;
       }
     }
 
@@ -1717,7 +1721,9 @@ defineExpose({
         font-size: 13px;
         font-weight: 800;
         color: #7c3aed;
-        transition: transform 0.15s ease, color 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          color 0.15s ease;
       }
     }
 
@@ -2562,4 +2568,3 @@ body.body--dark {
   margin-right: 4px;
 }
 </style>
-

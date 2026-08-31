@@ -17,7 +17,11 @@
             <StatCard
               title="Total Projects"
               :value="totalProjects"
-              :subtitle="totalProjects ? `${totalProjects} active workspace${totalProjects === 1 ? '' : 's'}` : 'No active projects'"
+              :subtitle="
+                totalProjects
+                  ? `${totalProjects} active workspace${totalProjects === 1 ? '' : 's'}`
+                  : 'No active projects'
+              "
               icon="folder"
               color="purple"
               note-class="note-purple"
@@ -28,7 +32,11 @@
             <StatCard
               title="Active Tasks"
               :value="activeTasks"
-              :subtitle="tasks.length ? `${Math.round((activeTasks / tasks.length) * 100)}% of total tasks` : '0% of total'"
+              :subtitle="
+                tasks.length
+                  ? `${Math.round((activeTasks / tasks.length) * 100)}% of total tasks`
+                  : '0% of total'
+              "
               icon="task_alt"
               color="teal"
               note-class="note-teal"
@@ -39,7 +47,11 @@
             <StatCard
               title="Resources"
               :value="resources.length"
-              :subtitle="resources.length ? `${resources.length} active team member${resources.length === 1 ? '' : 's'}` : 'No resources'"
+              :subtitle="
+                resources.length
+                  ? `${resources.length} active team member${resources.length === 1 ? '' : 's'}`
+                  : 'No resources'
+              "
               icon="groups"
               color="orange"
               note-class="note-orange"
@@ -50,7 +62,11 @@
             <StatCard
               title="Tasks Completed"
               :value="completedTasks"
-              :subtitle="tasks.length ? `${Math.round((completedTasks / tasks.length) * 100)}% completion rate` : '0% completed'"
+              :subtitle="
+                tasks.length
+                  ? `${Math.round((completedTasks / tasks.length) * 100)}% completion rate`
+                  : '0% completed'
+              "
               icon="check_circle"
               color="green"
               note-class="note-green"
@@ -61,7 +77,11 @@
             <StatCard
               title="Overdue Tasks"
               :value="overdueTasks"
-              :subtitle="overdueTasks > 0 ? `${overdueTasks} task${overdueTasks === 1 ? '' : 's'} require attention` : 'All tasks on schedule'"
+              :subtitle="
+                overdueTasks > 0
+                  ? `${overdueTasks} task${overdueTasks === 1 ? '' : 's'} require attention`
+                  : 'All tasks on schedule'
+              "
               icon="schedule"
               color="red"
               note-class="note-red"
@@ -878,7 +898,8 @@ function scrollStrip(containerId: string, direction: number | 'next' | 'prev') {
 
   const firstChild = el.firstElementChild as HTMLElement | null;
   const cardWidth = firstChild ? firstChild.offsetWidth + 16 : 240;
-  const amount = typeof direction === 'number' ? direction : direction === 'prev' ? -cardWidth : cardWidth;
+  const amount =
+    typeof direction === 'number' ? direction : direction === 'prev' ? -cardWidth : cardWidth;
 
   el.scrollBy({ left: amount, behavior: 'smooth' });
 }

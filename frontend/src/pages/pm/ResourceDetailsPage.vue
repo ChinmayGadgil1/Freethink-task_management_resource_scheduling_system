@@ -690,7 +690,6 @@
   </q-page>
 </template>
 
-
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -713,14 +712,16 @@ import {
   deleteLeaveApi,
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
-  type Project,
-  type ResourceUser,
-  type Task,
-  type ResourceWorkload,
-  type ResourceScheduleResponse,
-  type LeaveItem,
-  type DayOfWeek,
-  type ResourceScheduleConfig,
+} from '@/services/api';
+import type {
+  Project,
+  ResourceUser,
+  Task,
+  ResourceWorkload,
+  ResourceScheduleResponse,
+  LeaveItem,
+  DayOfWeek,
+  ResourceScheduleConfig,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -886,7 +887,8 @@ function handleGanttTaskClick(task: Task) {
     $q.notify({
       type: 'info',
       icon: 'lock',
-      message: 'This task belongs to another project not managed by you. Detailed information is private.',
+      message:
+        'This task belongs to another project not managed by you. Detailed information is private.',
     });
     return;
   }
