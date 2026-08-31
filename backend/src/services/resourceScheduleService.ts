@@ -17,9 +17,12 @@ export const ALL_DAYS: DayOfWeek[] = [
     "SUNDAY"
 ];
 
+export const DEFAULT_NON_WORKING_DAYS: DayOfWeek[] = ["SATURDAY", "SUNDAY"];
+
 /**
  * Retrieve resource non-working days and daily working hours configuration from the users table.
- * If non_working_days is null or empty, all 7 days are considered working days.
+ * If non_working_days is null/undefined (unconfigured), default to SATURDAY and SUNDAY off.
+ * If non_working_days is configured (e.g. ['MONDAY'] or []), only the configured days are non-working.
  * If daily_working_hours is null, default 8.0h is returned.
  */
 export async function getResourceWorkSchedule(userId: number): Promise<ResourceScheduleDTO> {
@@ -47,7 +50,7 @@ export async function getResourceWorkSchedule(userId: number): Promise<ResourceS
     }
 
     const row = rows[0]!;
-    let nonWorkingDays: DayOfWeek[] = [];
+    let nonWorkingDays: DayOfWeek[] = [...DEFAULT_NON_WORKING_DAYS];
     let isCustom = false;
 
     if (row.non_working_days !== null && row.non_working_days !== undefined) {
@@ -60,7 +63,7 @@ export async function getResourceWorkSchedule(userId: number): Promise<ResourceS
                 nonWorkingDays = raw.filter((d: any): d is DayOfWeek => ALL_DAYS.includes(d));
             }
         } catch {
-            nonWorkingDays = [];
+            nonWorkingDays = [...DEFAULT_NON_WORKING_DAYS];
         }
     }
 

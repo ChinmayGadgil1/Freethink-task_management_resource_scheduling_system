@@ -74,8 +74,11 @@ export function parseResourceScheduleConfig(row: {
                 }
             }
         } catch {
-            nonWorkingDays = new Set<string>();
+            nonWorkingDays = new Set<string>(["SATURDAY", "SUNDAY"]);
         }
+    } else {
+        // Default to Saturday & Sunday off for unconfigured resources
+        nonWorkingDays = new Set<string>(["SATURDAY", "SUNDAY"]);
     }
 
     let dailyHours = 8.0;

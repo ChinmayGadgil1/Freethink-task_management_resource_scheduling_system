@@ -2,7 +2,7 @@ import { getPool } from "../config/database.js";
 import type { RowDataPacket } from "mysql2";
 
 function formatResourceRow(row: any) {
-    let nonWorkingDays: string[] = [];
+    let nonWorkingDays: string[] = ["SATURDAY", "SUNDAY"];
     if (row.non_working_days !== null && row.non_working_days !== undefined) {
         try {
             const parsed = typeof row.non_working_days === "string"
@@ -12,7 +12,7 @@ function formatResourceRow(row: any) {
                 nonWorkingDays = parsed;
             }
         } catch {
-            nonWorkingDays = [];
+            nonWorkingDays = ["SATURDAY", "SUNDAY"];
         }
     }
 
