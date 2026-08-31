@@ -66,17 +66,55 @@ async function seed() {
     // 3. Insert User Leaves
     console.log("\n🌴 Inserting user leave requests...");
     const leavesData = [
-        { email: "jane.dev@company.com", leave_date: "2026-09-02", leave_hours: 9.00 },
-        { email: "john.dev@company.com", leave_date: "2026-09-04", leave_hours: 4.50 },
-        { email: "david.devops@company.com", leave_date: "2026-09-10", leave_hours: 9.00 }
+        {
+            email: "jane.dev@company.com",
+            leave_date: "2026-09-02",
+            leave_hours: 9.00,
+            status: "APPROVED",
+            approver_email: "alex.pm@company.com",
+            approved_at: "2026-08-30 10:00:00"
+        },
+        {
+            email: "john.dev@company.com",
+            leave_date: "2026-09-04",
+            leave_hours: 4.50,
+            status: "APPROVED",
+            approver_email: "alex.pm@company.com",
+            approved_at: "2026-08-30 11:30:00"
+        },
+        {
+            email: "david.devops@company.com",
+            leave_date: "2026-09-10",
+            leave_hours: 9.00,
+            status: "PENDING",
+            approver_email: null,
+            approved_at: null
+        },
+        {
+            email: "jane.dev@company.com",
+            leave_date: "2026-09-15",
+            leave_hours: 8.00,
+            status: "PENDING",
+            approver_email: null,
+            approved_at: null
+        },
+        {
+            email: "michael.fe@company.com",
+            leave_date: "2026-09-18",
+            leave_hours: 8.00,
+            status: "PENDING",
+            approver_email: null,
+            approved_at: null
+        }
     ];
 
     for (const l of leavesData) {
         const userId = userMap[l.email];
+        const approverId = l.approver_email ? userMap[l.approver_email] : null;
         if (userId) {
             await pool.query(
-                `INSERT INTO user_leaves (user_id, leave_date, leave_hours) VALUES (?, ?, ?)`,
-                [userId, l.leave_date, l.leave_hours]
+                `INSERT INTO user_leaves (user_id, leave_date, leave_hours, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?)`,
+                [userId, l.leave_date, l.leave_hours, l.status, approverId, l.approved_at]
             );
         }
     }

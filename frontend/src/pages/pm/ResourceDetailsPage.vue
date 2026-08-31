@@ -388,18 +388,72 @@
               no-data-label="No leave records found for this resource"
               :pagination="{ rowsPerPage: 5 }"
             >
+              <template #body-cell-status="props">
+                <q-td :props="props" auto-width>
+                  <q-chip
+                    dense
+                    square
+                    :color="props.row.status === 'APPROVED' ? 'positive' : props.row.status === 'PENDING' ? 'amber-2' : 'negative'"
+                    :text-color="props.row.status === 'APPROVED' || props.row.status === 'REJECTED' ? 'white' : 'brown-10'"
+                    class="text-caption text-weight-bold"
+                  >
+                    {{ props.row.status }}
+                  </q-chip>
+                </q-td>
+              </template>
+
               <template #body-cell-actions="props">
                 <q-td :props="props" auto-width>
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    icon="delete"
-                    color="negative"
-                    @click="handleDeleteLeave(props.row.leave_id)"
-                  >
-                    <q-tooltip>Delete Leave</q-tooltip>
-                  </q-btn>
+                  <div class="row items-center q-gutter-xs no-wrap">
+                    <template v-if="props.row.status === 'PENDING'">
+                      <q-btn
+                        v-if="canApproveLeave(props.row.leave_date)"
+                        flat
+                        round
+                        dense
+                        icon="check"
+                        color="positive"
+                        :loading="leaveActionLoadingId === props.row.leave_id"
+                        @click="handleApproveLeave(props.row.leave_id)"
+                      >
+                        <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        v-else
+                        flat
+                        round
+                        dense
+                        disable
+                        icon="check"
+                        color="grey-5"
+                      >
+                        <q-tooltip>Cannot approve: Leave date has already arrived or passed</q-tooltip>
+                      </q-btn>
+
+                      <q-btn
+                        flat
+                        round
+                        dense
+                        icon="close"
+                        color="negative"
+                        :loading="leaveActionLoadingId === props.row.leave_id"
+                        @click="handleRejectLeave(props.row.leave_id)"
+                      >
+                        <q-tooltip>Reject Leave</q-tooltip>
+                      </q-btn>
+                    </template>
+
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="delete"
+                      color="grey-7"
+                      @click="handleDeleteLeave(props.row.leave_id)"
+                    >
+                      <q-tooltip>Delete / Cancel Leave</q-tooltip>
+                    </q-btn>
+                  </div>
                 </q-td>
               </template>
             </q-table>
@@ -709,6 +763,8 @@ import {
   getTasksApi,
   getLeavesApi,
   createLeaveApi,
+  approveLeaveApi,
+  rejectLeaveApi,
   deleteLeaveApi,
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
@@ -916,6 +972,7 @@ const assignForm = reactive<{
 const leavesList = ref<LeaveItem[]>([]);
 const showLeaveDialog = ref(false);
 const leaveSubmitting = ref(false);
+const leaveActionLoadingId = ref<number | null>(null);
 const leaveForm = reactive({
   leave_date: '',
   leave_hours: 8,
@@ -930,8 +987,78 @@ const leaveColumns: QTableColumn<LeaveItem>[] = [
     align: 'center',
     sortable: true,
   },
+  {
+    name: 'status',
+    label: 'Status',
+    field: (l) => l.status,
+    align: 'center',
+    sortable: true,
+  },
   { name: 'actions', label: 'Actions', field: () => '', align: 'center' },
 ];
+
+function canApproveLeave(leaveDateStr: string): boolean {
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return todayStr < leaveDateStr;
+}
+
+async function handleApproveLeave(leaveId: number) {
+  leaveActionLoadingId.value = leaveId;
+  try {
+    await approveLeaveApi(leaveId);
+    $q.notify({
+      type: 'positive',
+      message: 'Leave approved! Project schedules have been recalculated.',
+    });
+    void loadData();
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to approve leave';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+    });
+  } finally {
+    leaveActionLoadingId.value = null;
+  }
+}
+
+function handleRejectLeave(leaveId: number) {
+  $q.dialog({
+    title: 'Reject Leave Request',
+    message: 'Enter rejection reason (optional):',
+    prompt: {
+      model: '',
+      type: 'text',
+    },
+    cancel: true,
+    persistent: true,
+  }).onOk((reason: string) => {
+    leaveActionLoadingId.value = leaveId;
+    void (async () => {
+      try {
+        await rejectLeaveApi(leaveId, reason);
+        $q.notify({
+          type: 'info',
+          message: 'Leave request has been rejected.',
+        });
+        void loadData();
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Failed to reject leave';
+        $q.notify({
+          type: 'negative',
+          message: msg,
+        });
+      } finally {
+        leaveActionLoadingId.value = null;
+      }
+    })();
+  });
+}
+
+function handleDeleteLeave(leaveId: number) {
+  confirmCancelLeave(leaveId);
+}
 
 const taskColumns: QTableColumn<Task>[] = [
   { name: 'title', label: 'Task Title', field: (t) => t.title, align: 'left' },
@@ -986,10 +1113,6 @@ async function loadData() {
   } finally {
     loading.value = false;
   }
-}
-
-function handleDeleteLeave(leaveId: number) {
-  confirmCancelLeave(leaveId);
 }
 
 onMounted(() => {

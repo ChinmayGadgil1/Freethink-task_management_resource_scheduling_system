@@ -964,11 +964,21 @@ export async function deleteHolidayApi(id: number): Promise<{ message: string }>
   return data;
 }
 
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface LeaveItem {
   leave_id: number;
   user_id: number;
+  user_name?: string;
+  user_email?: string;
   leave_date: string;
   leave_hours: number;
+  status: LeaveStatus;
+  approver_id?: number | null;
+  approver_name?: string | null;
+  rejection_reason?: string | null;
+  approved_at?: string | null;
+  created_at?: string | null;
 }
 
 /**
@@ -979,6 +989,7 @@ export async function getLeavesApi(params?: {
   user_id?: number;
   startDate?: string;
   endDate?: string;
+  status?: LeaveStatus;
 }): Promise<LeaveItem[]> {
   const queryParams = new URLSearchParams();
   if (params?.user_id !== undefined && params?.user_id !== null) {
@@ -989,6 +1000,9 @@ export async function getLeavesApi(params?: {
   }
   if (params?.endDate) {
     queryParams.append('endDate', params.endDate);
+  }
+  if (params?.status) {
+    queryParams.append('status', params.status);
   }
 
   const url = `${API_BASE_URL}/leaves${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
@@ -1023,6 +1037,43 @@ export async function createLeaveApi(payload: {
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to apply leave');
+  }
+
+  return data.data;
+}
+
+/**
+ * Approve a pending leave request (PM only)
+ * PATCH /api/leaves/:id/approve
+ */
+export async function approveLeaveApi(id: number): Promise<LeaveItem> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/leaves/${id}/approve`, {
+    method: 'PATCH',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to approve leave');
+  }
+
+  return data.data;
+}
+
+/**
+ * Reject a pending leave request (PM only)
+ * PATCH /api/leaves/:id/reject
+ */
+export async function rejectLeaveApi(id: number, reason?: string): Promise<LeaveItem> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/leaves/${id}/reject`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to reject leave');
   }
 
   return data.data;

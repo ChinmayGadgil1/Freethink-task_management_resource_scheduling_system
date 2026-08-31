@@ -212,7 +212,13 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             user_id BIGINT NOT NULL,
             leave_date DATE NOT NULL,
             leave_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00,
+            status ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+            approver_id BIGINT NULL,
+            rejection_reason VARCHAR(255) NULL,
+            approved_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (approver_id) REFERENCES users(user_id) ON DELETE SET NULL,
             UNIQUE KEY unique_user_leave (user_id, leave_date)
         )
     `);
@@ -228,6 +234,33 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         await pool.query(`ALTER TABLE users ADD COLUMN daily_working_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00`);
     } catch (e: any) {
         // Ignore if column already exists (ER_DUP_FIELDNAME)
+    }
+
+    // Migration check: ensure status, approver_id, rejection_reason, approved_at columns exist in user_leaves
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN status ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'APPROVED'`);
+    } catch (e: any) {
+        // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN approver_id BIGINT NULL`);
+    } catch (e: any) {
+        // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN rejection_reason VARCHAR(255) NULL`);
+    } catch (e: any) {
+        // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN approved_at DATETIME NULL`);
+    } catch (e: any) {
+        // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+    } catch (e: any) {
+        // Ignore if column already exists
     }
 
     // 12. Support Tickets table

@@ -12,7 +12,12 @@ const addLeaveSchema = z.object({
 const getLeavesQuerySchema = z.object({
     user_id: z.string().transform(val => Number(val)).pipe(z.number().int().positive()).optional(),
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid startDate format. Expected YYYY-MM-DD").optional(),
-    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid endDate format. Expected YYYY-MM-DD").optional()
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid endDate format. Expected YYYY-MM-DD").optional(),
+    status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional()
+});
+
+const rejectLeaveSchema = z.object({
+    reason: z.string().max(255, "Reason cannot exceed 255 characters").optional()
 });
 
 /**
@@ -32,15 +37,19 @@ export async function addLeave(req: AuthRequest, res: Response): Promise<void> {
             return;
         }
 
-        const leave = await leaveService.applyLeave({
-            user_id: parsed.user_id,
-            leave_date: parsed.leave_date,
-            ...(parsed.leave_hours !== undefined ? { leave_hours: parsed.leave_hours } : {})
-        });
+        const leave = await leaveService.applyLeave(
+            {
+                user_id: parsed.user_id,
+                leave_date: parsed.leave_date,
+                ...(parsed.leave_hours !== undefined ? { leave_hours: parsed.leave_hours } : {})
+            },
+            req.user?.role,
+            req.user?.user_id
+        );
 
         res.status(201).json({
             success: true,
-            message: "Leave applied successfully.",
+            message: req.user?.role === "PROJECT_MANAGER" ? "Leave recorded and approved successfully." : "Leave requested successfully (pending approval).",
             data: leave
         });
     } catch (error: any) {
@@ -57,6 +66,94 @@ export async function addLeave(req: AuthRequest, res: Response): Promise<void> {
         res.status(error.status || 500).json({
             success: false,
             message: error.message || "Failed to apply leave."
+        });
+    }
+}
+
+/**
+ * PATCH /api/leaves/:id/approve
+ * PM approves a pending leave. Recalculates affected project schedules.
+ */
+export async function approveLeaveController(req: AuthRequest<{ id: string }>, res: Response): Promise<void> {
+    try {
+        const leaveId = Number(req.params.id);
+        if (isNaN(leaveId)) {
+            res.status(400).json({
+                success: false,
+                message: "Invalid leave ID."
+            });
+            return;
+        }
+
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            res.status(403).json({
+                success: false,
+                message: "Access denied. Only Project Managers can approve leaves."
+            });
+            return;
+        }
+
+        const updatedLeave = await leaveService.approveLeave(leaveId, req.user.user_id);
+
+        res.status(200).json({
+            success: true,
+            message: "Leave approved successfully and schedule recalculated.",
+            data: updatedLeave
+        });
+    } catch (error: any) {
+        console.error("Approve leave error:", error);
+        res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Failed to approve leave."
+        });
+    }
+}
+
+/**
+ * PATCH /api/leaves/:id/reject
+ * PM rejects a pending leave.
+ */
+export async function rejectLeaveController(req: AuthRequest<{ id: string }>, res: Response): Promise<void> {
+    try {
+        const leaveId = Number(req.params.id);
+        if (isNaN(leaveId)) {
+            res.status(400).json({
+                success: false,
+                message: "Invalid leave ID."
+            });
+            return;
+        }
+
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            res.status(403).json({
+                success: false,
+                message: "Access denied. Only Project Managers can reject leaves."
+            });
+            return;
+        }
+
+        const parsed = rejectLeaveSchema.parse(req.body || {});
+        const updatedLeave = await leaveService.rejectLeave(leaveId, req.user.user_id, parsed.reason);
+
+        res.status(200).json({
+            success: true,
+            message: "Leave rejected.",
+            data: updatedLeave
+        });
+    } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                success: false,
+                message: "Validation error",
+                errors: error.issues
+            });
+            return;
+        }
+
+        console.error("Reject leave error:", error);
+        res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Failed to reject leave."
         });
     }
 }
@@ -126,6 +223,7 @@ export async function listLeaves(req: AuthRequest, res: Response): Promise<void>
             ...(filterUserId !== undefined ? { user_id: filterUserId } : {}),
             ...(queryParsed.startDate !== undefined ? { startDate: queryParsed.startDate } : {}),
             ...(queryParsed.endDate !== undefined ? { endDate: queryParsed.endDate } : {}),
+            ...(queryParsed.status !== undefined ? { status: queryParsed.status } : {}),
             ...(req.user?.role === "PROJECT_MANAGER" ? { manager_id: req.user.user_id } : {})
         });
 
@@ -151,3 +249,4 @@ export async function listLeaves(req: AuthRequest, res: Response): Promise<void>
         });
     }
 }
+

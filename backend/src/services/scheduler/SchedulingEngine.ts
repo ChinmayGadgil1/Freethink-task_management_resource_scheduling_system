@@ -397,6 +397,7 @@ export async function recalculate(projectId: number): Promise<void> {
             WHERE t.project_id = ?
         ) project_resources
             ON ul.user_id = project_resources.user_id
+        WHERE ul.status = 'APPROVED'
         `,
         [projectId]
     );
