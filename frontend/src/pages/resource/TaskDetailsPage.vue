@@ -789,7 +789,7 @@
               <div class="column gap-sm q-mt-md full-width" style="max-width: 320px">
                 <!-- Primary Actions Row -->
                 <div class="row q-col-gutter-sm">
-                  <div class="col-6">
+                  <div class="col-12">
                     <q-btn
                       v-if="!isCurrentTaskSessionActive"
                       unelevated
@@ -815,7 +815,7 @@
                       @click="promptStopSession"
                     />
                   </div>
-                  <div class="col-6">
+                  <!-- <div class="col-6">
                     <q-btn
                       unelevated
                       no-caps
@@ -826,7 +826,7 @@
                       style="border-radius: 8px; height: 40px"
                       @click="updateDialog = true"
                     />
-                  </div>
+                  </div> -->
                 </div>
 
                 <!-- Secondary Action Row -->
@@ -1259,9 +1259,15 @@
         <q-card-section class="q-gutter-md">
           <div>
             <div class="row items-center justify-between q-mb-xs">
-              <div class="text-caption text-weight-bold">Progress (%) *</div>
+              <div
+                class="text-caption text-weight-bold"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              >
+                Progress
+                <span class="text-primary text-weight-bold"> {{ stopSessionForm.progress_logged }}% </span>
+              </div>
               <div class="row items-center q-gutter-xs">
-                <span class="text-caption text-grey-6">Status:</span>
+                <span class="text-caption text-grey-6 text-weight-medium">Status:</span>
                 <q-chip
                   dense
                   square
@@ -1275,13 +1281,13 @@
                 />
               </div>
             </div>
-            <q-input
-              v-model.number="stopSessionForm.progress_logged"
-              type="number"
-              min="0"
-              max="100"
-              outlined
-              dense
+            <q-slider
+              v-model="stopSessionForm.progress_logged"
+              :min="0"
+              :max="100"
+              :step="5"
+              color="primary"
+              label
             />
           </div>
           <q-input
