@@ -36,6 +36,14 @@
           <button
             type="button"
             class="scale-btn"
+            :class="{ active: activeScale === 'hour' }"
+            @click="setScale('hour')"
+          >
+            Hour
+          </button>
+          <button
+            type="button"
+            class="scale-btn"
             :class="{ active: activeScale === 'day' }"
             @click="setScale('day')"
           >
@@ -219,7 +227,7 @@ export interface GanttTimelineProps {
   projects?: Project[];
   resources?: ResourceUser[];
   title?: string;
-  initialScale?: 'day' | 'week' | 'month';
+  initialScale?: 'hour' | 'day' | 'week' | 'month';
   groupByProject?: boolean;
 }
 
@@ -278,7 +286,7 @@ const isDark = computed(() => themeStore.isDark);
 
 const ganttContainer = ref<HTMLElement | null>(null);
 const internalSearchQuery = ref('');
-const activeScale = ref<'day' | 'week' | 'month'>(props.initialScale);
+const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(props.initialScale);
 const isHierarchical = ref(props.groupByProject);
 const showDependencies = ref(true);
 const displayDateRange = ref('');
@@ -808,10 +816,17 @@ function configureGanttEngine() {
 }
 
 // ----------------------------------------------------
-// Scale Configuration (Week, Day, Month)
+// Scale Configuration (Hour, Day, Week, Month)
 // ----------------------------------------------------
-function applyScaleMode(scale: 'day' | 'week' | 'month') {
-  if (scale === 'day') {
+function applyScaleMode(scale: 'hour' | 'day' | 'week' | 'month') {
+  if (scale === 'hour') {
+    gantt.config.scale_height = 50;
+    gantt.config.min_column_width = 40;
+    gantt.config.scales = [
+      { unit: 'day', step: 1, format: '%D, %d %b' },
+      { unit: 'hour', step: 1, format: '%H:00' },
+    ];
+  } else if (scale === 'day') {
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 46;
     gantt.config.scales = [
@@ -898,7 +913,16 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   const maxDate = new Date(maxTime);
   const scale = activeScale.value;
 
-  if (scale === 'day') {
+  if (scale === 'hour') {
+    const start = new Date(minDate);
+    start.setHours(start.getHours() - 12);
+    
+    const end = new Date(maxDate);
+    end.setHours(end.getHours() + 12);
+
+    gantt.config.start_date = start;
+    gantt.config.end_date = end;
+  } else if (scale === 'day') {
     const start = new Date(minDate);
     start.setDate(start.getDate() - 2);
     start.setHours(0, 0, 0, 0);
@@ -1169,7 +1193,7 @@ function toggleExtraColumns() {
   gantt.render();
 }
 
-function setScale(scale: 'day' | 'week' | 'month') {
+function setScale(scale: 'hour' | 'day' | 'week' | 'month') {
   activeScale.value = scale;
   refreshGantt();
 }
