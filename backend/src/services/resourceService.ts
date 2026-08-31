@@ -28,6 +28,7 @@ function formatResourceRow(row: any) {
         is_active: Boolean(row.is_active),
         non_working_days: nonWorkingDays,
         daily_working_hours: dailyWorkingHours,
+        schedule_configured: Boolean(row.schedule_configured),
         created_at: row.created_at
     };
 }
@@ -44,6 +45,7 @@ export async function getResources(projectId?: number, managerId?: number) {
             u.is_active,
             u.non_working_days,
             u.daily_working_hours,
+            u.schedule_configured,
             u.created_at
         FROM users u
     `;
@@ -103,6 +105,7 @@ export async function getResourceById(resourceId: number) {
             is_active,
             non_working_days,
             daily_working_hours,
+            schedule_configured,
             created_at
         FROM users
         WHERE user_id = ?

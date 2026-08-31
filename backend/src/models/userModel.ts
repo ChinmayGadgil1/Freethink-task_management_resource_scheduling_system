@@ -11,6 +11,7 @@ export interface User {
     role: UserRole;
     non_working_days?: string[] | string | null;
     daily_working_hours?: number;
+    schedule_configured?: boolean;
     is_active: boolean;
     created_at: Date;
     updated_at: Date;

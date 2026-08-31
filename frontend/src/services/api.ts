@@ -578,6 +578,7 @@ export interface ResourceUser {
   is_active?: boolean | number;
   non_working_days?: DayOfWeek[] | string | null;
   daily_working_hours?: number;
+  schedule_configured?: boolean;
   created_at?: string;
 }
 
@@ -1213,6 +1214,7 @@ export interface ResourceScheduleConfig {
   working_days: DayOfWeek[];
   daily_working_hours: number;
   is_custom: boolean;
+  schedule_configured?: boolean;
 }
 
 export interface UpdateResourceSchedulePayload {

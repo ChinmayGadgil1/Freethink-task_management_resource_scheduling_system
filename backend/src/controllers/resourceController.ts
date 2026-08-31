@@ -207,7 +207,7 @@ export async function updateWorkScheduleController(
         }
 
         const { updateResourceWorkSchedule } = await import("../services/resourceScheduleService.js");
-        const updated = await updateResourceWorkSchedule(targetUserId, req.body);
+        const updated = await updateResourceWorkSchedule(targetUserId, req.body, userRole);
 
         return res.status(200).json({
             success: true,

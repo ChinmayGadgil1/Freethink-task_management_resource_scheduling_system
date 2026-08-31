@@ -801,30 +801,21 @@
             </div>
           </div>
 
-          <!-- Daily Working Hours Input -->
+          <!-- Daily Working Hours Input (Informational - Fixed 8h) -->
           <div class="q-mt-sm">
             <div class="row items-center justify-between q-mb-xs">
-              <span class="text-subtitle2 text-weight-bold">Daily Standard Capacity</span>
-              <span class="text-weight-bold text-primary">{{ modalDailyHours }} Hours / Day</span>
+              <span class="text-subtitle2 text-weight-bold">Daily Working Capacity</span>
+              <q-badge color="primary" class="text-weight-bold q-px-sm q-py-xs" style="font-size: 0.85rem">
+                8 Hours / Day
+              </q-badge>
             </div>
-            <div class="text-caption text-grey-6 q-mb-sm">
-              Standard working hours available per working day (Default: 8.0h).
+            <div class="text-caption text-grey-6">
+              Fixed standard working capacity per working day (8.0 Hours / Day).
             </div>
-
-            <q-slider
-              v-model="modalDailyHours"
-              :min="1"
-              :max="16"
-              :step="0.5"
-              label
-              label-always
-              color="primary"
-              class="q-mt-md"
-            />
           </div>
 
           <!-- Schedule Summary Breakdown -->
-          <q-card flat bordered class="q-pa-sm bg-grey-1">
+          <q-card flat bordered class="q-pa-sm" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
             <div class="q-gutter-xs text-caption">
               <div class="row items-center justify-between">
                 <span class="text-weight-medium">Non-Working Days:</span>
@@ -851,7 +842,7 @@
               <div class="row items-center justify-between q-mt-xs">
                 <span class="text-weight-medium">Weekly Total Capacity:</span>
                 <span class="text-weight-bold text-teal">
-                  {{ (modalActiveWorkingDays.length * modalDailyHours).toFixed(1) }} Hours / Week
+                  {{ (modalActiveWorkingDays.length * 8.0).toFixed(1) }} Hours / Week
                 </span>
               </div>
             </div>
@@ -976,7 +967,7 @@ async function openResourceScheduleDialog(resource: {
   try {
     const config = await getResourceWorkScheduleApi(targetId);
     modalNonWorkingDays.value = config.non_working_days || [];
-    modalDailyHours.value = config.daily_working_hours || 8.0;
+    modalDailyHours.value = 8.0;
   } catch (error) {
     const err = error as Error;
     $q.notify({
@@ -1005,7 +996,6 @@ async function handleSaveResourceSchedule() {
   try {
     await updateResourceWorkScheduleApi(targetId, {
       non_working_days: modalNonWorkingDays.value,
-      daily_working_hours: modalDailyHours.value,
     });
     $q.notify({
       type: 'positive',

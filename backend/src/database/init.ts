@@ -1,4 +1,5 @@
 import { createDatabasePool, getPool } from "../config/database.js";
+import type { RowDataPacket } from "mysql2/promise";
 
 export async function initializeDatabase(options: { dropExisting?: boolean } = {}) {
     const pool = await createDatabasePool();
@@ -39,6 +40,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             role ENUM('PROJECT_MANAGER', 'RESOURCE') NOT NULL,
             non_working_days JSON NULL,
             daily_working_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00,
+            schedule_configured BOOLEAN NOT NULL DEFAULT FALSE,
             is_active BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -294,6 +296,39 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("Password reset tokens table is ready.");
+
+    // Migration & Data Normalization
+    try {
+        const [columns] = await pool.query<RowDataPacket[]>(
+            `SHOW COLUMNS FROM users LIKE 'schedule_configured'`
+        );
+        if (columns.length === 0) {
+            await pool.query(
+                `ALTER TABLE users ADD COLUMN schedule_configured BOOLEAN NOT NULL DEFAULT FALSE AFTER daily_working_hours`
+            );
+            console.log("Migrated: added schedule_configured column to users table.");
+        }
+
+        // Lock schedule for existing resources that already have non_working_days configured
+        await pool.query(`
+            UPDATE users
+            SET schedule_configured = TRUE
+            WHERE role = 'RESOURCE'
+              AND non_working_days IS NOT NULL
+              AND schedule_configured = FALSE
+        `);
+
+        // Normalize all daily working capacity values to 8.00 hours
+        await pool.query(`
+            UPDATE users
+            SET daily_working_hours = 8.00
+            WHERE daily_working_hours != 8.00
+               OR daily_working_hours IS NULL
+        `);
+        console.log("Normalized daily_working_hours to 8.00 and synced schedule_configured state.");
+    } catch (migErr) {
+        console.error("Warning: Migration check in initializeDatabase encountered an error:", migErr);
+    }
 
     return pool;
 }

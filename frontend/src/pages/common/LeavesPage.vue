@@ -462,9 +462,8 @@ import {
   rejectLeaveApi,
   deleteLeaveApi,
   getResourcesApi,
-  type LeaveItem,
-  type LeaveStatus,
 } from '@/services/api';
+import type { LeaveItem, LeaveStatus } from '@/services/api';
 
 const $q = useQuasar();
 const authStore = useAuthStore();
@@ -499,11 +498,16 @@ const rejectionReason = ref('');
 const rejectSubmitting = ref(false);
 
 // Filter parameters
-const filters = reactive({
-  user_id: undefined as number | undefined,
+const filters = reactive<{
+  user_id?: number | undefined;
+  startDate: string;
+  endDate: string;
+  status?: LeaveStatus | undefined;
+}>({
+  user_id: undefined,
   startDate: '',
   endDate: '',
-  status: undefined as LeaveStatus | undefined,
+  status: undefined,
 });
 
 const statusFilterOptions = [
@@ -516,8 +520,12 @@ const statusFilterOptions = [
 // Dialog form states
 const showLeaveDialog = ref(false);
 const leaveSubmitting = ref(false);
-const leaveForm = reactive({
-  user_id: null as number | null,
+const leaveForm = reactive<{
+  user_id: number | null;
+  leave_date: string;
+  leave_hours: number;
+}>({
+  user_id: null,
   leave_date: '',
   leave_hours: 8,
 });

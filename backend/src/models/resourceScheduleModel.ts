@@ -13,6 +13,7 @@ export interface ResourceScheduleDTO {
     working_days: DayOfWeek[];
     daily_working_hours: number;
     is_custom: boolean;
+    schedule_configured: boolean;
 }
 
 export interface UpdateResourceScheduleDTO {
