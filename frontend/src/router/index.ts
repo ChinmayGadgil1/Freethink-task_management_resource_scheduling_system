@@ -7,6 +7,7 @@ import {
 } from 'vue-router';
 
 import routes from './routes';
+import { isTokenExpired } from '@/services/api';
 
 /*
  * If not building with SSR mode, you can
@@ -64,6 +65,16 @@ export default defineRouter((/* { store, ssrContext } */) => {
       } catch {
         // Ignore JSON error
       }
+    }
+
+    // Check if stored token has expired
+    if (token && isTokenExpired(token)) {
+      token = null;
+      userRole = null;
+      localStorage.removeItem('auth');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('auth');
+      sessionStorage.removeItem('user');
     }
 
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);

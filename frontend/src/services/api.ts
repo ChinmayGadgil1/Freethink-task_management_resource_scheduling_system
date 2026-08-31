@@ -125,39 +125,86 @@ export interface CreateWorkLogPayload {
   log_date: string;
 }
 
+export function isTokenExpired(token: string): boolean {
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) return true;
+    const normalized = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const decodedJson = atob(normalized);
+    const payload = JSON.parse(decodedJson);
+    if (!payload || typeof payload.exp !== 'number') return false;
+    // Current time in seconds vs expiration timestamp
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
+function handleSessionExpired() {
+  try {
+    const authStore = useAuthStore();
+    authStore.clearAuth();
+  } catch {
+    // Pinia not active
+  }
+  localStorage.removeItem('auth');
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('auth');
+  sessionStorage.removeItem('user');
+
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && window.location.pathname !== '/') {
+    sessionStorage.setItem('flashMessage', 'Your session has expired. Please log in again.');
+    window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  }
+}
+
 function getStoredToken(): string | null {
+  let token: string | null = null;
+
   try {
     const authStore = useAuthStore();
     if (authStore.token) {
-      return authStore.token;
+      token = authStore.token;
     }
   } catch {
     // Pinia instance not active in current execution context
   }
 
-  const storedAuth = localStorage.getItem('auth') || sessionStorage.getItem('auth');
-  if (storedAuth) {
-    try {
-      const parsed = JSON.parse(storedAuth);
-      if (parsed && typeof parsed.token === 'string') {
-        return parsed.token;
+  if (!token) {
+    const storedAuth = localStorage.getItem('auth') || sessionStorage.getItem('auth');
+    if (storedAuth) {
+      try {
+        const parsed = JSON.parse(storedAuth);
+        if (parsed && typeof parsed.token === 'string') {
+          token = parsed.token;
+        }
+      } catch {
+        // Ignore JSON parse error
       }
-    } catch {
-      // Ignore JSON parse error
     }
   }
 
-  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-  if (storedUser) {
-    try {
-      const user = JSON.parse(storedUser);
-      return typeof user.token === 'string' ? user.token : null;
-    } catch {
-      return null;
+  if (!token) {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        if (typeof user.token === 'string') {
+          token = user.token;
+        }
+      } catch {
+        // Ignore JSON parse error
+      }
     }
   }
 
-  return null;
+  if (token && isTokenExpired(token)) {
+    console.warn('[Auth] Stored JWT token has expired. Clearing local session.');
+    handleSessionExpired();
+    return null;
+  }
+
+  return token;
 }
 
 async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
@@ -171,10 +218,17 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
+
+  if (response.status === 401) {
+    console.warn(`[Auth] 401 Unauthorized encountered from ${url}. Invalidating session.`);
+    handleSessionExpired();
+  }
+
+  return response;
 }
 
 export async function signupApi(payload: SignupPayload) {
