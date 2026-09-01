@@ -36,14 +36,6 @@
           <button
             type="button"
             class="scale-btn"
-            :class="{ active: activeScale === 'hour' }"
-            @click="setScale('hour')"
-          >
-            Hour
-          </button>
-          <button
-            type="button"
-            class="scale-btn"
             :class="{ active: activeScale === 'day' }"
             @click="setScale('day')"
           >
@@ -227,7 +219,7 @@ export interface GanttTimelineProps {
   projects?: Project[];
   resources?: ResourceUser[];
   title?: string;
-  initialScale?: 'hour' | 'day' | 'week' | 'month';
+  initialScale?: 'day' | 'week' | 'month';
   groupByProject?: boolean;
 }
 
@@ -287,7 +279,7 @@ const isDark = computed(() => themeStore.isDark);
 
 const ganttContainer = ref<HTMLElement | null>(null);
 const internalSearchQuery = ref('');
-const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(props.initialScale);
+const activeScale = ref<'day' | 'week' | 'month'>(props.initialScale);
 const isHierarchical = ref(props.groupByProject);
 const showDependencies = ref(true);
 const displayDateRange = ref('');
@@ -343,12 +335,7 @@ function formatDateIso(d: Date): string {
 }
 
 function formatGanttDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${d} ${h}:${min}`;
+  return formatDateIso(date);
 }
 
 function formatDate(date: Date): string {
@@ -628,8 +615,8 @@ function configureGanttEngine() {
     tooltip: true,
   });
 
-  gantt.config.date_format = '%Y-%m-%d %H:%i';
-  gantt.config.xml_date = '%Y-%m-%d %H:%i';
+  gantt.config.date_format = '%Y-%m-%d';
+  gantt.config.xml_date = '%Y-%m-%d';
 
   // Layout Dimensions
   gantt.config.row_height = 44;
@@ -857,17 +844,10 @@ function configureGanttEngine() {
 }
 
 // ----------------------------------------------------
-// Scale Configuration (Hour, Day, Week, Month)
+// Scale Configuration (Day, Week, Month)
 // ----------------------------------------------------
-function applyScaleMode(scale: 'hour' | 'day' | 'week' | 'month') {
-  if (scale === 'hour') {
-    gantt.config.scale_height = 50;
-    gantt.config.min_column_width = 40;
-    gantt.config.scales = [
-      { unit: 'day', step: 1, format: '%D, %d %b' },
-      { unit: 'hour', step: 1, format: '%H:00' },
-    ];
-  } else if (scale === 'day') {
+function applyScaleMode(scale: 'day' | 'week' | 'month') {
+  if (scale === 'day') {
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 46;
     gantt.config.scales = [
@@ -954,16 +934,7 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   const maxDate = new Date(maxTime);
   const scale = activeScale.value;
 
-  if (scale === 'hour') {
-    const start = new Date(minDate);
-    start.setHours(start.getHours() - 12);
-
-    const end = new Date(maxDate);
-    end.setHours(end.getHours() + 12);
-
-    gantt.config.start_date = start;
-    gantt.config.end_date = end;
-  } else if (scale === 'day') {
+  if (scale === 'day') {
     const start = new Date(minDate);
     start.setDate(start.getDate() - 2);
     start.setHours(0, 0, 0, 0);
@@ -1236,7 +1207,7 @@ function toggleExtraColumns() {
   gantt.render();
 }
 
-function setScale(scale: 'hour' | 'day' | 'week' | 'month') {
+function setScale(scale: 'day' | 'week' | 'month') {
   activeScale.value = scale;
   refreshGantt();
 }

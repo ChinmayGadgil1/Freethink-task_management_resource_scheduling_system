@@ -202,7 +202,7 @@
       <q-spinner color="primary" size="44px" />
     </div>
 
-    <!-- 4. CALENDAR TIME-GRID VIEW (Week & Day Views) -->
+    <!-- 4. CALENDAR DAY & WEEK COLUMN VIEW -->
     <q-card
       v-else-if="scheduleViewMode === 'week' || scheduleViewMode === 'day'"
       flat
@@ -211,109 +211,99 @@
     >
       <div class="calendar-scroll-wrapper">
         <div
-          class="calendar-table-grid"
+          class="calendar-columns-grid"
           :style="{
-            gridTemplateColumns: `64px repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '360px' : '150px'}, 1fr))`,
+            gridTemplateColumns: `repeat(${displayedDays.length}, minmax(${scheduleViewMode === 'day' ? '360px' : '175px'}, 1fr))`,
           }"
         >
-          <!-- Top Left Time Corner Header -->
-          <div class="cal-cell time-corner-header">
-            <span class="time-header-text">Time</span>
-          </div>
-
-          <!-- Date Column Headers -->
+          <!-- Date Column for each day -->
           <div
             v-for="day in displayedDays"
             :key="day.toISOString()"
-            class="cal-cell date-col-header"
+            class="day-column-cell"
             :class="{ 'is-today-col': isSameDay(day, todayDate), 'is-weekend-col': isWeekend(day) }"
           >
-            <div class="col-weekday-name">{{ formatWeekdayName(day) }}</div>
-            <div class="col-day-badge" :class="{ 'today-day-badge': isSameDay(day, todayDate) }">
-              {{ day.getDate() }}
-            </div>
-            <div v-if="isSameDay(day, todayDate)" class="today-tag-pill">TODAY</div>
-          </div>
-
-          <!-- Hour Rows (08:00 to 18:00) -->
-          <template v-for="hour in TIME_HOURS" :key="hour">
-            <!-- Time Column Label -->
-            <div class="cal-cell time-label-cell">
-              <span class="time-slot-label">{{ hour }}</span>
+            <!-- Date Column Header -->
+            <div class="date-col-header">
+              <div class="col-weekday-name">{{ formatWeekdayName(day) }}</div>
+              <div class="col-day-badge" :class="{ 'today-day-badge': isSameDay(day, todayDate) }">
+                {{ day.getDate() }}
+              </div>
+              <div v-if="isSameDay(day, todayDate)" class="today-tag-pill">TODAY</div>
             </div>
 
-            <!-- Day Track Cells for this Hour -->
-            <div
-              v-for="day in displayedDays"
-              :key="`${day.toISOString()}-${hour}`"
-              class="cal-cell time-track-cell"
-              :class="{
-                'is-today-col': isSameDay(day, todayDate),
-                'is-weekend-col': isWeekend(day),
-              }"
-            />
-          </template>
+            <!-- Tasks Container for this Day -->
+            <div class="day-tasks-list q-pa-sm q-gutter-y-sm">
+              <template v-if="getTasksOnDate(day).length > 0">
+                <div
+                  v-for="task in getTasksOnDate(day)"
+                  :key="task.task_id"
+                  class="calendar-day-task-card cursor-pointer"
+                  :style="getTaskCardStyle(task)"
+                  @click="openTaskDetailsDialog(task)"
+                >
+                  <!-- Card Header: Effort / Status & Priority Dot -->
+                  <div class="card-top-row row items-center justify-between no-wrap">
+                    <span class="card-effort-badge">
+                      {{ getTaskEffortBadgeText(task, day) }}
+                    </span>
+                    <span
+                      class="block-priority-dot"
+                      :class="`prio-dot-${task.priority.toLowerCase()}`"
+                      :title="`Priority: ${task.priority}`"
+                    />
+                  </div>
 
-          <!-- Rendered Task Blocks placed over the Grid -->
-          <div
-            v-for="item in positionedCalendarTasks"
-            :key="item.task.task_id"
-            class="calendar-task-block cursor-pointer"
-            :style="item.style"
-            @click="openTaskDetailsDialog(item.task)"
-          >
-            <div class="task-block-inner">
-              <div class="block-top-row row items-center justify-between no-wrap">
-                <span class="block-time-range">{{ item.timeRange }}</span>
-                <span
-                  class="block-priority-dot"
-                  :class="`prio-dot-${item.task.priority.toLowerCase()}`"
-                />
-              </div>
+                  <!-- Task Title -->
+                  <div class="block-task-title ellipsis q-mt-xs" :title="task.title">
+                    {{ task.title }}
+                  </div>
 
-              <div class="block-task-title ellipsis" :title="item.task.title">
-                {{ item.task.title }}
-              </div>
-
-              <div
-                class="block-project-name ellipsis"
-                :title="getProjectName(item.task.project_id)"
-              >
-                {{ getProjectName(item.task.project_id) }}
-              </div>
-
-              <!-- Bottom Row: Avatars & Progress -->
-              <div class="block-bottom-row row items-center justify-between no-wrap q-mt-xs">
-                <!-- Assignee Avatars -->
-                <div class="row items-center avatar-mini-stack">
-                  <template
-                    v-if="
-                      item.task.assigned_resource_ids && item.task.assigned_resource_ids.length > 0
-                    "
+                  <!-- Project Name -->
+                  <div
+                    class="block-project-name ellipsis"
+                    :title="getProjectName(task.project_id)"
                   >
-                    <q-avatar
-                      v-for="rId in item.task.assigned_resource_ids.slice(0, 2)"
-                      :key="rId"
-                      size="18px"
-                      class="mini-avatar"
-                    >
-                      <span>{{ getResourceName(rId).charAt(0).toUpperCase() }}</span>
-                      <q-tooltip>{{ getResourceName(rId) }}</q-tooltip>
-                    </q-avatar>
-                    <q-avatar
-                      v-if="item.task.assigned_resource_ids.length > 2"
-                      size="18px"
-                      class="mini-avatar mini-more"
-                    >
-                      <span>+{{ item.task.assigned_resource_ids.length - 2 }}</span>
-                    </q-avatar>
-                  </template>
-                  <span v-else class="unassigned-text">Unassigned</span>
-                </div>
+                    {{ getProjectName(task.project_id) }}
+                  </div>
 
-                <div class="block-progress-pill font-bold">
-                  {{ Number(item.task.progress) || 0 }}%
+                  <!-- Bottom Row: Avatars & Progress -->
+                  <div class="block-bottom-row row items-center justify-between no-wrap q-mt-xs">
+                    <!-- Assignee Avatars -->
+                    <div class="row items-center avatar-mini-stack">
+                      <template
+                        v-if="
+                          task.assigned_resource_ids && task.assigned_resource_ids.length > 0
+                        "
+                      >
+                        <q-avatar
+                          v-for="rId in task.assigned_resource_ids.slice(0, 2)"
+                          :key="rId"
+                          size="18px"
+                          class="mini-avatar"
+                        >
+                          <span>{{ getResourceName(rId).charAt(0).toUpperCase() }}</span>
+                          <q-tooltip>{{ getResourceName(rId) }}</q-tooltip>
+                        </q-avatar>
+                        <q-avatar
+                          v-if="task.assigned_resource_ids.length > 2"
+                          size="18px"
+                          class="mini-avatar mini-more"
+                        >
+                          <span>+{{ task.assigned_resource_ids.length - 2 }}</span>
+                        </q-avatar>
+                      </template>
+                      <span v-else class="unassigned-text">Unassigned</span>
+                    </div>
+
+                    <div class="block-progress-pill font-bold">
+                      {{ Number(task.progress) || 0 }}%
+                    </div>
+                  </div>
                 </div>
+              </template>
+              <div v-else class="empty-day-state text-center text-caption text-grey-5 q-py-lg">
+                No tasks
               </div>
             </div>
           </div>
@@ -758,20 +748,6 @@ const editingTaskTitle = computed(() => {
 });
 const submitting = ref(false);
 
-const TIME_HOURS = [
-  '08:00',
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-];
-
 interface TaskPastelTheme {
   bg: string;
   border: string;
@@ -926,6 +902,13 @@ const monthMatrixDays = computed(() => {
 function getTasksOnDate(date: Date): Task[] {
   const targetDateStr = date.toISOString().slice(0, 10);
   return filteredTasks.value.filter((t) => {
+    if (t.schedules && t.schedules.length > 0) {
+      return t.schedules.some(
+        (s) =>
+          String(s.schedule_date).slice(0, 10) === targetDateStr &&
+          Number(s.allocated_hours) > 0,
+      );
+    }
     const startStr =
       t.planned_start || t.actual_start || t.start_date
         ? (t.planned_start || t.actual_start || t.start_date)!.slice(0, 10)
@@ -940,6 +923,38 @@ function getTasksOnDate(date: Date): Task[] {
   });
 }
 
+function getDailyAllocatedHours(task: Task, dateObj: Date): number | null {
+  const dateStr = dateObj.toISOString().slice(0, 10);
+  if (task.schedules && task.schedules.length > 0) {
+    const s = task.schedules.find((sch) => String(sch.schedule_date).slice(0, 10) === dateStr);
+    if (s && Number(s.allocated_hours) > 0) {
+      return Number(s.allocated_hours);
+    }
+  }
+  return null;
+}
+
+function getTaskEffortBadgeText(task: Task, dateObj: Date): string {
+  const dailyAlloc = getDailyAllocatedHours(task, dateObj);
+  if (dailyAlloc !== null) {
+    return `${dailyAlloc}h scheduled`;
+  }
+  if (task.expected_effort) {
+    return `${task.expected_effort}h effort`;
+  }
+  return task.status ? task.status.replace(/_/g, ' ') : 'Task';
+}
+
+function getTaskCardStyle(task: Task) {
+  const theme = getTaskPastelTheme(task);
+  return {
+    background: theme.bg,
+    borderColor: theme.border,
+    color: theme.text,
+    borderLeft: `4px solid ${theme.badge}`,
+  };
+}
+
 function getMonthTaskPillStyle(task: Task) {
   const theme = getTaskPastelTheme(task);
   return {
@@ -948,111 +963,6 @@ function getMonthTaskPillStyle(task: Task) {
     borderLeft: `3px solid ${theme.badge}`,
   };
 }
-
-// ----------------------------------------------------
-// Calendar Task Positioning (Time Grid)
-// ----------------------------------------------------
-interface PositionedTask {
-  task: Task;
-  timeRange: string;
-  style: Record<string, string | number>;
-}
-
-const positionedCalendarTasks = computed<PositionedTask[]>(() => {
-  const results: PositionedTask[] = [];
-  const days = displayedDays.value;
-  if (!days.length) return results;
-
-  const startHour = 8; // 08:00
-  const hourHeightPx = 54; // Height per hour in css
-  const headerHeightPx = 48; // Column header row height
-
-  // Group tasks to compute horizontal stacking if overlapping
-  const dayBuckets: Record<number, Task[]> = {};
-  for (let d = 0; d < days.length; d++) {
-    dayBuckets[d] = [];
-  }
-
-  filteredTasks.value.forEach((task) => {
-    const taskStartStr =
-      task.planned_start || task.actual_start || task.start_date
-        ? (task.planned_start || task.actual_start || task.start_date)!.slice(0, 10)
-        : '';
-    const taskEndStr =
-      task.planned_end || task.deadline
-        ? (task.planned_end || task.deadline)!.slice(0, 10)
-        : taskStartStr;
-
-    days.forEach((dayObj, colIdx) => {
-      const curDateStr = dayObj.toISOString().slice(0, 10);
-      const isScheduledToday =
-        (taskStartStr && curDateStr >= taskStartStr && curDateStr <= taskEndStr) ||
-        (!taskStartStr && taskEndStr === curDateStr);
-
-      if (isScheduledToday) {
-        if (!dayBuckets[colIdx]) {
-          dayBuckets[colIdx] = [];
-        }
-        dayBuckets[colIdx]?.push(task);
-      }
-    });
-  });
-
-  days.forEach((dayObj, colIdx) => {
-    const bucket = dayBuckets[colIdx] || [];
-    bucket.forEach((task, taskIdx) => {
-      // Determine hour slot
-      let startH = 9 + (taskIdx % 5) * 1.5; // Stagger default start hours cleanly (09:00, 10:30, 12:00, etc.)
-      const effortNum = Number(task.expected_effort) || 8;
-      let durationHours = Math.min(4, Math.max(1, effortNum / 3));
-
-      // Parse time if present in ISO string
-      const rawStart = task.planned_start || task.actual_start || task.start_date;
-      if (rawStart && rawStart.includes('T')) {
-        const timePart = rawStart.split('T')[1];
-        if (timePart) {
-          const [hh, mm] = timePart.split(':').map(Number);
-          if (hh !== undefined && !Number.isNaN(hh)) {
-            startH = Math.max(8, Math.min(16, hh + (mm ? mm / 60 : 0)));
-          }
-        }
-      }
-
-      if (startH + durationHours > 18) {
-        durationHours = Math.max(1, 18 - startH);
-      }
-
-      const topOffsetPx = headerHeightPx + (startH - startHour) * hourHeightPx;
-      const heightPx = Math.max(48, durationHours * hourHeightPx - 6);
-
-      const endH = startH + durationHours;
-      const fmtH = (h: number) => {
-        const fullH = Math.floor(h);
-        const mins = Math.round((h - fullH) * 60);
-        return `${String(fullH).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-      };
-
-      const timeRange = `${fmtH(startH)} – ${fmtH(endH)}`;
-      const theme = getTaskPastelTheme(task);
-
-      results.push({
-        task,
-        timeRange,
-        style: {
-          gridColumn: colIdx + 2,
-          top: `${topOffsetPx}px`,
-          height: `${heightPx}px`,
-          background: theme.bg,
-          borderColor: theme.border,
-          color: theme.text,
-          borderLeft: `4px solid ${theme.badge}`,
-        },
-      });
-    });
-  });
-
-  return results;
-});
 
 // ----------------------------------------------------
 // Filter Options & Data Loading
@@ -1459,7 +1369,7 @@ async function handleUpdateTask() {
 }
 
 /* ===================================================
-   Calendar Time-Grid Layout (Week / Day)
+   Calendar Columns Layout (Week / Day)
    =================================================== */
 .calendar-grid-card {
   border-radius: 14px;
@@ -1475,38 +1385,35 @@ async function handleUpdateTask() {
   overflow-y: visible;
 }
 
-.calendar-table-grid {
+.calendar-columns-grid {
   display: grid;
-  position: relative;
-  min-width: 900px;
+  min-width: 850px;
   border-collapse: collapse;
 }
 
-.cal-cell {
+.day-column-cell {
   border-right: 1px solid var(--wo-border-subtle, #eef0f4);
-  border-bottom: 1px solid var(--wo-border-subtle, #eef0f4);
-}
-
-.time-corner-header {
-  height: 48px;
-  background: var(--wo-bg-page, #fafbfc);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid var(--wo-border, #e5e7ec);
-  border-right: 1px solid var(--wo-border, #e5e7ec);
+  flex-direction: column;
+  min-height: 480px;
+  background: var(--wo-bg-card, #ffffff);
 
-  .time-header-text {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--wo-text-muted, #94a3b8);
-    text-transform: uppercase;
+  &:last-child {
+    border-right: none;
+  }
+
+  &.is-today-col {
+    background: rgba(139, 111, 216, 0.03);
+  }
+
+  &.is-weekend-col {
+    background: rgba(241, 245, 249, 0.35);
   }
 }
 
 .date-col-header {
-  height: 48px;
-  padding: 6px 10px;
+  height: 52px;
+  padding: 8px 10px;
   background: var(--wo-bg-page, #fafbfc);
   border-bottom: 1px solid var(--wo-border, #e5e7ec);
   display: flex;
@@ -1516,7 +1423,7 @@ async function handleUpdateTask() {
   position: relative;
 
   .col-weekday-name {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--wo-text-muted, #64748b);
   }
@@ -1549,80 +1456,44 @@ async function handleUpdateTask() {
     padding: 1px 4px;
     border-radius: 4px;
   }
-
-  &.is-today-col {
-    background: rgba(139, 111, 216, 0.04);
-  }
-
-  &.is-weekend-col {
-    background: rgba(241, 245, 249, 0.4);
-  }
 }
 
-.time-label-cell {
-  height: 54px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 4px;
-  background: var(--wo-bg-page, #fafbfc);
-  border-right: 1px solid var(--wo-border, #e5e7ec);
-
-  .time-slot-label {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--wo-text-muted, #94a3b8);
-  }
-}
-
-.time-track-cell {
-  height: 54px;
-
-  &.is-today-col {
-    background: rgba(139, 111, 216, 0.02);
-  }
-
-  &.is-weekend-col {
-    background: rgba(241, 245, 249, 0.25);
-  }
+.day-tasks-list {
+  flex: 1;
 }
 
 /* ===================================================
-   Calendar Task Block (Rendered overlay)
+   Calendar Task Card (Day / Week View)
    =================================================== */
-.calendar-task-block {
-  position: absolute;
-  left: calc(var(--q-gutter, 0px) + 3px);
-  right: 3px;
-  z-index: 5;
+.calendar-day-task-card {
   border-radius: 9px;
   border: 1px solid transparent;
-  padding: 6px 8px;
+  padding: 8px 10px;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
-  overflow: hidden;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12);
-    z-index: 10;
   }
 
-  .block-top-row {
+  .card-top-row {
     margin-bottom: 2px;
   }
 
-  .block-time-range {
-    font-size: 9.5px;
+  .card-effort-badge {
+    font-size: 10px;
     font-weight: 700;
     opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .block-priority-dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
 
     &.prio-dot-critical {
@@ -1640,13 +1511,13 @@ async function handleUpdateTask() {
   }
 
   .block-task-title {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.3;
   }
 
   .block-project-name {
-    font-size: 10px;
+    font-size: 10.5px;
     opacity: 0.8;
   }
 
@@ -1667,15 +1538,19 @@ async function handleUpdateTask() {
       color: #334155;
     }
     .unassigned-text {
-      font-size: 9.5px;
+      font-size: 10px;
       opacity: 0.65;
     }
   }
 
   .block-progress-pill {
-    font-size: 9.5px;
+    font-size: 10px;
     opacity: 0.9;
   }
+}
+
+.empty-day-state {
+  opacity: 0.6;
 }
 
 /* ===================================================
