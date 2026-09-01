@@ -29,7 +29,7 @@ export function formatDateLocal(date: Date): string {
 }
 
 export function parseDateLocal(dateStr: string): Date {
-    const clean = dateStr.includes("T") ? dateStr.split("T")[0]! : dateStr;
+    const clean = dateStr.includes("T") ? dateStr.split("T")[0]! : dateStr.split(" ")[0]!;
     const [yearStr, monthStr, dayStr] = clean.split("-");
     const d = new Date(parseInt(yearStr!, 10), parseInt(monthStr!, 10) - 1, parseInt(dayStr!, 10));
     d.setHours(0, 0, 0, 0);
@@ -38,7 +38,7 @@ export function parseDateLocal(dateStr: string): Date {
 
 export function getWeekdayFromDate(dateInput: Date | string): string {
     if (typeof dateInput === "string") {
-        const cleanDate = dateInput.includes("T") ? dateInput.split("T")[0]! : dateInput;
+        const cleanDate = dateInput.includes("T") ? dateInput.split("T")[0]! : dateInput.split(" ")[0]!;
         const [yearStr, monthStr, dayStr] = cleanDate.split("-");
         if (yearStr && monthStr && dayStr) {
             const year = parseInt(yearStr, 10);
@@ -272,6 +272,33 @@ export function calculateRisks(
     };
 }
 
+export function parseAndFormatDatetime(val: any): string {
+    if (!val) return "";
+    const d = typeof val === "string" ? new Date(val) : val;
+    if (!(d instanceof Date) || isNaN(d.getTime())) {
+        return String(val);
+    }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+export function formatDateTimeLocal(date: Date, hourOffset: number): string {
+    const d = new Date(date);
+    d.setHours(10 + Math.floor(hourOffset), (hourOffset % 1) * 60, 0, 0); // 10 AM is start of workday
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export async function recalculate(projectId: number): Promise<void> {
     const pool = getPool();
 
@@ -312,10 +339,10 @@ export async function recalculate(projectId: number): Promise<void> {
         priority: row.priority,
         status: row.status,
         deadline: row.deadline ? String(row.deadline).split("T")[0]! : null,
-        planned_start: row.planned_start ? String(row.planned_start).split("T")[0]! : null,
-        planned_end: row.planned_end ? String(row.planned_end).split("T")[0]! : null,
-        actual_start: row.actual_start ?? null,
-        actual_end: row.actual_end ?? null,
+        planned_start: row.planned_start ? parseAndFormatDatetime(row.planned_start) : null,
+        planned_end: row.planned_end ? parseAndFormatDatetime(row.planned_end) : null,
+        actual_start: row.actual_start ? parseAndFormatDatetime(row.actual_start) : null,
+        actual_end: row.actual_end ? parseAndFormatDatetime(row.actual_end) : null,
         expected_effort: Number(row.expected_effort),
         actual_effort: Number(row.actual_effort),
         progress: Number(row.progress),
@@ -549,17 +576,22 @@ export async function recalculate(projectId: number): Promise<void> {
 
             while (remainingEffort > 0) {
                 const date = formatDateLocal(currentDate);
+                let dependencyHourOffset = 0;
+                if (date === formatDateLocal(taskEarliestStart)) {
+                    dependencyHourOffset = Math.max(0, taskEarliestStart.getHours() - 10 + taskEarliestStart.getMinutes() / 60);
+                }
+
                 let dailyCapacity = 0;
 
                 for (const userId of resourceIds) {
-                    dailyCapacity += getAvailableHours(userId, date);
+                    const avail = getAvailableHours(userId, date);
+                    const userSched = resourceSchedule.get(userId);
+                    const alreadySched = userSched?.get(date) ?? 0;
+                    const extraLost = Math.max(0, dependencyHourOffset - alreadySched);
+                    dailyCapacity += Math.max(0, avail - extraLost);
                 }
 
                 if (dailyCapacity > 0) {
-                    if (plannedStart === null) {
-                        plannedStart = date;
-                    }
-
                     let hoursRemainingToday = Math.min(
                         remainingEffort,
                         dailyCapacity
@@ -571,13 +603,17 @@ export async function recalculate(projectId: number): Promise<void> {
                         }
 
                         const availableHours = getAvailableHours(userId, date);
+                        const userSchedMap = resourceSchedule.get(userId);
+                        const alreadyScheduled = userSchedMap?.get(date) ?? 0;
+                        const extraLost = Math.max(0, dependencyHourOffset - alreadyScheduled);
+                        const effectiveAvailableHours = Math.max(0, availableHours - extraLost);
 
-                        if (availableHours <= 0) {
+                        if (effectiveAvailableHours <= 0) {
                             continue;
                         }
 
                         const hoursToAllocate = Math.min(
-                            availableHours,
+                            effectiveAvailableHours,
                             hoursRemainingToday
                         );
 
@@ -586,10 +622,22 @@ export async function recalculate(projectId: number): Promise<void> {
                         }
 
                         const userSchedule = resourceSchedule.get(userId)!;
+                        const startHourOffset = Math.max(alreadyScheduled, dependencyHourOffset);
+                        const endHourOffset = startHourOffset + hoursToAllocate;
+                        
+                        const currentStartTime = formatDateTimeLocal(currentDate, startHourOffset);
+                        const currentEndTime = formatDateTimeLocal(currentDate, endHourOffset);
+
+                        if (plannedStart === null || currentStartTime < plannedStart) {
+                            plannedStart = currentStartTime;
+                        }
+                        if (plannedEnd === null || currentEndTime > plannedEnd) {
+                            plannedEnd = currentEndTime;
+                        }
 
                         userSchedule.set(
                             date,
-                            (userSchedule.get(date) ?? 0) + hoursToAllocate
+                            startHourOffset + hoursToAllocate
                         );
 
                         taskScheduleEntries.push({
@@ -603,8 +651,11 @@ export async function recalculate(projectId: number): Promise<void> {
                         remainingEffort -= hoursToAllocate;
                     }
 
-                    plannedEnd = date;
-                    taskFinalEnd = new Date(currentDate);
+                    if (plannedEnd) {
+                        taskFinalEnd = new Date(plannedEnd.replace(' ', 'T'));
+                    } else {
+                        taskFinalEnd = new Date(currentDate);
+                    }
                 }
 
                 currentDate.setDate(currentDate.getDate() + 1);

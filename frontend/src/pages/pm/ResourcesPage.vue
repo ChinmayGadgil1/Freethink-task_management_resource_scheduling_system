@@ -805,7 +805,11 @@
           <div class="q-mt-sm">
             <div class="row items-center justify-between q-mb-xs">
               <span class="text-subtitle2 text-weight-bold">Daily Working Capacity</span>
-              <q-badge color="primary" class="text-weight-bold q-px-sm q-py-xs" style="font-size: 0.85rem">
+              <q-badge
+                color="primary"
+                class="text-weight-bold q-px-sm q-py-xs"
+                style="font-size: 0.85rem"
+              >
                 8 Hours / Day
               </q-badge>
             </div>

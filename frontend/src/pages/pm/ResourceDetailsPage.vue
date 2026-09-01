@@ -393,8 +393,18 @@
                   <q-chip
                     dense
                     square
-                    :color="props.row.status === 'APPROVED' ? 'positive' : props.row.status === 'PENDING' ? 'amber-2' : 'negative'"
-                    :text-color="props.row.status === 'APPROVED' || props.row.status === 'REJECTED' ? 'white' : 'brown-10'"
+                    :color="
+                      props.row.status === 'APPROVED'
+                        ? 'positive'
+                        : props.row.status === 'PENDING'
+                          ? 'amber-2'
+                          : 'negative'
+                    "
+                    :text-color="
+                      props.row.status === 'APPROVED' || props.row.status === 'REJECTED'
+                        ? 'white'
+                        : 'brown-10'
+                    "
                     class="text-caption text-weight-bold"
                   >
                     {{ props.row.status }}
@@ -418,16 +428,10 @@
                       >
                         <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
                       </q-btn>
-                      <q-btn
-                        v-else
-                        flat
-                        round
-                        dense
-                        disable
-                        icon="check"
-                        color="grey-5"
-                      >
-                        <q-tooltip>Cannot approve: Leave date has already arrived or passed</q-tooltip>
+                      <q-btn v-else flat round dense disable icon="check" color="grey-5">
+                        <q-tooltip
+                          >Cannot approve: Leave date has already arrived or passed</q-tooltip
+                        >
                       </q-btn>
 
                       <q-btn
@@ -658,7 +662,11 @@
             <div class="q-mt-sm">
               <div class="row items-center justify-between q-mb-xs">
                 <span class="text-subtitle2 text-weight-bold">Daily Working Capacity</span>
-                <q-badge color="primary" class="text-weight-bold q-px-sm q-py-xs" style="font-size: 0.85rem">
+                <q-badge
+                  color="primary"
+                  class="text-weight-bold q-px-sm q-py-xs"
+                  style="font-size: 0.85rem"
+                >
                   8 Hours / Day
                 </q-badge>
               </div>
@@ -668,7 +676,12 @@
             </div>
 
             <!-- Schedule Summary Breakdown -->
-            <q-card flat bordered class="q-pa-sm" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
+            <q-card
+              flat
+              bordered
+              class="q-pa-sm"
+              :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'"
+            >
               <div class="q-gutter-xs text-caption">
                 <div class="row items-center justify-between">
                   <span class="text-weight-medium">Non-Working Days:</span>
@@ -810,8 +823,8 @@ const modalNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 const modalDailyHours = ref(8.0);
 
 const activeWorkingDaysList = computed(() => {
-  const rawNonWorking =
-    scheduleConfig.value?.non_working_days ?? resourceInfo.value?.non_working_days ?? ['SATURDAY', 'SUNDAY'];
+  const rawNonWorking = scheduleConfig.value?.non_working_days ??
+    resourceInfo.value?.non_working_days ?? ['SATURDAY', 'SUNDAY'];
   let nonWorking: string[] = ['SATURDAY', 'SUNDAY'];
   if (Array.isArray(rawNonWorking)) {
     nonWorking = rawNonWorking;

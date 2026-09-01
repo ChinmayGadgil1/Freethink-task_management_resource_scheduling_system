@@ -31,8 +31,16 @@
           </template>
         </q-input>
 
-        <!-- Scale Toggle Group: Day | Week | Month -->
+        <!-- Scale Toggle Group: Hour | Day | Week | Month -->
         <div class="scale-toggle-group row items-center no-wrap">
+          <button
+            type="button"
+            class="scale-btn"
+            :class="{ active: activeScale === 'hour' }"
+            @click="setScale('hour')"
+          >
+            Hour
+          </button>
           <button
             type="button"
             class="scale-btn"
@@ -219,7 +227,7 @@ export interface GanttTimelineProps {
   projects?: Project[];
   resources?: ResourceUser[];
   title?: string;
-  initialScale?: 'day' | 'week' | 'month';
+  initialScale?: 'hour' | 'day' | 'week' | 'month';
   groupByProject?: boolean;
 }
 
@@ -279,7 +287,7 @@ const isDark = computed(() => themeStore.isDark);
 
 const ganttContainer = ref<HTMLElement | null>(null);
 const internalSearchQuery = ref('');
-const activeScale = ref<'day' | 'week' | 'month'>(props.initialScale);
+const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(props.initialScale);
 const isHierarchical = ref(props.groupByProject);
 const showDependencies = ref(true);
 const displayDateRange = ref('');
@@ -315,9 +323,14 @@ function parseDateLocal(dateStr: string): Date {
   return new Date(y, m, d, 0, 0, 0, 0);
 }
 
-function parseIsoToDate(val: string | Date | undefined | null): Date {
-  if (!val) return new Date();
+function parseIsoToDate(val: string | Date | undefined | null): Date | null {
+  if (!val) return null;
   if (val instanceof Date) return new Date(val.getTime());
+
+  // Try native parse first for exact datetime
+  const d = new Date(String(val).replace(' ', 'T'));
+  if (!isNaN(d.getTime())) return d;
+
   return parseDateLocal(String(val));
 }
 
@@ -325,6 +338,41 @@ function addDays(d: Date, days: number): Date {
   const res = new Date(d.getTime());
   res.setDate(res.getDate() + days);
   return res;
+}
+
+function snapToGanttWorkTime(d: Date | null): Date | null {
+  if (!d) return null;
+  const next = new Date(d.getTime());
+  const h = next.getHours();
+  if (h >= 18) {
+    next.setDate(next.getDate() + 1);
+    next.setHours(10, 0, 0, 0);
+    while (next.getDay() === 0 || next.getDay() === 6) {
+      next.setDate(next.getDate() + 1);
+    }
+  } else if (h < 10) {
+    next.setHours(10, 0, 0, 0);
+    while (next.getDay() === 0 || next.getDay() === 6) {
+      next.setDate(next.getDate() + 1);
+    }
+  }
+  return next;
+}
+
+function getMacroDate(d: Date | null, isStart: boolean): Date | null {
+  if (!d) return null;
+  const next = new Date(d.getTime());
+  if (isStart) {
+    if (next.getHours() <= 10) {
+      next.setHours(0, 0, 0, 0);
+    }
+  } else {
+    if (next.getHours() >= 18) {
+      next.setDate(next.getDate() + 1);
+      next.setHours(0, 0, 0, 0);
+    }
+  }
+  return next;
 }
 
 function formatDateIso(d: Date): string {
@@ -335,7 +383,13 @@ function formatDateIso(d: Date): string {
 }
 
 function formatGanttDate(date: Date): string {
-  return formatDateIso(date);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const sec = String(date.getSeconds()).padStart(2, '0');
+  return `${y}-${m}-${d} ${h}:${min}:${sec}`;
 }
 
 function formatDate(date: Date): string {
@@ -615,8 +669,47 @@ function configureGanttEngine() {
     tooltip: true,
   });
 
-  gantt.config.date_format = '%Y-%m-%d';
-  gantt.config.xml_date = '%Y-%m-%d';
+  gantt.config.date_format = '%Y-%m-%d %H:%i:%s';
+  gantt.config.xml_date = '%Y-%m-%d %H:%i:%s';
+
+  // Enable work time logic
+  gantt.config.work_time = true;
+
+  // Define custom "work_hour" time unit to skip non-working hours (10:00 - 18:00) natively in Free edition
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (gantt.date as any).work_hour_start = function (date: Date) {
+    const next = new Date(date.valueOf());
+    const h = next.getHours();
+    if (h < 10) {
+      next.setHours(10, 0, 0, 0);
+    } else if (h >= 18) {
+      next.setDate(next.getDate() + 1);
+      next.setHours(10, 0, 0, 0);
+    } else {
+      next.setMinutes(0, 0, 0);
+    }
+    while (next.getDay() === 0 || next.getDay() === 6) {
+      next.setDate(next.getDate() + 1);
+    }
+    return next;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (gantt.date as any).add_work_hour = function (date: Date, inc: number) {
+    const next = new Date(date.valueOf());
+    for (let i = 0; i < inc; i++) {
+      next.setHours(next.getHours() + 1);
+      if (next.getHours() >= 18) {
+        next.setDate(next.getDate() + 1);
+        next.setHours(10, 0, 0, 0);
+        // Skip weekends
+        while (next.getDay() === 0 || next.getDay() === 6) {
+          next.setDate(next.getDate() + 1);
+        }
+      }
+    }
+    return next;
+  };
 
   // Layout Dimensions
   gantt.config.row_height = 44;
@@ -703,15 +796,37 @@ function configureGanttEngine() {
     }
 
     const taskStartD = parseIsoToDate(task.start_date) || start;
+    const taskEndD = parseIsoToDate(task.end_date) || _end;
     const taskStartX = gantt.posFromDate(taskStartD);
+    const taskEndX = gantt.posFromDate(taskEndD);
+    const taskTotalWidth = Math.max(1, taskEndX - taskStartX);
+
     const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
     const sClass = `bar-s-${(task.status || 'scheduled').toLowerCase().replace('_', '-')}`;
 
-    const segHtmlList = segments.map((seg) => {
-      const segStartX = gantt.posFromDate(seg.startDate);
-      const segEndX = gantt.posFromDate(seg.endDate);
+    const segHtmlList = segments.map((seg, index) => {
+      const isFirst = index === 0;
+      const isLast = index === segments.length - 1;
+
+      const actualSegStart = isFirst
+        ? taskStartD
+        : (activeScale.value === 'hour'
+            ? snapToGanttWorkTime(seg.startDate)
+            : getMacroDate(seg.startDate, true)) || seg.startDate;
+      const actualSegEnd = isLast
+        ? taskEndD
+        : (activeScale.value === 'hour'
+            ? snapToGanttWorkTime(seg.endDate)
+            : getMacroDate(seg.endDate, false)) || seg.endDate;
+
+      const segStartX = gantt.posFromDate(actualSegStart);
+      const segEndX = gantt.posFromDate(actualSegEnd);
       const segLeft = Math.max(0, segStartX - taskStartX);
-      const segWidth = Math.max(30, segEndX - segStartX);
+      let segWidth = Math.max(2, segEndX - segStartX);
+
+      if (segLeft + segWidth > taskTotalWidth) {
+        segWidth = Math.max(2, taskTotalWidth - segLeft);
+      }
 
       const hoursBadge =
         seg.allocatedHours > 0
@@ -846,8 +961,15 @@ function configureGanttEngine() {
 // ----------------------------------------------------
 // Scale Configuration (Day, Week, Month)
 // ----------------------------------------------------
-function applyScaleMode(scale: 'day' | 'week' | 'month') {
-  if (scale === 'day') {
+function applyScaleMode(scale: 'hour' | 'day' | 'week' | 'month') {
+  if (scale === 'hour') {
+    gantt.config.scale_height = 50;
+    gantt.config.min_column_width = 30;
+    gantt.config.scales = [
+      { unit: 'day', step: 1, format: '%D, %d %M' },
+      { unit: 'work_hour', step: 1, format: '%H' },
+    ];
+  } else if (scale === 'day') {
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 46;
     gantt.config.scales = [
@@ -934,13 +1056,13 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
   const maxDate = new Date(maxTime);
   const scale = activeScale.value;
 
-  if (scale === 'day') {
+  if (scale === 'hour' || scale === 'day') {
     const start = new Date(minDate);
-    start.setDate(start.getDate() - 2);
+    start.setDate(start.getDate() - 1);
     start.setHours(0, 0, 0, 0);
 
     const end = new Date(maxDate);
-    end.setDate(end.getDate() + 3);
+    end.setDate(end.getDate() + 2);
     end.setHours(0, 0, 0, 0);
 
     gantt.config.start_date = start;
@@ -990,6 +1112,12 @@ function buildGanttDataset() {
 
   const data: Array<Record<string, unknown>> = [];
   const links: Array<Record<string, unknown>> = [];
+
+  const resolveStartDate = (d: Date | null) =>
+    activeScale.value === 'hour' ? snapToGanttWorkTime(d) : getMacroDate(d, true);
+
+  const resolveEndDate = (d: Date | null) =>
+    activeScale.value === 'hour' ? snapToGanttWorkTime(d) : getMacroDate(d, false);
 
   if (isHierarchical.value) {
     // Group tasks by project
@@ -1045,9 +1173,12 @@ function buildGanttDataset() {
         childTaskDataItems.push({
           id: t.task_id,
           text: t.title,
-          start_date: formatGanttDate(tStart),
-          end_date: formatGanttDate(tEnd),
-          duration: dur,
+          start_date: formatGanttDate(
+            resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) || tStart)!,
+          ),
+          end_date: formatGanttDate(
+            resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) || tEnd)!,
+          ),
           progress: (Number(t.progress) || 0) / 100,
           parent: `proj_${p.project_id}`,
           priority: t.priority,
@@ -1064,10 +1195,6 @@ function buildGanttDataset() {
 
       const startObj = earliestStart || new Date();
       const endObj = latestEnd || addDays(startObj, 1);
-      const projDurationDays = Math.max(
-        1,
-        Math.round((endObj.getTime() - startObj.getTime()) / (1000 * 60 * 60 * 24)),
-      );
 
       const calculatedProgress =
         totalDuration > 0
@@ -1087,9 +1214,8 @@ function buildGanttDataset() {
       data.push({
         id: projNodeId,
         text: p.name,
-        start_date: formatGanttDate(startObj),
-        end_date: formatGanttDate(endObj),
-        duration: projDurationDays,
+        start_date: formatGanttDate(resolveStartDate(startObj)!),
+        end_date: formatGanttDate(resolveEndDate(endObj)!),
         progress: Math.min(1, Math.max(0, calculatedProgress)),
         type: 'project',
         open: isProjectOpen,
@@ -1112,10 +1238,6 @@ function buildGanttDataset() {
         latestEnd: tEnd,
         totalHours,
       } = getTaskWorkSegments(t);
-      const durationDays = Math.max(
-        1,
-        Math.round((tEnd.getTime() - tStart.getTime()) / (1000 * 60 * 60 * 24)),
-      );
 
       const p = projectMap.value.get(t.project_id);
       const firstAssigneeId = t.assigned_resource_ids?.[0];
@@ -1124,9 +1246,12 @@ function buildGanttDataset() {
       data.push({
         id: t.task_id,
         text: t.title,
-        start_date: formatGanttDate(tStart),
-        end_date: formatGanttDate(tEnd),
-        duration: durationDays,
+        start_date: formatGanttDate(
+          resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) || tStart)!,
+        ),
+        end_date: formatGanttDate(
+          resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) || tEnd)!,
+        ),
         progress: (Number(t.progress) || 0) / 100,
         priority: t.priority,
         status: t.status,
@@ -1207,7 +1332,7 @@ function toggleExtraColumns() {
   gantt.render();
 }
 
-function setScale(scale: 'day' | 'week' | 'month') {
+function setScale(scale: 'hour' | 'day' | 'week' | 'month') {
   activeScale.value = scale;
   refreshGantt();
 }

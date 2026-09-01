@@ -77,8 +77,7 @@ export async function createWorkLog(
         if (isFirstLog) {
             try {
                 // If actual_start column exists, update it
-                updateFields.push("actual_start = COALESCE(actual_start, ?)");
-                updateParams.push(logDate);
+                updateFields.push("actual_start = COALESCE(actual_start, NOW())");
             } catch {
                 // Ignore if column not present yet
             }
@@ -86,8 +85,7 @@ export async function createWorkLog(
 
         if (newStatus === "COMPLETED") {
             try {
-                updateFields.push("actual_end = ?");
-                updateParams.push(logDate);
+                updateFields.push("actual_end = NOW()");
             } catch {
                 // Ignore if column not present yet
             }

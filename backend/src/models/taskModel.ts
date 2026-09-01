@@ -10,10 +10,10 @@ export interface Task {
     priority: TaskPriority;
     status: TaskStatus;
     deadline: string | null;   // ISO Date string (YYYY-MM-DD)
-    planned_start?: string | null;
-    planned_end?: string | null;
-    actual_start: string | null; // ISO Date string (YYYY-MM-DD)
-    actual_end: string | null;   // ISO Date string (YYYY-MM-DD)
+    planned_start?: string | null; // ISO Datetime string (YYYY-MM-DD HH:mm:ss)
+    planned_end?: string | null;   // ISO Datetime string (YYYY-MM-DD HH:mm:ss)
+    actual_start: string | null; // ISO Datetime string (YYYY-MM-DD HH:mm:ss)
+    actual_end: string | null;   // ISO Datetime string (YYYY-MM-DD HH:mm:ss)
     expected_effort: number;   // in hours
     actual_effort: number;     // in hours
     progress: number;          // percentage 0 to 100

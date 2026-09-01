@@ -258,10 +258,16 @@
               />
               {{ props.row.status }}
             </q-chip>
-            <div v-if="props.row.status === 'REJECTED' && props.row.rejection_reason" class="text-caption text-negative q-mt-xs">
+            <div
+              v-if="props.row.status === 'REJECTED' && props.row.rejection_reason"
+              class="text-caption text-negative q-mt-xs"
+            >
               {{ props.row.rejection_reason }}
             </div>
-            <div v-else-if="props.row.status === 'APPROVED' && props.row.approver_name" class="text-caption text-grey-6">
+            <div
+              v-else-if="props.row.status === 'APPROVED' && props.row.approver_name"
+              class="text-caption text-grey-6"
+            >
               Approved by {{ props.row.approver_name }}
             </div>
           </q-td>
@@ -287,14 +293,7 @@
                   <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
                 </q-btn>
                 <div v-else>
-                  <q-btn
-                    dense
-                    flat
-                    round
-                    disable
-                    color="grey-5"
-                    icon="check"
-                  >
+                  <q-btn dense flat round disable color="grey-5" icon="check">
                     <q-tooltip>Cannot approve: Leave date has already arrived or passed</q-tooltip>
                   </q-btn>
                 </div>
@@ -338,7 +337,11 @@
             class="text-h6 text-weight-bold"
             :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
           >
-            {{ isProjectManager ? 'Apply Leave (On Behalf - Pre-approved)' : 'Request Leave (Pending PM Approval)' }}
+            {{
+              isProjectManager
+                ? 'Apply Leave (On Behalf - Pre-approved)'
+                : 'Request Leave (Pending PM Approval)'
+            }}
           </div>
           <q-btn v-close-popup flat round dense icon="close" />
         </q-card-section>
@@ -670,7 +673,12 @@ async function loadData() {
 
 async function loadLeaves() {
   try {
-    const qParams: { user_id?: number; startDate?: string; endDate?: string; status?: LeaveStatus } = {};
+    const qParams: {
+      user_id?: number;
+      startDate?: string;
+      endDate?: string;
+      status?: LeaveStatus;
+    } = {};
 
     // Map filters
     if (isProjectManager.value) {

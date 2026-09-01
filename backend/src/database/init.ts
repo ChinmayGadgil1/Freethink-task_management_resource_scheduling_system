@@ -90,10 +90,10 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
             status ENUM('UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'UNASSIGNED',
             deadline DATE,
-            planned_start DATE,
-            planned_end DATE,
-            actual_start DATE,
-            actual_end DATE,
+            planned_start DATETIME,
+            planned_end DATETIME,
+            actual_start DATETIME,
+            actual_end DATETIME,
             expected_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
             actual_effort DECIMAL(8,2) NOT NULL DEFAULT 0,
             progress DECIMAL(5,2) NOT NULL DEFAULT 0,
@@ -296,6 +296,14 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("Password reset tokens table is ready.");
+
+    // Migration check: Ensure task date columns are DATETIME
+    try {
+        await pool.query(`ALTER TABLE tasks MODIFY planned_start DATETIME, MODIFY planned_end DATETIME, MODIFY actual_start DATETIME, MODIFY actual_end DATETIME`);
+        console.log("Migrated: task date columns updated to DATETIME.");
+    } catch (e: any) {
+        console.log("Warning: task date columns migration encountered an error (they might already be DATETIME).", e.message);
+    }
 
     // Migration & Data Normalization
     try {

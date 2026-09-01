@@ -256,10 +256,7 @@
                   </div>
 
                   <!-- Project Name -->
-                  <div
-                    class="block-project-name ellipsis"
-                    :title="getProjectName(task.project_id)"
-                  >
+                  <div class="block-project-name ellipsis" :title="getProjectName(task.project_id)">
                     {{ getProjectName(task.project_id) }}
                   </div>
 
@@ -729,8 +726,7 @@ function getTasksOnDate(date: Date): Task[] {
     if (t.schedules && t.schedules.length > 0) {
       return t.schedules.some(
         (s) =>
-          String(s.schedule_date).slice(0, 10) === targetDateStr &&
-          Number(s.allocated_hours) > 0,
+          String(s.schedule_date).slice(0, 10) === targetDateStr && Number(s.allocated_hours) > 0,
       );
     }
     const startStr =

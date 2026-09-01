@@ -260,10 +260,7 @@
                   </div>
 
                   <!-- Project Name -->
-                  <div
-                    class="block-project-name ellipsis"
-                    :title="getProjectName(task.project_id)"
-                  >
+                  <div class="block-project-name ellipsis" :title="getProjectName(task.project_id)">
                     {{ getProjectName(task.project_id) }}
                   </div>
 
@@ -272,9 +269,7 @@
                     <!-- Assignee Avatars -->
                     <div class="row items-center avatar-mini-stack">
                       <template
-                        v-if="
-                          task.assigned_resource_ids && task.assigned_resource_ids.length > 0
-                        "
+                        v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
                       >
                         <q-avatar
                           v-for="rId in task.assigned_resource_ids.slice(0, 2)"
@@ -905,8 +900,7 @@ function getTasksOnDate(date: Date): Task[] {
     if (t.schedules && t.schedules.length > 0) {
       return t.schedules.some(
         (s) =>
-          String(s.schedule_date).slice(0, 10) === targetDateStr &&
-          Number(s.allocated_hours) > 0,
+          String(s.schedule_date).slice(0, 10) === targetDateStr && Number(s.allocated_hours) > 0,
       );
     }
     const startStr =
