@@ -21,20 +21,10 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // Main app routes (sharing MainLayout)
+  // Redirect /app to PM dashboard / projects
   {
     path: '/app',
-    component: () => import('@/layouts/MainLayout.vue'),
-    meta: { requiresAuth: true, roles: ['PROJECT_MANAGER'] },
-    children: [
-      { path: '', component: () => import('@/pages/IndexPage.vue') },
-      {
-        path: 'pm-dashboard',
-        component: () => import('@/pages/pm/DashboardPage.vue'),
-      },
-
-      { path: 'second', component: () => import('@/pages/SecondPage.vue') },
-    ],
+    redirect: '/pm/projects',
   },
 
   {

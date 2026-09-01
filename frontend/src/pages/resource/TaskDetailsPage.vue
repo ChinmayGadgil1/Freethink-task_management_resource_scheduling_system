@@ -1510,7 +1510,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import {
@@ -2067,16 +2067,52 @@ const remainingHours = computed(() => {
   );
 });
 
+let liveSyncTimer: ReturnType<typeof setInterval> | null = null;
+
+async function syncActiveSessions(currentTaskId: number) {
+  if (!currentTaskId) return;
+  try {
+    const activeRes = await getTaskActiveSessionsApi(currentTaskId);
+    activeCoAssigneeSessions.value = activeRes.sessions || [];
+    activeCoAssigneeSessions.value.forEach((s) => {
+      if (s.user_id && s.user_name) {
+        resourceNamesMap.value[s.user_id] = s.user_name;
+      }
+    });
+    void sessionStore.fetchActiveSession(true);
+  } catch {
+    // Silent fail on background polling
+  }
+}
+
+function startLiveSync(tId: number) {
+  stopLiveSync();
+  void syncActiveSessions(tId);
+  liveSyncTimer = setInterval(() => {
+    if (task.value && task.value.task_id === tId) {
+      void syncActiveSessions(tId);
+    }
+  }, 10000);
+}
+
+function stopLiveSync() {
+  if (liveSyncTimer) {
+    clearInterval(liveSyncTimer);
+    liveSyncTimer = null;
+  }
+}
+
 watch(taskId, (id) => {
   if (!id) {
     workLogs.value = [];
     historyError.value = '';
-
+    stopLiveSync();
     return;
   }
 
   if (task.value) {
     void loadHistory(id);
+    startLiveSync(id);
   }
 });
 
@@ -2089,9 +2125,11 @@ async function loadTasks() {
 
     if (task.value) {
       await loadHistory(task.value.task_id);
+      startLiveSync(task.value.task_id);
     } else if (hasTaskId.value) {
       workLogs.value = [];
       historyError.value = '';
+      stopLiveSync();
     }
   } catch (err) {
     console.error(err);
@@ -2275,6 +2313,10 @@ function statusLabel(status: Task['status']) {
 onMounted(() => {
   void loadTasks();
   void sessionStore.fetchActiveSession();
+});
+
+onUnmounted(() => {
+  stopLiveSync();
 });
 </script>
 

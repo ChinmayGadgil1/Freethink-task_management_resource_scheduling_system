@@ -27,8 +27,10 @@ export const useSessionStore = defineStore('session', {
   },
 
   actions: {
-    async fetchActiveSession(): Promise<TaskSession | null> {
-      this.loading = true;
+    async fetchActiveSession(silent = false): Promise<TaskSession | null> {
+      if (!silent) {
+        this.loading = true;
+      }
       try {
         const res = await getActiveTaskSessionApi();
         this.activeSession = res.session;
@@ -38,7 +40,9 @@ export const useSessionStore = defineStore('session', {
         this.initialized = true;
         return null;
       } finally {
-        this.loading = false;
+        if (!silent) {
+          this.loading = false;
+        }
       }
     },
 
