@@ -87,6 +87,10 @@ const routes: RouteRecordRaw[] = [
         path: 'help',
         component: () => import('@/pages/help/HelpPage.vue'),
       },
+      {
+        path: 'profile',
+        component: () => import('@/pages/common/ProfilePage.vue'),
+      },
     ],
   },
 
@@ -128,6 +132,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'help',
         component: () => import('@/pages/help/HelpPage.vue'),
+      },
+      {
+        path: 'profile',
+        component: () => import('@/pages/common/ProfilePage.vue'),
       },
     ],
   },

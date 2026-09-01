@@ -835,6 +835,62 @@ export async function getGlobalProgressFeedApi(limit = 50): Promise<ProgressFeed
   return data.logs ?? [];
 }
 
+export interface UserProfileData {
+  user_id: number;
+  name: string;
+  username: string;
+  email: string;
+  role: 'PROJECT_MANAGER' | 'RESOURCE';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfileResponse {
+  user: UserProfileData;
+  stats: {
+    total_projects?: number;
+    active_projects?: number;
+    completed_projects?: number;
+    total_assigned_tasks?: number;
+    active_tasks?: number;
+    completed_tasks?: number;
+    weekly_capacity_hours?: number;
+    daily_working_hours?: number;
+  };
+}
+
+export async function getUserProfileApi(): Promise<UserProfileResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/users/me`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch user profile');
+  }
+
+  return data;
+}
+
+export async function updateUserProfileApi(payload: {
+  name: string;
+  username: string;
+}): Promise<{ message?: string; user: UserProfileData }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/users/me`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update profile');
+  }
+
+  return data;
+}
+
 export interface ResetPasswordParams {
   email: string;
   oldPassword: string;

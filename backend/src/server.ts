@@ -8,6 +8,7 @@ import schedulerRoutes from "./routes/schedulerRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/resources", resourceRoutes);
