@@ -503,7 +503,23 @@ const $q = useQuasar();
 const router = useRouter();
 
 const loading = ref(true);
-const scheduleViewMode = ref<'week' | 'day' | 'month' | 'gantt' | 'table'>('week');
+const STORAGE_KEY_VIEW_MODE = 'taskflow_res_schedule_view_mode';
+const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
+  | 'week'
+  | 'day'
+  | 'month'
+  | 'gantt'
+  | 'table'
+  | null;
+const scheduleViewMode = ref<'week' | 'day' | 'month' | 'gantt' | 'table'>(
+  storedViewMode || 'week',
+);
+
+watch(scheduleViewMode, (newMode) => {
+  if (newMode) {
+    localStorage.setItem(STORAGE_KEY_VIEW_MODE, newMode);
+  }
+});
 const currentAnchorDate = ref<Date>(new Date());
 const todayDate = new Date();
 

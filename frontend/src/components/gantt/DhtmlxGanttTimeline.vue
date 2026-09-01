@@ -287,7 +287,22 @@ const isDark = computed(() => themeStore.isDark);
 
 const ganttContainer = ref<HTMLElement | null>(null);
 const internalSearchQuery = ref('');
-const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(props.initialScale);
+const STORAGE_KEY_SCALE = 'taskflow_gantt_scale';
+const storedScale = localStorage.getItem(STORAGE_KEY_SCALE) as
+  | 'hour'
+  | 'day'
+  | 'week'
+  | 'month'
+  | null;
+const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(
+  storedScale || props.initialScale,
+);
+
+watch(activeScale, (newScale) => {
+  if (newScale) {
+    localStorage.setItem(STORAGE_KEY_SCALE, newScale);
+  }
+});
 const isHierarchical = ref(props.groupByProject);
 const showDependencies = ref(true);
 const displayDateRange = ref('');
