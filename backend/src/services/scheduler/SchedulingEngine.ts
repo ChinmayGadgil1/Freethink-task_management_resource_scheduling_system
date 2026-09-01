@@ -299,7 +299,7 @@ export function formatDateTimeLocal(date: Date, hourOffset: number): string {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-export async function recalculate(projectId: number): Promise<void> {
+export async function recalculate(projectId: number, isCascaded = false): Promise<void> {
     const pool = getPool();
 
     const [taskRows] = await pool.query<RowDataPacket[]>(
@@ -728,18 +728,15 @@ export async function recalculate(projectId: number): Promise<void> {
         }
     }
 
-    if (tasks.length > 0) {
-        const taskIds = tasks.map(t => t.task_id);
-        const placeholders = taskIds.map(() => "?").join(", ");
-        
-        await pool.query(
-            `
-            DELETE FROM task_schedules
-            WHERE task_id IN (${placeholders})
-            `,
-            taskIds
-        );
-    }
+    // Delete all task_schedules belonging to this project (purging allocations of completed tasks as well)
+    await pool.query(
+        `
+        DELETE ts FROM task_schedules ts
+        INNER JOIN tasks t ON ts.task_id = t.task_id
+        WHERE t.project_id = ?
+        `,
+        [projectId]
+    );
     
     for (const [taskId, update] of taskUpdates.entries()) {
         await pool.query(
@@ -807,5 +804,29 @@ export async function recalculate(projectId: number): Promise<void> {
             `,
             [values]
         );
+    }
+
+    // Cascade recalculate other active projects that share resources with this project
+    // (guarded with isCascaded to prevent recursive loops)
+    if (!isCascaded && resourceUserIds.length > 0) {
+        const [otherProjects] = await pool.query<RowDataPacket[]>(
+            `
+            SELECT DISTINCT t.project_id
+            FROM tasks t
+            INNER JOIN task_assignments ta ON t.task_id = ta.task_id
+            INNER JOIN projects p ON t.project_id = p.project_id
+            WHERE ta.user_id IN (?)
+              AND t.project_id != ?
+              AND p.status IN ('ACTIVE', 'PUBLISHED')
+            `,
+            [resourceUserIds, projectId]
+        );
+
+        for (const row of otherProjects) {
+            const otherPid = Number(row.project_id);
+            if (otherPid) {
+                await recalculate(otherPid, true);
+            }
+        }
     }
 }

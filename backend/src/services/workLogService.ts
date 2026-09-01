@@ -108,21 +108,12 @@ export async function createWorkLog(
 
         await connection.commit();
 
-        // 4. Hook SchedulingEngine.recalculate(projectId) if:
-        // - total logged > expected (overrun)
-        // - OR if completed early (marked COMPLETED and (actual_effort < expected_effort OR completed before deadline))
-        const isOverrun = newActualEffort > expectedEffort;
-        const isEarlyCompletion = newStatus === "COMPLETED" && (
-            newActualEffort < expectedEffort ||
-            (task.deadline && logDate < String(task.deadline).split("T")[0]!)
-        );
-
-        if (isOverrun || isEarlyCompletion) {
-            try {
-                await recalculateSchedule(task.project_id);
-            } catch (scheduleErr) {
-                console.error("Error triggering schedule recalculation in workLogService:", scheduleErr);
-            }
+        // 4. Hook SchedulingEngine.recalculate(projectId) whenever work is logged
+        // This ensures downstream dependent tasks and other shared projects adapt dynamically
+        try {
+            await recalculateSchedule(task.project_id);
+        } catch (scheduleErr) {
+            console.error("Error triggering schedule recalculation in workLogService:", scheduleErr);
         }
 
         return {
