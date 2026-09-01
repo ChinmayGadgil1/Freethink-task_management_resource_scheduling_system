@@ -221,10 +221,32 @@
                       ><q-item-section>Export Report</q-item-section></q-item
                     >
                     <q-separator />
-                    <q-item clickable @click="markProjectComplete"
-                      ><q-item-section avatar
+                    <q-item
+                      v-if="project.status !== 'COMPLETED' && project.status !== 'ARCHIVED'"
+                      clickable
+                      @click="markProjectComplete"
+                    >
+                      <q-item-section avatar
                         ><q-icon name="task_alt" size="18px" color="positive" /></q-item-section
                       ><q-item-section class="text-positive">Mark Complete</q-item-section></q-item
+                    >
+                    <q-item
+                      v-if="project.status === 'COMPLETED'"
+                      clickable
+                      @click="confirmArchiveProject"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="archive" size="18px" color="primary" /></q-item-section
+                      ><q-item-section class="text-primary">Archive Project</q-item-section></q-item
+                    >
+                    <q-item
+                      v-if="project.status === 'ARCHIVED'"
+                      clickable
+                      @click="confirmUnarchiveProject"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="unarchive" size="18px" color="primary" /></q-item-section
+                      ><q-item-section class="text-primary">Unarchive Project</q-item-section></q-item
                     >
                     <q-separator />
                     <q-item clickable class="text-negative" @click="confirmDeleteProject"
@@ -1386,6 +1408,32 @@
         Are you sure you want to remove the dependency on
         <strong>"{{ dependencyToRemove?.title }}"</strong>?
       </ConfirmActionDialog>
+
+      <!-- CONFIRM ARCHIVE PROJECT DIALOG -->
+      <ConfirmActionDialog
+        v-model="showArchiveProjectDialog"
+        title="Archive Completed Project"
+        subtitle="Move completed project to archives"
+        confirm-label="Archive Project"
+        :loading="archivingProject"
+        @confirm="handleExecuteArchiveProject"
+      >
+        Are you sure you want to archive project <strong>"{{ project.name }}"</strong>? The project
+        history and completed deliverables will remain safely preserved in your archives.
+      </ConfirmActionDialog>
+
+      <!-- CONFIRM UNARCHIVE PROJECT DIALOG -->
+      <ConfirmActionDialog
+        v-model="showUnarchiveProjectDialog"
+        title="Unarchive Project"
+        subtitle="Restore project to Completed status"
+        confirm-label="Unarchive Project"
+        :loading="unarchivingProject"
+        @confirm="handleExecuteUnarchiveProject"
+      >
+        Are you sure you want to unarchive project <strong>"{{ project.name }}"</strong>? Its status
+        will be restored to <strong>Completed</strong>.
+      </ConfirmActionDialog>
     </div>
   </q-page>
 </template>
@@ -1406,6 +1454,7 @@ import {
   getResourcesApi,
   createTaskApi,
   updateTaskApi,
+  updateProjectApi,
   deleteTaskApi,
   deleteProjectApi,
   assignProjectMemberApi,
@@ -1413,6 +1462,8 @@ import {
   unassignTaskResourceApi,
   addTaskDependencyApi,
   removeTaskDependencyApi,
+  archiveProjectApi,
+  unarchiveProjectApi,
   getGlobalProgressFeedApi,
   calculateResourceWeeklyCapacity,
   type Project,
@@ -1455,6 +1506,11 @@ const showUnassignTaskDialog = ref(false);
 const showRemoveDependencyDialog = ref(false);
 const dependencyRemoving = ref(false);
 const dependencyToRemove = ref<{ task_id: number; title: string } | null>(null);
+
+const showArchiveProjectDialog = ref(false);
+const archivingProject = ref(false);
+const showUnarchiveProjectDialog = ref(false);
+const unarchivingProject = ref(false);
 
 const selectedTaskForUpdate = ref<Task | null>(null);
 const selectedTaskForUpdateProgress = ref(0);
@@ -1898,6 +1954,8 @@ function statusColor(status: string | null | undefined): string {
         return 'blue-10';
       case 'COMPLETED':
         return 'green-10';
+      case 'ARCHIVED':
+        return 'blue-grey-10';
       default:
         return 'grey-9';
     }
@@ -1909,6 +1967,8 @@ function statusColor(status: string | null | undefined): string {
       return 'blue-1';
     case 'COMPLETED':
       return 'green-1';
+    case 'ARCHIVED':
+      return 'blue-grey-1';
     default:
       return 'grey-2';
   }
@@ -1923,6 +1983,8 @@ function statusTextColor(status: string | null | undefined): string {
         return 'blue-2';
       case 'COMPLETED':
         return 'green-2';
+      case 'ARCHIVED':
+        return 'blue-grey-2';
       default:
         return 'grey-3';
     }
@@ -1934,6 +1996,8 @@ function statusTextColor(status: string | null | undefined): string {
       return 'blue-8';
     case 'COMPLETED':
       return 'green-8';
+    case 'ARCHIVED':
+      return 'blue-grey-8';
     default:
       return 'grey-8';
   }
@@ -2375,9 +2439,74 @@ function exportProjectSummary() {
   $q.notify({ type: 'positive', message: 'Project report exported' });
 }
 
-function markProjectComplete() {
-  project.status = 'COMPLETED';
-  project.progress = 100;
-  $q.notify({ type: 'positive', message: 'Project marked as completed' });
+async function markProjectComplete() {
+  try {
+    const updated = await updateProjectApi(project.project_id, {
+      name: project.name,
+      description: project.description,
+      status: 'COMPLETED',
+      priority: project.priority as ProjectPriority,
+      start_date: project.start_date,
+      deadline: project.deadline,
+    });
+    if (updated) Object.assign(project, updated);
+    $q.notify({ type: 'positive', message: 'Project marked as completed' });
+    await refreshData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to complete project',
+    });
+  }
+}
+
+function confirmArchiveProject() {
+  showArchiveProjectDialog.value = true;
+}
+
+function confirmUnarchiveProject() {
+  showUnarchiveProjectDialog.value = true;
+}
+
+async function handleExecuteArchiveProject() {
+  archivingProject.value = true;
+  try {
+    const result = await archiveProjectApi(project.project_id);
+    if (result.project) Object.assign(project, result.project);
+    $q.notify({
+      type: 'positive',
+      message: `Project "${project.name}" archived successfully`,
+    });
+    showArchiveProjectDialog.value = false;
+    await refreshData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to archive project',
+    });
+  } finally {
+    archivingProject.value = false;
+  }
+}
+
+async function handleExecuteUnarchiveProject() {
+  unarchivingProject.value = true;
+  try {
+    const result = await unarchiveProjectApi(project.project_id);
+    if (result.project) Object.assign(project, result.project);
+    $q.notify({
+      type: 'positive',
+      message: `Project "${project.name}" unarchived (status restored to Completed)`,
+    });
+    showUnarchiveProjectDialog.value = false;
+    await refreshData();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to unarchive project',
+    });
+  } finally {
+    unarchivingProject.value = false;
+  }
 }
 </script>

@@ -61,7 +61,8 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
                 'ACTIVE',
                 'ON_HOLD',
                 'COMPLETED',
-                'CANCELLED'
+                'CANCELLED',
+                'ARCHIVED'
             ) NOT NULL DEFAULT 'DRAFT',
             priority ENUM(
                 'LOW',
@@ -303,6 +304,24 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         console.log("Migrated: task date columns updated to DATETIME.");
     } catch (e: any) {
         console.log("Warning: task date columns migration encountered an error (they might already be DATETIME).", e.message);
+    }
+
+    // Migration check: Ensure projects status ENUM includes ARCHIVED
+    try {
+        await pool.query(`
+            ALTER TABLE projects MODIFY status ENUM(
+                'DRAFT',
+                'PUBLISHED',
+                'ACTIVE',
+                'ON_HOLD',
+                'COMPLETED',
+                'CANCELLED',
+                'ARCHIVED'
+            ) NOT NULL DEFAULT 'DRAFT'
+        `);
+        console.log("Migrated: projects status ENUM updated with ARCHIVED.");
+    } catch (e: any) {
+        console.log("Warning: projects status ENUM migration encountered an error.", e.message);
     }
 
     // Migration & Data Normalization

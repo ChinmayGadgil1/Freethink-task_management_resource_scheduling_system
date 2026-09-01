@@ -4,7 +4,8 @@ export type ProjectStatus =
     | "ACTIVE"
     | "ON_HOLD"
     | "COMPLETED"
-    | "CANCELLED";
+    | "CANCELLED"
+    | "ARCHIVED";
 
 export type ProjectPriority =
     | "LOW"

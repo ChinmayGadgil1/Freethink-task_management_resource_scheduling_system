@@ -7,7 +7,9 @@ import {
     updateProjectController,
     deleteProjectController,
     removeProjectMemberController,
-    getGlobalProgressFeedController
+    getGlobalProgressFeedController,
+    archiveProjectController,
+    unarchiveProjectController
 } from "../controllers/projectController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 
@@ -23,5 +25,7 @@ projectRoutes.delete("/:id/members/:userId", authenticate, removeProjectMemberCo
 projectRoutes.get("/:id", authenticate, getProjectByIdController);
 projectRoutes.patch("/:id", authenticate, updateProjectController);
 projectRoutes.delete("/:id", authenticate, deleteProjectController);
+projectRoutes.post("/:id/archive", authenticate, archiveProjectController);
+projectRoutes.post("/:id/unarchive", authenticate, unarchiveProjectController);
 
 export default projectRoutes;

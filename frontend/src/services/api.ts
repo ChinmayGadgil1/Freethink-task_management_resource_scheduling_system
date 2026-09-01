@@ -426,7 +426,13 @@ export async function createTaskApi(payload: CreateTaskPayload): Promise<Task> {
 }
 
 export type ProjectStatus =
-  'DRAFT' | 'PUBLISHED' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'ACTIVE'
+  | 'ON_HOLD'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'ARCHIVED';
 
 export type ProjectPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -702,6 +708,38 @@ export async function deleteProjectApi(projectId: number): Promise<{ message?: s
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to delete project');
+  }
+
+  return data;
+}
+
+export async function archiveProjectApi(
+  projectId: number,
+): Promise<{ message?: string; project: Project }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}/archive`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to archive project');
+  }
+
+  return data;
+}
+
+export async function unarchiveProjectApi(
+  projectId: number,
+): Promise<{ message?: string; project: Project }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}/unarchive`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to unarchive project');
   }
 
   return data;

@@ -639,6 +639,29 @@
                                     <q-item-section>View Details</q-item-section>
                                   </q-item>
                                   <q-item
+                                    v-if="project.status === 'COMPLETED'"
+                                    clickable
+                                    class="text-primary"
+                                    @click="confirmArchiveProject(project)"
+                                  >
+                                    <q-item-section avatar
+                                      ><q-icon name="archive" color="primary"
+                                    /></q-item-section>
+                                    <q-item-section>Archive Project</q-item-section>
+                                  </q-item>
+                                  <q-item
+                                    v-if="project.status === 'ARCHIVED'"
+                                    clickable
+                                    class="text-primary"
+                                    @click="confirmUnarchiveProject(project)"
+                                  >
+                                    <q-item-section avatar
+                                      ><q-icon name="unarchive" color="primary"
+                                    /></q-item-section>
+                                    <q-item-section>Unarchive Project</q-item-section>
+                                  </q-item>
+                                  <q-separator />
+                                  <q-item
                                     clickable
                                     class="text-negative"
                                     @click="confirmDeleteProject(project)"
@@ -847,6 +870,29 @@
                         <q-item-section>View Details</q-item-section>
                       </q-item>
                       <q-item
+                        v-if="props.row.status === 'COMPLETED'"
+                        clickable
+                        class="text-primary"
+                        @click="confirmArchiveProject(props.row)"
+                      >
+                        <q-item-section avatar
+                          ><q-icon name="archive" color="primary"
+                        /></q-item-section>
+                        <q-item-section>Archive Project</q-item-section>
+                      </q-item>
+                      <q-item
+                        v-if="props.row.status === 'ARCHIVED'"
+                        clickable
+                        class="text-primary"
+                        @click="confirmUnarchiveProject(props.row)"
+                      >
+                        <q-item-section avatar
+                          ><q-icon name="unarchive" color="primary"
+                        /></q-item-section>
+                        <q-item-section>Unarchive Project</q-item-section>
+                      </q-item>
+                      <q-separator />
+                      <q-item
                         clickable
                         class="text-negative"
                         @click="confirmDeleteProject(props.row)"
@@ -1038,6 +1084,34 @@
       Are you sure you want to delete project <strong>"{{ projectToDelete?.name }}"</strong>? All
       associated tasks, dependencies, and team assignments will be permanently removed.
     </ConfirmActionDialog>
+
+    <!-- ARCHIVE PROJECT CONFIRMATION DIALOG -->
+    <ConfirmActionDialog
+      v-model="showArchiveDialog"
+      title="Archive Completed Project"
+      subtitle="Move completed project to archives"
+      confirm-label="Archive Project"
+      :loading="archivingProject"
+      @confirm="handleExecuteArchiveProject"
+    >
+      Are you sure you want to archive completed project
+      <strong>"{{ projectToArchive?.name }}"</strong>? The project and its history will be safely
+      preserved in your archives.
+    </ConfirmActionDialog>
+
+    <!-- UNARCHIVE PROJECT CONFIRMATION DIALOG -->
+    <ConfirmActionDialog
+      v-model="showUnarchiveDialog"
+      title="Unarchive Project"
+      subtitle="Restore project to Completed status"
+      confirm-label="Unarchive Project"
+      :loading="unarchivingProject"
+      @confirm="handleExecuteUnarchiveProject"
+    >
+      Are you sure you want to unarchive project
+      <strong>"{{ projectToUnarchive?.name }}"</strong>? Its status will be restored to
+      <strong>Completed</strong>.
+    </ConfirmActionDialog>
   </q-page>
 </template>
 
@@ -1049,7 +1123,13 @@ import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { createProjectApi, deleteProjectApi, getProjectsApi } from '@/services/api';
+import {
+  createProjectApi,
+  deleteProjectApi,
+  getProjectsApi,
+  archiveProjectApi,
+  unarchiveProjectApi,
+} from '@/services/api';
 import type { CreateProjectPayload, Project, ProjectPriority, ProjectStatus } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
@@ -1072,9 +1152,73 @@ const showDeleteDialog = ref(false);
 const deletingProject = ref(false);
 const projectToDelete = ref<Project | null>(null);
 
+const showArchiveDialog = ref(false);
+const archivingProject = ref(false);
+const projectToArchive = ref<Project | null>(null);
+
+const showUnarchiveDialog = ref(false);
+const unarchivingProject = ref(false);
+const projectToUnarchive = ref<Project | null>(null);
+
 function confirmDeleteProject(project: Project) {
   projectToDelete.value = project;
   showDeleteDialog.value = true;
+}
+
+function confirmArchiveProject(project: Project) {
+  projectToArchive.value = project;
+  showArchiveDialog.value = true;
+}
+
+function confirmUnarchiveProject(project: Project) {
+  projectToUnarchive.value = project;
+  showUnarchiveDialog.value = true;
+}
+
+async function handleExecuteArchiveProject() {
+  if (!projectToArchive.value) return;
+
+  archivingProject.value = true;
+  try {
+    await archiveProjectApi(projectToArchive.value.project_id);
+    $q.notify({
+      type: 'positive',
+      message: `Project "${projectToArchive.value.name}" archived successfully`,
+    });
+    showArchiveDialog.value = false;
+    projectToArchive.value = null;
+    await loadProjects();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to archive project',
+    });
+  } finally {
+    archivingProject.value = false;
+  }
+}
+
+async function handleExecuteUnarchiveProject() {
+  if (!projectToUnarchive.value) return;
+
+  unarchivingProject.value = true;
+  try {
+    await unarchiveProjectApi(projectToUnarchive.value.project_id);
+    $q.notify({
+      type: 'positive',
+      message: `Project "${projectToUnarchive.value.name}" unarchived (status restored to Completed)`,
+    });
+    showUnarchiveDialog.value = false;
+    projectToUnarchive.value = null;
+    await loadProjects();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to unarchive project',
+    });
+  } finally {
+    unarchivingProject.value = false;
+  }
 }
 
 async function handleExecuteDeleteProject() {
@@ -1157,6 +1301,7 @@ const statusFilterOptions = [
   { label: 'On Hold', value: 'ON_HOLD' },
   { label: 'Completed', value: 'COMPLETED' },
   { label: 'Cancelled', value: 'CANCELLED' },
+  { label: 'Archived', value: 'ARCHIVED' },
 ];
 
 const healthFilterOptions = [
@@ -1332,7 +1477,10 @@ const filteredProjects = computed(() => {
       project.name.toLowerCase().includes(query) ||
       (project.description ?? '').toLowerCase().includes(query);
 
-    const matchesStatus = statusFilter.value === 'ALL' || project.status === statusFilter.value;
+    const matchesStatus =
+      statusFilter.value === 'ALL'
+        ? project.status !== 'ARCHIVED'
+        : project.status === statusFilter.value;
 
     const health = getProjectHealth(project);
 
@@ -1376,26 +1524,39 @@ const groupedProjectCards = computed(() => {
   return [{ label: '', projects: filteredProjects.value }];
 });
 
-const totalProjects = computed(() => projects.value.length);
+const activeWorkspaceProjects = computed(() =>
+  projects.value.filter((p) => p.status !== 'ARCHIVED'),
+);
+
+const totalProjects = computed(() => activeWorkspaceProjects.value.length);
 
 const onTrackProjects = computed(
-  () => projects.value.filter((project) => getProjectHealth(project) === 'ON_TRACK').length,
+  () =>
+    activeWorkspaceProjects.value.filter((project) => getProjectHealth(project) === 'ON_TRACK')
+      .length,
 );
 
 const atRiskProjects = computed(
-  () => projects.value.filter((project) => getProjectHealth(project) === 'AT_RISK').length,
+  () =>
+    activeWorkspaceProjects.value.filter((project) => getProjectHealth(project) === 'AT_RISK')
+      .length,
 );
 
 const delayedProjects = computed(
-  () => projects.value.filter((project) => getProjectHealth(project) === 'DELAYED').length,
+  () =>
+    activeWorkspaceProjects.value.filter((project) => getProjectHealth(project) === 'DELAYED')
+      .length,
 );
 
 const completionAverage = computed(() => {
-  if (!projects.value.length) return 0;
+  if (!activeWorkspaceProjects.value.length) return 0;
 
-  const total = projects.value.reduce((sum, project) => sum + Number(project.progress || 0), 0);
+  const total = activeWorkspaceProjects.value.reduce(
+    (sum, project) => sum + Number(project.progress || 0),
+    0,
+  );
 
-  return Math.round(total / projects.value.length);
+  return Math.round(total / activeWorkspaceProjects.value.length);
 });
 
 const onTrackRatio = computed(() => {
@@ -1404,20 +1565,20 @@ const onTrackRatio = computed(() => {
 });
 
 const featuredProject = computed(() => {
-  if (!projects.value.length) return null;
+  if (!activeWorkspaceProjects.value.length) return null;
 
-  const activeWithDeadline = projects.value
+  const activeWithDeadline = activeWorkspaceProjects.value
     .filter((p) => (p.status === 'ACTIVE' || p.status === 'PUBLISHED') && !!p.deadline)
     .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
 
   if (activeWithDeadline.length > 0) return activeWithDeadline[0];
 
-  const activeProjects = projects.value.filter(
+  const activeProjects = activeWorkspaceProjects.value.filter(
     (p) => p.status === 'ACTIVE' || p.status === 'PUBLISHED',
   );
   if (activeProjects.length > 0) return activeProjects[0];
 
-  return projects.value[0];
+  return activeWorkspaceProjects.value[0];
 });
 
 const CIRCUMFERENCE = 289.02;
@@ -1438,8 +1599,8 @@ const healthDonut = computed(() => {
 });
 
 const upcomingDeadlinesList = computed(() => {
-  return [...projects.value]
-    .filter((p) => !!p.deadline)
+  return [...activeWorkspaceProjects.value]
+    .filter((p) => !!p.deadline && p.status !== 'COMPLETED')
     .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())
     .slice(0, 4)
     .map((p) => {

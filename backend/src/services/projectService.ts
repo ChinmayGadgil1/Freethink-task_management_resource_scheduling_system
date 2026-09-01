@@ -329,3 +329,43 @@ export async function removeProjectMember(projectId: number, userId: number): Pr
     );
     return result.affectedRows > 0;
 }
+
+export async function archiveProject(projectId: number, projectManagerId: number) {
+    const pool = getPool();
+    const project = await getProjectById(projectId);
+
+    if (!project || project.project_manager_id !== projectManagerId) {
+        return { error: "NOT_FOUND_OR_UNAUTHORIZED" };
+    }
+
+    if (project.status !== "COMPLETED") {
+        return { error: "PROJECT_NOT_COMPLETED" };
+    }
+
+    await pool.query(
+        "UPDATE projects SET status = 'ARCHIVED' WHERE project_id = ? AND project_manager_id = ?",
+        [projectId, projectManagerId]
+    );
+
+    return { project: await getProjectById(projectId) };
+}
+
+export async function unarchiveProject(projectId: number, projectManagerId: number) {
+    const pool = getPool();
+    const project = await getProjectById(projectId);
+
+    if (!project || project.project_manager_id !== projectManagerId) {
+        return { error: "NOT_FOUND_OR_UNAUTHORIZED" };
+    }
+
+    if (project.status !== "ARCHIVED") {
+        return { error: "PROJECT_NOT_ARCHIVED" };
+    }
+
+    await pool.query(
+        "UPDATE projects SET status = 'COMPLETED' WHERE project_id = ? AND project_manager_id = ?",
+        [projectId, projectManagerId]
+    );
+
+    return { project: await getProjectById(projectId) };
+}

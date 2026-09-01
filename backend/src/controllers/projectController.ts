@@ -11,7 +11,9 @@ import {
     deleteProject,
     removeProjectMember,
     getProjectsByMember,
-    isProjectMember
+    isProjectMember,
+    archiveProject,
+    unarchiveProject
 } from "../services/projectService.js";
 import { getRecentWorkLogsForManager } from "../services/workLogService.js";
 
@@ -24,7 +26,8 @@ const createProjectSchema = z.object({
         "ACTIVE",
         "ON_HOLD",
         "COMPLETED",
-        "CANCELLED"
+        "CANCELLED",
+        "ARCHIVED"
     ]).default("DRAFT"),
     priority: z.enum([
         "LOW",
@@ -44,7 +47,8 @@ const updateProjectSchema = z.object({
         "ACTIVE",
         "ON_HOLD",
         "COMPLETED",
-        "CANCELLED"
+        "CANCELLED",
+        "ARCHIVED"
     ]),
     priority: z.enum([
         "LOW",
@@ -401,6 +405,68 @@ export async function getGlobalProgressFeedController(req: AuthRequest, res: Res
         return res.status(200).json({ logs });
     } catch (error: any) {
         console.error("Global progress feed error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+export async function archiveProjectController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can archive projects" });
+        }
+
+        const projectId = Number((req.params as any).id);
+        if (!Number.isInteger(projectId) || projectId <= 0) {
+            return res.status(400).json({ message: "Invalid project ID" });
+        }
+
+        const result = await archiveProject(projectId, req.user.user_id);
+
+        if (result.error === "NOT_FOUND_OR_UNAUTHORIZED") {
+            return res.status(404).json({ message: "Project not found or unauthorized" });
+        }
+
+        if (result.error === "PROJECT_NOT_COMPLETED") {
+            return res.status(400).json({ message: "Only completed projects can be archived" });
+        }
+
+        return res.status(200).json({
+            message: "Project archived successfully",
+            project: result.project
+        });
+    } catch (error: any) {
+        console.error("Archive project error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+export async function unarchiveProjectController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can unarchive projects" });
+        }
+
+        const projectId = Number((req.params as any).id);
+        if (!Number.isInteger(projectId) || projectId <= 0) {
+            return res.status(400).json({ message: "Invalid project ID" });
+        }
+
+        const result = await unarchiveProject(projectId, req.user.user_id);
+
+        if (result.error === "NOT_FOUND_OR_UNAUTHORIZED") {
+            return res.status(404).json({ message: "Project not found or unauthorized" });
+        }
+
+        if (result.error === "PROJECT_NOT_ARCHIVED") {
+            return res.status(400).json({ message: "Only archived projects can be unarchived" });
+        }
+
+        return res.status(200).json({
+            message: "Project unarchived successfully",
+            project: result.project
+        });
+    } catch (error: any) {
+        console.error("Unarchive project error:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 }
