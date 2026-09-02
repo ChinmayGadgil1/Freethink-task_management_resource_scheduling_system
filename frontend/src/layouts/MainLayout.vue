@@ -31,153 +31,15 @@
 
         <!-- Center / Global Search -->
         <div class="search-container">
-          <q-input
-            ref="searchRef"
-            v-model="searchQuery"
-            dense
-            outlined
-            placeholder="Search Task, Meeting, Projects..."
-            class="header-search"
-            @focus="loadSearchData"
-          >
-            <template #prepend>
-              <q-icon name="search" size="18px" color="grey-6" />
-            </template>
-
-            <template #append>
-              <q-icon
-                v-if="searchQuery"
-                name="close"
-                size="14px"
-                class="cursor-pointer"
-                @click="searchQuery = ''"
-              />
-              <span v-else class="search-shortcut">⌘K</span>
-            </template>
-          </q-input>
-
-          <!-- Search Results Dropdown -->
-          <q-menu
-            v-if="searchQuery.trim().length > 0"
-            :model-value="true"
-            fit
-            no-focus
-            no-parent-event
-            anchor="bottom start"
-            self="top start"
-            :offset="[0, 6]"
-            style="
-              max-height: 400px;
-              min-width: 320px;
-              border-radius: 12px;
-              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-            "
-          >
-            <q-list dense separator>
-              <!-- Projects -->
-              <template v-if="filteredResults.projects.length > 0">
-                <q-item-label header class="text-weight-bold text-caption text-primary q-py-xs">
-                  PROJECTS
-                </q-item-label>
-                <q-item
-                  v-for="p in filteredResults.projects"
-                  :key="`proj-${p.project_id}`"
-                  clickable
-                  v-close-popup
-                  @click="goToRoute(`/pm/projects/${p.project_id}`)"
-                >
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon name="folder" color="primary" size="16px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium text-caption">{{
-                      p.name
-                    }}</q-item-label>
-                    <q-item-label caption>{{ p.status }} • {{ p.progress || 0 }}%</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-
-              <!-- Tasks -->
-              <template v-if="filteredResults.tasks.length > 0">
-                <q-item-label header class="text-weight-bold text-caption text-teal q-py-xs">
-                  TASKS
-                </q-item-label>
-                <q-item
-                  v-for="t in filteredResults.tasks"
-                  :key="`task-${t.task_id}`"
-                  clickable
-                  v-close-popup
-                  @click="goToRoute(`/pm/projects/${t.project_id}`)"
-                >
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon name="task_alt" color="teal" size="16px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium text-caption">{{
-                      t.title
-                    }}</q-item-label>
-                    <q-item-label caption>{{ t.status }} • {{ t.priority }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-
-              <!-- Resources -->
-              <template v-if="filteredResults.resources.length > 0">
-                <q-item-label header class="text-weight-bold text-caption text-orange q-py-xs">
-                  TEAM & RESOURCES
-                </q-item-label>
-                <q-item
-                  v-for="r in filteredResults.resources"
-                  :key="r.name"
-                  clickable
-                  v-close-popup
-                  @click="goToRoute(r.route)"
-                >
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon name="person" color="orange" size="16px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium text-caption">{{
-                      r.name
-                    }}</q-item-label>
-                    <q-item-label caption>{{ r.role }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-
-              <!-- Quick Navigation -->
-              <template v-if="filteredResults.links.length > 0">
-                <q-item-label header class="text-weight-bold text-caption text-grey-7 q-py-xs">
-                  QUICK NAVIGATION
-                </q-item-label>
-                <q-item
-                  v-for="l in filteredResults.links"
-                  :key="l.title"
-                  clickable
-                  v-close-popup
-                  @click="goToRoute(l.route)"
-                >
-                  <q-item-section avatar style="min-width: 28px">
-                    <q-icon :name="l.icon" color="grey-7" size="16px" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium text-caption">{{
-                      l.title
-                    }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </template>
-
-              <!-- No matches -->
-              <div
-                v-if="filteredResults.total === 0"
-                class="text-caption text-grey-6 text-center q-pa-md"
-              >
-                No matches found for "{{ searchQuery }}"
-              </div>
-            </q-list>
-          </q-menu>
+          <div class="header-search-trigger row items-center justify-between" @click="paletteOpen = true">
+            <div class="row items-center no-wrap ellipsis text-grey-6">
+              <q-icon name="search" size="18px" class="q-mr-sm" />
+              <span class="search-placeholder ellipsis">Search projects, tasks, team, actions...</span>
+            </div>
+            <div class="row items-center gap-xs">
+              <span class="search-shortcut">Ctrl + K</span>
+            </div>
+          </div>
         </div>
 
         <!-- Right Header Actions -->
@@ -297,6 +159,9 @@
     <q-page-container class="app-page-container">
       <router-view />
     </q-page-container>
+
+    <!-- Global Command Palette (Ctrl+K) -->
+    <GlobalCommandPalette v-model="paletteOpen" />
   </q-layout>
 </template>
 
@@ -305,13 +170,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
-import {
-  getProjectsApi,
-  getTasksApi,
-  getResourcesApi,
-  type Project,
-  type Task,
-} from '@/services/api';
+import GlobalCommandPalette from '@/components/common/GlobalCommandPalette.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSessionStore } from '@/stores/session';
 import { useThemeStore } from '@/stores/theme';
@@ -324,8 +183,7 @@ const themeStore = useThemeStore();
 
 const leftDrawerOpen = ref(true);
 const isMini = ref(false);
-const searchQuery = ref('');
-const searchRef = ref<{ focus: () => void } | null>(null);
+const paletteOpen = ref(false);
 
 function toggleMini() {
   if ($q.screen.lt.md) {
@@ -334,10 +192,6 @@ function toggleMini() {
     isMini.value = !isMini.value;
   }
 }
-
-const projects = ref<Project[]>([]);
-const tasks = ref<Task[]>([]);
-const resources = ref<{ name: string; role: string; route: string }[]>([]);
 
 const pmNavItems = computed<SidebarNavItem[]>(() => [
   {
@@ -384,81 +238,14 @@ const pmNavItems = computed<SidebarNavItem[]>(() => [
   },
 ]);
 
-const quickLinks = [
-  { title: 'Projects Overview', icon: 'folder', route: '/pm/projects' },
-  { title: 'My Work & Tasks', icon: 'task_alt', route: '/pm/tasks' },
-  { title: 'Resource Workload', icon: 'groups', route: '/pm/resources' },
-  { title: 'Project Schedule', icon: 'event', route: '/pm/schedule' },
-  { title: 'Company Calendar', icon: 'calendar_month', route: '/pm/calendar' },
-  { title: 'Leaves & Absences', icon: 'event_busy', route: '/pm/leaves' },
-];
-
-async function loadSearchData() {
-  try {
-    if (projects.value.length === 0) {
-      projects.value = await getProjectsApi();
-    }
-    if (tasks.value.length === 0) {
-      tasks.value = await getTasksApi();
-    }
-    if (resources.value.length === 0) {
-      const dbResources = await getResourcesApi();
-      resources.value = dbResources.map((r) => ({
-        name: r.name,
-        role: r.role || 'Team Resource',
-        route: `/pm/resources/${r.user_id}`,
-      }));
-    }
-  } catch {
-    // Keep local fallback state if offline
-  }
-}
-
-const filteredResults = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase();
-  if (!q) {
-    return { projects: [], tasks: [], resources: [], links: [], total: 0 };
-  }
-
-  const matchedProjects = projects.value.filter(
-    (p) =>
-      p.name.toLowerCase().includes(q) ||
-      (p.description && p.description.toLowerCase().includes(q)),
-  );
-
-  const matchedTasks = tasks.value.filter(
-    (t) =>
-      t.title.toLowerCase().includes(q) ||
-      (t.description && t.description.toLowerCase().includes(q)),
-  );
-
-  const matchedResources = resources.value.filter(
-    (r) => r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q),
-  );
-
-  const matchedLinks = quickLinks.filter((l) => l.title.toLowerCase().includes(q));
-
-  const total =
-    matchedProjects.length + matchedTasks.length + matchedResources.length + matchedLinks.length;
-
-  return {
-    projects: matchedProjects.slice(0, 4),
-    tasks: matchedTasks.slice(0, 4),
-    resources: matchedResources.slice(0, 4),
-    links: matchedLinks.slice(0, 4),
-    total,
-  };
-});
-
 function goToRoute(path: string) {
-  searchQuery.value = '';
   void router.push(path);
 }
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    searchRef.value?.focus();
+    paletteOpen.value = !paletteOpen.value;
   }
 }
 
@@ -471,7 +258,6 @@ function toggleDarkMode() {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
   themeStore.initTheme();
-  void loadSearchData();
 });
 
 onUnmounted(() => {
@@ -556,27 +342,35 @@ body.body--dark .app-header {
   width: 100%;
 }
 
-.header-search :deep(.q-field__control) {
+.header-search-trigger {
   min-height: 38px;
   height: 38px;
-  border-color: var(--wo-border, #edf0f5);
+  border: 1px solid var(--wo-border, #edf0f5);
   border-radius: 12px;
-  padding: 0 10px 0 12px;
+  padding: 0 12px;
   background: var(--wo-bg-input, #f8fafc);
+  cursor: pointer;
   transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--wo-primary, #8b6fd8);
+    background: var(--wo-bg-card, #ffffff);
+    box-shadow: 0 2px 8px rgba(139, 111, 216, 0.08);
+  }
 }
 
-.header-search :deep(.q-field__control:hover) {
-  border-color: var(--wo-primary, #cbd5e1);
-  background: var(--wo-bg-card, #ffffff);
+body.body--dark .header-search-trigger {
+  background: #181f2c;
+  border-color: rgba(255, 255, 255, 0.08);
+
+  &:hover {
+    border-color: var(--wo-primary, #8b6fd8);
+    background: #1e2738;
+  }
 }
 
-.header-search :deep(.q-field__native) {
+.search-placeholder {
   font-size: 12.5px;
-  color: var(--wo-text-main, #1e293b);
-}
-
-.header-search :deep(.q-field__native::placeholder) {
   color: var(--wo-text-muted, #94a3b8);
 }
 
@@ -591,6 +385,12 @@ body.body--dark .app-header {
   background: var(--wo-bg-tag, #ffffff);
   font-size: 10px;
   font-weight: 700;
+}
+
+body.body--dark .search-shortcut {
+  background: #232d3f;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
 }
 
 .header-icon-btn {

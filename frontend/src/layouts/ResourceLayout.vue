@@ -32,19 +32,17 @@
           </div>
         </div>
 
-        <!-- Search Input -->
+        <!-- Search Input Trigger -->
         <div class="search-container">
-          <q-input
-            v-model="searchQuery"
-            dense
-            outlined
-            placeholder="Search tasks, deliverables, projects..."
-            class="header-search"
-          >
-            <template #prepend>
-              <q-icon name="search" size="18px" color="grey-6" />
-            </template>
-          </q-input>
+          <div class="header-search-trigger row items-center justify-between" @click="paletteOpen = true">
+            <div class="row items-center no-wrap ellipsis text-grey-6">
+              <q-icon name="search" size="18px" class="q-mr-sm" />
+              <span class="search-placeholder ellipsis">Search tasks, deliverables, leaves, actions...</span>
+            </div>
+            <div class="row items-center gap-xs">
+              <span class="search-shortcut">Ctrl + K</span>
+            </div>
+          </div>
         </div>
 
         <!-- Header Actions -->
@@ -106,14 +104,18 @@
     <q-page-container class="resource-page-container">
       <router-view />
     </q-page-container>
+
+    <!-- Global Command Palette (Ctrl+K) -->
+    <GlobalCommandPalette v-model="paletteOpen" />
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
+import GlobalCommandPalette from '@/components/common/GlobalCommandPalette.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSessionStore } from '@/stores/session';
 import { useThemeStore } from '@/stores/theme';
@@ -123,7 +125,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const sessionStore = useSessionStore();
 const themeStore = useThemeStore();
-const searchQuery = ref('');
+const paletteOpen = ref(false);
 const leftDrawerOpen = ref(true);
 const isMini = ref(false);
 
@@ -184,11 +186,23 @@ function toggleDarkMode() {
   themeStore.toggleDarkMode();
 }
 
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    paletteOpen.value = !paletteOpen.value;
+  }
+}
+
 onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
   themeStore.initTheme();
   if (authStore.user?.role === 'RESOURCE') {
     void sessionStore.fetchActiveSession();
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
 
 const user = computed(() => authStore.user);
@@ -276,31 +290,35 @@ body.body--dark .app-header {
   margin: 0 20px;
 }
 
-.header-search {
-  width: 100%;
-}
-
-.header-search :deep(.q-field__control) {
+.header-search-trigger {
   min-height: 38px;
   height: 38px;
-  border-color: var(--wo-border, #edf0f5);
+  border: 1px solid var(--wo-border, #edf0f5);
   border-radius: 12px;
-  padding: 0 10px 0 12px;
+  padding: 0 12px;
   background: var(--wo-bg-input, #f8fafc);
+  cursor: pointer;
   transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--wo-primary, #8b6fd8);
+    background: var(--wo-bg-card, #ffffff);
+    box-shadow: 0 2px 8px rgba(139, 111, 216, 0.08);
+  }
 }
 
-.header-search :deep(.q-field__control:hover) {
-  border-color: var(--wo-primary, #cbd5e1);
-  background: var(--wo-bg-card, #ffffff);
+body.body--dark .header-search-trigger {
+  background: #181f2c;
+  border-color: rgba(255, 255, 255, 0.08);
+
+  &:hover {
+    border-color: var(--wo-primary, #8b6fd8);
+    background: #1e2738;
+  }
 }
 
-.header-search :deep(.q-field__native) {
+.search-placeholder {
   font-size: 12.5px;
-  color: var(--wo-text-main, #1e293b);
-}
-
-.header-search :deep(.q-field__native::placeholder) {
   color: var(--wo-text-muted, #94a3b8);
 }
 
@@ -315,6 +333,12 @@ body.body--dark .app-header {
   background: var(--wo-bg-tag, #ffffff);
   font-size: 10px;
   font-weight: 700;
+}
+
+body.body--dark .search-shortcut {
+  background: #232d3f;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
 }
 
 .header-icon-btn {
