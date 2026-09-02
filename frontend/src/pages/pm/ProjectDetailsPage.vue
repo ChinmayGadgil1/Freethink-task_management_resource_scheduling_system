@@ -999,6 +999,8 @@
         v-model="showCreateTaskDialog"
         :fixed-project-id="project.project_id"
         :fixed-project-name="project.name"
+        :project-start-date="project.start_date"
+        :project-deadline="project.deadline"
         :member-options="createTaskAssigneeOptions"
         :show-status="true"
         :show-dependencies="false"

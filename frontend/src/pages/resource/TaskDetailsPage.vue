@@ -1439,7 +1439,26 @@
 
             <div class="row q-col-gutter-sm">
               <div class="col-12">
-                <q-input v-model="createForm.deadline" label="Deadline" type="date" outlined dense>
+                <q-input
+                  v-model="createForm.deadline"
+                  label="Deadline"
+                  type="date"
+                  outlined
+                  dense
+                  stack-label
+                  :rules="[
+                    (val) =>
+                      !val ||
+                      !selectedCreateProject?.start_date ||
+                      val >= selectedCreateProject.start_date ||
+                      `Deadline cannot be earlier than project start date (${selectedCreateProject.start_date})`,
+                    (val) =>
+                      !val ||
+                      !selectedCreateProject?.deadline ||
+                      val <= selectedCreateProject.deadline ||
+                      `Deadline cannot be later than project deadline (${selectedCreateProject.deadline})`,
+                  ]"
+                >
                   <template #prepend>
                     <q-icon
                       name="event_available"
@@ -1883,7 +1902,18 @@ const tasksByStatus = computed(() => {
   return map;
 });
 
+const selectedCreateProject = computed(() => {
+  if (!createForm.value.project_id) return null;
+  return createProjects.value.find((p) => p.project_id === createForm.value.project_id) || null;
+});
+
 const canCreateTask = computed(() => {
+  const d = createForm.value.deadline;
+  const p = selectedCreateProject.value;
+  if (d && p) {
+    if (p.start_date && d < p.start_date) return false;
+    if (p.deadline && d > p.deadline) return false;
+  }
   return (
     createForm.value.project_id !== null &&
     createForm.value.title.trim().length > 0 &&

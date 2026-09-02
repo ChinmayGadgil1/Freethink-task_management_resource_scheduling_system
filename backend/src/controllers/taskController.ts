@@ -19,6 +19,41 @@ const createTaskSchema = z.object({
     assigned_resource_ids: z.array(z.number().int().positive()).optional()
 });
 
+function validateTaskDeadlineAgainstProject(
+    taskDeadlineInput: string | null | undefined,
+    project: any
+): string | null {
+    if (!taskDeadlineInput) {
+        return null;
+    }
+
+    const taskDeadline = taskDeadlineInput.includes("T")
+        ? taskDeadlineInput.split("T")[0]!
+        : taskDeadlineInput;
+
+    if (project.start_date) {
+        const projStart = String(project.start_date).includes("T")
+            ? String(project.start_date).split("T")[0]!
+            : String(project.start_date);
+
+        if (taskDeadline < projStart) {
+            return `Task deadline (${taskDeadline}) cannot be earlier than project start date (${projStart})`;
+        }
+    }
+
+    if (project.deadline) {
+        const projDeadline = String(project.deadline).includes("T")
+            ? String(project.deadline).split("T")[0]!
+            : String(project.deadline);
+
+        if (taskDeadline > projDeadline) {
+            return `Task deadline (${taskDeadline}) cannot be later than project deadline (${projDeadline})`;
+        }
+    }
+
+    return null;
+}
+
 export async function create(req: AuthRequest, res: Response) {
     try {
         const userRole = req.user?.role;
@@ -36,6 +71,13 @@ export async function create(req: AuthRequest, res: Response) {
             const isMember = await isProjectMember(parsed.project_id, userId!);
             if (!isMember) {
                 return res.status(403).json({ message: "You can only create tasks in projects you are assigned to" });
+            }
+        }
+
+        if (parsed.deadline) {
+            const deadlineError = validateTaskDeadlineAgainstProject(parsed.deadline, project);
+            if (deadlineError) {
+                return res.status(400).json({ message: deadlineError });
             }
         }
 
@@ -166,15 +208,26 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
         const userRole = req.user?.role;
         const userId = req.user?.user_id;
 
+        const project = await getProjectById(task.project_id);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
         if (userRole === "PROJECT_MANAGER") {
-            const project = await getProjectById(task.project_id);
-            if (!project || project.project_manager_id !== userId) {
+            if (project.project_manager_id !== userId) {
                 return res.status(403).json({ message: "You are not authorized to update tasks for this project" });
             }
         } else if (userRole === "RESOURCE") {
             const isAssigned = (task.assigned_resource_ids || []).includes(userId);
             if (!isAssigned) {
                 return res.status(403).json({ message: "You are not authorized to update this task" });
+            }
+        }
+
+        if (parsed.deadline !== undefined && parsed.deadline !== null) {
+            const deadlineError = validateTaskDeadlineAgainstProject(parsed.deadline, project);
+            if (deadlineError) {
+                return res.status(400).json({ message: deadlineError });
             }
         }
 

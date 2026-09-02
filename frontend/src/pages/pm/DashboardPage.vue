@@ -518,6 +518,18 @@
                     dense
                     stack-label
                     :dark="$q.dark.isActive"
+                    :rules="[
+                      (val) =>
+                        !val ||
+                        !selectedProjectForNewTask?.start_date ||
+                        val >= selectedProjectForNewTask.start_date ||
+                        `Deadline cannot be earlier than project start date (${selectedProjectForNewTask.start_date})`,
+                      (val) =>
+                        !val ||
+                        !selectedProjectForNewTask?.deadline ||
+                        val <= selectedProjectForNewTask.deadline ||
+                        `Deadline cannot be later than project deadline (${selectedProjectForNewTask.deadline})`,
+                    ]"
                   />
                 </div>
               </div>
@@ -858,6 +870,10 @@ const overdueTasks = computed(() => {
     return new Date(t.deadline) < today;
   }).length;
 });
+
+const selectedProjectForNewTask = computed(() =>
+  projects.value.find((p) => p.project_id === newTaskForm.project_id) || null,
+);
 
 const projectOptions = computed(() =>
   projects.value.map((p) => ({ label: p.name, value: p.project_id })),

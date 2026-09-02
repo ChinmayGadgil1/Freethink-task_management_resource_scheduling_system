@@ -12,6 +12,7 @@ taskRoutes.get("/", list);
 taskRoutes.get("/session/active", getActiveSessionController);
 taskRoutes.get("/bottlenecks", getBottlenecksController);
 taskRoutes.put("/:id", update);
+taskRoutes.patch("/:id", update);
 taskRoutes.delete("/:id", deleteTaskController);
 taskRoutes.post("/:id/assign", assignResource);
 taskRoutes.delete("/:id/assignees/:userId", unassignResourceController);

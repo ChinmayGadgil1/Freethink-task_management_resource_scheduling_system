@@ -656,11 +656,30 @@
               </div>
             </div>
 
-            <div class="row q-col-gutter-sm">
-              <div class="col-12">
-                <q-input v-model="editForm.deadline" outlined dense type="date" label="Deadline" />
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="editForm.deadline"
+                    outlined
+                    dense
+                    type="date"
+                    label="Deadline"
+                    stack-label
+                    :rules="[
+                      (val) =>
+                        !val ||
+                        !editingTaskProject?.start_date ||
+                        val >= editingTaskProject.start_date ||
+                        `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
+                      (val) =>
+                        !val ||
+                        !editingTaskProject?.deadline ||
+                        val <= editingTaskProject.deadline ||
+                        `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
+                    ]"
+                  />
+                </div>
               </div>
-            </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -999,8 +1018,20 @@ const projectFilterOptions = computed(() => [
 ]);
 
 const projectSelectOptions = computed(() =>
-  projects.value.map((p) => ({ label: p.name, value: p.project_id })),
+  projects.value.map((p) => ({
+    label: p.name,
+    value: p.project_id,
+    start_date: p.start_date,
+    deadline: p.deadline,
+  })),
 );
+
+const editingTaskProject = computed(() => {
+  if (!editingTaskId.value) return null;
+  const t = tasks.value.find((item) => Number(item.task_id) === Number(editingTaskId.value));
+  if (!t) return null;
+  return projects.value.find((p) => Number(p.project_id) === Number(t.project_id)) || null;
+});
 
 const assigneeFilterOptions = computed(() => [
   { label: 'All Assignees', value: 'ALL' },

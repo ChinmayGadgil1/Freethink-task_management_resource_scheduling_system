@@ -121,6 +121,18 @@
                 type="date"
                 label="Deadline"
                 stack-label
+                :rules="[
+                  (val) =>
+                    !val ||
+                    !activeProjectDates.startDate ||
+                    val >= activeProjectDates.startDate ||
+                    `Deadline cannot be earlier than project start date (${activeProjectDates.startDate})`,
+                  (val) =>
+                    !val ||
+                    !activeProjectDates.deadline ||
+                    val <= activeProjectDates.deadline ||
+                    `Deadline cannot be later than project deadline (${activeProjectDates.deadline})`,
+                ]"
               />
             </div>
           </div>
@@ -272,11 +284,20 @@ export interface CreateTaskFormData {
   predecessor_task_ids: number[];
 }
 
+export interface CreateTaskProjectOption {
+  label: string;
+  value: number;
+  start_date?: string | null;
+  deadline?: string | null;
+}
+
 export interface CreateTaskDialogProps {
   modelValue?: boolean;
-  projects?: Array<{ label: string; value: number }>;
+  projects?: CreateTaskProjectOption[];
   fixedProjectId?: number | null;
   fixedProjectName?: string;
+  projectStartDate?: string | null;
+  projectDeadline?: string | null;
   dialogTitle?: string;
   submitLabel?: string;
   memberOptions?: Array<{ label: string; value: number; alreadyAssigned?: boolean }>;
@@ -293,6 +314,8 @@ const props = withDefaults(defineProps<CreateTaskDialogProps>(), {
   projects: () => [],
   fixedProjectId: null,
   fixedProjectName: '',
+  projectStartDate: null,
+  projectDeadline: null,
   dialogTitle: 'Create New Task',
   submitLabel: 'Create Task',
   memberOptions: () => [],
@@ -316,6 +339,22 @@ const headerTitle = computed(() => {
 });
 
 const activeProjectId = computed(() => props.fixedProjectId || form.project_id);
+
+const activeProjectDates = computed(() => {
+  if (props.projectStartDate !== null || props.projectDeadline !== null) {
+    return {
+      startDate: props.projectStartDate || null,
+      deadline: props.projectDeadline || null,
+    };
+  }
+  const pid = activeProjectId.value;
+  if (!pid) return { startDate: null, deadline: null };
+  const proj = props.projects.find((p) => p.value === pid);
+  return {
+    startDate: proj?.start_date || null,
+    deadline: proj?.deadline || null,
+  };
+});
 
 const form = reactive<CreateTaskFormData>({
   project_id: null,
