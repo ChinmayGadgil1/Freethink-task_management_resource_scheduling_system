@@ -94,8 +94,7 @@
             label="Add Holiday"
             unelevated
             no-caps
-            class="text-weight-bold"
-            style="border-radius: 8px"
+            class="text-weight-bold rounded-borders"
             @click="openAddHolidayDialog()"
           />
 
@@ -123,8 +122,9 @@
         class="rounded-borders overflow-hidden"
       >
         <!-- Calendar Toolbar & Month Switcher -->
+        <!-- Calendar Toolbar & Month Switcher -->
         <q-card-section
-          class="row items-center justify-between q-pa-md wrap q-col-gutter-sm border-bottom"
+          class="row items-center justify-between q-pa-md wrap q-col-gutter-sm"
         >
           <!-- Month Navigation -->
           <div class="row items-center q-gutter-xs">
@@ -133,8 +133,8 @@
             </q-btn>
 
             <div
-              class="text-subtitle1 text-weight-bold q-px-sm"
-              style="min-width: 160px; text-align: center"
+              class="text-subtitle1 text-weight-bold q-px-sm text-center"
+              style="min-width: 160px"
             >
               {{ currentMonthName }}
               <span class="text-grey-6 text-weight-medium">{{ currentYear }}</span>
@@ -172,43 +172,53 @@
           </div>
         </q-card-section>
 
+        <q-separator :dark="$q.dark.isActive" />
+
         <!-- Quasar QCalendar Month Component -->
         <q-calendar-month
           ref="calendarRef"
           v-model="selectedDate"
           :dark="$q.dark.isActive"
-          :bordered="false"
+          :bordered="true"
           :hoverable="true"
           :focusable="true"
           :day-min-height="115"
           :weekdays="[0, 1, 2, 3, 4, 5, 6]"
-          class="q-calendar-custom"
+          class="q-calendar-custom full-width"
         >
           <template #day="{ scope: { timestamp } }">
             <div
-              class="calendar-day-content full-height column justify-between"
-              :class="{
-                'is-weekend-day': isDateKeyNonWorking(timestamp.date, timestamp.weekday),
-                'is-today-day': timestamp.current,
-                'is-outside': timestamp.outside,
-                'has-holiday-day': !!holidaysByDate.get(timestamp.date),
-              }"
+              class="calendar-day-cell full-height column justify-between q-pa-sm cursor-pointer"
+              :class="[
+                getDayBgClass(timestamp),
+                {
+                  'dimmed': timestamp.outside,
+                  'today-cell': timestamp.current,
+                },
+              ]"
               @click="onDayClick(timestamp.date)"
             >
               <!-- Cell Top: Day Number & Add Action -->
               <div class="row items-center justify-between q-mb-xs">
                 <div class="row items-center q-gutter-xs">
-                  <span
-                    class="day-number-badge"
-                    :class="{
-                      'today-highlight': timestamp.current,
-                      'text-grey-6':
-                        isDateKeyNonWorking(timestamp.date, timestamp.weekday) &&
-                        !timestamp.current,
-                    }"
+                  <q-avatar
+                    size="24px"
+                    font-size="12px"
+                    rounded
+                    :color="timestamp.current ? 'primary' : undefined"
+                    :text-color="
+                      timestamp.current
+                        ? 'white'
+                        : timestamp.outside
+                          ? ($q.dark.isActive ? 'grey-7' : 'grey-5')
+                          : isDateKeyNonWorking(timestamp.date, timestamp.weekday)
+                            ? ($q.dark.isActive ? 'grey-5' : 'grey-6')
+                            : ($q.dark.isActive ? 'grey-3' : 'grey-9')
+                    "
+                    class="text-weight-bold"
                   >
                     {{ timestamp.day }}
-                  </span>
+                  </q-avatar>
 
                   <q-badge
                     v-if="
@@ -241,21 +251,30 @@
 
               <!-- Cell Center / Holiday Badge -->
               <div class="col column justify-start" style="min-width: 0">
-                <div
+                <q-card
                   v-if="holidaysByDate.get(timestamp.date)"
-                  class="holiday-badge-card"
-                  :class="{ 'is-clickable': isProjectManager }"
+                  flat
+                  bordered
+                  :dark="$q.dark.isActive"
+                  class="holiday-badge-card full-width q-pa-xs rounded-borders"
+                  :class="isProjectManager ? 'cursor-pointer' : ''"
                   @click.stop="onHolidayClick(holidaysByDate.get(timestamp.date)!)"
                 >
                   <div class="row items-start justify-between no-wrap">
-                    <div class="row items-start no-wrap q-gutter-xs" style="min-width: 0; flex: 1">
-                      <span class="holiday-indicator-dot q-mt-xs"></span>
-                      <span
-                        class="holiday-title-text"
+                    <div class="row items-start no-wrap q-gutter-xs col">
+                      <q-badge
+                        rounded
+                        color="amber-8"
+                        class="q-mt-xs flex-shrink-0"
+                        style="width: 6px; height: 6px; min-height: 0; padding: 0"
+                      />
+                      <div
+                        class="text-caption text-weight-bold col"
+                        style="font-size: 11px; line-height: 1.25"
                         :title="holidaysByDate.get(timestamp.date)!.description"
                       >
                         {{ holidaysByDate.get(timestamp.date)!.description }}
-                      </span>
+                      </div>
                     </div>
 
                     <q-icon
@@ -265,7 +284,7 @@
                       class="q-ml-xs q-mt-xs flex-shrink-0"
                     />
                   </div>
-                </div>
+                </q-card>
               </div>
             </div>
           </template>
@@ -309,15 +328,7 @@
                 size="sm"
                 icon="event"
                 :label="props.row.description"
-                class="text-weight-bold"
-                :style="{
-                  background: $q.dark.isActive ? 'rgba(245, 158, 11, 0.14)' : '#fff8e6',
-                  color: $q.dark.isActive ? '#fbbf24' : '#b45309',
-                  border: $q.dark.isActive
-                    ? '1px solid rgba(245, 158, 11, 0.25)'
-                    : '1px solid #fde68a',
-                  borderLeft: '3px solid #f59e0b',
-                }"
+                class="holiday-badge-card text-weight-bold"
               />
             </q-td>
           </template>
@@ -487,6 +498,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { QCalendarMonth } from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/dist/QCalendarMonth.min.css';
+import '@quasar/quasar-ui-qcalendar/dist/QCalendarVariables.min.css';
 import { useAuthStore } from '@/stores/auth';
 import {
   getHolidaysApi,
@@ -829,6 +841,13 @@ async function loadUserData() {
   }
 }
 
+function getDayBgClass(timestamp: { date: string; weekday: number; current?: boolean }) {
+  if (timestamp.current) return 'is-today-day';
+  if (holidaysByDate.value.has(timestamp.date)) return 'has-holiday-day';
+  if (isDateKeyNonWorking(timestamp.date, timestamp.weekday)) return 'is-weekend-day';
+  return 'is-default-day';
+}
+
 onMounted(() => {
   void loadHolidays();
   void loadUserData();
@@ -836,221 +855,116 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.border-bottom {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
 .q-calendar-custom {
   width: 100%;
+  --cal-border: #cbd5e1;
+  --cal-head-bg: #f8fafc;
+  --cal-day-bg: #ffffff;
+  --cal-weekend-bg: #f8fafc;
+  --cal-today-bg: #eff6ff;
+  --cal-holiday-bg: #fffbeb;
+  --cal-card-bg: #fff8e6;
+  --cal-card-color: #b45309;
+  --cal-card-border: #fde68a;
 
   :deep(.q-calendar-month__head) {
     font-weight: 700;
     font-size: 12px;
     letter-spacing: 0.04em;
-    background: #f8fafc;
-    border-bottom: 1px solid #cbd5e1;
+    background: var(--cal-head-bg);
+    border-bottom: 1px solid var(--cal-border);
   }
 
   :deep(.q-calendar-month__head--weekday) {
-    border-right: 1px solid #cbd5e1 !important;
+    border-right: 1px solid var(--cal-border);
     padding: 10px 0;
     text-align: center;
     &:last-child {
-      border-right: none !important;
+      border-right: none;
     }
   }
 
   :deep(.q-calendar-month__week--wrapper) {
-    border-bottom: 1px solid #cbd5e1 !important;
+    border-bottom: 1px solid var(--cal-border);
     &:last-child {
-      border-bottom: none !important;
+      border-bottom: none;
     }
   }
 
   :deep(.q-calendar-month__day) {
     padding: 0;
     vertical-align: top;
-    border-right: 1px solid #cbd5e1 !important;
-    background: #ffffff;
-
+    border-right: 1px solid var(--cal-border);
     &:last-child {
-      border-right: none !important;
+      border-right: none;
     }
   }
 
-  /* Hide QCalendar default date label wrapper so date number is not duplicated */
   :deep(.q-calendar-month__day--label__wrapper) {
     display: none !important;
   }
+}
 
-  :deep(.q-calendar-month__day--disabled),
-  :deep(.q-calendar-month__day--outside) {
+.is-default-day {
+  background: var(--cal-day-bg);
+}
+.is-weekend-day {
+  background: var(--cal-weekend-bg);
+}
+.has-holiday-day {
+  background: var(--cal-holiday-bg);
+}
+.is-today-day {
+  background: var(--cal-today-bg);
+  outline: 2px solid var(--q-primary);
+  outline-offset: -2px;
+}
+
+.holiday-badge-card {
+  background: var(--cal-card-bg);
+  color: var(--cal-card-color);
+  border: 1px solid var(--cal-card-border);
+  border-left: 3px solid #f59e0b;
+}
+
+.calendar-day-cell {
+  min-height: 120px;
+  box-sizing: border-box;
+  transition: filter 0.12s ease;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+
+  .quick-add-btn {
+    opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+
+  &:hover .quick-add-btn {
     opacity: 1;
   }
 }
 
-.calendar-day-content {
-  padding: 8px;
-  min-height: 120px;
-  width: 100%;
-  box-sizing: border-box;
-  background: #ffffff;
-  transition: background 0.12s ease;
-  cursor: pointer;
-
-  &:hover {
-    background: #f1f5f9;
-  }
-  &.is-weekend-day {
-    background: #f8fafc;
-  }
-  &.is-outside {
-    background: #f8fafc;
-    opacity: 0.55;
-    .day-number-badge {
-      color: #94a3b8 !important;
-    }
-  }
-  &.is-today-day {
-    background: #eff6ff;
-    outline: 2px solid var(--q-primary);
-    outline-offset: -2px;
-  }
-  &.has-holiday-day {
-    background: #fffbeb;
-  }
-}
-
-.day-number-badge {
-  font-size: 13px;
-  font-weight: 700;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-
-  &.today-highlight {
-    background: var(--q-primary);
-    color: #ffffff !important;
-  }
-}
-
-.quick-add-btn {
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-
-.calendar-day-content:hover .quick-add-btn {
-  opacity: 1;
-}
-
-.holiday-badge-card {
-  background: #fff8e6;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  border-left: 3px solid #f59e0b;
-  border-radius: 6px;
-  padding: 4px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.3;
-  width: 100%;
-  box-sizing: border-box;
-
-  &.is-clickable {
-    cursor: pointer;
-    &:hover {
-      background: #fef3c7;
-      border-color: #f59e0b;
-      transform: translateY(-1px);
-    }
-  }
-}
-
-.holiday-title-text {
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  line-height: 1.25;
-}
-
-.holiday-indicator-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #f59e0b;
-  flex-shrink: 0;
-}
-
 body.body--dark {
-  .border-bottom {
-    border-color: rgba(255, 255, 255, 0.12);
-  }
-
   .q-calendar-custom {
+    --cal-border: #334155;
+    --cal-head-bg: #181d28;
+    --cal-day-bg: #11151f;
+    --cal-weekend-bg: #161c28;
+    --cal-today-bg: rgba(59, 130, 246, 0.14);
+    --cal-holiday-bg: rgba(245, 158, 11, 0.1);
+    --cal-card-bg: rgba(245, 158, 11, 0.16);
+    --cal-card-color: #fbbf24;
+    --cal-card-border: rgba(245, 158, 11, 0.35);
+
     :deep(.q-calendar-month__head) {
-      background: #181d28;
-      border-bottom: 1px solid #334155 !important;
       color: #94a3b8;
     }
-
-    :deep(.q-calendar-month__head--weekday) {
-      border-right: 1px solid #334155 !important;
-      &:last-child {
-        border-right: none !important;
-      }
-    }
-
-    :deep(.q-calendar-month__week--wrapper) {
-      border-bottom: 1px solid #334155 !important;
-      &:last-child {
-        border-bottom: none !important;
-      }
-    }
-
-    :deep(.q-calendar-month__day) {
-      border-right: 1px solid #334155 !important;
-      background: #11151f;
-
-      &:last-child {
-        border-right: none !important;
-      }
-    }
   }
 
-  .calendar-day-content {
-    background: #11151f;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    &.is-weekend-day {
-      background: #161c28;
-    }
-    &.is-outside {
-      background: #0c0f16;
-      opacity: 0.5;
-      .day-number-badge {
-        color: #475569 !important;
-      }
-    }
-    &.is-today-day {
-      background: rgba(59, 130, 246, 0.14);
-      outline: 2px solid #3b82f6;
-      outline-offset: -2px;
-    }
-    &.has-holiday-day {
-      background: rgba(245, 158, 11, 0.1);
-    }
-  }
-
-  .holiday-badge-card {
-    background: rgba(245, 158, 11, 0.16);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    border-left: 3px solid #f59e0b;
+  .calendar-day-cell:hover {
+    filter: brightness(1.15);
   }
 }
 </style>

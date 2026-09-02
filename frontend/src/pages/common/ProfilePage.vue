@@ -1,6 +1,6 @@
 <template>
   <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
-    <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 780px">
+    <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
       <!-- 1. BREADCRUMBS -->
       <div>
         <q-breadcrumbs active-color="primary">
