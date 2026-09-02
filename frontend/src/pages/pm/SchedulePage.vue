@@ -1187,7 +1187,6 @@ const createForm = reactive<{
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   deadline: string;
 }>({
@@ -1195,7 +1194,6 @@ const createForm = reactive<{
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'UNASSIGNED',
   expected_effort: 8,
   deadline: '',
 });
@@ -1220,7 +1218,6 @@ function openCreateTaskDialog() {
   createForm.title = '';
   createForm.description = '';
   createForm.priority = 'MEDIUM';
-  createForm.status = 'UNASSIGNED';
   createForm.deadline = '';
   if (projects.value.length > 0 && projects.value[0]) {
     createForm.project_id = projects.value[0].project_id;
@@ -1239,7 +1236,6 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       title: data.title.trim(),
       description: data.description || null,
       priority: data.priority,
-      status: data.status,
       expected_effort: Number(data.expected_effort) || 8,
       deadline: data.deadline || null,
     });

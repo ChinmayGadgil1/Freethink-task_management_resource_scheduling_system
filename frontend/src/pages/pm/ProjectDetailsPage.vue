@@ -1006,7 +1006,6 @@
         :project-start-date="project.start_date"
         :project-deadline="project.deadline"
         :member-options="createTaskAssigneeOptions"
-        :show-status="true"
         :show-dependencies="false"
         :loading="taskCreating"
         @submit="handleCreateTask"
@@ -2425,7 +2424,6 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       title: formData ? formData.title.trim() : '',
       description: formData ? formData.description?.trim() || null : null,
       priority: formData ? formData.priority : 'MEDIUM',
-      status: formData ? (formData.status as Task['status']) : 'UNASSIGNED',
       deadline: formData ? formData.deadline || null : null,
       expected_effort: formData ? Number(formData.expected_effort) || 4 : 4,
       assigned_resource_ids: formData ? formData.assigned_resource_ids : [],

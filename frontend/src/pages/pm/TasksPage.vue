@@ -187,7 +187,7 @@
                 icon="add"
                 size="sm"
                 title="Add task in this column"
-                @click="quickCreateInColumn(col.id)"
+                @click="quickCreateInColumn()"
               >
                 <q-tooltip>Add {{ col.title }} Task</q-tooltip>
               </q-btn>
@@ -865,8 +865,7 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   },
 ];
 
-function quickCreateInColumn(status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
-  createForm.status = status;
+function quickCreateInColumn() {
   showCreateDialog.value = true;
 }
 
@@ -1056,7 +1055,6 @@ const createForm = reactive<{
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   deadline: string;
   assigned_resource_ids: number[];
@@ -1066,7 +1064,6 @@ const createForm = reactive<{
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'UNASSIGNED',
   expected_effort: 8,
   deadline: '',
   assigned_resource_ids: [],

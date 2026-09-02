@@ -64,11 +64,11 @@
             </div>
           </div>
 
-          <!-- Priority and Status / Effort Row -->
+          <!-- Priority and Effort Row -->
           <div class="row q-col-gutter-sm">
             <div class="col-12">
               <div class="row q-col-gutter-sm">
-                <div :class="showStatus ? 'col-6' : 'col-6'">
+                <div class="col-6">
                   <q-select
                     v-model="form.priority"
                     outlined
@@ -78,24 +78,7 @@
                   />
                 </div>
 
-                <div v-if="showStatus" class="col-6">
-                  <q-select
-                    v-model="form.status"
-                    outlined
-                    dense
-                    label="Initial Status"
-                    :options="[
-                      { label: 'Unassigned', value: 'UNASSIGNED' },
-                      { label: 'Scheduled', value: 'SCHEDULED' },
-                      { label: 'In Progress', value: 'IN_PROGRESS' },
-                      { label: 'Completed', value: 'COMPLETED' },
-                    ]"
-                    emit-value
-                    map-options
-                  />
-                </div>
-
-                <div v-if="!showStatus" class="col-6">
+                <div class="col-6">
                   <q-input
                     v-model.number="form.expected_effort"
                     outlined
@@ -133,22 +116,6 @@
                     val <= activeProjectDates.deadline ||
                     `Deadline cannot be later than project deadline (${activeProjectDates.deadline})`,
                 ]"
-              />
-            </div>
-          </div>
-
-          <!-- Effort (if showStatus is enabled) -->
-          <div v-if="showStatus" class="row q-col-gutter-sm">
-            <div class="col-12">
-              <q-input
-                v-model.number="form.expected_effort"
-                outlined
-                dense
-                type="number"
-                min="0.5"
-                step="0.5"
-                label="Expected Effort (Hours) *"
-                :rules="[(val) => Number(val) > 0 || 'Effort must be greater than 0']"
               />
             </div>
           </div>
@@ -277,7 +244,6 @@ export interface CreateTaskFormData {
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   deadline: string;
   assigned_resource_ids: number[];
@@ -304,7 +270,6 @@ export interface CreateTaskDialogProps {
   predecessorOptions?: Array<{ label: string; value: number; alreadyDependent?: boolean }>;
   showAssignees?: boolean;
   showDependencies?: boolean;
-  showStatus?: boolean;
   loading?: boolean;
   initialProjectId?: number | null;
 }
@@ -322,7 +287,6 @@ const props = withDefaults(defineProps<CreateTaskDialogProps>(), {
   predecessorOptions: () => [],
   showAssignees: true,
   showDependencies: true,
-  showStatus: false,
   loading: false,
   initialProjectId: null,
 });
@@ -361,7 +325,6 @@ const form = reactive<CreateTaskFormData>({
   title: '',
   description: '',
   priority: 'MEDIUM',
-  status: 'SCHEDULED',
   expected_effort: 8,
   deadline: '',
   assigned_resource_ids: [],
@@ -377,7 +340,6 @@ function resetForm() {
   form.title = '';
   form.description = '';
   form.priority = 'MEDIUM';
-  form.status = 'SCHEDULED';
   form.expected_effort = 8;
   form.deadline = '';
   form.assigned_resource_ids = [];
