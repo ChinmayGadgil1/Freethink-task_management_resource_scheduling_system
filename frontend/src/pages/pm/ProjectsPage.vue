@@ -953,8 +953,8 @@
 
     <!-- CREATE PROJECT DIALOG -->
     <q-dialog v-model="showCreateDialog">
-      <q-card :dark="$q.dark.isActive" style="min-width: 450px" class="rounded-borders">
-        <q-card-section class="row items-center justify-between">
+      <q-card :dark="$q.dark.isActive" style="min-width: 460px; max-width: 95vw" class="rounded-borders">
+        <q-card-section class="row items-center justify-between q-pb-sm">
           <div>
             <div class="text-caption text-primary text-weight-bold">NEW PROJECT</div>
             <div class="text-h6 text-weight-bold">Create a project</div>
@@ -962,49 +962,46 @@
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
         </q-card-section>
 
+        <q-separator />
+
         <q-form @submit.prevent="handleCreateProject">
-          <q-card-section class="column q-gutter-y-md">
-            <div class="row q-col-gutter-sm">
-              <div class="col-12">
-                <q-input
-                  v-model="form.name"
-                  outlined
-                  dense
-                  label="Project name"
-                  :dark="$q.dark.isActive"
-                  :rules="[(val) => !!val.trim() || 'Project name is required']"
-                />
-              </div>
-            </div>
-            <div class="row q-col-gutter-sm">
-              <div class="col-12">
-                <q-input
-                  v-model="form.description"
-                  outlined
-                  dense
-                  type="textarea"
-                  label="Description"
-                  autogrow
-                  :dark="$q.dark.isActive"
-                />
-              </div>
-            </div>
+          <q-card-section class="q-pt-md q-pb-xs q-px-md">
+            <q-input
+              v-model="form.name"
+              outlined
+              dense
+              label="Project name"
+              :dark="$q.dark.isActive"
+              :rules="[(val) => !!val.trim() || 'Project name is required']"
+            />
+          </q-card-section>
 
-            <div class="row q-col-gutter-sm">
-              <div class="col-12">
-                <q-select
-                  v-model="form.priority"
-                  outlined
-                  dense
-                  label="Priority"
-                  :options="priorityOptions"
-                  emit-value
-                  map-options
-                  :dark="$q.dark.isActive"
-                />
-              </div>
-            </div>
+          <q-card-section class="q-pt-xs q-pb-xs q-px-md">
+            <q-input
+              v-model="form.description"
+              outlined
+              dense
+              type="textarea"
+              label="Description"
+              autogrow
+              :dark="$q.dark.isActive"
+            />
+          </q-card-section>
 
+          <q-card-section class="q-pt-sm q-pb-xs q-px-md">
+            <q-select
+              v-model="form.priority"
+              outlined
+              dense
+              label="Priority"
+              :options="priorityOptions"
+              emit-value
+              map-options
+              :dark="$q.dark.isActive"
+            />
+          </q-card-section>
+
+          <q-card-section class="q-pt-sm q-pb-sm q-px-md">
             <div class="row q-col-gutter-sm">
               <div class="col-6">
                 <q-input
@@ -1045,7 +1042,7 @@
             </div>
           </q-card-section>
 
-          <q-card-actions align="right" class="q-pa-md">
+          <q-card-actions align="right" class="q-pa-md q-pt-xs">
             <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
             <q-btn
               type="submit"
@@ -1059,6 +1056,7 @@
         </q-form>
       </q-card>
     </q-dialog>
+
 
     <!-- DELETE PROJECT CONFIRMATION DIALOG -->
     <ConfirmActionDialog

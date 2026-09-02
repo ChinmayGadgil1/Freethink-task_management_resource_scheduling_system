@@ -161,6 +161,7 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #e5e7ec);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 
   &:hover {
     border-color: var(--wo-primary, #8b6fd8);
@@ -185,8 +186,14 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   border-radius: 10px;
 }
 
+.stat-standard-layout {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .stat-content {
   min-width: 0;
+  overflow: hidden;
 }
 
 .stat-title {

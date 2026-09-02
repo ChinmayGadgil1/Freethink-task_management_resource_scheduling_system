@@ -323,51 +323,50 @@
           :dark="$q.dark.isActive"
           style="min-width: 460px; max-width: 90vw; border-radius: 12px"
         >
-          <q-card-section class="row items-center q-pb-none">
+          <q-card-section class="row items-center q-pb-sm">
             <div class="text-h6 text-weight-bold">Create New Project</div>
             <q-space />
             <q-btn icon="close" flat round dense v-close-popup />
           </q-card-section>
 
-          <q-card-section>
-            <q-form @submit="handleCreateProject" class="q-gutter-y-md">
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="newProjectForm.name"
-                    label="Project Name *"
-                    outlined
-                    dense
-                    :dark="$q.dark.isActive"
-                    :rules="[(val) => (val && val.length > 0) || 'Project name is required']"
-                  />
-                </div>
-              </div>
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="newProjectForm.description"
-                    label="Description"
-                    type="textarea"
-                    outlined
-                    dense
-                    :dark="$q.dark.isActive"
-                    rows="3"
-                  />
-                </div>
-              </div>
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-select
-                    v-model="newProjectForm.priority"
-                    :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
-                    label="Priority"
-                    outlined
-                    dense
-                    :dark="$q.dark.isActive"
-                  />
-                </div>
-              </div>
+          <q-separator />
+
+          <q-form @submit="handleCreateProject">
+            <q-card-section class="q-pt-md q-pb-xs q-px-md">
+              <q-input
+                v-model="newProjectForm.name"
+                label="Project Name *"
+                outlined
+                dense
+                :dark="$q.dark.isActive"
+                :rules="[(val) => (val && val.length > 0) || 'Project name is required']"
+              />
+            </q-card-section>
+
+            <q-card-section class="q-pt-xs q-pb-xs q-px-md">
+              <q-input
+                v-model="newProjectForm.description"
+                label="Description"
+                type="textarea"
+                outlined
+                dense
+                :dark="$q.dark.isActive"
+                rows="3"
+              />
+            </q-card-section>
+
+            <q-card-section class="q-pt-sm q-pb-xs q-px-md">
+              <q-select
+                v-model="newProjectForm.priority"
+                :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                label="Priority"
+                outlined
+                dense
+                :dark="$q.dark.isActive"
+              />
+            </q-card-section>
+
+            <q-card-section class="q-pt-sm q-pb-sm q-px-md">
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
                   <q-input
@@ -392,21 +391,22 @@
                   />
                 </div>
               </div>
+            </q-card-section>
 
-              <div class="row justify-end q-mt-md q-gutter-sm">
-                <q-btn flat label="Cancel" v-close-popup />
-                <q-btn
-                  unelevated
-                  color="primary"
-                  label="Create Project"
-                  type="submit"
-                  :loading="projectSubmitting"
-                />
-              </div>
-            </q-form>
-          </q-card-section>
+            <q-card-actions align="right" class="q-pa-md q-pt-xs">
+              <q-btn flat label="Cancel" v-close-popup />
+              <q-btn
+                unelevated
+                color="primary"
+                label="Create Project"
+                type="submit"
+                :loading="projectSubmitting"
+              />
+            </q-card-actions>
+          </q-form>
         </q-card>
       </q-dialog>
+
 
       <!-- DIALOG 2: ADD TASK -->
       <q-dialog v-model="showAddTaskModal">

@@ -15,7 +15,7 @@
       <!-- 01 HERO CARD -->
       <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-lg">
         <div class="row q-col-gutter-lg justify-between items-start">
-          <div class="col-12 col-md-8 column q-gutter-y-md">
+          <div class="col-12 col-md-8 column q-gutter-y-md" style="min-width: 0">
             <!-- Badges Row -->
             <div class="row items-center q-gutter-xs wrap">
               <q-chip
@@ -60,10 +60,11 @@
             </div>
 
             <!-- Title & Description -->
-            <div>
+            <div style="min-width: 0; overflow-wrap: break-word; word-break: break-word">
               <div
                 class="text-h4 text-weight-bolder"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                style="overflow-wrap: break-word; word-break: break-word"
               >
                 {{ project.name }}
               </div>
@@ -100,15 +101,16 @@
                 </div>
               </div>
 
-              <div class="col-6 col-sm-3">
+              <div class="col-6 col-sm-3" style="min-width: 0">
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                   Timeline
                 </div>
                 <div
                   class="text-caption text-weight-bold q-mt-xs"
                   :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  style="overflow-wrap: break-word; word-break: break-word"
                 >
-                  {{ formatDate(project.start_date) }} — {{ formatDate(project.deadline) }}
+                  {{ formatDate(project.start_date) }}&thinsp;&mdash;&thinsp;{{ formatDate(project.deadline) }}
                 </div>
               </div>
 
@@ -155,15 +157,15 @@
           </div>
 
           <!-- Hero Sidebar: Progress & Actions -->
-          <div class="col-12 col-md-4 column q-gutter-y-md">
-            <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md">
-              <div class="row items-center justify-between">
+          <div class="col-12 col-md-4" style="min-width: 0">
+            <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md q-mb-md">
+              <div class="row items-center justify-between no-wrap">
                 <span
                   class="text-caption text-weight-bold"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                   >Overall Completion</span
                 >
-                <span class="text-h6 text-weight-bolder text-primary">{{ overallProgress }}%</span>
+                <span class="text-h6 text-weight-bolder text-primary q-ml-sm">{{ overallProgress }}%</span>
               </div>
 
               <q-linear-progress
@@ -177,14 +179,14 @@
 
               <div class="row items-center justify-between text-caption text-grey-5 q-mt-xs">
                 <span>{{ completedTasksCount }} of {{ totalTasksCount }} tasks done</span>
-                <span
+                <span class="q-ml-xs"
                   >{{ formatHours(totalEffortLogged) }} /
                   {{ formatHours(totalEffortExpected) }} effort</span
                 >
               </div>
             </q-card>
 
-            <div class="row items-center q-gutter-sm">
+            <div class="row items-center no-wrap q-gutter-xs">
               <q-btn
                 unelevated
                 no-caps
@@ -192,6 +194,7 @@
                 icon="add_task"
                 label="Add Task"
                 class="col text-weight-bold"
+                style="min-width: 0"
                 @click="showCreateTaskDialog = true"
               />
               <q-btn
@@ -200,7 +203,7 @@
                 :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
                 icon="edit"
                 label="Edit"
-                class="q-px-md text-weight-bold"
+                class="text-weight-bold"
                 @click="openEditDialog"
               />
               <q-btn
@@ -263,8 +266,8 @@
       </q-card>
 
       <!-- 02 KPI METRIC CARDS -->
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-sm-6 col-md-2">
+      <div class="row q-col-gutter-md items-stretch">
+        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
           <StatCard
             title="Overall Progress"
             :value="`${overallProgress}%`"
@@ -274,7 +277,7 @@
             note-class="note-green"
           />
         </div>
-        <div class="col-12 col-sm-6 col-md-2">
+        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
           <StatCard
             title="Total Tasks"
             :value="totalTasksCount"
@@ -284,7 +287,7 @@
             note-class="note-teal"
           />
         </div>
-        <div class="col-12 col-sm-6 col-md-2">
+        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
           <StatCard
             title="Completed Tasks"
             :value="completedTasksCount"
@@ -294,7 +297,7 @@
             note-class="note-green"
           />
         </div>
-        <div class="col-12 col-sm-6 col-md-2">
+        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
           <StatCard
             title="Overdue Tasks"
             :value="overdueTasksCount"
@@ -305,7 +308,7 @@
             :negative="overdueTasksCount > 0"
           />
         </div>
-        <div class="col-12 col-sm-6 col-md-2">
+        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
           <StatCard
             title="Team Members"
             :value="teamMembers.length"
@@ -315,7 +318,7 @@
             note-class="note-orange"
           />
         </div>
-        <div class="col-12 col-sm-6 col-md-2">
+        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
           <StatCard
             title="Days Remaining"
             :value="
@@ -335,8 +338,8 @@
       </div>
 
       <!-- 03 & 04 PROGRESS BREAKDOWN & MILESTONES -->
-      <div class="row q-col-gutter-lg">
-        <div class="col-12 col-md-6">
+      <div class="row q-col-gutter-md items-stretch">
+        <div class="col-12 col-md-6" style="min-width: 0">
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
             <q-card-section class="row items-center justify-between">
               <div class="row items-center">
@@ -451,7 +454,7 @@
         </div>
 
         <!-- Milestones Card -->
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6" style="min-width: 0">
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
             <q-card-section class="row items-center justify-between">
               <div class="row items-center">
@@ -487,11 +490,12 @@
                   </q-avatar>
                 </q-item-section>
 
-                <q-item-section>
-                  <div class="row items-center justify-between">
+                <q-item-section style="min-width: 0">
+                  <div class="row items-center justify-between no-wrap q-gutter-xs">
                     <span
-                      class="text-weight-bold"
+                      class="text-weight-bold ellipsis"
                       :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      style="min-width: 0"
                       >{{ m.name }}</span
                     >
                     <q-chip
@@ -499,7 +503,7 @@
                       square
                       color="primary"
                       text-color="white"
-                      class="text-caption text-weight-bold"
+                      class="text-caption text-weight-bold flex-shrink-0"
                     >
                       {{ m.status.replace('_', ' ') }}
                     </q-chip>
