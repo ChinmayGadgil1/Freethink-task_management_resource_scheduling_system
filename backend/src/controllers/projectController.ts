@@ -20,15 +20,6 @@ import { getRecentWorkLogsForManager } from "../services/workLogService.js";
 const createProjectSchema = z.object({
     name: z.string().min(1, "Project name is required"),
     description: z.string().optional(),
-    status: z.enum([
-        "DRAFT",
-        "PUBLISHED",
-        "ACTIVE",
-        "ON_HOLD",
-        "COMPLETED",
-        "CANCELLED",
-        "ARCHIVED"
-    ]).default("DRAFT"),
     priority: z.enum([
         "LOW",
         "MEDIUM",
@@ -42,9 +33,8 @@ const updateProjectSchema = z.object({
     name: z.string().min(1, "Project name is required"),
     description: z.string().nullable().optional(),
     status: z.enum([
-        "DRAFT",
-        "PUBLISHED",
-        "ACTIVE",
+        "NOT_STARTED",
+        "IN_PROGRESS",
         "ON_HOLD",
         "COMPLETED",
         "CANCELLED",
@@ -84,7 +74,7 @@ export async function create(req: AuthRequest, res: Response) {
             req.user.user_id,
             parsedData.name,
             parsedData.description ?? null,
-            parsedData.status,
+            "NOT_STARTED",
             parsedData.priority,
             parsedData.start_date ?? null,
             parsedData.deadline ?? null

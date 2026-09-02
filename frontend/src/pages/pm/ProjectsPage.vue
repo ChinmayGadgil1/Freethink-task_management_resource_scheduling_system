@@ -991,19 +991,7 @@
             </div>
 
             <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-select
-                  v-model="form.status"
-                  outlined
-                  dense
-                  label="Status"
-                  :options="statusOptions"
-                  emit-value
-                  map-options
-                  :dark="$q.dark.isActive"
-                />
-              </div>
-              <div class="col-6">
+              <div class="col-12">
                 <q-select
                   v-model="form.priority"
                   outlined
@@ -1130,7 +1118,7 @@ import {
   archiveProjectApi,
   unarchiveProjectApi,
 } from '@/services/api';
-import type { CreateProjectPayload, Project, ProjectPriority, ProjectStatus } from '@/services/api';
+import type { CreateProjectPayload, Project, ProjectPriority} from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
@@ -1247,7 +1235,6 @@ async function handleExecuteDeleteProject() {
 interface ProjectForm {
   name: string;
   description: string;
-  status: ProjectStatus;
   priority: ProjectPriority;
   start_date: string;
   deadline: string;
@@ -1256,20 +1243,10 @@ interface ProjectForm {
 const form = reactive<ProjectForm>({
   name: '',
   description: '',
-  status: 'DRAFT',
   priority: 'MEDIUM',
   start_date: '',
   deadline: '',
 });
-
-const statusOptions = [
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Published', value: 'PUBLISHED' },
-  { label: 'Active', value: 'ACTIVE' },
-  { label: 'On Hold', value: 'ON_HOLD' },
-  { label: 'Completed', value: 'COMPLETED' },
-  { label: 'Cancelled', value: 'CANCELLED' },
-];
 
 const priorityOptions = [
   { label: 'Low', value: 'LOW' },
@@ -1295,9 +1272,8 @@ const pagination = ref({
 
 const statusFilterOptions = [
   { label: 'All Status', value: 'ALL' },
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Published', value: 'PUBLISHED' },
-  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Not Started', value: 'NOT_STARTED' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'On Hold', value: 'ON_HOLD' },
   { label: 'Completed', value: 'COMPLETED' },
   { label: 'Cancelled', value: 'CANCELLED' },
@@ -1568,13 +1544,13 @@ const featuredProject = computed(() => {
   if (!activeWorkspaceProjects.value.length) return null;
 
   const activeWithDeadline = activeWorkspaceProjects.value
-    .filter((p) => (p.status === 'ACTIVE' || p.status === 'PUBLISHED') && !!p.deadline)
+    .filter((p) => p.status === 'IN_PROGRESS' && !!p.deadline)
     .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
 
   if (activeWithDeadline.length > 0) return activeWithDeadline[0];
 
   const activeProjects = activeWorkspaceProjects.value.filter(
-    (p) => p.status === 'ACTIVE' || p.status === 'PUBLISHED',
+    (p) => p.status === 'IN_PROGRESS',
   );
   if (activeProjects.length > 0) return activeProjects[0];
 
@@ -1662,7 +1638,6 @@ async function handleCreateProject() {
     const payload: CreateProjectPayload = {
       project_manager_id: userId,
       name: form.name.trim(),
-      status: form.status,
       priority: form.priority,
       start_date: form.start_date || null,
       deadline: form.deadline || null,
@@ -1695,7 +1670,6 @@ async function handleCreateProject() {
 function resetForm() {
   form.name = '';
   form.description = '';
-  form.status = 'DRAFT';
   form.priority = 'MEDIUM';
   form.start_date = '';
   form.deadline = '';

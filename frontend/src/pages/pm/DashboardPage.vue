@@ -357,21 +357,11 @@
                 </div>
               </div>
               <div class="row q-col-gutter-sm">
-                <div class="col-6">
+                <div class="col-12">
                   <q-select
                     v-model="newProjectForm.priority"
                     :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
                     label="Priority"
-                    outlined
-                    dense
-                    :dark="$q.dark.isActive"
-                  />
-                </div>
-                <div class="col-6">
-                  <q-select
-                    v-model="newProjectForm.status"
-                    :options="['ACTIVE', 'DRAFT', 'PUBLISHED', 'ON_HOLD', 'COMPLETED']"
-                    label="Status"
                     outlined
                     dense
                     :dark="$q.dark.isActive"
@@ -808,7 +798,6 @@ const showGenerateReportModal = ref(false);
 const newProjectForm = reactive<CreateProjectPayload>({
   name: '',
   description: '',
-  status: 'ACTIVE',
   priority: 'MEDIUM',
   start_date: '',
   deadline: '',
@@ -921,7 +910,6 @@ function scrollToTimeline() {
 function openNewProjectDialog() {
   newProjectForm.name = '';
   newProjectForm.description = '';
-  newProjectForm.status = 'ACTIVE';
   newProjectForm.priority = 'MEDIUM';
   newProjectForm.start_date = '';
   newProjectForm.deadline = '';

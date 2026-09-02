@@ -1,7 +1,6 @@
 export type ProjectStatus =
-    | "DRAFT"
-    | "PUBLISHED"
-    | "ACTIVE"
+    | "NOT_STARTED"
+    | "IN_PROGRESS"
     | "ON_HOLD"
     | "COMPLETED"
     | "CANCELLED"

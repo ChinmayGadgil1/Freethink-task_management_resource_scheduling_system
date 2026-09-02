@@ -56,14 +56,13 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             name VARCHAR(150) NOT NULL,
             description TEXT,
             status ENUM(
-                'DRAFT',
-                'PUBLISHED',
-                'ACTIVE',
+                'NOT_STARTED',
+                'IN_PROGRESS',
                 'ON_HOLD',
                 'COMPLETED',
                 'CANCELLED',
                 'ARCHIVED'
-            ) NOT NULL DEFAULT 'DRAFT',
+            ) NOT NULL DEFAULT 'NOT_STARTED',
             priority ENUM(
                 'LOW',
                 'MEDIUM',
@@ -306,20 +305,22 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         console.log("Warning: task date columns migration encountered an error (they might already be DATETIME).", e.message);
     }
 
-    // Migration check: Ensure projects status ENUM includes ARCHIVED
+    // Migration check: Ensure projects status ENUM is updated
     try {
+        await pool.query(`ALTER TABLE projects MODIFY status VARCHAR(50)`);
+        await pool.query(`UPDATE projects SET status = 'NOT_STARTED' WHERE status = 'DRAFT'`);
+        await pool.query(`UPDATE projects SET status = 'IN_PROGRESS' WHERE status IN ('PUBLISHED', 'ACTIVE')`);
         await pool.query(`
             ALTER TABLE projects MODIFY status ENUM(
-                'DRAFT',
-                'PUBLISHED',
-                'ACTIVE',
+                'NOT_STARTED',
+                'IN_PROGRESS',
                 'ON_HOLD',
                 'COMPLETED',
                 'CANCELLED',
                 'ARCHIVED'
-            ) NOT NULL DEFAULT 'DRAFT'
+            ) NOT NULL DEFAULT 'NOT_STARTED'
         `);
-        console.log("Migrated: projects status ENUM updated with ARCHIVED.");
+        console.log("Migrated: projects status ENUM updated.");
     } catch (e: any) {
         console.log("Warning: projects status ENUM migration encountered an error.", e.message);
     }

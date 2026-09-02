@@ -1590,7 +1590,7 @@ const editProjectForm = reactive<{
 }>({
   name: '',
   description: '',
-  status: 'ACTIVE',
+  status: 'IN_PROGRESS',
   priority: 'MEDIUM',
   start_date: '',
   deadline: '',

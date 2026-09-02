@@ -426,9 +426,8 @@ export async function createTaskApi(payload: CreateTaskPayload): Promise<Task> {
 }
 
 export type ProjectStatus =
-  | 'DRAFT'
-  | 'PUBLISHED'
-  | 'ACTIVE'
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
   | 'ON_HOLD'
   | 'COMPLETED'
   | 'CANCELLED'
@@ -440,7 +439,6 @@ export interface CreateProjectPayload {
   project_manager_id: number;
   name: string;
   description?: string;
-  status?: ProjectStatus;
   priority?: ProjectPriority;
   start_date?: string | null;
   deadline?: string | null;
