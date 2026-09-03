@@ -27,26 +27,7 @@
               >
                 {{ formatStatus(project.status) }}
               </q-chip>
-              <q-chip
-                dense
-                square
-                :color="healthColor"
-                :text-color="healthTextColor"
-                class="text-caption text-weight-bold"
-              >
-                <q-icon
-                  :name="
-                    projectHealth === 'ON_TRACK'
-                      ? 'check_circle'
-                      : projectHealth === 'AT_RISK'
-                        ? 'warning'
-                        : 'schedule'
-                  "
-                  size="13px"
-                  class="q-mr-xs"
-                />
-                {{ healthLabel }}
-              </q-chip>
+
               <q-chip
                 dense
                 square
@@ -110,7 +91,9 @@
                   :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   style="overflow-wrap: break-word; word-break: break-word"
                 >
-                  {{ formatDate(project.start_date) }}&thinsp;&mdash;&thinsp;{{ formatDate(project.deadline) }}
+                  {{ formatDate(project.start_date) }}&thinsp;&mdash;&thinsp;{{
+                    formatDate(project.deadline)
+                  }}
                 </div>
               </div>
 
@@ -165,7 +148,9 @@
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                   >Overall Completion</span
                 >
-                <span class="text-h6 text-weight-bolder text-primary q-ml-sm">{{ overallProgress }}%</span>
+                <span class="text-h6 text-weight-bolder text-primary q-ml-sm"
+                  >{{ overallProgress }}%</span
+                >
               </div>
 
               <q-linear-progress
@@ -249,7 +234,9 @@
                     >
                       <q-item-section avatar
                         ><q-icon name="unarchive" size="18px" color="primary" /></q-item-section
-                      ><q-item-section class="text-primary">Unarchive Project</q-item-section></q-item
+                      ><q-item-section class="text-primary"
+                        >Unarchive Project</q-item-section
+                      ></q-item
                     >
                     <q-separator />
                     <q-item clickable class="text-negative" @click="confirmDeleteProject"
@@ -1742,54 +1729,6 @@ const taskColumns: QTableColumn<Task>[] = [
   },
   { name: 'actions', label: '', field: () => '', align: 'right' },
 ];
-
-const projectHealth = computed(() => {
-  if (project.status === 'COMPLETED') return 'ON_TRACK';
-  if (project.deadline) {
-    const deadline = new Date(project.deadline);
-    const today = new Date();
-    if (deadline < today) return 'DELAYED';
-  }
-  const prog = Number(project.progress) || 0;
-  if (prog < 30) return 'AT_RISK';
-  return 'ON_TRACK';
-});
-
-const healthLabel = computed(() => {
-  if (projectHealth.value === 'AT_RISK') return 'At Risk';
-  if (projectHealth.value === 'DELAYED') return 'Delayed';
-  return 'On Track';
-});
-
-const healthColor = computed(() => {
-  if ($q.dark.isActive) {
-    return projectHealth.value === 'AT_RISK'
-      ? 'orange-10'
-      : projectHealth.value === 'DELAYED'
-        ? 'red-10'
-        : 'green-10';
-  }
-  return projectHealth.value === 'AT_RISK'
-    ? 'orange-1'
-    : projectHealth.value === 'DELAYED'
-      ? 'red-1'
-      : 'green-1';
-});
-
-const healthTextColor = computed(() => {
-  if ($q.dark.isActive) {
-    return projectHealth.value === 'AT_RISK'
-      ? 'orange-2'
-      : projectHealth.value === 'DELAYED'
-        ? 'red-2'
-        : 'green-2';
-  }
-  return projectHealth.value === 'AT_RISK'
-    ? 'orange-9'
-    : projectHealth.value === 'DELAYED'
-      ? 'red-8'
-      : 'green-8';
-});
 
 const daysRemaining = computed(() => {
   if (!project.deadline) return 0;

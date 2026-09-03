@@ -252,8 +252,10 @@
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
             <q-card-section class="row items-center justify-between q-pb-xs">
               <div>
-                <div class="text-subtitle1 text-weight-bold">Project Health</div>
-                <div class="text-caption text-grey-6">Delivery status balance</div>
+                <div class="text-subtitle1 text-weight-bold">Overall Project Health</div>
+                <div class="text-caption text-grey-6">
+                  Portfolio delivery balance across all projects
+                </div>
               </div>
               <q-chip
                 dense
@@ -745,20 +747,6 @@
                             :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                           />
                         </div>
-
-                        <!-- Health Footer -->
-                        <div class="row items-center justify-between">
-                          <span class="text-caption text-grey-6">Health</span>
-                          <q-chip
-                            dense
-                            square
-                            :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                            :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                            class="text-weight-bold"
-                          >
-                            {{ getHealthLabel(project) }}
-                          </q-chip>
-                        </div>
                       </q-card-section>
                     </q-card>
                   </div>
@@ -953,7 +941,11 @@
 
     <!-- CREATE PROJECT DIALOG -->
     <q-dialog v-model="showCreateDialog">
-      <q-card :dark="$q.dark.isActive" style="min-width: 460px; max-width: 95vw" class="rounded-borders">
+      <q-card
+        :dark="$q.dark.isActive"
+        style="min-width: 460px; max-width: 95vw"
+        class="rounded-borders"
+      >
         <q-card-section class="row items-center justify-between q-pb-sm">
           <div>
             <div class="text-caption text-primary text-weight-bold">NEW PROJECT</div>
@@ -1057,7 +1049,6 @@
       </q-card>
     </q-dialog>
 
-
     <!-- DELETE PROJECT CONFIRMATION DIALOG -->
     <ConfirmActionDialog
       v-model="showDeleteDialog"
@@ -1116,7 +1107,7 @@ import {
   archiveProjectApi,
   unarchiveProjectApi,
 } from '@/services/api';
-import type { CreateProjectPayload, Project, ProjectPriority} from '@/services/api';
+import type { CreateProjectPayload, Project, ProjectPriority } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
@@ -1414,21 +1405,74 @@ function getProjectTheme(project: Project, index?: number): ProjectCardTheme {
   return PROJECT_THEMES[themeIndex] || (PROJECT_THEMES[0] as ProjectCardTheme);
 }
 
-function getProjectHealth(project: Project) {
+function getProjectHealth(project: Project): 'ON_TRACK' | 'AT_RISK' | 'DELAYED' {
   if (project.status === 'COMPLETED') return 'ON_TRACK';
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 1. If deadline has passed and project is not completed -> DELAYED
   if (project.deadline) {
     const deadline = new Date(project.deadline);
-    const today = new Date();
-
-    if (deadline < today) {
+    deadline.setHours(23, 59, 59, 999);
+    if (deadline < today && (Number(project.progress) || 0) < 100) {
       return 'DELAYED';
     }
   }
 
+  // 2. If project is NOT STARTED:
+  if (project.status === 'NOT_STARTED') {
+    if (project.start_date) {
+      const startDate = new Date(project.start_date);
+      startDate.setHours(0, 0, 0, 0);
+      // If planned start date is in the future, it is fully on track
+      if (startDate > today) {
+        return 'ON_TRACK';
+      }
+      // If planned start date has already passed by more than 7 days and work hasn't begun
+      const daysOverdueStart = Math.ceil(
+        (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (daysOverdueStart > 7) {
+        return 'AT_RISK';
+      }
+    }
+    // Default for newly planned or future projects: on track
+    return 'ON_TRACK';
+  }
+
+  // 3. If project is paused or on hold -> AT RISK
+  if (project.status === 'ON_HOLD') {
+    return 'AT_RISK';
+  }
+
+  // 4. If project is IN PROGRESS: evaluate schedule pace
   const progress = Number(project.progress) || 0;
 
-  if (progress < 30) return 'AT_RISK';
+  if (project.start_date && project.deadline) {
+    const startMs = new Date(project.start_date).getTime();
+    const deadlineMs = new Date(project.deadline).getTime();
+    const nowMs = today.getTime();
+
+    if (deadlineMs > startMs) {
+      const totalDuration = deadlineMs - startMs;
+      const elapsed = Math.max(0, nowMs - startMs);
+      const timeElapsedPct = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+
+      // If more than 25% of timeline has passed and progress is lagging far behind (>30% behind expected)
+      if (timeElapsedPct >= 25 && progress < timeElapsedPct - 30) {
+        return 'AT_RISK';
+      }
+    }
+  } else if (project.deadline) {
+    const deadline = new Date(project.deadline);
+    const daysRemaining = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    // If less than 7 days remaining and progress is under 50%
+    if (daysRemaining <= 7 && progress < 50) {
+      return 'AT_RISK';
+    }
+  }
 
   return 'ON_TRACK';
 }
@@ -1547,9 +1591,7 @@ const featuredProject = computed(() => {
 
   if (activeWithDeadline.length > 0) return activeWithDeadline[0];
 
-  const activeProjects = activeWorkspaceProjects.value.filter(
-    (p) => p.status === 'IN_PROGRESS',
-  );
+  const activeProjects = activeWorkspaceProjects.value.filter((p) => p.status === 'IN_PROGRESS');
   if (activeProjects.length > 0) return activeProjects[0];
 
   return activeWorkspaceProjects.value[0];
@@ -1562,12 +1604,19 @@ const healthDonut = computed(() => {
   const atRiskLen = (atRiskProjects.value / total) * CIRCUMFERENCE;
   const delayedLen = (delayedProjects.value / total) * CIRCUMFERENCE;
 
+  const categoriesWithValues = [
+    onTrackProjects.value,
+    atRiskProjects.value,
+    delayedProjects.value,
+  ].filter((c) => c > 0).length;
+  const gap = categoriesWithValues > 1 ? 2 : 0;
+
   return {
-    onTrackDash: `${Math.max(0, onTrackLen - 2)} ${CIRCUMFERENCE}`,
+    onTrackDash: `${Math.max(0, onTrackLen > 0 ? onTrackLen - gap : 0)} ${CIRCUMFERENCE}`,
     onTrackOffset: '0',
-    atRiskDash: `${Math.max(0, atRiskLen - 2)} ${CIRCUMFERENCE}`,
+    atRiskDash: `${Math.max(0, atRiskLen > 0 ? atRiskLen - gap : 0)} ${CIRCUMFERENCE}`,
     atRiskOffset: `-${onTrackLen}`,
-    delayedDash: `${Math.max(0, delayedLen - 2)} ${CIRCUMFERENCE}`,
+    delayedDash: `${Math.max(0, delayedLen > 0 ? delayedLen - gap : 0)} ${CIRCUMFERENCE}`,
     delayedOffset: `-${onTrackLen + atRiskLen}`,
   };
 });
