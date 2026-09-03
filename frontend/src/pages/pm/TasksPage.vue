@@ -159,50 +159,56 @@
       <!-- 4. KANBAN TASK BOARD VIEW -->
       <div v-else-if="viewMode === 'board'" class="row q-col-gutter-md">
         <div v-for="col in KANBAN_COLUMNS" :key="col.id" class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
-            <!-- Column Header -->
-            <q-card-section
-              class="row items-center justify-between q-py-sm"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
-            >
-              <div class="row items-center q-gutter-xs">
-                <span
-                  style="width: 8px; height: 8px; border-radius: 50%"
-                  :style="{ background: col.dotColor }"
-                />
-                <span class="text-subtitle2 text-weight-bold">{{ col.title }}</span>
-                <q-badge
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  class="text-weight-bold"
-                >
-                  {{ tasksByStatus[col.id]?.length || 0 }}
-                </q-badge>
-              </div>
-
-              <q-btn
-                flat
-                round
-                dense
-                icon="add"
-                size="sm"
-                title="Add task in this column"
-                @click="quickCreateInColumn()"
+          <q-card
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="rounded-borders full-height column no-wrap justify-between"
+          >
+            <div class="col-grow column no-wrap">
+              <!-- Column Header -->
+              <q-card-section
+                class="row items-center justify-between q-py-sm"
+                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
               >
-                <q-tooltip>Add {{ col.title }} Task</q-tooltip>
-              </q-btn>
-            </q-card-section>
+                <div class="row items-center q-gutter-xs">
+                  <span
+                    style="width: 8px; height: 8px; border-radius: 50%"
+                    :style="{ background: col.dotColor }"
+                  />
+                  <span class="text-subtitle2 text-weight-bold">{{ col.title }}</span>
+                  <q-badge
+                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    class="text-weight-bold"
+                  >
+                    {{ tasksByStatus[col.id]?.length || 0 }}
+                  </q-badge>
+                </div>
 
-            <q-separator :dark="$q.dark.isActive" />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="add"
+                  size="sm"
+                  title="Add task in this column"
+                  @click="quickCreateInColumn()"
+                >
+                  <q-tooltip>Add {{ col.title }} Task</q-tooltip>
+                </q-btn>
+              </q-card-section>
 
-            <!-- Column Tasks Cards List -->
-            <q-card-section class="q-pa-xs column q-gutter-xs" style="min-height: 200px">
-              <q-card
-                v-for="task in tasksByStatus[col.id]"
-                :key="task.task_id"
-                flat
-                bordered
-                :dark="$q.dark.isActive"
+              <q-separator :dark="$q.dark.isActive" />
+
+              <!-- Column Tasks Cards List -->
+              <q-card-section class="q-pa-xs column q-gutter-xs col-grow" style="min-height: 200px">
+                <q-card
+                  v-for="task in getPaginatedTasks(col.id)"
+                  :key="task.task_id"
+                  flat
+                  bordered
+                  :dark="$q.dark.isActive"
                 class="rounded-borders cursor-pointer q-pa-sm"
                 :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
                 @click="openTaskDetails(task)"
@@ -344,15 +350,66 @@
               <!-- Empty Column State -->
               <div
                 v-if="!tasksByStatus[col.id]?.length"
-                class="q-pa-md text-center text-grey-5 column items-center justify-center"
+                class="q-pa-md text-center text-grey-5 column items-center justify-center col-grow"
               >
                 <q-icon :name="col.icon" size="24px" class="q-mb-xs" />
                 <div class="text-caption">No {{ col.title.toLowerCase() }} tasks</div>
               </div>
             </q-card-section>
-          </q-card>
-        </div>
+          </div>
+
+          <!-- Column Pagination Footer -->
+          <div v-if="tasksByStatus[col.id]?.length > 0">
+            <q-separator :dark="$q.dark.isActive" />
+            <div
+              class="row items-center justify-between no-wrap q-px-sm q-py-xs"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+            >
+              <div class="row items-center no-wrap q-gutter-xs">
+                <span class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px">
+                  {{ (getColumnPage(col.id) - 1) * getColumnPageSize(col.id) + 1 }}-{{
+                    Math.min(getColumnPage(col.id) * getColumnPageSize(col.id), tasksByStatus[col.id]?.length || 0)
+                  }} of {{ tasksByStatus[col.id]?.length || 0 }}
+                </span>
+
+                <q-select
+                  :model-value="getColumnPageSize(col.id)"
+                  :options="pageSizeOptions"
+                  :display-value="getColumnPageSize(col.id) === 999 ? 'All' : getColumnPageSize(col.id) + '/col'"
+                  dense
+                  borderless
+                  emit-value
+                  map-options
+                  options-dense
+                  :dark="$q.dark.isActive"
+                  style="font-size: 11px; width: 62px"
+                  class="q-ml-xs text-caption text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-purple-2' : 'text-primary'"
+                  @update:model-value="(val: number) => setColumnPageSize(col.id, val)"
+                >
+                  <q-tooltip>Tasks shown per page in this column</q-tooltip>
+                </q-select>
+              </div>
+
+              <q-pagination
+                :model-value="getColumnPage(col.id)"
+                :max="getColumnTotalPages(col.id)"
+                :max-pages="3"
+                size="xs"
+                dense
+                round
+                direction-links
+                :disable="getColumnTotalPages(col.id) <= 1"
+                :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+                active-color="primary"
+                active-text-color="white"
+                @update:model-value="(val: number) => setColumnPage(col.id, val)"
+              />
+            </div>
+          </div>
+        </q-card>
       </div>
+    </div>
 
       <!-- 5. TABLE / LIST VIEW -->
       <q-card v-else flat bordered :dark="$q.dark.isActive" class="rounded-borders">
@@ -1450,6 +1507,69 @@ const tasksByStatus = computed(() => {
 
   return map;
 });
+
+const columnTasksPerPage = reactive<Record<string, number>>({
+  UNASSIGNED: 4,
+  SCHEDULED: 4,
+  IN_PROGRESS: 4,
+  COMPLETED: 4,
+});
+
+const pageSizeOptions = [
+  { label: '4 tasks (Default)', value: 4 },
+  { label: '6 tasks', value: 6 },
+  { label: '8 tasks', value: 8 },
+  { label: '10 tasks', value: 10 },
+  { label: '12 tasks', value: 12 },
+  { label: 'All tasks', value: 999 },
+];
+
+const columnPages = reactive<Record<string, number>>({
+  UNASSIGNED: 1,
+  SCHEDULED: 1,
+  IN_PROGRESS: 1,
+  COMPLETED: 1,
+});
+
+function getColumnPageSize(colId: string): number {
+  return columnTasksPerPage[colId] ?? 4;
+}
+
+function setColumnPageSize(colId: string, size: number): void {
+  columnTasksPerPage[colId] = size;
+  columnPages[colId] = 1;
+}
+
+function getColumnTotalPages(colId: string): number {
+  const count = tasksByStatus.value[colId as keyof typeof tasksByStatus.value]?.length || 0;
+  return Math.max(1, Math.ceil(count / getColumnPageSize(colId)));
+}
+
+function getColumnPage(colId: string): number {
+  return columnPages[colId] ?? 1;
+}
+
+function setColumnPage(colId: string, page: number): void {
+  columnPages[colId] = page;
+}
+
+function getPaginatedTasks(colId: string): Task[] {
+  const all = tasksByStatus.value[colId as keyof typeof tasksByStatus.value] || [];
+  const pageSize = getColumnPageSize(colId);
+  const totalPages = getColumnTotalPages(colId);
+  const currentPage = Math.min(Math.max(1, getColumnPage(colId)), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  return all.slice(start, start + pageSize);
+}
+
+watch(
+  [searchQuery, projectFilter, statusFilter, priorityFilter],
+  () => {
+    for (const key of Object.keys(columnPages)) {
+      columnPages[key] = 1;
+    }
+  },
+);
 
 function getProjectName(projectId: number): string {
   const p = projects.value.find((proj) => proj.project_id === projectId);
