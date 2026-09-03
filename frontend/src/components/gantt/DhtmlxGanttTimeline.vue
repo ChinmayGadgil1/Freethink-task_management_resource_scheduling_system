@@ -329,24 +329,37 @@ const projectOpenStates = ref<Record<string, boolean>>({});
 // ----------------------------------------------------
 // Date & Segmentation Utilities
 // ----------------------------------------------------
-function parseDateLocal(dateStr: string): Date {
+function parseDateLocal(dateStr: string): Date | null {
   const cleanStr = String(dateStr).split('T')[0]!;
+  if (!cleanStr || cleanStr === 'null' || cleanStr === 'undefined') return null;
   const parts = cleanStr.split('-');
+  if (parts.length < 3) return null;
   const y = parseInt(parts[0]!, 10);
   const m = parseInt(parts[1]!, 10) - 1;
   const d = parseInt(parts[2]!, 10);
-  return new Date(y, m, d, 0, 0, 0, 0);
+  if (isNaN(y) || isNaN(m) || isNaN(d) || y < 1970 || y > 9999) return null;
+  const result = new Date(y, m, d, 0, 0, 0, 0);
+  return isNaN(result.getTime()) ? null : result;
+}
+
+function isValidDate(d: Date | null | undefined): d is Date {
+  return d instanceof Date && !isNaN(d.getTime());
 }
 
 function parseIsoToDate(val: string | Date | undefined | null): Date | null {
   if (!val) return null;
-  if (val instanceof Date) return new Date(val.getTime());
+  if (val instanceof Date) return isValidDate(val) ? new Date(val.getTime()) : null;
+
+  // Reject obviously invalid strings before parsing
+  const str = String(val).trim();
+  if (!str || str === 'null' || str === 'undefined' || str.startsWith('0000')) return null;
 
   // Try native parse first for exact datetime
-  const d = new Date(String(val).replace(' ', 'T'));
-  if (!isNaN(d.getTime())) return d;
+  const d = new Date(str.replace(' ', 'T'));
+  if (isValidDate(d)) return d;
 
-  return parseDateLocal(String(val));
+  const local = parseDateLocal(str);
+  return isValidDate(local) ? local : null;
 }
 
 function addDays(d: Date, days: number): Date {
@@ -434,8 +447,11 @@ function getTaskWorkSegments(task: Task): {
   latestEnd: Date;
   totalHours: number;
 } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const validSchedules = (task.schedules || [])
-    .filter((s) => Number(s.allocated_hours) > 0)
+    .filter((s) => Number(s.allocated_hours) > 0 && !!s.schedule_date)
     .sort((a, b) => {
       const dateA = String(a.schedule_date).split('T')[0]!;
       const dateB = String(b.schedule_date).split('T')[0]!;
@@ -449,6 +465,8 @@ function getTaskWorkSegments(task: Task): {
     for (let i = 0; i < validSchedules.length; i++) {
       const curr = validSchedules[i]!;
       const currDateStr = String(curr.schedule_date).split('T')[0]!;
+      const currDateParsed = parseDateLocal(currDateStr);
+      if (!currDateParsed) continue; // skip unreadable schedule_date rows
 
       if (currentSegSchedules.length === 0) {
         currentSegSchedules.push(curr);
@@ -456,6 +474,7 @@ function getTaskWorkSegments(task: Task): {
         const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
         const lastDateStr = String(lastInSeg.schedule_date).split('T')[0]!;
         const lastDate = parseDateLocal(lastDateStr);
+        if (!lastDate) { currentSegSchedules = [curr]; continue; }
         const expectedNextDateStr = formatDateIso(addDays(lastDate, 1));
 
         if (currDateStr === expectedNextDateStr) {
@@ -466,7 +485,9 @@ function getTaskWorkSegments(task: Task): {
           const segStartStr = String(currentSegSchedules[0]!.schedule_date).split('T')[0]!;
           const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
           const segStartDate = parseDateLocal(segStartStr);
-          const segEndDate = addDays(parseDateLocal(segEndStr), 1);
+          const rawSegEnd = parseDateLocal(segEndStr);
+          if (!segStartDate || !rawSegEnd) { currentSegSchedules = [curr]; continue; }
+          const segEndDate = addDays(rawSegEnd, 1);
           const segHours = currentSegSchedules.reduce(
             (sum, s) => sum + Number(s.allocated_hours),
             0,
@@ -495,42 +516,48 @@ function getTaskWorkSegments(task: Task): {
       const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
       const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
       const segStartDate = parseDateLocal(segStartStr);
-      const segEndDate = addDays(parseDateLocal(segEndStr), 1);
-      const segHours = currentSegSchedules.reduce((sum, s) => sum + Number(s.allocated_hours), 0);
+      const rawSegEnd = parseDateLocal(segEndStr);
+      if (segStartDate && rawSegEnd) {
+        const segEndDate = addDays(rawSegEnd, 1);
+        const segHours = currentSegSchedules.reduce((sum, s) => sum + Number(s.allocated_hours), 0);
 
-      segments.push({
-        startDate: segStartDate,
-        endDate: segEndDate,
-        startStr: segStartStr,
-        endStr: segEndStr,
-        durationDays: Math.max(
-          1,
-          Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
-        ),
-        allocatedHours: Math.round(segHours * 10) / 10,
-        daysCount: currentSegSchedules.length,
-      });
+        segments.push({
+          startDate: segStartDate,
+          endDate: segEndDate,
+          startStr: segStartStr,
+          endStr: segEndStr,
+          durationDays: Math.max(
+            1,
+            Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
+          ),
+          allocatedHours: Math.round(segHours * 10) / 10,
+          daysCount: currentSegSchedules.length,
+        });
+      }
     }
 
-    const earliestStart = segments[0]!.startDate;
-    const latestEnd = segments[segments.length - 1]!.endDate;
-    const totalHours = segments.reduce((sum, s) => sum + s.allocatedHours, 0);
+    if (segments.length > 0) {
+      const earliestStart = segments[0]!.startDate;
+      const latestEnd = segments[segments.length - 1]!.endDate;
+      const totalHours = segments.reduce((sum, s) => sum + s.allocatedHours, 0);
 
-    return {
-      segments,
-      earliestStart,
-      latestEnd,
-      totalHours: Math.round(totalHours * 10) / 10,
-    };
+      return {
+        segments,
+        earliestStart,
+        latestEnd,
+        totalHours: Math.round(totalHours * 10) / 10,
+      };
+    }
+    // all schedule rows had bad dates — fall through to date-field fallback
   }
 
   // Fallback: No schedule allocations yet (e.g. unassigned or pending recalculation)
   const rawStart = task.planned_start || task.actual_start || task.start_date;
   const rawEnd = task.planned_end || task.deadline || task.actual_end;
-  const startDate = rawStart ? parseDateLocal(rawStart) : new Date();
+  const startDate = (rawStart ? parseIsoToDate(rawStart) : null) ?? today;
   startDate.setHours(0, 0, 0, 0);
 
-  const rawEndDate = rawEnd ? parseDateLocal(rawEnd) : addDays(startDate, 1);
+  const rawEndDate = (rawEnd ? parseIsoToDate(rawEnd) : null) ?? addDays(startDate, 1);
   rawEndDate.setHours(0, 0, 0, 0);
 
   const endDate =
@@ -1185,15 +1212,16 @@ function buildGanttDataset() {
         const firstAssigneeId = t.assigned_resource_ids?.[0];
         const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
 
+        const resolvedChildStart =
+          resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) ?? tStart) ?? tStart;
+        const resolvedChildEnd =
+          resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd) ?? tEnd;
+
         childTaskDataItems.push({
           id: t.task_id,
           text: t.title,
-          start_date: formatGanttDate(
-            resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) || tStart)!,
-          ),
-          end_date: formatGanttDate(
-            resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) || tEnd)!,
-          ),
+          start_date: formatGanttDate(resolvedChildStart),
+          end_date: formatGanttDate(resolvedChildEnd),
           progress: (Number(t.progress) || 0) / 100,
           parent: `proj_${p.project_id}`,
           priority: t.priority,
@@ -1258,15 +1286,16 @@ function buildGanttDataset() {
       const firstAssigneeId = t.assigned_resource_ids?.[0];
       const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
 
+      const resolvedFlatStart =
+        resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) ?? tStart) ?? tStart;
+      const resolvedFlatEnd =
+        resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd) ?? tEnd;
+
       data.push({
         id: t.task_id,
         text: t.title,
-        start_date: formatGanttDate(
-          resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) || tStart)!,
-        ),
-        end_date: formatGanttDate(
-          resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) || tEnd)!,
-        ),
+        start_date: formatGanttDate(resolvedFlatStart),
+        end_date: formatGanttDate(resolvedFlatEnd),
         progress: (Number(t.progress) || 0) / 100,
         priority: t.priority,
         status: t.status,
