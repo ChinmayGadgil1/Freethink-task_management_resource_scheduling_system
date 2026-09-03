@@ -258,6 +258,21 @@
                   </q-btn>
                 </div>
 
+                <!-- Self-Assigned by Resource Indicator -->
+                <div v-if="getSelfAssignedCreatorName(task)" class="q-mb-xs">
+                  <q-chip
+                    dense
+                    square
+                    size="xs"
+                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    icon="person"
+                    class="text-weight-bold"
+                  >
+                    self assigned by {{ getSelfAssignedCreatorName(task) }}
+                  </q-chip>
+                </div>
+
                 <!-- Task Title & Description -->
                 <div
                   class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs"
@@ -353,7 +368,21 @@
         >
           <template #body-cell-title="props">
             <q-td :props="props">
-              <div class="text-weight-bold ellipsis">{{ props.row.title }}</div>
+              <div class="row items-center q-gutter-xs">
+                <span class="text-weight-bold ellipsis">{{ props.row.title }}</span>
+                <q-chip
+                  v-if="getSelfAssignedCreatorName(props.row)"
+                  dense
+                  square
+                  size="xs"
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="person"
+                  class="text-weight-bold"
+                >
+                  self assigned by {{ getSelfAssignedCreatorName(props.row) }}
+                </q-chip>
+              </div>
               <div v-if="props.row.description" class="text-caption text-grey-6 ellipsis">
                 {{ props.row.description }}
               </div>
@@ -1089,6 +1118,25 @@ const resourceNamesMap = computed<Record<number, string>>(() => {
 
 function getResourceName(id: number): string {
   return resourceNamesMap.value[id] || `Resource #${id}`;
+}
+
+function getSelfAssignedCreatorName(task: Task | null | undefined): string | null {
+  if (!task) return null;
+  const rawTask = task as unknown as Record<string, unknown>;
+  const rawCreatedBy = task.created_by ?? rawTask.createdBy ?? rawTask.created_by_id;
+  const createdById = Number(rawCreatedBy);
+  if (!createdById) return null;
+
+  const resource = resources.value.find((r) => r.user_id === createdById);
+  if (resource) {
+    return resource.name;
+  }
+
+  if (rawTask.created_by_role === 'RESOURCE' && typeof rawTask.created_by_name === 'string') {
+    return rawTask.created_by_name;
+  }
+
+  return null;
 }
 
 const resourceMemberSelectOptions = computed(() => {
