@@ -1256,23 +1256,31 @@
               "
             >
               <template #option="{ itemProps, opt, selected, toggleOption }">
-                <q-item v-bind="itemProps" :disable="opt.alreadyDependent">
+                <q-item v-bind="itemProps" :disable="opt.disable">
                   <q-item-section side>
                     <q-checkbox
                       :model-value="selected || opt.alreadyDependent"
-                      :disable="opt.alreadyDependent"
+                      :disable="opt.disable"
                       color="primary"
                       @update:model-value="toggleOption(opt)"
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-grey-6': opt.alreadyDependent }">
+                    <q-item-label :class="{ 'text-grey-6': opt.disable }">
                       {{ opt.label }}
+                    </q-item-label>
+                    <q-item-label v-if="opt.isCyclic" caption class="text-negative text-weight-medium">
+                      Cannot select: would create circular dependency
                     </q-item-label>
                   </q-item-section>
                   <q-item-section v-if="opt.alreadyDependent" side>
                     <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 10px">
                       Linked
+                    </q-chip>
+                  </q-item-section>
+                  <q-item-section v-else-if="opt.isCyclic" side>
+                    <q-chip dense square color="negative" text-color="white" style="font-size: 10px">
+                      Cycle
                     </q-chip>
                   </q-item-section>
                 </q-item>
@@ -1681,13 +1689,46 @@ const dependencyPredecessorOptions = computed(() => {
   const currentTaskId = Number(selectedDependencyTaskId.value);
   const alreadyDeps = new Set(existingTaskDependencies[currentTaskId] || []);
 
+  // Compute downstream descendants of currentTaskId to prevent cycles
+  // Graph: predecessor -> successor (where task_id depends on predecessor)
+  const adjList: Record<number, number[]> = {};
+  for (const t of tasks.value) {
+    const tId = Number(t.task_id);
+    const preds = existingTaskDependencies[tId] || (t.predecessor_task_ids || []).map(Number);
+    for (const pred of preds) {
+      if (!adjList[pred]) adjList[pred] = [];
+      adjList[pred].push(tId);
+    }
+  }
+
+  // BFS from currentTaskId
+  const cyclicTaskIds = new Set<number>();
+  const queue = [currentTaskId];
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    const successors = adjList[curr] || [];
+    for (const succ of successors) {
+      if (!cyclicTaskIds.has(succ)) {
+        cyclicTaskIds.add(succ);
+        queue.push(succ);
+      }
+    }
+  }
+
   return tasks.value
     .filter((t) => Number(t.task_id) !== currentTaskId)
-    .map((t) => ({
-      label: `${t.title} (#${t.task_id})`,
-      value: Number(t.task_id),
-      alreadyDependent: alreadyDeps.has(Number(t.task_id)),
-    }));
+    .map((t) => {
+      const tId = Number(t.task_id);
+      const isAlready = alreadyDeps.has(tId);
+      const isCyclic = cyclicTaskIds.has(tId);
+      return {
+        label: `${t.title} (#${t.task_id})`,
+        value: tId,
+        alreadyDependent: isAlready,
+        isCyclic: isCyclic,
+        disable: isAlready || isCyclic,
+      };
+    });
 });
 
 const taskColumns: QTableColumn<Task>[] = [
@@ -2317,8 +2358,11 @@ async function handleAddDependency() {
     if (updatedTask) {
       existingTaskDependencies[taskId] = (updatedTask.predecessor_task_ids || []).map(Number);
     }
-  } catch {
-    $q.notify({ type: 'negative', message: 'Failed to add dependency' });
+  } catch (err: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to add dependency',
+    });
   } finally {
     dependencySubmitting.value = false;
   }

@@ -53,6 +53,99 @@ export function detectCycles(tasks: Task[], dependencies: TaskDependency[]): boo
 }
 
 /**
+ * Returns all downstream descendant task IDs that depend directly or indirectly on the given taskId.
+ */
+export function getDownstreamDescendants(taskId: number, dependencies: TaskDependency[]): Set<number> {
+    const adjList: Record<number, number[]> = {};
+
+    for (const dep of dependencies) {
+        if (!adjList[dep.predecessor_task_id]) {
+            adjList[dep.predecessor_task_id] = [];
+        }
+        adjList[dep.predecessor_task_id]!.push(dep.task_id);
+    }
+
+    const visited = new Set<number>();
+    const queue: number[] = [taskId];
+
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        const successors = adjList[current] || [];
+
+        for (const succ of successors) {
+            if (!visited.has(succ)) {
+                visited.add(succ);
+                queue.push(succ);
+            }
+        }
+    }
+
+    return visited;
+}
+
+/**
+ * Determines whether adding a dependency edge (predecessorTaskId -> taskId) would introduce a cycle.
+ * Adding an edge predecessorTaskId -> taskId creates a cycle if and only if
+ * taskId === predecessorTaskId OR taskId can already reach predecessorTaskId via existing dependencies.
+ */
+export function wouldCreateCycle(
+    taskId: number,
+    predecessorTaskId: number,
+    dependencies: TaskDependency[]
+): { hasCycle: boolean; cyclePath?: number[] } {
+    if (taskId === predecessorTaskId) {
+        return { hasCycle: true, cyclePath: [taskId, predecessorTaskId] };
+    }
+
+    // Build adjacency list (predecessor -> successor)
+    const adjList: Record<number, number[]> = {};
+    for (const dep of dependencies) {
+        if (!adjList[dep.predecessor_task_id]) {
+            adjList[dep.predecessor_task_id] = [];
+        }
+        adjList[dep.predecessor_task_id]!.push(dep.task_id);
+    }
+
+    // BFS to find path from taskId to predecessorTaskId
+    const queue: number[] = [taskId];
+    const parentMap = new Map<number, number>();
+    const visited = new Set<number>([taskId]);
+
+    let found = false;
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        if (current === predecessorTaskId) {
+            found = true;
+            break;
+        }
+
+        const successors = adjList[current] || [];
+        for (const succ of successors) {
+            if (!visited.has(succ)) {
+                visited.add(succ);
+                parentMap.set(succ, current);
+                queue.push(succ);
+            }
+        }
+    }
+
+    if (!found) {
+        return { hasCycle: false };
+    }
+
+    // Reconstruct cycle path: predecessorTaskId -> taskId -> ... -> predecessorTaskId
+    const path: number[] = [predecessorTaskId];
+    let curr = predecessorTaskId;
+    while (curr !== taskId && parentMap.has(curr)) {
+        curr = parentMap.get(curr)!;
+        path.unshift(curr);
+    }
+    path.unshift(predecessorTaskId); // show full loop
+
+    return { hasCycle: true, cyclePath: path };
+}
+
+/**
  * Determines which tasks are available to work on vs which are blocked by incomplete predecessors.
  * A task is AVAILABLE if it has no predecessors, or if all of its predecessors have a status of 'COMPLETED'.
  * Otherwise, it is WAITING.

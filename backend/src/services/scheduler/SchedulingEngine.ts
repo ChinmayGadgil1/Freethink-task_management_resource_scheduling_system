@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2";
 import type { Task, TaskDependency } from "../../models/taskModel.js";
 
 import { calculateUrgencyScore, sortTasksByUrgency, type ScoredTask } from "./PriorityEngine.js";
-import { getDownstreamDependencyCount } from "./DependencyEngine.js";
+import { getDownstreamDependencyCount, detectCycles } from "./DependencyEngine.js";
 
 export interface ResourceScheduleConfig {
     userId: number;
@@ -369,6 +369,14 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         task_id: Number(row.task_id),
         predecessor_task_id: Number(row.predecessor_task_id)
     }));
+
+    // Validate that task graph is acyclic before running scheduling calculations
+    try {
+        detectCycles(tasks, dependencies);
+    } catch (cycleError: any) {
+        console.error(`SchedulingEngine: Cycle detected in project ${projectId}:`, cycleError.message);
+        throw cycleError;
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

@@ -306,6 +306,10 @@ export async function addDependency(req: AuthRequest<{ id: string }>, res: Respo
             return res.status(404).json({ message: "Predecessor task not found" });
         }
 
+        if (task.project_id !== predTask.project_id) {
+            return res.status(400).json({ message: "Dependencies cannot be added between tasks in different projects" });
+        }
+
         if (userRole === "PROJECT_MANAGER") {
             const project = await getProjectById(task.project_id);
             if (!project || project.project_manager_id !== userId) {
@@ -326,6 +330,15 @@ export async function addDependency(req: AuthRequest<{ id: string }>, res: Respo
     } catch (error: any) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ message: "Validation error", errors: error.issues });
+        }
+        if (
+            error.message &&
+            (error.message.includes("circular dependency") ||
+                error.message.includes("Cross-project") ||
+                error.message.includes("depend on itself") ||
+                error.message.includes("Cannot add dependency"))
+        ) {
+            return res.status(400).json({ message: error.message });
         }
         return res.status(500).json({ message: error.message || "Internal server error" });
     }

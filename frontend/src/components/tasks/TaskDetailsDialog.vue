@@ -167,12 +167,15 @@
               :key="pId"
               dense
               square
+              :removable="allowRemoveDependency"
               color="teal-1"
               text-color="teal-9"
               style="font-size: 11px"
+              @remove="handleRemoveDependencyClick(pId)"
             >
               <q-icon name="account_tree" size="13px" class="q-mr-xs" color="teal" />
               {{ resolvePredecessorTitle(pId) }} (#{{ pId }})
+              <q-tooltip v-if="allowRemoveDependency">Click X to remove this dependency</q-tooltip>
             </q-chip>
           </div>
           <span v-else class="text-caption text-grey-5">No predecessor dependencies</span>
@@ -312,6 +315,7 @@ export interface TaskDetailsDialogProps {
   allowUnassign?: boolean;
   allowAssignMember?: boolean;
   allowAddDependency?: boolean;
+  allowRemoveDependency?: boolean;
   showDependencies?: boolean;
 }
 
@@ -323,6 +327,7 @@ const props = withDefaults(defineProps<TaskDetailsDialogProps>(), {
   allowUnassign: true,
   allowAssignMember: true,
   allowAddDependency: true,
+  allowRemoveDependency: true,
   showDependencies: true,
 });
 
@@ -335,6 +340,10 @@ const emit = defineEmits<{
   ): void;
   (e: 'assignMember', taskId: number): void;
   (e: 'addDependency', taskId: number): void;
+  (
+    e: 'removeDependency',
+    payload: { taskId: number; predecessorId: number; predecessorTitle: string },
+  ): void;
 }>();
 
 const authStore = useAuthStore();
@@ -401,6 +410,15 @@ function handleUnassignClick(resourceId: number) {
     taskId: props.task.task_id,
     resourceId,
     resourceName: resolveResourceName(resourceId),
+  });
+}
+
+function handleRemoveDependencyClick(predecessorId: number) {
+  if (!props.task) return;
+  emit('removeDependency', {
+    taskId: props.task.task_id,
+    predecessorId,
+    predecessorTitle: resolvePredecessorTitle(predecessorId),
   });
 }
 </script>

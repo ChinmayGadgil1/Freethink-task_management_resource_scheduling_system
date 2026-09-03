@@ -1,6 +1,7 @@
 import { getPool } from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { TaskPriority, TaskStatus } from "../models/taskModel.js";
+import { wouldCreateCycle } from "./scheduler/DependencyEngine.js";
 
 export async function createTask(
     projectId: number,
@@ -341,13 +342,61 @@ export async function assignResourceToTask(
 
 export async function addTaskDependency(taskId: number, predecessorTaskId: number) {
     const pool = getPool();
-    
+
+    if (taskId === predecessorTaskId) {
+        throw new Error("A task cannot depend on itself.");
+    }
+
+    // Verify both tasks exist and belong to the same project
+    const [taskRows] = await pool.query<RowDataPacket[]>(
+        "SELECT task_id, project_id, title FROM tasks WHERE task_id IN (?, ?)",
+        [taskId, predecessorTaskId]
+    );
+
+    if (taskRows.length < 2) {
+        throw new Error("One or both tasks could not be found.");
+    }
+
+    const currentTask = taskRows.find(r => Number(r.task_id) === taskId);
+    const predTask = taskRows.find(r => Number(r.task_id) === predecessorTaskId);
+
+    if (!currentTask || !predTask) {
+        throw new Error("Task not found.");
+    }
+
+    if (currentTask.project_id !== predTask.project_id) {
+        throw new Error("Cross-project dependencies are not supported.");
+    }
+
     // Check if the dependency already exists
     const [existing] = await pool.query<RowDataPacket[]>(
         "SELECT * FROM task_dependencies WHERE task_id = ? AND predecessor_task_id = ?",
         [taskId, predecessorTaskId]
     );
     if (existing.length > 0) return;
+
+    // Fetch all existing dependencies for this project to check for cycles
+    const [projectDeps] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT td.task_id, td.predecessor_task_id
+        FROM task_dependencies td
+        INNER JOIN tasks t ON td.task_id = t.task_id
+        WHERE t.project_id = ?
+        `,
+        [currentTask.project_id]
+    );
+
+    const dependenciesList = projectDeps.map(r => ({
+        task_id: Number(r.task_id),
+        predecessor_task_id: Number(r.predecessor_task_id)
+    }));
+
+    const cycleCheck = wouldCreateCycle(taskId, predecessorTaskId, dependenciesList);
+    if (cycleCheck.hasCycle) {
+        throw new Error(
+            `Cannot add dependency: "${predTask.title}" already depends on "${currentTask.title}". Adding this dependency would create a circular dependency loop.`
+        );
+    }
 
     await pool.query(
         "INSERT INTO task_dependencies (task_id, predecessor_task_id) VALUES (?, ?)",
