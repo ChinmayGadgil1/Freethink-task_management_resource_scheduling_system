@@ -228,10 +228,19 @@
           </q-td>
         </template>
 
-        <!-- Hours Formatting -->
-        <template #body-cell-leave_hours="props">
+        <!-- Leave Type / Hours Formatting -->
+        <template #body-cell-leave_type="props">
           <q-td :props="props">
-            {{ formatHours(props.row.leave_hours) }}
+            <div>
+              {{
+                props.row.leave_type === 'FIRST_HALF'
+                  ? 'First Half'
+                  : props.row.leave_type === 'SECOND_HALF'
+                    ? 'Second Half'
+                    : 'Full Day'
+              }}
+            </div>
+            <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
           </q-td>
         </template>
 
@@ -382,18 +391,18 @@
               </template>
             </q-input>
 
-            <!-- Hours Input -->
-            <q-input
-              v-model.number="leaveForm.leave_hours"
+            <!-- Leave Type Input -->
+            <q-select
+              v-model="leaveForm.leave_type"
               outlined
               dense
-              type="number"
-              step="0.5"
-              label="Leave Hours *"
-              :rules="[
-                (val) => !!val || 'Leave hours is required',
-                (val) => val > 0 || 'Hours must be positive',
-                (val) => val <= 24 || 'Hours cannot exceed 24',
+              emit-value
+              map-options
+              label="Leave Type *"
+              :options="[
+                { label: 'Full Day', value: 'FULL_DAY' },
+                { label: 'First Half', value: 'FIRST_HALF' },
+                { label: 'Second Half', value: 'SECOND_HALF' }
               ]"
             />
           </q-card-section>
@@ -526,11 +535,11 @@ const leaveSubmitting = ref(false);
 const leaveForm = reactive<{
   user_id: number | null;
   leave_date: string;
-  leave_hours: number;
+  leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
 }>({
   user_id: null,
   leave_date: '',
-  leave_hours: 8,
+  leave_type: 'FULL_DAY',
 });
 
 // Columns based on User Role
@@ -556,9 +565,9 @@ const tableColumns = computed<QTableColumn<LeaveItem>[]>(() => {
       sortable: true,
     },
     {
-      name: 'leave_hours',
-      label: 'Leave Hours',
-      field: (l) => l.leave_hours,
+      name: 'leave_type',
+      label: 'Leave Type / Hours',
+      field: (l) => l.leave_type,
       align: 'center',
       sortable: true,
     },
@@ -724,7 +733,7 @@ function resetFilters() {
 function openLeaveDialog() {
   leaveForm.user_id = isProjectManager.value ? null : currentUserId.value;
   leaveForm.leave_date = '';
-  leaveForm.leave_hours = 8;
+  leaveForm.leave_type = 'FULL_DAY';
   showLeaveDialog.value = true;
 }
 
@@ -745,7 +754,7 @@ async function handleApplyLeave() {
     await createLeaveApi({
       user_id: targetUserId,
       leave_date: leaveForm.leave_date,
-      leave_hours: Number(leaveForm.leave_hours) || 8,
+      leave_type: leaveForm.leave_type,
     });
 
     $q.notify({

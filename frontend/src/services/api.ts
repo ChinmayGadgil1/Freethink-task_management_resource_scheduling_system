@@ -1120,6 +1120,7 @@ export interface LeaveItem {
   user_email?: string;
   leave_date: string;
   leave_hours: number;
+  leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
   status: LeaveStatus;
   approver_id?: number | null;
   approver_name?: string | null;
@@ -1173,7 +1174,7 @@ export async function getLeavesApi(params?: {
 export async function createLeaveApi(payload: {
   user_id: number;
   leave_date: string;
-  leave_hours?: number;
+  leave_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
 }): Promise<LeaveItem> {
   const response = await authenticatedFetch(`${API_BASE_URL}/leaves`, {
     method: 'POST',

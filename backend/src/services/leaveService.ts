@@ -38,23 +38,27 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         throw error;
     }
 
-    // Determine leave_hours: if explicitly supplied, use that value.
-    // If omitted, use the resource's configured daily_working_hours (falling back to 8.00 if null/invalid).
+    // Determine leave_type and leave_hours based on user's daily_working_hours
+    const leave_type = data.leave_type || 'FULL_DAY';
+    
+    const userDailyHours = user.daily_working_hours !== null && user.daily_working_hours !== undefined
+        ? Number(user.daily_working_hours)
+        : 8.00;
+        
+    const maxDailyHours = !isNaN(userDailyHours) && userDailyHours > 0 && userDailyHours <= 24
+        ? userDailyHours
+        : 8.00;
+
     let leave_hours: number;
-    if (data.leave_hours !== undefined && data.leave_hours !== null) {
-        leave_hours = Number(data.leave_hours);
+    if (leave_type === 'FULL_DAY') {
+        leave_hours = maxDailyHours;
     } else {
-        const userDailyHours = user.daily_working_hours !== null && user.daily_working_hours !== undefined
-            ? Number(user.daily_working_hours)
-            : 8.00;
-        leave_hours = !isNaN(userDailyHours) && userDailyHours > 0 && userDailyHours <= 24
-            ? userDailyHours
-            : 8.00;
+        leave_hours = maxDailyHours / 2;
     }
 
     // 2. Validate leave hours (must be positive and <= 24)
     if (isNaN(leave_hours) || leave_hours <= 0 || leave_hours > 24) {
-        const error = new Error("Leave hours must be a positive number up to 24.");
+        const error = new Error("Calculated leave hours must be a positive number up to 24.");
         (error as any).status = 400;
         throw error;
     }
@@ -96,8 +100,8 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
 
     // 5. Insert leave record
     const [result] = await pool.query<ResultSetHeader>(
-        `INSERT INTO user_leaves (user_id, leave_date, leave_hours, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?)`,
-        [user_id, formattedDate, leave_hours, initialStatus, approverId, approvedAt]
+        `INSERT INTO user_leaves (user_id, leave_date, leave_hours, leave_type, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [user_id, formattedDate, leave_hours, leave_type, initialStatus, approverId, approvedAt]
     );
 
     // 6. Recalculate schedules if approved immediately
@@ -117,6 +121,7 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         user_id,
         leave_date: formattedDate,
         leave_hours,
+        leave_type,
         status: initialStatus,
         approver_id: approverId,
         approved_at: approvedAt ? approvedAt.toISOString() : null
@@ -139,6 +144,7 @@ export async function approveLeave(leaveId: number, pmUserId: number): Promise<U
             ul.user_id,
             DATE_FORMAT(ul.leave_date, '%Y-%m-%d') as leave_date,
             ul.leave_hours,
+            ul.leave_type,
             ul.status,
             u.name as user_name
         FROM user_leaves ul
@@ -211,6 +217,7 @@ export async function approveLeave(leaveId: number, pmUserId: number): Promise<U
         user_name: leave.user_name,
         leave_date: leaveDateStr,
         leave_hours: Number(leave.leave_hours),
+        leave_type: leave.leave_type as any,
         status: "APPROVED",
         approver_id: pmUserId,
         approved_at: new Date().toISOString()
@@ -231,6 +238,7 @@ export async function rejectLeave(leaveId: number, pmUserId: number, reason?: st
             ul.user_id,
             DATE_FORMAT(ul.leave_date, '%Y-%m-%d') as leave_date,
             ul.leave_hours,
+            ul.leave_type,
             ul.status,
             u.name as user_name
         FROM user_leaves ul
@@ -290,6 +298,7 @@ export async function rejectLeave(leaveId: number, pmUserId: number, reason?: st
         user_name: leave.user_name,
         leave_date: String(leave.leave_date),
         leave_hours: Number(leave.leave_hours),
+        leave_type: leave.leave_type as any,
         status: "REJECTED",
         approver_id: pmUserId,
         rejection_reason: reason ?? "Rejected by Project Manager"
@@ -360,6 +369,7 @@ export async function getLeaves(filters: {
             u.email as user_email,
             DATE_FORMAT(ul.leave_date, '%Y-%m-%d') as leave_date,
             ul.leave_hours,
+            ul.leave_type,
             ul.status,
             ul.approver_id,
             approver.name as approver_name,
@@ -419,6 +429,7 @@ export async function getLeaves(filters: {
         user_email: r.user_email,
         leave_date: String(r.leave_date),
         leave_hours: Number(r.leave_hours),
+        leave_type: (r.leave_type as any) || 'FULL_DAY',
         status: r.status as LeaveStatus,
         approver_id: r.approver_id ? Number(r.approver_id) : null,
         approver_name: r.approver_name || null,

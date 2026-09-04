@@ -6,7 +6,7 @@ import * as leaveService from "../services/leaveService.js";
 const addLeaveSchema = z.object({
     user_id: z.number({ message: "User ID is required" }).int().positive("User ID must be a positive integer"),
     leave_date: z.string({ message: "Leave date is required" }).regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Expected YYYY-MM-DD"),
-    leave_hours: z.number().positive("Leave hours must be positive").max(24, "Leave hours cannot exceed 24").optional()
+    leave_type: z.enum(["FULL_DAY", "FIRST_HALF", "SECOND_HALF"]).optional()
 });
 
 const getLeavesQuerySchema = z.object({
@@ -41,7 +41,7 @@ export async function addLeave(req: AuthRequest, res: Response): Promise<void> {
             {
                 user_id: parsed.user_id,
                 leave_date: parsed.leave_date,
-                ...(parsed.leave_hours !== undefined ? { leave_hours: parsed.leave_hours } : {})
+                ...(parsed.leave_type !== undefined ? { leave_type: parsed.leave_type as any } : {})
             },
             req.user?.role,
             req.user?.user_id

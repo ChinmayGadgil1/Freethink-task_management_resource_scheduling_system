@@ -214,6 +214,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             user_id BIGINT NOT NULL,
             leave_date DATE NOT NULL,
             leave_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00,
+            leave_type ENUM('FULL_DAY', 'FIRST_HALF', 'SECOND_HALF') NOT NULL DEFAULT 'FULL_DAY',
             status ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
             approver_id BIGINT NULL,
             rejection_reason VARCHAR(255) NULL,
@@ -261,6 +262,11 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
     }
     try {
         await pool.query(`ALTER TABLE user_leaves ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+    } catch (e: any) {
+        // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN leave_type ENUM('FULL_DAY', 'FIRST_HALF', 'SECOND_HALF') NOT NULL DEFAULT 'FULL_DAY'`);
     } catch (e: any) {
         // Ignore if column already exists
     }

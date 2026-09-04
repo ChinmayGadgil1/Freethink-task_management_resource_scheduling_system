@@ -1,4 +1,5 @@
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type LeaveType = 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
 
 export interface UserLeave {
     leave_id: number;
@@ -7,6 +8,7 @@ export interface UserLeave {
     user_email?: string;
     leave_date: string; // ISO date string (YYYY-MM-DD)
     leave_hours: number;
+    leave_type: LeaveType;
     status: LeaveStatus;
     approver_id?: number | null;
     approver_name?: string | null;
@@ -18,7 +20,7 @@ export interface UserLeave {
 export interface CreateLeaveDTO {
     user_id: number;
     leave_date: string;
-    leave_hours?: number | undefined;
+    leave_type?: LeaveType | undefined;
     status?: LeaveStatus | undefined;
     approver_id?: number | null | undefined;
 }
