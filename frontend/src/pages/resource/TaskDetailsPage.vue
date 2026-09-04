@@ -1,5 +1,5 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
+  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg resource-tasks-page">
     <!-- Loading -->
     <div v-if="loading" class="flex flex-center q-pa-xl">
       <q-spinner color="primary" size="45px" />
@@ -179,19 +179,19 @@
       </q-card>
 
       <!-- 4. KANBAN BOARD VIEW -->
-      <div v-if="viewMode === 'board'" class="full-width overflow-auto q-pb-md">
+      <div v-if="viewMode === 'board'" class="full-width overflow-auto q-pb-md resource-kanban-board">
         <div class="row q-col-gutter-md">
           <div v-for="col in KANBAN_COLUMNS" :key="col.id" class="col-12 col-md-4">
             <q-card
               flat
               bordered
               :dark="$q.dark.isActive"
-              class="rounded-borders full-height column no-wrap justify-between"
+              class="rounded-borders full-height column no-wrap justify-between kanban-column-card"
             >
-              <div class="col-grow column no-wrap">
+              <div class="col-grow column no-wrap kanban-column-body">
                 <!-- Column Header -->
                 <q-card-section
-                  class="row items-center justify-between q-py-sm"
+                  class="row items-center justify-between q-py-sm kanban-column-header"
                   :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
                 >
                   <div class="row items-center q-gutter-xs">
@@ -222,10 +222,10 @@
                   </q-btn>
                 </q-card-section>
 
-                <q-separator :dark="$q.dark.isActive" />
+                <q-separator :dark="$q.dark.isActive" class="kanban-column-separator" />
 
                 <!-- Column Tasks Cards List -->
-                <q-card-section class="q-pa-xs column q-gutter-xs col-grow" style="min-height: 200px">
+                <q-card-section class="q-pa-xs column no-wrap q-gutter-xs col-grow kanban-tasks-scroll-area">
                   <q-card
                     v-for="item in getPaginatedTasks(col.id)"
                     :key="item.task_id"
@@ -401,7 +401,7 @@
               </div>
 
               <!-- Column Pagination Footer -->
-              <div v-if="(tasksByStatus[col.id]?.length || 0) > 0">
+              <div v-if="(tasksByStatus[col.id]?.length || 0) > 0" class="kanban-column-footer">
                 <q-separator :dark="$q.dark.isActive" />
                 <div
                   class="row items-center justify-between no-wrap q-px-sm q-py-xs"
@@ -1977,17 +1977,16 @@ const tasksByStatus = computed(() => {
 });
 
 const columnTasksPerPage = reactive<Record<string, number>>({
-  SCHEDULED: 4,
-  IN_PROGRESS: 4,
-  COMPLETED: 4,
+  SCHEDULED: 10,
+  IN_PROGRESS: 10,
+  COMPLETED: 10,
 });
 
 const pageSizeOptions = [
-  { label: '4 tasks (Default)', value: 4 },
-  { label: '6 tasks', value: 6 },
-  { label: '8 tasks', value: 8 },
-  { label: '10 tasks', value: 10 },
-  { label: '12 tasks', value: 12 },
+  { label: '5 tasks', value: 5 },
+  { label: '10 tasks (Default)', value: 10 },
+  { label: '15 tasks', value: 15 },
+  { label: '20 tasks', value: 20 },
   { label: 'All tasks', value: 999 },
 ];
 
@@ -1998,7 +1997,7 @@ const columnPages = reactive<Record<string, number>>({
 });
 
 function getColumnPageSize(colId: string): number {
-  return columnTasksPerPage[colId] ?? 4;
+  return columnTasksPerPage[colId] ?? 10;
 }
 
 function setColumnPageSize(colId: string, size: number): void {

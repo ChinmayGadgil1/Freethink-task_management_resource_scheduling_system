@@ -754,3 +754,75 @@ body.body--dark {
     color: #fb923c !important;
   }
 }
+
+/* ===================================================
+   Kanban Independent Column Scrolling
+=================================================== */
+.pm-tasks-page {
+  --kanban-top-offset: 345px;
+}
+
+.resource-tasks-page {
+  --kanban-top-offset: 395px;
+}
+
+.resource-kanban-board {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.kanban-column-card {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between !important;
+  overflow: hidden;
+
+  @media (min-width: 1024px) {
+    height: calc(100vh - var(--kanban-top-offset, 350px));
+    min-height: 400px;
+  }
+
+  @media (max-width: 1023px) {
+    height: 520px;
+    min-height: 360px;
+  }
+}
+
+.kanban-column-body {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.kanban-column-header {
+  flex-shrink: 0 !important;
+}
+
+.kanban-column-separator {
+  flex-shrink: 0 !important;
+}
+
+.kanban-tasks-scroll-area {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+
+  > .q-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+.kanban-column-footer {
+  flex-shrink: 0 !important;
+}
