@@ -72,6 +72,12 @@ export interface ResourceScheduleResponse {
   pm_project_ids?: number[];
 }
 
+export interface AssignedResource {
+  user_id: number;
+  name: string;
+  email?: string;
+}
+
 export interface Task {
   task_id: number;
   project_id: number;
@@ -95,6 +101,7 @@ export interface Task {
   created_at?: string;
   updated_at?: string;
   assigned_resource_ids?: number[];
+  assigned_resources?: AssignedResource[];
   predecessor_task_ids?: number[];
   pacing?: TaskPacing;
   schedules?: TaskScheduleItem[];

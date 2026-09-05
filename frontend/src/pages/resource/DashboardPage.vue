@@ -1,6 +1,9 @@
 <template>
-  <q-page class="pm-page resource-dashboard-page">
-    <div class="q-mx-auto" style="max-width: 1380px">
+  <q-page
+    :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
+    class="q-pa-lg resource-dashboard-page"
+  >
+    <div class="full-width">
       <!-- 1. HEADER / GREETING SECTION -->
       <div class="row items-center justify-between q-mb-lg">
         <div>
@@ -36,8 +39,23 @@
 
       <!-- MAIN DASHBOARD BODY -->
       <div v-else class="dashboard-body-container">
-        <!-- 2. HERO ROW: TODAY'S FOCUS + PRODUCTIVITY OVERVIEW (MATCHING PM SIDE) -->
-        <div class="q-mb-lg">
+        <!-- 2. FOUR PASTEL STAT CARDS (MATCHING PM SIDE) -->
+        <div class="row q-col-gutter-md q-pt-xs">
+          <div v-for="stat in pastelStatCards" :key="stat.title" class="col-12 col-sm-6 col-md-3">
+            <StatCard
+              :title="stat.title"
+              :value="stat.value"
+              :subtitle="stat.subtitle"
+              :badge="stat.badge"
+              :icon="stat.icon"
+              :color="stat.color"
+              :negative="stat.negative"
+            />
+          </div>
+        </div>
+
+        <!-- 3. HERO ROW: TODAY'S FOCUS + PRODUCTIVITY OVERVIEW -->
+        <div>
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
             <div class="row">
               <!-- Left Side: Hero Workspace Image Container with Overlaid Text & Actions -->
@@ -229,20 +247,6 @@
           </q-card>
         </div>
 
-        <!-- 3. FOUR PASTEL STAT CARDS -->
-        <div class="row q-col-gutter-md">
-          <div v-for="stat in pastelStatCards" :key="stat.title" class="col-12 col-sm-6 col-md-3">
-            <StatCard
-              :title="stat.title"
-              :value="stat.value"
-              :subtitle="stat.subtitle"
-              :badge="stat.badge"
-              :icon="stat.icon"
-              :color="stat.color"
-              :negative="stat.negative"
-            />
-          </div>
-        </div>
 
         <!-- 4. WORKLOAD + TASK STATUS ROW -->
         <div class="row q-col-gutter-lg">
@@ -555,13 +559,11 @@ const workload = computed(() => {
 });
 
 const taskStatus = computed(() => {
-  const unassigned = tasks.value.filter((t) => t.status === 'UNASSIGNED').length;
   const scheduled = tasks.value.filter((t) => t.status === 'SCHEDULED').length;
   const inProgress = tasks.value.filter((t) => t.status === 'IN_PROGRESS').length;
   const completed = tasks.value.filter((t) => t.status === 'COMPLETED').length;
 
   return [
-    { label: 'Unassigned', value: unassigned, color: '#64748B' },
     { label: 'Scheduled', value: scheduled, color: '#8B6FD8' },
     { label: 'In Progress', value: inProgress, color: '#3B82F6' },
     { label: 'Completed', value: completed, color: '#10B981' },
@@ -766,7 +768,6 @@ function goToProgress() {
 .resource-dashboard-page {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
   box-sizing: border-box;
 }
 
@@ -776,7 +777,7 @@ function goToProgress() {
   gap: 24px;
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 
   > div {

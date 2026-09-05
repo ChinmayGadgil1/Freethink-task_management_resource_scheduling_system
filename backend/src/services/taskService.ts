@@ -41,9 +41,9 @@ export async function createTask(
         const taskId = result.insertId;
 
         if (assignedResourceIds && assignedResourceIds.length > 0) {
-            // Verify roles
+            // Verify roles and fetch profile details
             const [users] = await connection.query<RowDataPacket[]>(
-                "SELECT user_id, role FROM users WHERE user_id IN (?)",
+                "SELECT user_id, name, email, role FROM users WHERE user_id IN (?)",
                 [assignedResourceIds]
             );
 
@@ -64,6 +64,30 @@ export async function createTask(
                 "INSERT IGNORE INTO project_members (project_id, user_id) VALUES ?",
                 [memberValues]
             );
+
+            await connection.commit();
+
+            const assignedResources = users.map(u => ({
+                user_id: Number(u.user_id),
+                name: String(u.name),
+                email: String(u.email)
+            }));
+
+            return {
+                task_id: taskId,
+                project_id: projectId,
+                created_by: createdBy,
+                title,
+                description,
+                priority,
+                status: initialStatus,
+                deadline,
+                expected_effort: expectedEffort,
+                actual_effort: 0,
+                progress: 0,
+                assigned_resource_ids: assignedResourceIds || [],
+                assigned_resources: assignedResources
+            };
         }
 
         await connection.commit();
@@ -80,7 +104,8 @@ export async function createTask(
             expected_effort: expectedEffort,
             actual_effort: 0,
             progress: 0,
-            assigned_resource_ids: assignedResourceIds || []
+            assigned_resource_ids: [],
+            assigned_resources: []
         };
     } catch (error) {
         await connection.rollback();
@@ -150,6 +175,27 @@ export async function getTasksList(filters: {
         [taskIds]
     );
 
+    const [assignments] = await pool.query<RowDataPacket[]>(
+        `SELECT ta.task_id, ta.user_id, u.name as resource_name, u.email as resource_email
+         FROM task_assignments ta
+         JOIN users u ON ta.user_id = u.user_id
+         WHERE ta.task_id IN (?)`,
+        [taskIds]
+    );
+
+    const assignmentMap = new Map<number, { user_id: number; name: string; email: string }[]>();
+    for (const a of assignments) {
+        const tId = Number(a.task_id);
+        if (!assignmentMap.has(tId)) {
+            assignmentMap.set(tId, []);
+        }
+        assignmentMap.get(tId)!.push({
+            user_id: Number(a.user_id),
+            name: String(a.resource_name),
+            email: String(a.resource_email)
+        });
+    }
+
     const scheduleMap = new Map<number, any[]>();
     for (const s of schedules) {
         const tId = Number(s.task_id);
@@ -172,6 +218,7 @@ export async function getTasksList(filters: {
         assigned_resource_ids: t.assigned_resource_ids
             ? String(t.assigned_resource_ids).split(",").map(Number)
             : [],
+        assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
         predecessor_task_ids: t.predecessor_task_ids
             ? String(t.predecessor_task_ids).split(",").map(Number)
             : [],
@@ -213,6 +260,20 @@ export async function getTaskById(taskId: number) {
         [taskId]
     );
 
+    const [assignments] = await pool.query<RowDataPacket[]>(
+        `SELECT ta.task_id, ta.user_id, u.name as resource_name, u.email as resource_email
+         FROM task_assignments ta
+         JOIN users u ON ta.user_id = u.user_id
+         WHERE ta.task_id = ?`,
+        [taskId]
+    );
+
+    const assignedResources = assignments.map(a => ({
+        user_id: Number(a.user_id),
+        name: String(a.resource_name),
+        email: String(a.resource_email)
+    }));
+
     const formattedSchedules = schedules.map(s => ({
         schedule_id: Number(s.schedule_id),
         task_id: Number(s.task_id),
@@ -228,6 +289,7 @@ export async function getTaskById(taskId: number) {
         assigned_resource_ids: task.assigned_resource_ids
             ? String(task.assigned_resource_ids).split(",").map(Number)
             : [],
+        assigned_resources: assignedResources,
         predecessor_task_ids: task.predecessor_task_ids
             ? String(task.predecessor_task_ids).split(",").map(Number)
             : [],

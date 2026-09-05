@@ -14,19 +14,23 @@
     <!-- TOP HEADER -->
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
-        <!-- Left: Mobile / Sidebar Expand Toggle -->
-        <div class="toolbar-left-area row items-center gap-sm lt-md">
+        <!-- Left: Mobile / Sidebar Expand Toggle & Workspace Tag -->
+        <div class="row items-center gap-sm">
           <q-btn
             flat
-            round
             dense
+            round
             :icon="isMini ? 'menu_open' : 'menu'"
-            color="grey-8"
             aria-label="Toggle Sidebar"
+            class="drawer-toggle-btn lt-md"
             @click="toggleMini"
           >
             <q-tooltip>{{ isMini ? 'Expand Sidebar' : 'Collapse Sidebar' }}</q-tooltip>
           </q-btn>
+          <div class="header-workspace-tag gt-xs">
+            <span class="tag-spark">✦</span>
+            <span>Project Management</span>
+          </div>
         </div>
 
         <!-- Center / Global Search -->
@@ -332,6 +336,22 @@ body.body--dark .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-workspace-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--wo-bg-tag, #f1f5f9);
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--wo-primary, #8b6fd8);
+
+  .tag-spark {
+    font-size: 11px;
+  }
 }
 
 .search-container {

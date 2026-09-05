@@ -87,6 +87,30 @@ export async function getProjectSchedule(projectId: number) {
         [projectId]
     );
 
+    // Fetch assignees with profile names
+    const taskIds = tasks.map(t => t.task_id);
+    const assignmentMap = new Map<number, { user_id: number; name: string; email: string }[]>();
+    if (taskIds.length > 0) {
+        const [assignments] = await pool.query<RowDataPacket[]>(
+            `SELECT ta.task_id, ta.user_id, u.name as resource_name, u.email as resource_email
+             FROM task_assignments ta
+             JOIN users u ON ta.user_id = u.user_id
+             WHERE ta.task_id IN (?)`,
+            [taskIds]
+        );
+        for (const a of assignments) {
+            const tId = Number(a.task_id);
+            if (!assignmentMap.has(tId)) {
+                assignmentMap.set(tId, []);
+            }
+            assignmentMap.get(tId)!.push({
+                user_id: Number(a.user_id),
+                name: String(a.resource_name),
+                email: String(a.resource_email)
+            });
+        }
+    }
+
     // 4. Fetch holidays
     const [holidays] = await pool.query<RowDataPacket[]>(
         `SELECT holiday_id, holiday_date, description FROM holidays ORDER BY holiday_date ASC`
@@ -140,6 +164,7 @@ export async function getProjectSchedule(projectId: number) {
             assigned_resource_ids: t.assigned_resource_ids
                 ? String(t.assigned_resource_ids).split(",").map(Number)
                 : [],
+            assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
                 : [],
@@ -231,6 +256,30 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
         ? schedules.filter(s => visibleTaskIds.has(Number(s.task_id)))
         : schedules;
 
+    // Fetch assignees with profile names for visible tasks
+    const assignmentMap = new Map<number, { user_id: number; name: string; email: string }[]>();
+    const visibleTaskIdsArray = Array.from(visibleTaskIds);
+    if (visibleTaskIdsArray.length > 0) {
+        const [assignments] = await pool.query<RowDataPacket[]>(
+            `SELECT ta.task_id, ta.user_id, u.name as resource_name, u.email as resource_email
+             FROM task_assignments ta
+             JOIN users u ON ta.user_id = u.user_id
+             WHERE ta.task_id IN (?)`,
+            [visibleTaskIdsArray]
+        );
+        for (const a of assignments) {
+            const tId = Number(a.task_id);
+            if (!assignmentMap.has(tId)) {
+                assignmentMap.set(tId, []);
+            }
+            assignmentMap.get(tId)!.push({
+                user_id: Number(a.user_id),
+                name: String(a.resource_name),
+                email: String(a.resource_email)
+            });
+        }
+    }
+
     // 4. Fetch holidays
     const [holidays] = await pool.query<RowDataPacket[]>(
         `SELECT holiday_id, holiday_date, description FROM holidays ORDER BY holiday_date ASC`
@@ -287,6 +336,7 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
             assigned_resource_ids: t.assigned_resource_ids
                 ? String(t.assigned_resource_ids).split(",").map(Number)
                 : [resourceId],
+            assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
                 : [],

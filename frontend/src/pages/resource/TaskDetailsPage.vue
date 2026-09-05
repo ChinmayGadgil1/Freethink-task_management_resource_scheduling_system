@@ -1659,15 +1659,48 @@ const otherActiveSessions = computed(() => {
 
 // Resolve a resource's readable name by their user_id (supports optional/nullable ID)
 function resolveMemberName(userId?: number | null): string {
-  if (userId && resourceNamesMap.value[userId]) {
-    return resourceNamesMap.value[userId];
+  if (!userId) return 'Team Member';
+  const numId = Number(userId);
+
+  if (resourceNamesMap.value[numId]) {
+    return resourceNamesMap.value[numId];
   }
+
+  // Check current task assigned_resources directly
+  const assigned = task.value?.assigned_resources?.find((r) => Number(r.user_id) === numId);
+  if (assigned?.name) {
+    resourceNamesMap.value[numId] = assigned.name;
+    return assigned.name;
+  }
+
+  // Check current task schedules directly
+  const sched = task.value?.schedules?.find((s) => Number(s.user_id) === numId);
+  if (sched?.resource_name) {
+    resourceNamesMap.value[numId] = sched.resource_name;
+    return sched.resource_name;
+  }
+
+  // Check all tasks for any matching assigned_resources
+  for (const t of tasks.value) {
+    const ar = t.assigned_resources?.find((r) => Number(r.user_id) === numId);
+    if (ar?.name) {
+      resourceNamesMap.value[numId] = ar.name;
+      return ar.name;
+    }
+    const sc = t.schedules?.find((s) => Number(s.user_id) === numId);
+    if (sc?.resource_name) {
+      resourceNamesMap.value[numId] = sc.resource_name;
+      return sc.resource_name;
+    }
+  }
+
   const currentUserId = getCurrentUserId();
-  if (currentUserId && userId && userId === currentUserId) {
+  if (currentUserId && numId === currentUserId) {
     const u = authStore.user as UserLike | null;
     return u?.name || 'You';
   }
-  return userId ? `Resource #${userId}` : 'Team Member';
+
+  return `Resource #${numId}`;
 }
 
 // Format time for active session banner (e.g., '10:30 AM')
@@ -2286,6 +2319,24 @@ async function loadTasks() {
 
   try {
     tasks.value = await getTasksApi();
+
+    // Populate resource names map from assigned_resources and schedules across tasks
+    tasks.value.forEach((t) => {
+      if (Array.isArray(t.assigned_resources)) {
+        t.assigned_resources.forEach((ar) => {
+          if (ar.user_id && ar.name) {
+            resourceNamesMap.value[ar.user_id] = ar.name;
+          }
+        });
+      }
+      if (Array.isArray(t.schedules)) {
+        t.schedules.forEach((sch) => {
+          if (sch.user_id && sch.resource_name) {
+            resourceNamesMap.value[sch.user_id] = sch.resource_name;
+          }
+        });
+      }
+    });
 
     if (task.value) {
       await loadHistory(task.value.task_id);

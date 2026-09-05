@@ -4,19 +4,10 @@
       <!-- 1. PAGE HEADER & GREETING -->
       <div class="row items-center justify-between q-mb-lg">
         <div>
-          <div
-            class="row items-center q-gutter-xs text-caption text-weight-bold text-primary q-mb-xs"
-          >
-            <span>✦</span>
-            <span>Project Management</span>
-          </div>
-          <h1 class="text-h4 text-weight-bolder q-ma-none">Hey, {{ currentPmName }}!</h1>
-          <p
-            class="text-subtitle2 q-mt-xs q-mb-none"
-            :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-          >
+          <div class="page-title">Hey, {{ currentPmName }}!</div>
+          <div class="page-subtitle">
             Plan, track, and manage everything your team is working on with complete clarity.
-          </p>
+          </div>
         </div>
 
         <div class="row items-center q-gutter-sm">

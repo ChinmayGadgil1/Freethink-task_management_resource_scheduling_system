@@ -392,7 +392,22 @@ const resolvedProjectName = computed(() => {
 });
 
 function resolveResourceName(resourceId: number): string {
-  return props.resourceNamesMap?.[resourceId] || `Resource #${resourceId}`;
+  if (props.resourceNamesMap?.[resourceId]) {
+    return props.resourceNamesMap[resourceId];
+  }
+  const assigned = props.task?.assigned_resources?.find(
+    (r) => Number(r.user_id) === Number(resourceId),
+  );
+  if (assigned?.name) {
+    return assigned.name;
+  }
+  const sched = props.task?.schedules?.find(
+    (s) => Number(s.user_id) === Number(resourceId),
+  );
+  if (sched?.resource_name) {
+    return sched.resource_name;
+  }
+  return `Resource #${resourceId}`;
 }
 
 function getResourceInitial(resourceId: number): string {
