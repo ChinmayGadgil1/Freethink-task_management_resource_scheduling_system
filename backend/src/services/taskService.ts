@@ -266,19 +266,6 @@ export async function getTasksList(filters: {
         });
     }
 
-<<<<<<< Updated upstream
-    return tasks.map(t => ({
-        ...t,
-        assigned_resource_ids: t.assigned_resource_ids
-            ? String(t.assigned_resource_ids).split(",").map(Number)
-            : [],
-        assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
-        predecessor_task_ids: t.predecessor_task_ids
-            ? String(t.predecessor_task_ids).split(",").map(Number)
-            : [],
-        schedules: scheduleMap.get(Number(t.task_id)) || []
-    }));
-=======
     // Collect all unique predecessor task IDs across all fetched tasks
     const allPredecessorIdsSet = new Set<number>();
     for (const t of tasks) {
@@ -307,15 +294,15 @@ export async function getTasksList(filters: {
             assigned_resource_ids: t.assigned_resource_ids
                 ? String(t.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
                 : [],
+            assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
             assigned_resource_names: t.assigned_resource_names
                 ? String(t.assigned_resource_names).split(", ").filter(Boolean)
-                : [],
+                : (assignmentMap.get(Number(t.task_id)) || []).map(a => a.name),
             predecessor_task_ids: predIds,
             predecessors,
             schedules: scheduleMap.get(Number(t.task_id)) || []
         };
     });
->>>>>>> Stashed changes
 }
 
 export async function getTaskById(taskId: number) {
@@ -397,15 +384,10 @@ export async function getTaskById(taskId: number) {
         assigned_resource_ids: task.assigned_resource_ids
             ? String(task.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
             : [],
-<<<<<<< Updated upstream
         assigned_resources: assignedResources,
-        predecessor_task_ids: task.predecessor_task_ids
-            ? String(task.predecessor_task_ids).split(",").map(Number)
-=======
         assigned_resource_names: task.assigned_resource_names
             ? String(task.assigned_resource_names).split(", ").filter(Boolean)
->>>>>>> Stashed changes
-            : [],
+            : assignedResources.map(a => a.name),
         predecessor_task_ids: predIds,
         predecessors,
         schedules: formattedSchedules
