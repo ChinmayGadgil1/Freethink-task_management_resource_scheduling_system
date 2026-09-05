@@ -1705,7 +1705,7 @@ function getCurrentUserId(): number | null {
       const id = parsed?.user?.user_id ?? parsed?.user?.id ?? parsed?.user?.userId;
       if (id) return Number(id);
     }
-    const rawUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+    const rawUser = sessionStorage.getItem('user');
     if (rawUser) {
       const parsed = JSON.parse(rawUser) as UserLike;
       const id = parsed?.user_id ?? parsed?.id ?? parsed?.userId;

@@ -234,7 +234,7 @@ function logout() {
 
   authStore.clearAuth();
   sessionStore.clearSession();
-  localStorage.removeItem('user');
+  sessionStorage.removeItem('user');
   sessionStorage.removeItem('flashMessage');
   void router.push('/');
 }

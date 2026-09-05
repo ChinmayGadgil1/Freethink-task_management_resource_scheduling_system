@@ -292,7 +292,7 @@ function handleLogout() {
 
   authStore.clearAuth();
   sessionStore.clearSession();
-  localStorage.removeItem('user');
+  sessionStorage.removeItem('user');
   sessionStorage.removeItem('flashMessage');
 
   $q.notify({

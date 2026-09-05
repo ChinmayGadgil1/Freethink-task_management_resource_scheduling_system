@@ -154,7 +154,7 @@ const handleLogin = async () => {
     if (data.user) {
       const token = data.user.token || data.token || '';
       authStore.setAuth(token, data.user);
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
     }
 
     const messageText = data.user?.name

@@ -171,7 +171,7 @@ function getStoredToken(): string | null {
   }
 
   if (!token) {
-    const storedAuth = localStorage.getItem('auth') || sessionStorage.getItem('auth');
+    const storedAuth = sessionStorage.getItem('auth');
     if (storedAuth) {
       try {
         const parsed = JSON.parse(storedAuth);
@@ -185,7 +185,7 @@ function getStoredToken(): string | null {
   }
 
   if (!token) {
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);

@@ -40,7 +40,7 @@ export default defineRouter((/* { store, ssrContext } */) => {
     let userRole: string | null = null;
 
     try {
-      const storedAuth = localStorage.getItem('auth') || sessionStorage.getItem('auth');
+      const storedAuth = sessionStorage.getItem('auth');
       if (storedAuth) {
         const parsed = JSON.parse(storedAuth);
         if (parsed?.token) {
@@ -54,7 +54,7 @@ export default defineRouter((/* { store, ssrContext } */) => {
 
     if (!token) {
       try {
-        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const storedUser = sessionStorage.getItem('user');
         if (storedUser) {
           const parsed = JSON.parse(storedUser);
           if (parsed?.token) {
@@ -71,8 +71,6 @@ export default defineRouter((/* { store, ssrContext } */) => {
     if (token && isTokenExpired(token)) {
       token = null;
       userRole = null;
-      localStorage.removeItem('auth');
-      localStorage.removeItem('user');
       sessionStorage.removeItem('auth');
       sessionStorage.removeItem('user');
     }
