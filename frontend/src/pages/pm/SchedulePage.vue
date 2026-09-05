@@ -363,7 +363,8 @@
         :projects="projects"
         :resources="resources"
         :holidays="holidays"
-        :is-resource-view="false"
+        :availability="pmAvailabilityList"
+        :is-resource-view="assigneeFilter !== 'ALL' || pmAvailabilityList.length > 0"
         title="Gantt Timeline Roadmap"
         @task-click="openTaskDetailsDialog"
       />
@@ -732,13 +733,15 @@ import {
   updateTaskApi,
   getProjectScheduleDataApi,
   getResourceScheduleDataApi,
+  getResourceAvailabilityApi,
 } from '@/services/api';
-import type { Project, Task, ResourceUser, HolidayItem } from '@/services/api';
+import type { Project, Task, ResourceUser, HolidayItem, DailyAvailabilityDTO } from '@/services/api';
 
 const $q = useQuasar();
 
 const loading = ref(true);
 const holidays = ref<HolidayItem[]>([]);
+const pmAvailabilityList = ref<DailyAvailabilityDTO[]>([]);
 const STORAGE_KEY_VIEW_MODE = 'taskflow_pm_schedule_view_mode';
 const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
   | 'week'
@@ -1116,14 +1119,24 @@ async function loadData() {
 watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
   if (newAssignee !== 'ALL') {
     try {
-      const resSchedule = await getResourceScheduleDataApi(Number(newAssignee));
+      const [resSchedule, availRes] = await Promise.all([
+        getResourceScheduleDataApi(Number(newAssignee)).catch(() => null),
+        getResourceAvailabilityApi(Number(newAssignee)).catch(() => null),
+      ]);
       if (resSchedule && resSchedule.tasks) {
         tasks.value = resSchedule.tasks;
-        return;
       }
+      if (availRes && availRes.days) {
+        pmAvailabilityList.value = availRes.days;
+      } else {
+        pmAvailabilityList.value = [];
+      }
+      return;
     } catch {
-      // fallback
+      pmAvailabilityList.value = [];
     }
+  } else {
+    pmAvailabilityList.value = [];
   }
 
   if (newProj !== 'ALL') {

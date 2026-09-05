@@ -1501,15 +1501,31 @@ const completedTasksCount = computed(
 );
 
 const totalEffort = computed(() => {
-  if (backendWorkload.value?.total_expected_effort !== undefined) {
-    return Number(backendWorkload.value.total_expected_effort) || 0;
+  if (backendWorkload.value?.daily_allocations && backendWorkload.value.daily_allocations.length > 0) {
+    const sum = backendWorkload.value.daily_allocations.reduce(
+      (acc, d) => acc + (Number(d.allocated_hours) || 0),
+      0,
+    );
+    return Math.round(sum * 10) / 10;
   }
-  return resourceTasks.value.reduce((acc, t) => acc + (Number(t.expected_effort) || 0), 0);
+  if (backendWorkload.value?.tasks && backendWorkload.value.tasks.length > 0) {
+    const sum = backendWorkload.value.tasks.reduce(
+      (acc, t) => acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+      0,
+    );
+    return Math.round(sum * 10) / 10;
+  }
+  const activeTasks = resourceTasks.value.filter((t) => t.status !== 'COMPLETED');
+  const sum = activeTasks.reduce(
+    (acc, t) => acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+    0,
+  );
+  return Math.round(sum * 10) / 10;
 });
 
 const utilization = computed(() => {
   const cap = Math.max(1, weeklyStandardCapacity.value || 40);
-  return Math.min(150, Math.round((totalEffort.value / cap) * 100));
+  return Math.round((totalEffort.value / cap) * 100);
 });
 
 function getTaskStatusColor(status: string): string {

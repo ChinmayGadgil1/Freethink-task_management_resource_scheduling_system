@@ -380,6 +380,7 @@ export interface ResourceWorkload {
   active_tasks_count: number;
   total_expected_effort: number | string;
   total_actual_effort: number | string;
+  daily_allocations?: { date: string; allocated_hours: number }[];
   tasks: ResourceWorkloadTask[];
 }
 

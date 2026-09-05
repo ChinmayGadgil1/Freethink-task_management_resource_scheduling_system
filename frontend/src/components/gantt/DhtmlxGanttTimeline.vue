@@ -166,14 +166,14 @@
           <span class="text-deep-orange-9 text-weight-medium">Company Holiday</span>
         </div>
 
-        <!-- Leave Indicator (Resource side only) -->
-        <div v-if="isResourceView" class="legend-item row items-center no-wrap" title="Approved Leave (Purple dashed vertical line & highlight in Day view)">
+        <!-- Leave Indicator -->
+        <div v-if="isResourceView || (availability && availability.length > 0)" class="legend-item row items-center no-wrap" title="Approved Leave (Purple dashed vertical line & highlight in Day view)">
           <span class="legend-line-sample sample-leave q-mr-xs"></span>
           <span class="text-purple-8 text-weight-medium">Approved Leave</span>
         </div>
 
-        <!-- Non-Working / Weekend (Resource side only) -->
-        <div v-if="isResourceView" class="legend-item row items-center no-wrap" title="Non-working day / Weekend off (Muted shading in Day view)">
+        <!-- Non-Working / Weekend -->
+        <div v-if="isResourceView || (availability && availability.length > 0)" class="legend-item row items-center no-wrap" title="Non-working day / Weekend off (Muted shading in Day view)">
           <span class="legend-box-sample sample-nwd q-mr-xs"></span>
           <span class="text-grey-7">Off-Day</span>
         </div>
@@ -1107,9 +1107,7 @@ function configureGanttEngine() {
     );
   };
 
-  // Timeline cell styling for holidays (PM and Resource) and leaves / NWDs (Resource only)
-  // Only apply cell highlighting in daily and hourly scales so weekly/monthly views remain clean
-  // Timeline cell styling for holidays (PM and Resource) and leaves / NWDs (Resource only)
+  // Timeline cell styling for holidays (PM and Resource) and leaves / NWDs (when availability provided or Resource view)
   // Only apply cell highlighting in daily and hourly scales so weekly/monthly views remain clean
   gantt.templates.timeline_cell_class = function (_item: unknown, date: Date) {
     if (activeScale.value !== 'day' && activeScale.value !== 'hour') {
@@ -1119,7 +1117,7 @@ function configureGanttEngine() {
     if (holidayDateSet.value.has(dateStr)) {
       return 'gantt-col-holiday';
     }
-    if (props.isResourceView) {
+    if (props.isResourceView || (props.availability && props.availability.length > 0)) {
       const avail = availabilityMap.value.get(dateStr);
       if (avail) {
         const isHalfDay =
@@ -1161,7 +1159,7 @@ function configureGanttEngine() {
     if (holidayDateSet.value.has(dateStr)) {
       return 'gantt-scale-holiday';
     }
-    if (props.isResourceView) {
+    if (props.isResourceView || (props.availability && props.availability.length > 0)) {
       const avail = availabilityMap.value.get(dateStr);
       if (avail) {
         const isHalfDay =
@@ -1282,8 +1280,8 @@ function updateCustomMarkers() {
     });
   }
 
-  // 2. Resource-Side Specific Markers (Leaves) - NOT FOR PM!
-  if (props.isResourceView && props.availability && props.availability.length > 0) {
+  // 2. Resource Leaves Markers (Shown when resource availability is present)
+  if ((props.isResourceView || (props.availability && props.availability.length > 0)) && props.availability && props.availability.length > 0) {
     props.availability.forEach((avail) => {
       if (!avail || !avail.date) return;
       const dStr = String(avail.date).split('T')[0]!;

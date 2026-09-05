@@ -225,7 +225,7 @@
                 <q-separator :dark="$q.dark.isActive" class="kanban-column-separator" />
 
                 <!-- Column Tasks Cards List -->
-                <q-card-section class="q-pa-xs column no-wrap q-gutter-xs col-grow kanban-tasks-scroll-area">
+                <q-card-section class="column no-wrap col-grow kanban-tasks-scroll-area">
                   <q-card
                     v-for="item in getPaginatedTasks(col.id)"
                     :key="item.task_id"

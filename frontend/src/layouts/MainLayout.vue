@@ -307,6 +307,8 @@ function handleLogout() {
 <style scoped lang="scss">
 .main-layout-root {
   background: var(--wo-bg-page, #f7f7fa);
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Top App Header */
@@ -444,6 +446,8 @@ body.body--dark .search-shortcut {
 
 .app-page-container {
   min-height: 100vh;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* Profile Dropdown Custom Styling */

@@ -589,167 +589,164 @@
                   }}</q-chip>
                 </div>
 
-                <div class="row q-col-gutter-lg">
-                  <div
+                <div class="projects-cards-grid">
+                  <q-card
                     v-for="(project, index) in group.projects"
                     :key="project.project_id"
-                    class="col-12 col-sm-6 col-md-4"
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="project-grid-card cursor-pointer full-height column justify-between"
+                    @click="goToProject(project.project_id)"
                   >
-                    <q-card
-                      flat
-                      bordered
-                      :dark="$q.dark.isActive"
-                      class="project-grid-card cursor-pointer full-height row column justify-between"
-                      @click="goToProject(project.project_id)"
+                    <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
+                    <div
+                      class="text-white q-px-md q-pt-md q-pb-sm relative-position overflow-hidden"
+                      :style="{
+                        background: getProjectTheme(project, index).gradient,
+                      }"
                     >
-                      <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
-                      <div
-                        class="text-white q-px-lg q-pt-lg q-pb-md relative-position overflow-hidden"
-                        :style="{
-                          background: getProjectTheme(project, index).gradient,
-                        }"
-                      >
-                        <div class="row items-center justify-between no-wrap q-mb-sm">
-                          <q-avatar
-                            size="32px"
+                      <div class="row items-center justify-between no-wrap q-mb-sm">
+                        <q-avatar
+                          size="34px"
+                          color="white"
+                          :style="{ color: getProjectTheme(project, index).accent }"
+                          class="shadow-1"
+                        >
+                          <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
+                        </q-avatar>
+
+                        <div class="row items-center q-gutter-xs no-wrap">
+                          <span class="priority-frosted-pill">
+                            {{ project.priority || 'Medium' }}
+                          </span>
+                          <q-btn
+                            flat
+                            round
+                            dense
+                            icon="more_vert"
                             color="white"
-                            :style="{ color: getProjectTheme(project, index).accent }"
-                            class="shadow-1"
+                            size="sm"
+                            @click.stop
                           >
-                            <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
-                          </q-avatar>
-
-                          <div class="row items-center q-gutter-xs no-wrap">
-                            <span class="priority-frosted-pill">
-                              {{ project.priority || 'Medium' }}
-                            </span>
-                            <q-btn
-                              flat
-                              round
-                              dense
-                              icon="more_vert"
-                              color="white"
-                              size="sm"
-                              @click.stop
-                            >
-                              <q-menu auto-close>
-                                <q-list style="min-width: 150px">
-                                  <q-item clickable @click="goToProject(project.project_id)">
-                                    <q-item-section avatar
-                                      ><q-icon name="visibility" color="primary"
-                                    /></q-item-section>
-                                    <q-item-section>View Details</q-item-section>
-                                  </q-item>
-                                  <q-item
-                                    v-if="project.status === 'COMPLETED'"
-                                    clickable
-                                    class="text-primary"
-                                    @click="confirmArchiveProject(project)"
-                                  >
-                                    <q-item-section avatar
-                                      ><q-icon name="archive" color="primary"
-                                    /></q-item-section>
-                                    <q-item-section>Archive Project</q-item-section>
-                                  </q-item>
-                                  <q-item
-                                    v-if="project.status === 'ARCHIVED'"
-                                    clickable
-                                    class="text-primary"
-                                    @click="confirmUnarchiveProject(project)"
-                                  >
-                                    <q-item-section avatar
-                                      ><q-icon name="unarchive" color="primary"
-                                    /></q-item-section>
-                                    <q-item-section>Unarchive Project</q-item-section>
-                                  </q-item>
-                                  <q-separator />
-                                  <q-item
-                                    clickable
-                                    class="text-negative"
-                                    @click="confirmDeleteProject(project)"
-                                  >
-                                    <q-item-section avatar
-                                      ><q-icon name="delete" color="negative"
-                                    /></q-item-section>
-                                    <q-item-section>Delete Project</q-item-section>
-                                  </q-item>
-                                </q-list>
-                              </q-menu>
-                            </q-btn>
-                          </div>
-                        </div>
-
-                        <div
-                          class="text-subtitle1 text-weight-bold ellipsis text-white"
-                          :title="project.name"
-                        >
-                          {{ project.name }}
-                        </div>
-                        <div
-                          class="text-caption text-white-8 ellipsis-2-lines q-mt-xs"
-                          style="line-height: 1.35"
-                        >
-                          {{
-                            project.description ||
-                            'Sprint deliverables, task assignments, and progress tracking.'
-                          }}
+                            <q-menu auto-close>
+                              <q-list style="min-width: 150px">
+                                <q-item clickable @click="goToProject(project.project_id)">
+                                  <q-item-section avatar
+                                    ><q-icon name="visibility" color="primary"
+                                  /></q-item-section>
+                                  <q-item-section>View Details</q-item-section>
+                                </q-item>
+                                <q-item
+                                  v-if="project.status === 'COMPLETED'"
+                                  clickable
+                                  class="text-primary"
+                                  @click="confirmArchiveProject(project)"
+                                >
+                                  <q-item-section avatar
+                                    ><q-icon name="archive" color="primary"
+                                  /></q-item-section>
+                                  <q-item-section>Archive Project</q-item-section>
+                                </q-item>
+                                <q-item
+                                  v-if="project.status === 'ARCHIVED'"
+                                  clickable
+                                  class="text-primary"
+                                  @click="confirmUnarchiveProject(project)"
+                                >
+                                  <q-item-section avatar
+                                    ><q-icon name="unarchive" color="primary"
+                                  /></q-item-section>
+                                  <q-item-section>Unarchive Project</q-item-section>
+                                </q-item>
+                                <q-separator />
+                                <q-item
+                                  clickable
+                                  class="text-negative"
+                                  @click="confirmDeleteProject(project)"
+                                >
+                                  <q-item-section avatar
+                                    ><q-icon name="delete" color="negative"
+                                  /></q-item-section>
+                                  <q-item-section>Delete Project</q-item-section>
+                                </q-item>
+                              </q-list>
+                            </q-menu>
+                          </q-btn>
                         </div>
                       </div>
 
-                      <!-- Card Body -->
-                      <q-card-section class="q-pa-md column justify-between col">
-                        <!-- Dual Pill Info Badges (like Image 4) -->
-                        <div class="row q-col-gutter-xs q-mb-md">
-                          <div class="col-6">
-                            <div
-                              class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
-                            >
-                              <q-icon name="assignment" size="13px" color="grey-6" />
-                              <div class="ellipsis">
-                                <span>Status: </span>
-                                <strong class="text-main">{{
-                                  formatStatus(project.status)
-                                }}</strong>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="col-6">
-                            <div
-                              class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
-                            >
-                              <q-icon name="event" size="13px" color="grey-6" />
-                              <div class="ellipsis">
-                                <span>Due: </span>
-                                <strong class="text-main">{{
-                                  formatDate(project.deadline)
-                                }}</strong>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                      <div
+                        class="text-subtitle1 text-weight-bold text-white q-mb-xs project-card-title"
+                        :title="project.name"
+                      >
+                        {{ project.name }}
+                      </div>
+                      <div
+                        class="text-caption text-white-8 project-card-desc"
+                        :title="project.description || ''"
+                      >
+                        {{
+                          project.description ||
+                          'Sprint deliverables, task assignments, and progress tracking.'
+                        }}
+                      </div>
+                    </div>
 
-                        <!-- Progress Bar with matching theme color -->
-                        <div class="q-mb-md">
-                          <div class="row items-center justify-between text-caption q-mb-xs">
-                            <span class="text-grey-6 text-weight-medium">Progress</span>
-                            <span
-                              class="text-weight-bold"
-                              :style="{ color: getProjectTheme(project, index).accent }"
-                            >
-                              {{ Number(project.progress) || 0 }}%
-                            </span>
+                    <!-- Card Body -->
+                    <q-card-section class="q-pa-md column justify-between col">
+                      <!-- Dual Pill Info Badges (like Image 4) -->
+                      <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-6">
+                          <div
+                            class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                          >
+                            <q-icon name="assignment" size="13px" color="grey-6" />
+                            <div class="ellipsis">
+                              <span class="text-grey-6">Status: </span>
+                              <strong class="text-main">{{
+                                formatStatus(project.status)
+                              }}</strong>
+                            </div>
                           </div>
-                          <q-linear-progress
-                            rounded
-                            size="6px"
-                            :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
-                            :style="{ color: getProjectTheme(project, index).accent }"
-                            :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                          />
                         </div>
-                      </q-card-section>
-                    </q-card>
-                  </div>
+                        <div class="col-6">
+                          <div
+                            class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                            :title="`Due: ${formatDate(project.deadline)}`"
+                          >
+                            <q-icon name="event" size="13px" color="grey-6" />
+                            <div class="ellipsis">
+                              <span class="text-grey-6">Due: </span>
+                              <strong class="text-main">{{
+                                formatDate(project.deadline)
+                              }}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Progress Bar with matching theme color -->
+                      <div class="q-mb-xs">
+                        <div class="row items-center justify-between text-caption q-mb-xs">
+                          <span class="text-grey-6 text-weight-medium">Progress</span>
+                          <span
+                            class="text-weight-bold"
+                            :style="{ color: getProjectTheme(project, index).accent }"
+                          >
+                            {{ Number(project.progress) || 0 }}%
+                          </span>
+                        </div>
+                        <q-linear-progress
+                          rounded
+                          size="6px"
+                          :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
+                          :style="{ color: getProjectTheme(project, index).accent }"
+                          :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                        />
+                      </div>
+                    </q-card-section>
+                  </q-card>
                 </div>
               </div>
             </div>
@@ -1728,8 +1725,28 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.projects-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .project-grid-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border-radius: 16px;
+  overflow: hidden;
+  box-sizing: border-box;
   transition:
     transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1740,6 +1757,27 @@ onMounted(() => {
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
     border-color: var(--wo-primary, #8b6fd8) !important;
   }
+}
+
+.project-card-title {
+  min-height: 44px;
+  font-size: 15.5px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-card-desc {
+  min-height: 36px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  opacity: 0.9;
 }
 
 .priority-frosted-pill {

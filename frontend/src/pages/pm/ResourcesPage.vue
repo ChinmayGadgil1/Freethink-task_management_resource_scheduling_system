@@ -190,137 +190,129 @@
           </div>
 
           <!-- GRID VIEW -->
-          <div v-else-if="viewMode === 'grid'" class="row q-col-gutter-md">
-            <div
+          <!-- GRID VIEW -->
+          <div v-else-if="viewMode === 'grid'" class="resources-cards-grid">
+            <q-card
               v-for="res in filteredResources"
               :key="res.resource_id"
-              class="col-12 col-sm-6 col-md-4"
+              flat
+              bordered
+              class="resource-grid-card column justify-between cursor-pointer"
+              @click="goToDetails(res.resource_id)"
             >
-              <q-card
-                flat
-                bordered
-                class="resource-grid-card full-height column justify-between cursor-pointer"
-                @click="goToDetails(res.resource_id)"
-              >
-                <q-card-section class="q-pa-md">
-                  <!-- CARD TOP: AVATAR, NAME, CHIP -->
-                  <div class="row items-center justify-between no-wrap q-mb-md">
-                    <div class="row items-center no-wrap">
-                      <q-avatar size="42px" class="resource-card-avatar avatar-purple q-mr-sm">
-                        {{ getInitials(res.name) }}
-                      </q-avatar>
-                      <div>
-                        <div class="resource-name ellipsis" style="max-width: 140px">
-                          {{ res.name }}
-                        </div>
-                        <div class="resource-role">Team Resource</div>
+              <q-card-section class="q-pa-md">
+                <!-- CARD TOP: AVATAR, NAME, CHIP -->
+                <div class="row items-center justify-between no-wrap q-mb-md">
+                  <div class="row items-center no-wrap col q-mr-sm" style="min-width: 0">
+                    <q-avatar size="42px" class="resource-card-avatar avatar-purple q-mr-sm flex-shrink-0">
+                      {{ getInitials(res.name) }}
+                    </q-avatar>
+                    <div class="col" style="min-width: 0">
+                      <div class="resource-name ellipsis" :title="res.name">
+                        {{ res.name }}
                       </div>
+                      <div class="resource-role">Team Resource</div>
                     </div>
+                  </div>
 
-                    <q-chip dense square :class="['status-chip', getWorkloadChipClass(res.status)]">
-                      {{ formatWorkloadStatus(res.status) }}
+                  <q-chip dense square :class="['status-chip', getWorkloadChipClass(res.status)]">
+                    {{ formatWorkloadStatus(res.status) }}
+                  </q-chip>
+                </div>
+
+                <!-- WORKLOAD METRICS BOX -->
+                <div class="workload-metric-box q-pa-sm q-mb-sm">
+                  <div class="row justify-between text-caption q-mb-xs">
+                    <span class="text-grey-7 text-weight-medium">Weekly Workload</span>
+                    <span class="text-weight-bold text-dark"
+                      >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{
+                        res.utilization
+                      }}%)</span
+                    >
+                  </div>
+                  <q-linear-progress
+                    rounded
+                    size="6px"
+                    :value="Math.min(100, res.utilization) / 100"
+                    :color="getUtilizationColor(res.utilization)"
+                    track-color="grey-3"
+                    class="workload-progress"
+                  />
+                </div>
+
+                <!-- STAT COUNTS -->
+                <div class="row justify-between text-caption text-grey-7 q-pt-xs q-mb-sm">
+                  <div class="row items-center">
+                    <q-icon name="task_alt" size="15px" color="teal" class="q-mr-xs" />
+                    <span class="text-weight-medium text-dark">{{ res.tasks.length }} Tasks</span>
+                  </div>
+                  <div class="row items-center">
+                    <q-icon name="folder" size="15px" color="primary" class="q-mr-xs" />
+                    <span class="text-weight-medium text-dark"
+                      >{{ res.projectsCount }} Projects</span
+                    >
+                  </div>
+                </div>
+
+                <!-- PROJECTS WORKING ON -->
+                <div class="q-mt-xs">
+                  <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">
+                    Projects Working On:
+                  </div>
+                  <div
+                    v-if="res.projectNames && res.projectNames.length > 0"
+                    class="row q-gutter-xs wrap"
+                  >
+                    <q-chip
+                      v-for="pName in res.projectNames"
+                      :key="pName"
+                      dense
+                      square
+                      class="project-badge"
+                      :title="pName"
+                    >
+                      <q-icon name="folder" size="12px" class="q-mr-xs flex-shrink-0" />
+                      <span class="ellipsis" style="max-width: 250px">{{ pName }}</span>
                     </q-chip>
                   </div>
+                  <div v-else class="text-caption text-grey-5 italic">
+                    No active project assignments
+                  </div>
+                </div>
+              </q-card-section>
 
-                  <!-- WORKLOAD METRICS BOX -->
-                  <div class="workload-metric-box q-pa-sm q-mb-sm">
-                    <div class="row justify-between text-caption q-mb-xs">
-                      <span class="text-grey-7 text-weight-medium">Workload Effort</span>
-                      <span class="text-weight-bold text-dark"
-                        >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{
-                          res.utilization
-                        }}%)</span
-                      >
-                    </div>
-                    <q-linear-progress
-                      rounded
-                      size="6px"
-                      :value="Math.min(100, res.utilization) / 100"
-                      :color="getUtilizationColor(res.utilization)"
-                      track-color="grey-3"
-                      class="workload-progress"
-                    />
-                  </div>
+              <q-separator />
 
-                  <!-- STAT COUNTS -->
-                  <div class="row justify-between text-caption text-grey-7 q-pt-xs q-mb-sm">
-                    <div class="row items-center">
-                      <q-icon name="task_alt" size="15px" color="teal" class="q-mr-xs" />
-                      <span class="text-weight-medium text-dark">{{ res.tasks.length }} Tasks</span>
-                    </div>
-                    <div class="row items-center">
-                      <q-icon name="folder" size="15px" color="primary" class="q-mr-xs" />
-                      <span class="text-weight-medium text-dark"
-                        >{{ res.projectsCount }} Projects</span
-                      >
-                    </div>
-                  </div>
-
-                  <!-- PROJECTS WORKING ON -->
-                  <div class="q-mt-xs">
-                    <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">
-                      Projects Working On:
-                    </div>
-                    <div
-                      v-if="res.projectNames && res.projectNames.length > 0"
-                      class="row q-gutter-xs wrap"
-                    >
-                      <q-chip
-                        v-for="pName in res.projectNames"
-                        :key="pName"
-                        dense
-                        square
-                        class="project-badge"
-                      >
-                        <q-icon name="folder" size="12px" class="q-mr-xs" />
-                        {{ pName }}
-                      </q-chip>
-                    </div>
-                    <div v-else class="text-caption text-grey-5 italic">
-                      No active project assignments
-                    </div>
-                  </div>
-                </q-card-section>
-
-                <q-separator />
-
-                <!-- CARD ACTIONS -->
-                <q-card-actions class="q-pa-sm row q-col-gutter-xs">
-                  <div class="col-4">
-                    <q-btn
-                      outline
-                      dense
-                      no-caps
-                      label="Profile"
-                      class="full-width action-btn-outline"
-                      @click.stop="goToDetails(res.resource_id)"
-                    />
-                  </div>
-                  <div class="col-4">
-                    <q-btn
-                      outline
-                      dense
-                      no-caps
-                      icon="edit_calendar"
-                      label="Schedule"
-                      class="full-width action-btn-outline"
-                      @click.stop="openResourceScheduleDialog(res)"
-                    />
-                  </div>
-                  <div class="col-4">
-                    <q-btn
-                      unelevated
-                      dense
-                      no-caps
-                      icon="add_task"
-                      label="Assign"
-                      class="full-width action-btn-primary"
-                      @click.stop="openAssignModal(res.resource_id)"
-                    />
-                  </div>
-                </q-card-actions>
-              </q-card>
-            </div>
+              <!-- CARD ACTIONS -->
+              <q-card-actions class="q-pa-sm row no-wrap gap-xs">
+                <q-btn
+                  outline
+                  dense
+                  no-caps
+                  label="Profile"
+                  class="col action-btn-outline"
+                  @click.stop="goToDetails(res.resource_id)"
+                />
+                <q-btn
+                  outline
+                  dense
+                  no-caps
+                  icon="edit_calendar"
+                  label="Schedule"
+                  class="col action-btn-outline"
+                  @click.stop="openResourceScheduleDialog(res)"
+                />
+                <q-btn
+                  unelevated
+                  dense
+                  no-caps
+                  icon="add_task"
+                  label="Assign"
+                  class="col action-btn-primary"
+                  @click.stop="openAssignModal(res.resource_id)"
+                />
+              </q-card-actions>
+            </q-card>
           </div>
 
           <!-- TABLE VIEW -->
@@ -899,8 +891,9 @@ import {
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
   calculateResourceWeeklyCapacity,
+  getResourceWorkloadApi,
 } from '@/services/api';
-import type { Project, ResourceUser, Task, DayOfWeek } from '@/services/api';
+import type { Project, ResourceUser, Task, DayOfWeek, ResourceWorkload } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -1031,6 +1024,7 @@ const projectList = ref<Project[]>([]);
 const taskList = ref<Task[]>([]);
 const resourceList = ref<ResourceUser[]>([]);
 const resourceProjectsMap = ref<Record<number, Project[]>>({});
+const resourceWorkloadsMap = ref<Record<number, ResourceWorkload>>({});
 
 const showAssignDialog = ref(false);
 const selectedResourceId = ref<number | null>(null);
@@ -1116,6 +1110,7 @@ interface ResourceAggregate {
   resource_id: number;
   name: string;
   tasks: Task[];
+  activeTasksCount: number;
   projectsCount: number;
   projectNames: string[];
   totalEffort: number;
@@ -1183,14 +1178,20 @@ async function loadData() {
     taskList.value = tasks;
     resourceList.value = resources;
 
-    const resourceProjectsList = await Promise.all(
-      resources.map((r) => getResourceProjectsApi(r.user_id).catch(() => [])),
-    );
+    const [resourceProjectsList, resourceWorkloadsList] = await Promise.all([
+      Promise.all(resources.map((r) => getResourceProjectsApi(r.user_id).catch(() => []))),
+      Promise.all(resources.map((r) => getResourceWorkloadApi(r.user_id).catch(() => null))),
+    ]);
     const pMap: Record<number, Project[]> = {};
+    const wMap: Record<number, ResourceWorkload> = {};
     resources.forEach((r, idx) => {
       pMap[r.user_id] = resourceProjectsList[idx] || [];
+      if (resourceWorkloadsList[idx]) {
+        wMap[r.user_id] = resourceWorkloadsList[idx]!;
+      }
     });
     resourceProjectsMap.value = pMap;
+    resourceWorkloadsMap.value = wMap;
 
     if (projects.length > 0 && !projectMemberForm.project_id) {
       projectMemberForm.project_id = projects[0]!.project_id;
@@ -1276,6 +1277,7 @@ const resourceMap = computed(() => {
       resource_id: r.user_id,
       name: r.name,
       tasks: [],
+      activeTasksCount: 0,
       projectsCount: 0,
       projectNames: [],
       totalEffort: 0,
@@ -1287,7 +1289,6 @@ const resourceMap = computed(() => {
 
   for (const t of taskList.value) {
     const rIds = t.assigned_resource_ids || [];
-    const effort = Number(t.expected_effort) || 0;
 
     for (const rid of rIds) {
       if (!map.has(rid)) {
@@ -1297,6 +1298,7 @@ const resourceMap = computed(() => {
           resource_id: rid,
           name: getResourceName(rid),
           tasks: [],
+          activeTasksCount: 0,
           projectsCount: 0,
           projectNames: [],
           totalEffort: 0,
@@ -1308,7 +1310,9 @@ const resourceMap = computed(() => {
 
       const item = map.get(rid)!;
       item.tasks.push(t);
-      item.totalEffort += effort;
+      if (t.status !== 'COMPLETED') {
+        item.activeTasksCount++;
+      }
     }
   }
 
@@ -1341,9 +1345,39 @@ const resourceMap = computed(() => {
     }
     item.projectNames = Array.from(names);
 
+    // Compute weekly scheduled workload effort from backend schedule engine
+    const workload = resourceWorkloadsMap.value[item.resource_id];
+    let scheduledEffort: number;
+
+    if (workload?.daily_allocations && workload.daily_allocations.length > 0) {
+      // Sum scheduled hours from active schedule dates (backend filters >= CURDATE())
+      scheduledEffort = workload.daily_allocations.reduce(
+        (sum, d) => sum + (Number(d.allocated_hours) || 0),
+        0,
+      );
+    } else if (workload?.tasks && workload.tasks.length > 0) {
+      // Fallback: active remaining effort (expected - actual)
+      scheduledEffort = workload.tasks.reduce(
+        (sum, t) =>
+          sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+        0,
+      );
+    } else {
+      // Fallback: local active task remaining effort (excluding completed tasks)
+      const activeTasks = item.tasks.filter((t) => t.status !== 'COMPLETED');
+      scheduledEffort = activeTasks.reduce(
+        (sum, t) =>
+          sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+        0,
+      );
+    }
+
+    item.totalEffort = Math.round(scheduledEffort * 10) / 10;
+
     // Dynamic weekly capacity derived from actual resource work schedule
     const cap = Math.max(1, item.weeklyCapacity || 40);
-    item.utilization = Math.min(150, Math.round((item.totalEffort / cap) * 100));
+    // True utilization percentage without artificial 150% clamp
+    item.utilization = Math.round((item.totalEffort / cap) * 100);
 
     if (item.utilization > 100) item.status = 'OVERALLOCATED';
     else if (item.utilization >= 75) item.status = 'HIGH_LOAD';
@@ -1504,20 +1538,40 @@ async function handleAssignTask() {
   overflow: hidden;
 }
 
+.resources-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 680px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .resource-grid-card {
-  border-radius: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 14px;
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #e5e7ec);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
   cursor: pointer;
+  overflow: hidden;
+  box-sizing: border-box;
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
+    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(124, 94, 212, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(124, 94, 212, 0.14);
     border-color: var(--q-primary);
   }
 }
@@ -1528,13 +1582,15 @@ async function handleAssignTask() {
 
 .resource-name {
   color: var(--wo-text-main, #172033);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
+  line-height: 1.25;
 }
 
 .resource-role {
   color: var(--wo-text-muted, #64748b);
   font-size: 11.5px;
+  margin-top: 1px;
 }
 
 .workload-metric-box {
@@ -1555,6 +1611,8 @@ async function handleAssignTask() {
   font-weight: 600;
   border-radius: 6px;
   padding: 3px 8px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .resource-chip {
