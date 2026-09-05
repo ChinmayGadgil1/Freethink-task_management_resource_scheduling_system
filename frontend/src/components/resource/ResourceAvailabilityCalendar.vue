@@ -122,7 +122,7 @@
           <q-card-section class="q-pa-sm">
             <div class="text-caption text-grey-7">Available Capacity</div>
             <div class="text-h6 text-weight-bold text-positive">
-              {{ availabilityData.total_available_hours }}h
+              {{ formatHours(availabilityData.total_available_hours) }}h
             </div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
               Free headroom to schedule
@@ -137,7 +137,7 @@
           <q-card-section class="q-pa-sm">
             <div class="text-caption text-grey-7">Allocated Effort</div>
             <div class="text-h6 text-weight-bold text-primary">
-              {{ availabilityData.total_allocated_hours }}h
+              {{ formatHours(availabilityData.total_allocated_hours) }}h
             </div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
               Booked tasks across projects
@@ -151,7 +151,7 @@
         <q-card flat bordered class="metric-mini-card bg-leave-soft">
           <q-card-section class="q-pa-sm">
             <div class="text-caption text-grey-7">Total Leave Hours</div>
-            <div class="text-h6 text-weight-bold text-purple-8">{{ totalLeaveHours }}h</div>
+            <div class="text-h6 text-weight-bold text-purple-8">{{ formatHours(totalLeaveHours) }}h</div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
               Approved time off in range
             </div>
@@ -165,7 +165,7 @@
           <q-card-section class="q-pa-sm">
             <div class="text-caption text-grey-7">Daily Standard Base</div>
             <div class="text-h6 text-weight-bold text-grey-9">
-              {{ availabilityData.daily_working_hours }}h / day
+              {{ formatHours(availabilityData.daily_working_hours) }}h / day
             </div>
             <div class="text-caption text-grey-6 ellipsis" style="font-size: 11px">
               Days off: {{ formatNonWorkingDays(availabilityData.non_working_days) }}
@@ -254,14 +254,14 @@
                 style="font-size: 11px"
               >
                 <span class="text-grey-7"
-                  >Daily Base: <strong>{{ day.daily_working_hours }}h</strong></span
+                  >Daily Base: <strong>{{ formatHours(day.daily_working_hours) }}h</strong></span
                 >
                 <span
                   :class="
                     day.available_hours > 0 ? 'text-positive text-weight-bold' : 'text-grey-6'
                   "
                 >
-                  {{ day.available_hours }}h Free
+                  {{ formatHours(day.available_hours) }}h Free
                 </span>
               </div>
               <div class="capacity-progress-track">
@@ -270,21 +270,21 @@
                   v-if="day.allocated_hours > 0"
                   class="progress-seg seg-allocated"
                   :style="{ width: `${getBarPct(day.allocated_hours, day.daily_working_hours)}%` }"
-                  :title="`Allocated: ${day.allocated_hours}h`"
+                  :title="`Allocated: ${formatHours(day.allocated_hours)}h`"
                 />
                 <!-- Leave Segment -->
                 <div
                   v-if="day.leave_hours > 0"
                   class="progress-seg seg-leave"
                   :style="{ width: `${getBarPct(day.leave_hours, day.daily_working_hours)}%` }"
-                  :title="`Leave: ${day.leave_hours}h`"
+                  :title="`Leave: ${formatHours(day.leave_hours)}h`"
                 />
                 <!-- Available Headroom Segment -->
                 <div
                   v-if="day.available_hours > 0"
                   class="progress-seg seg-available"
                   :style="{ width: `${getBarPct(day.available_hours, day.daily_working_hours)}%` }"
-                  :title="`Available: ${day.available_hours}h`"
+                  :title="`Available: ${formatHours(day.available_hours)}h`"
                 />
               </div>
             </div>
@@ -293,13 +293,13 @@
           <!-- Bottom Breakdown Chips -->
           <div class="row q-gutter-xs wrap items-center q-mt-xs">
             <span class="breakdown-tag tag-avail">
-              Avail: <strong>{{ day.available_hours }}h</strong>
+              Avail: <strong>{{ formatHours(day.available_hours) }}h</strong>
             </span>
             <span v-if="day.allocated_hours > 0" class="breakdown-tag tag-alloc">
-              Booked: <strong>{{ day.allocated_hours }}h</strong>
+              Booked: <strong>{{ formatHours(day.allocated_hours) }}h</strong>
             </span>
             <span v-if="day.leave_hours > 0" class="breakdown-tag tag-leave">
-              Leave: <strong>{{ day.leave_hours }}h</strong>
+              Leave: <strong>{{ formatHours(day.leave_hours) }}h</strong>
             </span>
           </div>
         </div>
@@ -347,7 +347,7 @@
                 class="text-weight-bold"
                 :class="props.row.available_hours > 0 ? 'text-positive' : 'text-grey-6'"
               >
-                {{ props.row.available_hours }}h
+                {{ formatHours(props.row.available_hours) }}h
               </span>
             </q-td>
           </template>
@@ -359,7 +359,7 @@
                   props.row.allocated_hours > 0 ? 'text-primary text-weight-medium' : 'text-grey-5'
                 "
               >
-                {{ props.row.allocated_hours }}h
+                {{ formatHours(props.row.allocated_hours) }}h
               </span>
             </q-td>
           </template>
@@ -371,7 +371,7 @@
                   props.row.leave_hours > 0 ? 'text-purple-8 text-weight-medium' : 'text-grey-5'
                 "
               >
-                {{ props.row.leave_hours }}h
+                {{ formatHours(props.row.leave_hours) }}h
               </span>
             </q-td>
           </template>
@@ -578,6 +578,12 @@ function getStatusMeta(status: AvailabilityStatus) {
   }
 }
 
+function formatHours(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || isNaN(Number(val))) return '0';
+  const num = Number(val);
+  return parseFloat(num.toFixed(2)).toString();
+}
+
 const tableColumns: QTableColumn<DailyAvailabilityDTO>[] = [
   { name: 'date', label: 'Date', field: 'date', align: 'left', sortable: true },
   { name: 'weekday', label: 'Day', field: 'weekday', align: 'left', sortable: true },
@@ -587,11 +593,29 @@ const tableColumns: QTableColumn<DailyAvailabilityDTO>[] = [
     label: 'Capacity',
     field: 'daily_working_hours',
     align: 'right',
-    format: (val) => `${val}h`,
+    format: (val) => `${formatHours(val)}h`,
   },
-  { name: 'available_hours', label: 'Available', field: 'available_hours', align: 'right' },
-  { name: 'allocated_hours', label: 'Allocated', field: 'allocated_hours', align: 'right' },
-  { name: 'leave_hours', label: 'Leave', field: 'leave_hours', align: 'right' },
+  {
+    name: 'available_hours',
+    label: 'Available',
+    field: 'available_hours',
+    align: 'right',
+    format: (val) => `${formatHours(val)}h`,
+  },
+  {
+    name: 'allocated_hours',
+    label: 'Allocated',
+    field: 'allocated_hours',
+    align: 'right',
+    format: (val) => `${formatHours(val)}h`,
+  },
+  {
+    name: 'leave_hours',
+    label: 'Leave',
+    field: 'leave_hours',
+    align: 'right',
+    format: (val) => `${formatHours(val)}h`,
+  },
 ];
 
 watch(

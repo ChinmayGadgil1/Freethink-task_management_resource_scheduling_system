@@ -149,17 +149,50 @@
     </div>
 
     <!-- 2. SUBHEADER LEGEND ROW -->
-    <div class="gantt-legend-row row items-center justify-between q-px-md q-py-xs">
-      <!-- Left: Priority Dots -->
-      <div class="legend-priority-list row items-center q-gutter-x-md text-caption">
-        <span class="legend-label">Priority:</span>
+    <div class="gantt-legend-row row items-center justify-between q-px-md q-py-xs wrap gap-sm">
+      <!-- Left: Timeline Line & Shading Guide -->
+      <div class="legend-guide-list row items-center q-gutter-x-md text-caption wrap">
+        <span class="legend-label text-weight-bold">Timeline Guide:</span>
+
+        <!-- Today Indicator -->
+        <div class="legend-item row items-center no-wrap" title="Current calendar date (Purple solid vertical line)">
+          <span class="legend-line-sample sample-today q-mr-xs"></span>
+          <span>Today</span>
+        </div>
+
+        <!-- Holiday Indicator (Both PM and Resource) -->
+        <div class="legend-item row items-center no-wrap" title="Company Holiday (Orange dashed vertical line & highlight in Day view)">
+          <span class="legend-line-sample sample-holiday q-mr-xs"></span>
+          <span class="text-deep-orange-9 text-weight-medium">Company Holiday</span>
+        </div>
+
+        <!-- Leave Indicator (Resource side only) -->
+        <div v-if="isResourceView" class="legend-item row items-center no-wrap" title="Approved Leave (Purple dashed vertical line & highlight in Day view)">
+          <span class="legend-line-sample sample-leave q-mr-xs"></span>
+          <span class="text-purple-8 text-weight-medium">Approved Leave</span>
+        </div>
+
+        <!-- Non-Working / Weekend (Resource side only) -->
+        <div v-if="isResourceView" class="legend-item row items-center no-wrap" title="Non-working day / Weekend off (Muted shading in Day view)">
+          <span class="legend-box-sample sample-nwd q-mr-xs"></span>
+          <span class="text-grey-7">Off-Day</span>
+        </div>
+
+        <span v-if="activeScale !== 'day' && activeScale !== 'hour'" class="text-caption text-grey-5 q-ml-xs">
+          (Switch to Day view to see vertical holiday &amp; leave line markers)
+        </span>
+      </div>
+
+      <!-- Right: Priority Dots & Dependency -->
+      <div class="legend-priority-list row items-center q-gutter-x-md text-caption wrap">
+        <span class="legend-label text-weight-bold">Priority:</span>
         <div class="legend-item row items-center no-wrap">
           <span class="p-dot dot-low q-mr-xs"></span>
           <span>Low</span>
         </div>
         <div class="legend-item row items-center no-wrap">
           <span class="p-dot dot-medium q-mr-xs"></span>
-          <span>Medium</span>
+          <span>Med</span>
         </div>
         <div class="legend-item row items-center no-wrap">
           <span class="p-dot dot-high q-mr-xs"></span>
@@ -169,12 +202,12 @@
           <span class="p-dot dot-critical q-mr-xs"></span>
           <span>Critical</span>
         </div>
-      </div>
 
-      <!-- Right: Predecessor Dependency Line Indicator -->
-      <div class="legend-dependency-indicator row items-center no-wrap text-caption">
-        <q-icon name="trending_flat" size="18px" class="q-mr-xs text-purple-7" />
-        <span class="text-purple-8 text-weight-medium">Predecessor Dependency Line</span>
+        <!-- Predecessor Dependency Line Indicator -->
+        <div class="legend-dependency-indicator row items-center no-wrap">
+          <q-icon name="trending_flat" size="16px" class="q-mr-xs text-purple-7" />
+          <span class="text-purple-8 text-weight-medium">Dependency</span>
+        </div>
       </div>
     </div>
 
@@ -219,13 +252,16 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { gantt } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
-import type { Task, Project, ResourceUser } from '@/services/api';
+import type { Task, Project, ResourceUser, HolidayItem, DailyAvailabilityDTO } from '@/services/api';
 import { useThemeStore } from '@/stores/theme';
 
 export interface GanttTimelineProps {
   tasks: Task[];
   projects?: Project[];
   resources?: ResourceUser[];
+  holidays?: HolidayItem[] | Array<{ holiday_date: string; description?: string }>;
+  availability?: DailyAvailabilityDTO[];
+  isResourceView?: boolean;
   title?: string;
   initialScale?: 'hour' | 'day' | 'week' | 'month';
   groupByProject?: boolean;
@@ -261,12 +297,19 @@ export interface DhtmlxGanttTaskItem {
   total_hours?: number;
   is_segmented?: boolean;
   is_external?: boolean;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  actual_start?: string | null;
+  actual_end?: string | null;
   $open?: boolean;
 }
 
 const props = withDefaults(defineProps<GanttTimelineProps>(), {
   projects: () => [],
   resources: () => [],
+  holidays: () => [],
+  availability: () => [],
+  isResourceView: false,
   title: 'Gantt Timeline Roadmap',
   initialScale: 'week',
   groupByProject: true,
@@ -284,6 +327,32 @@ const emit = defineEmits<{
 
 const themeStore = useThemeStore();
 const isDark = computed(() => themeStore.isDark);
+
+const holidayDateSet = computed(() => {
+  const set = new Set<string>();
+  if (props.holidays) {
+    for (const h of props.holidays) {
+      if (h && h.holiday_date) {
+        set.add(String(h.holiday_date).split('T')[0]!);
+      }
+    }
+  }
+  return set;
+});
+
+const availabilityMap = computed(() => {
+  const map = new Map<string, DailyAvailabilityDTO>();
+  if (props.availability) {
+    for (const a of props.availability) {
+      if (a && a.date) {
+        map.set(String(a.date).split('T')[0]!, a);
+      }
+    }
+  }
+  return map;
+});
+
+const customMarkerIds = ref<(string | number)[]>([]);
 
 const ganttContainer = ref<HTMLElement | null>(null);
 const internalSearchQuery = ref('');
@@ -846,28 +915,79 @@ function configureGanttEngine() {
     const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
     const sClass = `bar-s-${(task.status || 'scheduled').toLowerCase().replace('_', '-')}`;
 
-    const segHtmlList = segments.map((seg, index) => {
-      const isFirst = index === 0;
-      const isLast = index === segments.length - 1;
+    const segHtmlList = segments.map((seg, idx) => {
+      let actualSegStart: Date;
+      let actualSegEnd: Date;
 
-      const actualSegStart = isFirst
-        ? taskStartD
-        : (activeScale.value === 'hour'
-            ? snapToGanttWorkTime(seg.startDate)
-            : getMacroDate(seg.startDate, true)) || seg.startDate;
-      const actualSegEnd = isLast
-        ? taskEndD
-        : (activeScale.value === 'hour'
-            ? snapToGanttWorkTime(seg.endDate)
-            : getMacroDate(seg.endDate, false)) || seg.endDate;
+      if (activeScale.value === 'hour') {
+        let segStartH = 10;
+        if (idx === 0) {
+          const pStart = parseIsoToDate(task.actual_start || task.planned_start);
+          if (
+            pStart &&
+            formatDateIso(pStart) === seg.startStr &&
+            pStart.getHours() >= 10 &&
+            pStart.getHours() < 18
+          ) {
+            segStartH = pStart.getHours();
+          }
+        }
+        actualSegStart = new Date(
+          seg.startDate.getFullYear(),
+          seg.startDate.getMonth(),
+          seg.startDate.getDate(),
+          segStartH,
+          0,
+          0,
+        );
+
+        const lastDayOfSeg = addDays(seg.endDate, -1);
+        let segEndH = 18;
+        if (idx === segments.length - 1) {
+          const pEnd = parseIsoToDate(task.actual_end || task.planned_end);
+          if (
+            pEnd &&
+            formatDateIso(pEnd) === seg.endStr &&
+            pEnd.getHours() > 10 &&
+            pEnd.getHours() <= 18
+          ) {
+            segEndH = pEnd.getHours();
+          }
+        }
+        actualSegEnd = new Date(
+          lastDayOfSeg.getFullYear(),
+          lastDayOfSeg.getMonth(),
+          lastDayOfSeg.getDate(),
+          segEndH,
+          0,
+          0,
+        );
+      } else {
+        actualSegStart = new Date(
+          seg.startDate.getFullYear(),
+          seg.startDate.getMonth(),
+          seg.startDate.getDate(),
+          0,
+          0,
+          0,
+        );
+        actualSegEnd = new Date(
+          seg.endDate.getFullYear(),
+          seg.endDate.getMonth(),
+          seg.endDate.getDate(),
+          0,
+          0,
+          0,
+        );
+      }
 
       const segStartX = gantt.posFromDate(actualSegStart);
       const segEndX = gantt.posFromDate(actualSegEnd);
       const segLeft = Math.max(0, segStartX - taskStartX);
-      let segWidth = Math.max(2, segEndX - segStartX);
+      let segWidth = Math.max(4, segEndX - segStartX);
 
       if (segLeft + segWidth > taskTotalWidth) {
-        segWidth = Math.max(2, taskTotalWidth - segLeft);
+        segWidth = Math.max(4, taskTotalWidth - segLeft);
       }
 
       const hoursBadge =
@@ -987,16 +1107,236 @@ function configureGanttEngine() {
     );
   };
 
-  // Add Today Marker
+  // Timeline cell styling for holidays (PM and Resource) and leaves / NWDs (Resource only)
+  // Only apply cell highlighting in daily and hourly scales so weekly/monthly views remain clean
+  // Timeline cell styling for holidays (PM and Resource) and leaves / NWDs (Resource only)
+  // Only apply cell highlighting in daily and hourly scales so weekly/monthly views remain clean
+  gantt.templates.timeline_cell_class = function (_item: unknown, date: Date) {
+    if (activeScale.value !== 'day' && activeScale.value !== 'hour') {
+      return '';
+    }
+    const dateStr = formatDateIso(date);
+    if (holidayDateSet.value.has(dateStr)) {
+      return 'gantt-col-holiday';
+    }
+    if (props.isResourceView) {
+      const avail = availabilityMap.value.get(dateStr);
+      if (avail) {
+        const isHalfDay =
+          avail.leave_type === 'FIRST_HALF' ||
+          avail.leave_type === 'SECOND_HALF' ||
+          avail.status === 'PARTIAL_LEAVE' ||
+          (avail.leave_hours !== undefined && avail.leave_hours !== null && Number(avail.leave_hours) > 0 && Number(avail.leave_hours) < (avail.daily_working_hours || 8));
+
+        if (isHalfDay) {
+          if (activeScale.value === 'hour') {
+            const h = date.getHours();
+            const isSecondHalf = avail.leave_type === 'SECOND_HALF' || String(avail.leave_type).toUpperCase().includes('SECOND') || String(avail.leave_type).toUpperCase().includes('2');
+            if (isSecondHalf) {
+              return (h >= 14 && h < 18) ? 'gantt-col-leave' : '';
+            } else {
+              return (h >= 10 && h < 14) ? 'gantt-col-leave' : '';
+            }
+          }
+          return '';
+        }
+        if (avail.status === 'ON_LEAVE' || (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))) {
+          return 'gantt-col-leave';
+        }
+        if (avail.status === 'NON_WORKING_DAY') {
+          return 'gantt-col-nwd';
+        }
+      } else if (date.getDay() === 0 || date.getDay() === 6) {
+        return 'gantt-col-nwd';
+      }
+    }
+    return '';
+  };
+
+  gantt.templates.scale_cell_class = function (date: Date) {
+    if (activeScale.value !== 'day' && activeScale.value !== 'hour') {
+      return '';
+    }
+    const dateStr = formatDateIso(date);
+    if (holidayDateSet.value.has(dateStr)) {
+      return 'gantt-scale-holiday';
+    }
+    if (props.isResourceView) {
+      const avail = availabilityMap.value.get(dateStr);
+      if (avail) {
+        const isHalfDay =
+          avail.leave_type === 'FIRST_HALF' ||
+          avail.leave_type === 'SECOND_HALF' ||
+          avail.status === 'PARTIAL_LEAVE' ||
+          (avail.leave_hours !== undefined && avail.leave_hours !== null && Number(avail.leave_hours) > 0 && Number(avail.leave_hours) < (avail.daily_working_hours || 8));
+
+        if (isHalfDay) {
+          if (activeScale.value === 'hour') {
+            const h = date.getHours();
+            const isSecondHalf = avail.leave_type === 'SECOND_HALF' || String(avail.leave_type).toUpperCase().includes('SECOND') || String(avail.leave_type).toUpperCase().includes('2');
+            if (isSecondHalf) {
+              return (h >= 14 && h < 18) ? 'gantt-scale-leave' : '';
+            } else {
+              return (h >= 10 && h < 14) ? 'gantt-scale-leave' : '';
+            }
+          }
+          return '';
+        }
+        if (avail.status === 'ON_LEAVE' || (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))) {
+          return 'gantt-scale-leave';
+        }
+        if (avail.status === 'NON_WORKING_DAY') {
+          return 'gantt-scale-nwd';
+        }
+      } else if (date.getDay() === 0 || date.getDay() === 6) {
+        return 'gantt-scale-nwd';
+      }
+    }
+    return '';
+  };
+}
+
+function formatHours(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || isNaN(Number(val))) return '0';
+  const num = Number(val);
+  return parseFloat(num.toFixed(2)).toString();
+}
+
+function parseDateStringToMidnight(dateStr: string): Date | null {
+  const clean = dateStr.includes('T') ? dateStr.split('T')[0]! : dateStr;
+  const parts = clean.split('-').map(Number);
+  if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0);
+  }
+  return null;
+}
+
+function clearCustomMarkers() {
+  if (customMarkerIds.value && customMarkerIds.value.length > 0) {
+    customMarkerIds.value.forEach((id) => {
+      try {
+        gantt.deleteMarker(id);
+      } catch {
+        // ignore
+      }
+    });
+    customMarkerIds.value = [];
+  }
+}
+
+function updateCustomMarkers() {
+  if (!gantt || !gantt.$container) return;
+  clearCustomMarkers();
+  customMarkerIds.value = [];
+
+  // Only render vertical line markers in 'day' and 'hour' scale modes (NOT weekly or monthly)!
+  if (activeScale.value !== 'day' && activeScale.value !== 'hour') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (gantt as any).renderMarkers?.();
+    } catch {
+      // ignore
+    }
+    return;
+  }
+
+  // Today marker (visible ONLY when in day/hour scales)
   try {
-    gantt.addMarker({
+    const todayMarkerId = gantt.addMarker({
       start_date: new Date(),
       css: 'dhtmlx-today-marker',
       text: 'TODAY',
       title: 'Current Date',
     });
+    if (todayMarkerId) customMarkerIds.value.push(todayMarkerId);
   } catch {
-    // Marker already registered
+    // ignore
+  }
+
+  // 1. Holiday Markers (Visible on BOTH PM and Resource sides with Orange dashed vertical line in Day view)
+  if (props.holidays && props.holidays.length > 0) {
+    const seenHolidays = new Set<string>();
+    props.holidays.forEach((h) => {
+      if (!h || !h.holiday_date) return;
+      const dStr = String(h.holiday_date).split('T')[0]!;
+      if (seenHolidays.has(dStr)) return;
+      seenHolidays.add(dStr);
+
+      const d = parseDateStringToMidnight(dStr);
+      if (d) {
+        if (activeScale.value === 'hour') {
+          d.setHours(10, 0, 0, 0);
+        }
+        try {
+          const mId = gantt.addMarker({
+            start_date: d,
+            css: 'dhtmlx-holiday-marker',
+            text: h.description ? `🎉 ${h.description.toUpperCase()}` : '🎉 HOLIDAY',
+            title: `Company Holiday: ${h.description || 'Holiday'} (${dStr})`,
+          });
+          if (mId) customMarkerIds.value.push(mId);
+        } catch (e) {
+          console.warn('Failed to add holiday marker:', e);
+        }
+      }
+    });
+  }
+
+  // 2. Resource-Side Specific Markers (Leaves) - NOT FOR PM!
+  if (props.isResourceView && props.availability && props.availability.length > 0) {
+    props.availability.forEach((avail) => {
+      if (!avail || !avail.date) return;
+      const dStr = String(avail.date).split('T')[0]!;
+      if (holidayDateSet.value.has(dStr)) return;
+
+      const d = parseDateStringToMidnight(dStr);
+      if (!d) return;
+
+      const isHalfDay =
+        avail.leave_type === 'FIRST_HALF' ||
+        avail.leave_type === 'SECOND_HALF' ||
+        avail.status === 'PARTIAL_LEAVE' ||
+        (avail.leave_hours !== undefined && avail.leave_hours !== null && Number(avail.leave_hours) > 0 && Number(avail.leave_hours) < (avail.daily_working_hours || 8));
+
+      if (isHalfDay) {
+        // Half-day / Partial leaves only show vertical markers in hourly scale view
+        if (activeScale.value !== 'hour') return;
+
+        const isSecondHalf = avail.leave_type === 'SECOND_HALF' || String(avail.leave_type).toUpperCase().includes('SECOND') || String(avail.leave_type).toUpperCase().includes('2');
+        if (isSecondHalf) {
+          d.setHours(14, 0, 0, 0);
+        } else {
+          d.setHours(10, 0, 0, 0);
+        }
+        const halfLabel = isSecondHalf ? '2ND HALF' : '1ST HALF';
+        try {
+          const mId = gantt.addMarker({
+            start_date: d,
+            css: 'dhtmlx-leave-marker',
+            text: `🏖️ ${halfLabel} LEAVE (${formatHours(avail.leave_hours)}h)`,
+            title: `${halfLabel} Leave: ${avail.leave_hours}h on ${dStr}`,
+          });
+          if (mId) customMarkerIds.value.push(mId);
+        } catch (e) {
+          console.warn('Failed to add partial leave marker:', e);
+        }
+      } else if (avail.status === 'ON_LEAVE' || (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))) {
+        if (activeScale.value === 'hour') {
+          d.setHours(10, 0, 0, 0);
+        }
+        try {
+          const mId = gantt.addMarker({
+            start_date: d,
+            css: 'dhtmlx-leave-marker',
+            text: '🏖️ ON LEAVE',
+            title: `Approved Full-Day Leave (${dStr})`,
+          });
+          if (mId) customMarkerIds.value.push(mId);
+        } catch (e) {
+          console.warn('Failed to add leave marker:', e);
+        }
+      }
+    });
   }
 }
 
@@ -1155,11 +1495,25 @@ function buildGanttDataset() {
   const data: Array<Record<string, unknown>> = [];
   const links: Array<Record<string, unknown>> = [];
 
-  const resolveStartDate = (d: Date | null) =>
-    activeScale.value === 'hour' ? snapToGanttWorkTime(d) : getMacroDate(d, true);
+  const resolveStartDate = (d: Date | null) => {
+    if (!d) return null;
+    if (activeScale.value === 'hour') {
+      return snapToGanttWorkTime(d);
+    }
+    return getMacroDate(d, true);
+  };
 
-  const resolveEndDate = (d: Date | null) =>
-    activeScale.value === 'hour' ? snapToGanttWorkTime(d) : getMacroDate(d, false);
+  const resolveEndDate = (d: Date | null) => {
+    if (!d) return null;
+    if (activeScale.value === 'hour') {
+      if (d.getHours() === 0 && d.getMinutes() === 0) {
+        const prevDay = addDays(d, -1);
+        return new Date(prevDay.getFullYear(), prevDay.getMonth(), prevDay.getDate(), 18, 0, 0);
+      }
+      return snapToGanttWorkTime(d);
+    }
+    return getMacroDate(d, false);
+  };
 
   if (isHierarchical.value) {
     // Group tasks by project
@@ -1212,10 +1566,28 @@ function buildGanttDataset() {
         const firstAssigneeId = t.assigned_resource_ids?.[0];
         const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
 
-        const resolvedChildStart =
-          resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) ?? tStart) ?? tStart;
-        const resolvedChildEnd =
-          resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd) ?? tEnd;
+        let effectiveStart = tStart;
+        let effectiveEnd = tEnd;
+        if (segments.length > 0) {
+          const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
+          if (plannedStartParsed && formatDateIso(plannedStartParsed) === formatDateIso(tStart)) {
+            effectiveStart = plannedStartParsed;
+          }
+          const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
+          if (
+            plannedEndParsed &&
+            (formatDateIso(plannedEndParsed) === formatDateIso(tEnd) ||
+              formatDateIso(plannedEndParsed) === formatDateIso(addDays(tEnd, -1)))
+          ) {
+            effectiveEnd = plannedEndParsed;
+          }
+        } else {
+          effectiveStart = parseIsoToDate(t.actual_start || t.planned_start) ?? tStart;
+          effectiveEnd = parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd;
+        }
+
+        const resolvedChildStart = resolveStartDate(effectiveStart) ?? effectiveStart;
+        const resolvedChildEnd = resolveEndDate(effectiveEnd) ?? effectiveEnd;
 
         childTaskDataItems.push({
           id: t.task_id,
@@ -1233,6 +1605,10 @@ function buildGanttDataset() {
           total_hours: totalHours,
           is_segmented: segments.length > 1,
           is_external: Boolean(t.is_external),
+          planned_start: t.planned_start,
+          planned_end: t.planned_end,
+          actual_start: t.actual_start,
+          actual_end: t.actual_end,
         });
       });
 
@@ -1286,10 +1662,28 @@ function buildGanttDataset() {
       const firstAssigneeId = t.assigned_resource_ids?.[0];
       const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
 
-      const resolvedFlatStart =
-        resolveStartDate(parseIsoToDate(t.actual_start || t.planned_start) ?? tStart) ?? tStart;
-      const resolvedFlatEnd =
-        resolveEndDate(parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd) ?? tEnd;
+      let effectiveStart = tStart;
+      let effectiveEnd = tEnd;
+      if (segments.length > 0) {
+        const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
+        if (plannedStartParsed && formatDateIso(plannedStartParsed) === formatDateIso(tStart)) {
+          effectiveStart = plannedStartParsed;
+        }
+        const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
+        if (
+          plannedEndParsed &&
+          (formatDateIso(plannedEndParsed) === formatDateIso(tEnd) ||
+            formatDateIso(plannedEndParsed) === formatDateIso(addDays(tEnd, -1)))
+        ) {
+          effectiveEnd = plannedEndParsed;
+        }
+      } else {
+        effectiveStart = parseIsoToDate(t.actual_start || t.planned_start) ?? tStart;
+        effectiveEnd = parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd;
+      }
+
+      const resolvedFlatStart = resolveStartDate(effectiveStart) ?? effectiveStart;
+      const resolvedFlatEnd = resolveEndDate(effectiveEnd) ?? effectiveEnd;
 
       data.push({
         id: t.task_id,
@@ -1306,6 +1700,10 @@ function buildGanttDataset() {
         total_hours: totalHours,
         is_segmented: segments.length > 1,
         is_external: Boolean(t.is_external),
+        planned_start: t.planned_start,
+        planned_end: t.planned_end,
+        actual_start: t.actual_start,
+        actual_end: t.actual_end,
       });
     });
   }
@@ -1365,6 +1763,7 @@ function refreshGantt() {
   gantt.clearAll();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   gantt.parse(dataset as any);
+  updateCustomMarkers();
   gantt.render();
 
   updateDateRangeHeader();
@@ -1502,11 +1901,20 @@ onBeforeUnmount(() => {
   if (onLightboxId) gantt.detachEvent(onLightboxId);
   if (onTaskOpenedId) gantt.detachEvent(onTaskOpenedId);
   if (onTaskClosedId) gantt.detachEvent(onTaskClosedId);
+  clearCustomMarkers();
   gantt.clearAll();
 });
 
 watch(
-  [() => props.tasks, () => props.projects, internalSearchQuery, () => props.groupByProject],
+  [
+    () => props.tasks,
+    () => props.projects,
+    () => props.holidays,
+    () => props.availability,
+    () => props.isResourceView,
+    internalSearchQuery,
+    () => props.groupByProject,
+  ],
   () => {
     refreshGantt();
   },
@@ -1696,6 +2104,36 @@ defineExpose({
       font-size: 11px;
       color: #475569;
       font-weight: 500;
+
+      .legend-line-sample {
+        display: inline-block;
+        width: 14px;
+        height: 0;
+        vertical-align: middle;
+
+        &.sample-today {
+          border-top: 2px solid #8b5cf6;
+        }
+        &.sample-holiday {
+          border-top: 2px dashed #ea580c;
+        }
+        &.sample-leave {
+          border-top: 2px dashed #9333ea;
+        }
+      }
+
+      .legend-box-sample {
+        display: inline-block;
+        width: 12px;
+        height: 10px;
+        border-radius: 2px;
+        border: 1px solid #cbd5e1;
+        vertical-align: middle;
+
+        &.sample-nwd {
+          background: rgba(100, 116, 139, 0.2);
+        }
+      }
 
       .p-dot {
         width: 7px;
@@ -2289,24 +2727,114 @@ defineExpose({
 
   /* Today Marker */
   .dhtmlx-today-marker {
-    background: #8b5cf6;
-    width: 2px;
+    background: #8b5cf6 !important;
+    width: 2px !important;
     z-index: 5;
 
-    &::after {
-      content: 'TODAY';
-      position: absolute;
-      top: 2px;
-      left: -18px;
+    .gantt_marker_content {
       background: #8b5cf6;
       color: #ffffff;
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.05em;
-      padding: 1px 4px;
+      padding: 2px 6px;
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 5px rgba(139, 92, 246, 0.4);
+      white-space: nowrap;
+      text-transform: uppercase;
+      top: 2px;
     }
+  }
+
+  /* Holiday Vertical Line Marker (Orange / Coral) - Shown on BOTH sides */
+  .dhtmlx-holiday-marker {
+    background: transparent !important;
+    width: 0px !important;
+    border-left: 2px dashed #ea580c !important;
+    z-index: 6;
+
+    .gantt_marker_content {
+      background: #ea580c;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(234, 88, 12, 0.45);
+      white-space: nowrap;
+      top: 2px;
+    }
+  }
+
+  /* Leave Vertical Line Marker (Purple / Indigo) - Shown on Resource side ONLY */
+  .dhtmlx-leave-marker {
+    background: transparent !important;
+    width: 0px !important;
+    border-left: 2px dashed #9333ea !important;
+    z-index: 6;
+
+    .gantt_marker_content {
+      background: #9333ea;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(147, 51, 234, 0.45);
+      white-space: nowrap;
+      top: 2px;
+    }
+  }
+
+  /* Non-Working Day Marker */
+  .dhtmlx-nwd-marker {
+    background: #64748b !important;
+    width: 1px !important;
+    border-left: 1px dotted #94a3b8 !important;
+    z-index: 4;
+
+    .gantt_marker_content {
+      background: #64748b;
+      color: #ffffff;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+      top: 2px;
+    }
+  }
+
+  /* Column cell highlighting */
+  .gantt-col-holiday {
+    background-color: rgba(234, 88, 12, 0.08) !important;
+    border-left: 1px dashed rgba(234, 88, 12, 0.3) !important;
+    border-right: 1px dashed rgba(234, 88, 12, 0.3) !important;
+  }
+  .gantt-col-leave {
+    background-color: rgba(147, 51, 234, 0.07) !important;
+    border-left: 1px dashed rgba(147, 51, 234, 0.3) !important;
+    border-right: 1px dashed rgba(147, 51, 234, 0.3) !important;
+  }
+  .gantt-col-nwd {
+    background-color: rgba(100, 116, 139, 0.04) !important;
+  }
+
+  .gantt-scale-holiday {
+    background-color: rgba(234, 88, 12, 0.12) !important;
+    color: #c2410c !important;
+    font-weight: 700 !important;
+  }
+  .gantt-scale-leave {
+    background-color: rgba(147, 51, 234, 0.12) !important;
+    color: #7e22ce !important;
+    font-weight: 700 !important;
+  }
+  .gantt-scale-nwd {
+    background-color: rgba(100, 116, 139, 0.08) !important;
+    color: #64748b !important;
   }
 }
 
@@ -2470,6 +2998,12 @@ body.body--dark {
       .legend-item {
         color: #94a3b8;
       }
+      .legend-box-sample {
+        border-color: #475569;
+        &.sample-nwd {
+          background: rgba(148, 163, 184, 0.2);
+        }
+      }
     }
 
     .header-divider {
@@ -2620,6 +3154,33 @@ body.body--dark {
     /* Today marker boundary/accent */
     .gantt_link_point {
       border-color: #181d28 !important;
+    }
+
+    .gantt-col-holiday {
+      background-color: rgba(234, 88, 12, 0.15) !important;
+      border-left: 1px dashed rgba(234, 88, 12, 0.4) !important;
+      border-right: 1px dashed rgba(234, 88, 12, 0.4) !important;
+    }
+    .gantt-col-leave {
+      background-color: rgba(147, 51, 234, 0.15) !important;
+      border-left: 1px dashed rgba(147, 51, 234, 0.4) !important;
+      border-right: 1px dashed rgba(147, 51, 234, 0.4) !important;
+    }
+    .gantt-col-nwd {
+      background-color: rgba(100, 116, 139, 0.1) !important;
+    }
+
+    .gantt-scale-holiday {
+      background-color: rgba(234, 88, 12, 0.25) !important;
+      color: #fb923c !important;
+    }
+    .gantt-scale-leave {
+      background-color: rgba(147, 51, 234, 0.25) !important;
+      color: #c084fc !important;
+    }
+    .gantt-scale-nwd {
+      background-color: rgba(100, 116, 139, 0.15) !important;
+      color: #94a3b8 !important;
     }
   }
 }

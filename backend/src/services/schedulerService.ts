@@ -103,7 +103,7 @@ export async function getProjectSchedule(projectId: number) {
             task_id: tId,
             user_id: Number(s.user_id),
             schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
-            allocated_hours: Number(s.allocated_hours),
+            allocated_hours: Number(Number(s.allocated_hours).toFixed(2)),
             schedule_version: Number(s.schedule_version),
             resource_name: s.resource_name || undefined
         });
@@ -247,7 +247,7 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
             task_id: tId,
             user_id: Number(s.user_id),
             schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
-            allocated_hours: Number(s.allocated_hours),
+            allocated_hours: Number(Number(s.allocated_hours).toFixed(2)),
             schedule_version: Number(s.schedule_version),
             resource_name: s.resource_name || undefined
         });
@@ -434,7 +434,7 @@ export async function checkSchedulingImpact(
 
     // Fetch user leaves
     const [leaveRows] = await pool.query<RowDataPacket[]>(
-        `SELECT leave_date, leave_hours FROM user_leaves WHERE user_id = ? AND status = 'APPROVED'`,
+        `SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours FROM user_leaves WHERE user_id = ? AND status IN ('APPROVED', 'PENDING')`,
         [resourceId]
     );
     const leavesMap = new Map<number, Map<string, number>>();
@@ -618,21 +618,35 @@ export async function getResourceAvailability(
         holidays.add(String(row.holiday_date));
     }
 
-    // 5. Fetch user leaves in range (Only APPROVED leaves)
+    // 5. Fetch user leaves in range (APPROVED and PENDING leaves)
     const [leaveRows] = await pool.query<RowDataPacket[]>(
         `
-        SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours
+        SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours, leave_type
         FROM user_leaves
-        WHERE user_id = ? AND status = 'APPROVED' AND leave_date BETWEEN ? AND ?
+        WHERE user_id = ? AND status IN ('APPROVED', 'PENDING') AND leave_date BETWEEN ? AND ?
         `,
         [userId, cleanStartStr, cleanEndStr]
     );
 
-    const leaves = new Map<string, number>();
+    const leaves = new Map<string, { hours: number; leave_type?: "FULL_DAY" | "FIRST_HALF" | "SECOND_HALF" }>();
     for (const row of leaveRows) {
         const dateStr = String(row.leave_date);
-        const current = leaves.get(dateStr) || 0;
-        leaves.set(dateStr, current + Number(row.leave_hours));
+        const rowHours = Number(row.leave_hours);
+        const rowType = (row.leave_type as "FULL_DAY" | "FIRST_HALF" | "SECOND_HALF") || (rowHours >= dailyWorkingHours ? "FULL_DAY" : "FIRST_HALF");
+        
+        const current = leaves.get(dateStr);
+        if (current) {
+            // If already set as partial and another partial comes, check if they cover different halves
+            if (current.leave_type !== rowType && (current.leave_type === 'FIRST_HALF' || current.leave_type === 'SECOND_HALF') && (rowType === 'FIRST_HALF' || rowType === 'SECOND_HALF')) {
+                current.hours = dailyWorkingHours;
+                current.leave_type = "FULL_DAY";
+            }
+        } else {
+            leaves.set(dateStr, {
+                hours: rowHours,
+                leave_type: rowType
+            });
+        }
     }
 
     // 6. Fetch task allocations in range
@@ -664,7 +678,8 @@ export async function getResourceAvailability(
 
         const isHoliday = holidays.has(dateStr);
         const isNonWorkingDay = resourceConfig.nonWorkingDays.has(weekday);
-        const leaveHours = leaves.get(dateStr) ?? 0;
+        const leaveInfo = leaves.get(dateStr);
+        const leaveHours = leaveInfo?.hours ?? 0;
         const allocatedHours = allocations.get(dateStr) ?? 0;
         const dailyCapacity = dailyWorkingHours;
 
@@ -679,35 +694,32 @@ export async function getResourceAvailability(
             status = "NON_WORKING_DAY";
         } else {
             const netCapacity = Math.max(0, dailyCapacity - leaveHours);
-            availableHours = Math.max(0, netCapacity - allocatedHours);
+            availableHours = Math.max(0, Number((netCapacity - allocatedHours).toFixed(2)));
 
-            if (availableHours === 0) {
-                if (leaveHours >= dailyCapacity) {
-                    status = "ON_LEAVE";
-                } else {
-                    status = "FULLY_BOOKED";
-                }
+            if (leaveHours >= dailyCapacity) {
+                status = "ON_LEAVE";
+            } else if (leaveHours > 0) {
+                status = "PARTIAL_LEAVE";
+            } else if (availableHours === 0) {
+                status = "FULLY_BOOKED";
+            } else if (allocatedHours > 0) {
+                status = "PARTIALLY_AVAILABLE";
             } else {
-                if (leaveHours > 0) {
-                    status = "PARTIAL_LEAVE";
-                } else if (allocatedHours > 0) {
-                    status = "PARTIALLY_AVAILABLE";
-                } else {
-                    status = "AVAILABLE";
-                }
+                status = "AVAILABLE";
             }
         }
 
-        totalAvailable += availableHours;
-        totalAllocated += allocatedHours;
+        totalAvailable = Number((totalAvailable + availableHours).toFixed(2));
+        totalAllocated = Number((totalAllocated + allocatedHours).toFixed(2));
 
         days.push({
             date: dateStr,
             weekday,
-            daily_working_hours: dailyCapacity,
-            leave_hours: leaveHours,
-            allocated_hours: allocatedHours,
-            available_hours: availableHours,
+            daily_working_hours: Number(dailyCapacity.toFixed(2)),
+            leave_hours: Number(leaveHours.toFixed(2)),
+            leave_type: leaveInfo?.leave_type || (leaveHours >= dailyCapacity ? "FULL_DAY" : (leaveHours > 0 ? "FIRST_HALF" : undefined)),
+            allocated_hours: Number(allocatedHours.toFixed(2)),
+            available_hours: Number(availableHours.toFixed(2)),
             status
         });
 

@@ -362,6 +362,8 @@
         :tasks="filteredTasks"
         :projects="projects"
         :resources="resources"
+        :holidays="holidays"
+        :is-resource-view="false"
         title="Gantt Timeline Roadmap"
         @task-click="openTaskDetailsDialog"
       />
@@ -725,16 +727,18 @@ import {
   getProjectsApi,
   getTasksApi,
   getResourcesApi,
+  getHolidaysApi,
   createTaskApi,
   updateTaskApi,
   getProjectScheduleDataApi,
   getResourceScheduleDataApi,
 } from '@/services/api';
-import type { Project, Task, ResourceUser } from '@/services/api';
+import type { Project, Task, ResourceUser, HolidayItem } from '@/services/api';
 
 const $q = useQuasar();
 
 const loading = ref(true);
+const holidays = ref<HolidayItem[]>([]);
 const STORAGE_KEY_VIEW_MODE = 'taskflow_pm_schedule_view_mode';
 const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
   | 'week'
@@ -929,14 +933,24 @@ const monthMatrixDays = computed(() => {
   return days;
 });
 
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getTasksOnDate(date: Date): Task[] {
-  const targetDateStr = date.toISOString().slice(0, 10);
+  const targetDateStr = formatLocalDate(date);
   return filteredTasks.value.filter((t) => {
     if (t.schedules && t.schedules.length > 0) {
       return t.schedules.some(
         (s) =>
           String(s.schedule_date).slice(0, 10) === targetDateStr && Number(s.allocated_hours) > 0,
       );
+    }
+    if (isWeekend(date)) {
+      return false;
     }
     const startStr =
       t.planned_start || t.actual_start || t.start_date
@@ -953,7 +967,7 @@ function getTasksOnDate(date: Date): Task[] {
 }
 
 function getDailyAllocatedHours(task: Task, dateObj: Date): number | null {
-  const dateStr = dateObj.toISOString().slice(0, 10);
+  const dateStr = formatLocalDate(dateObj);
   if (task.schedules && task.schedules.length > 0) {
     const s = task.schedules.find((sch) => String(sch.schedule_date).slice(0, 10) === dateStr);
     if (s && Number(s.allocated_hours) > 0) {
@@ -963,13 +977,19 @@ function getDailyAllocatedHours(task: Task, dateObj: Date): number | null {
   return null;
 }
 
+function formatHours(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || isNaN(Number(val))) return '0';
+  const num = Number(val);
+  return parseFloat(num.toFixed(2)).toString();
+}
+
 function getTaskEffortBadgeText(task: Task, dateObj: Date): string {
   const dailyAlloc = getDailyAllocatedHours(task, dateObj);
   if (dailyAlloc !== null) {
-    return `${dailyAlloc}h scheduled`;
+    return `${formatHours(dailyAlloc)}h scheduled`;
   }
   if (task.expected_effort) {
-    return `${task.expected_effort}h effort`;
+    return `${formatHours(task.expected_effort)}h effort`;
   }
   return task.status ? task.status.replace(/_/g, ' ') : 'Task';
 }
@@ -1069,7 +1089,7 @@ const tableColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tList, pList, rList] = await Promise.all([
+    const [tList, pList, rList, hList] = await Promise.all([
       projectFilter.value !== 'ALL'
         ? getProjectScheduleDataApi(Number(projectFilter.value))
             .then((res) => res.tasks)
@@ -1077,10 +1097,12 @@ async function loadData() {
         : getTasksApi(),
       getProjectsApi(),
       getResourcesApi(),
+      getHolidaysApi().catch(() => []),
     ]);
     tasks.value = tList;
     projects.value = pList;
     resources.value = rList;
+    holidays.value = hList;
     if (pList.length > 0 && pList[0]) {
       createForm.project_id = pList[0].project_id;
     }

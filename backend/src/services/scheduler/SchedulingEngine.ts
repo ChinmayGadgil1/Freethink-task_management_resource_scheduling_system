@@ -136,7 +136,7 @@ export function calculateAvailableHours(
     const allocatedHours = allocatedSchedule?.get(userId)?.get(date) ?? 0;
     availableHours -= allocatedHours;
 
-    return Math.max(0, availableHours);
+    return Math.max(0, Number(availableHours.toFixed(2)));
 }
 
 export function canCompleteBy(
@@ -425,7 +425,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         SELECT
             ul.user_id,
             ul.leave_date,
-            ul.leave_hours
+            ul.leave_hours,
+            ul.leave_type
         FROM user_leaves ul
         INNER JOIN (
             SELECT DISTINCT ta.user_id
@@ -435,7 +436,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             WHERE t.project_id = ?
         ) project_resources
             ON ul.user_id = project_resources.user_id
-        WHERE ul.status = 'APPROVED'
+        WHERE ul.status IN ('APPROVED', 'PENDING')
         `,
         [projectId]
     );
@@ -478,19 +479,25 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     }
 
     const leaves = new Map<number, Map<string, number>>();
+    const leaveTypes = new Map<number, Map<string, string>>();
 
     for (const row of leaveRows) {
         const userId = Number(row.user_id);
         const date = String(row.leave_date).split("T")[0]!;
         const leaveHours = Number(row.leave_hours);
+        const leaveType = (row.leave_type as string) || (leaveHours >= 8 ? 'FULL_DAY' : 'FIRST_HALF');
 
         if (!leaves.has(userId)) {
             leaves.set(userId, new Map());
+        }
+        if (!leaveTypes.has(userId)) {
+            leaveTypes.set(userId, new Map());
         }
 
         const userLeaveMap = leaves.get(userId)!;
         const currentHours = userLeaveMap.get(date) || 0;
         userLeaveMap.set(date, currentHours + leaveHours);
+        leaveTypes.get(userId)!.set(date, leaveType);
     }
 
     const resourceSchedule = new Map<number, Map<string, number>>();
@@ -622,18 +629,23 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                             continue;
                         }
 
-                        const hoursToAllocate = Math.min(
+                        const hoursToAllocate = Number(Math.min(
                             effectiveAvailableHours,
                             hoursRemainingToday
-                        );
+                        ).toFixed(2));
 
                         if (!resourceSchedule.has(userId)) {
                             resourceSchedule.set(userId, new Map());
                         }
 
                         const userSchedule = resourceSchedule.get(userId)!;
-                        const startHourOffset = Math.max(alreadyScheduled, dependencyHourOffset);
-                        const endHourOffset = startHourOffset + hoursToAllocate;
+                        const userLeaveType = leaveTypes.get(userId)?.get(date);
+                        let leaveStartOffset = 0;
+                        if (userLeaveType === 'FIRST_HALF') {
+                            leaveStartOffset = 4;
+                        }
+                        const startHourOffset = Math.max(alreadyScheduled, dependencyHourOffset, leaveStartOffset);
+                        const endHourOffset = Number((startHourOffset + hoursToAllocate).toFixed(2));
                         
                         const currentStartTime = formatDateTimeLocal(currentDate, startHourOffset);
                         const currentEndTime = formatDateTimeLocal(currentDate, endHourOffset);
@@ -647,7 +659,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
 
                         userSchedule.set(
                             date,
-                            startHourOffset + hoursToAllocate
+                            Number((startHourOffset + hoursToAllocate).toFixed(2))
                         );
 
                         taskScheduleEntries.push({
@@ -657,8 +669,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                             allocated_hours: hoursToAllocate
                         });
 
-                        hoursRemainingToday -= hoursToAllocate;
-                        remainingEffort -= hoursToAllocate;
+                        hoursRemainingToday = Number((hoursRemainingToday - hoursToAllocate).toFixed(2));
+                        remainingEffort = Number((remainingEffort - hoursToAllocate).toFixed(2));
                     }
 
                     if (plannedEnd) {

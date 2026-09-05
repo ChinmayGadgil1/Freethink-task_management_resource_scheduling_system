@@ -623,10 +623,11 @@ export async function getLeaves(filters: {
         INNER JOIN users u ON ul.user_id = u.user_id
         LEFT JOIN users approver ON ul.approver_id = approver.user_id
         LEFT JOIN (
-            SELECT pm.user_id as resource_user_id, p_mgr.user_id as pm_id, p_mgr.name as pm_name
+            SELECT pm.user_id as resource_user_id, MIN(p_mgr.user_id) as pm_id, MIN(p_mgr.name) as pm_name
             FROM project_members pm
             INNER JOIN projects p ON pm.project_id = p.project_id
             INNER JOIN users p_mgr ON p.project_manager_id = p_mgr.user_id
+            GROUP BY pm.user_id
         ) pm_user ON ul.user_id = pm_user.resource_user_id
         LEFT JOIN (
             SELECT user_id as fallback_pm_id, name as fallback_name FROM users WHERE role = 'PROJECT_MANAGER' LIMIT 1
@@ -673,15 +674,22 @@ export async function getLeaves(filters: {
 
     const [rows] = await pool.query<RowDataPacket[]>(query, params);
 
-    // Group rows by request_id (or fallback to legacy batch grouping)
-    const groupsMap = new Map<string, RowDataPacket[]>();
+    // Deduplicate by leave_id to ensure no Cartesian product from joins
+    const uniqueRowsMap = new Map<number, RowDataPacket>();
     for (const r of rows) {
+        if (!uniqueRowsMap.has(Number(r.leave_id))) {
+            uniqueRowsMap.set(Number(r.leave_id), r);
+        }
+    }
+
+    // Group rows by request_id (or fallback to individual leave_id)
+    const groupsMap = new Map<string, RowDataPacket[]>();
+    for (const r of uniqueRowsMap.values()) {
         let groupKey: string;
         if (r.request_id) {
             groupKey = String(r.request_id);
         } else {
-            const timeSec = r.created_at ? Math.floor(new Date(r.created_at).getTime() / 5000) : r.leave_id;
-            groupKey = `legacy_${r.user_id}_${timeSec}`;
+            groupKey = `leave_${r.leave_id}`;
         }
         if (!groupsMap.has(groupKey)) {
             groupsMap.set(groupKey, []);
@@ -725,7 +733,7 @@ export async function getLeaves(filters: {
         const isMultiDay = uniqueDates.length > 1 && String(first.leave_date) !== String(last.leave_date);
         const resolvedSingleType = groupRows.length === 1 
             ? ((first.leave_type as any) || 'FULL_DAY') 
-            : (totalHours >= 8 ? 'FULL_DAY' : ((first.leave_type as any) || 'FULL_DAY'));
+            : (first.leave_type === last.leave_type ? first.leave_type : 'FULL_DAY');
 
         groupedLeaves.push({
             leave_id: Number(first.leave_id),

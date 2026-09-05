@@ -161,7 +161,7 @@ export async function getTasksList(filters: {
             task_id: tId,
             user_id: Number(s.user_id),
             schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
-            allocated_hours: Number(s.allocated_hours),
+            allocated_hours: Number(Number(s.allocated_hours).toFixed(2)),
             schedule_version: Number(s.schedule_version),
             resource_name: s.resource_name || undefined
         });
@@ -218,7 +218,7 @@ export async function getTaskById(taskId: number) {
         task_id: Number(s.task_id),
         user_id: Number(s.user_id),
         schedule_date: s.schedule_date instanceof Date ? s.schedule_date.toISOString().split("T")[0] : String(s.schedule_date).split("T")[0],
-        allocated_hours: Number(s.allocated_hours),
+        allocated_hours: Number(Number(s.allocated_hours).toFixed(2)),
         schedule_version: Number(s.schedule_version),
         resource_name: s.resource_name || undefined
     }));

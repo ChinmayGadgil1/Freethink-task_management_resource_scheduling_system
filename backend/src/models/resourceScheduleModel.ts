@@ -35,6 +35,7 @@ export interface DailyAvailabilityDTO {
     weekday: string;
     daily_working_hours: number;
     leave_hours: number;
+    leave_type?: "FULL_DAY" | "FIRST_HALF" | "SECOND_HALF" | undefined;
     allocated_hours: number;
     available_hours: number;
     status: AvailabilityStatus;

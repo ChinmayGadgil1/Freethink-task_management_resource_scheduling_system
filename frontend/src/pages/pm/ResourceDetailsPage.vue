@@ -252,6 +252,9 @@
               :tasks="resourceGanttTasks"
               :projects="allProjects"
               :resources="resourceInfo ? [resourceInfo] : []"
+              :holidays="holidaysList"
+              :availability="resourceAvailability"
+              :is-resource-view="true"
               :title="`Schedule Roadmap: ${resourceName}`"
               :group-by-project="false"
               @task-click="handleGanttTaskClick"
@@ -400,14 +403,16 @@
                     </div>
                     <div class="row items-center gap-xs wrap">
                       <q-badge
-                        :color="props.row.start_day_type === 'SECOND_HALF' ? 'primary' : 'blue-grey-6'"
-                        :label="props.row.start_day_type === 'SECOND_HALF' ? 'Start: Second Half' : 'Start: Full Day'"
+                        v-if="props.row.start_day_type === 'SECOND_HALF'"
+                        color="primary"
+                        label="Starts: 2nd Half"
                         class="text-weight-bold"
                         style="font-size: 10px"
                       />
                       <q-badge
-                        :color="props.row.end_day_type === 'FIRST_HALF' ? 'primary' : 'blue-grey-6'"
-                        :label="props.row.end_day_type === 'FIRST_HALF' ? 'End: First Half' : 'End: Full Day'"
+                        v-if="props.row.end_day_type === 'FIRST_HALF'"
+                        color="primary"
+                        label="Ends: 1st Half"
                         class="text-weight-bold"
                         style="font-size: 10px"
                       />
@@ -415,20 +420,6 @@
                   </template>
                   <template v-else>
                     <div class="text-weight-medium">{{ formatDate(props.row.leave_date || props.row.start_date) }}</div>
-                    <div class="text-caption text-grey-6 q-mt-xs">
-                      <q-badge
-                        color="primary"
-                        :label="
-                          props.row.leave_type === 'FIRST_HALF'
-                            ? 'First Half'
-                            : props.row.leave_type === 'SECOND_HALF'
-                              ? 'Second Half'
-                              : 'Full Day'
-                        "
-                        class="text-weight-bold"
-                        style="font-size: 10px"
-                      />
-                    </div>
                   </template>
                 </q-td>
               </template>
@@ -952,6 +943,8 @@ import {
   deleteLeaveApi,
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
+  getHolidaysApi,
+  getResourceAvailabilityApi,
 } from '@/services/api';
 import type {
   Project,
@@ -962,6 +955,8 @@ import type {
   LeaveItem,
   DayOfWeek,
   ResourceScheduleConfig,
+  HolidayItem,
+  DailyAvailabilityDTO,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -1105,6 +1100,8 @@ const directMemberProjects = ref<Project[]>([]);
 const backendWorkload = ref<ResourceWorkload | null>(null);
 const resourceScheduleData = ref<ResourceScheduleResponse | null>(null);
 const resourceGanttTasks = computed(() => resourceScheduleData.value?.tasks || []);
+const holidaysList = ref<HolidayItem[]>([]);
+const resourceAvailability = ref<DailyAvailabilityDTO[]>([]);
 
 const showTaskDetailsDialog = ref(false);
 const selectedTaskDetails = ref<Task | null>(null);
@@ -1240,6 +1237,9 @@ const singleDayLeaveOptions = computed<Array<{ label: string; value: 'FULL_DAY' 
   }
   const entry = userLeaveMap.value.get(leaveForm.start_date);
   if (entry) {
+    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf)) {
+      return [];
+    }
     if (entry.hasFirstHalf && !entry.hasSecondHalf) {
       return [{ label: 'Second Half', value: 'SECOND_HALF' }];
     }
@@ -1262,8 +1262,13 @@ const startDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 
     ];
   }
   const entry = userLeaveMap.value.get(leaveForm.start_date);
-  if (entry?.hasFirstHalf) {
-    return [{ label: 'Second Half', value: 'SECOND_HALF' }];
+  if (entry) {
+    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasSecondHalf) {
+      return [];
+    }
+    if (entry.hasFirstHalf) {
+      return [{ label: 'Second Half', value: 'SECOND_HALF' }];
+    }
   }
   return [
     { label: 'Full Day', value: 'FULL_DAY' },
@@ -1279,8 +1284,13 @@ const endDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'F
     ];
   }
   const entry = userLeaveMap.value.get(leaveForm.end_date);
-  if (entry?.hasSecondHalf) {
-    return [{ label: 'First Half', value: 'FIRST_HALF' }];
+  if (entry) {
+    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasFirstHalf) {
+      return [];
+    }
+    if (entry.hasSecondHalf) {
+      return [{ label: 'First Half', value: 'FIRST_HALF' }];
+    }
   }
   return [
     { label: 'Full Day', value: 'FULL_DAY' },
@@ -1419,7 +1429,13 @@ const taskColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tasks, projects, workload, resUser, memberProjs, leaves, sched, schedData] =
+    const now = new Date();
+    const startDateObj = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const endDateObj = new Date(now.getFullYear(), now.getMonth() + 4, 28);
+    const startStr = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, '0')}-${String(startDateObj.getDate()).padStart(2, '0')}`;
+    const endStr = `${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`;
+
+    const [tasks, projects, workload, resUser, memberProjs, leaves, sched, schedData, holidays, avail] =
       await Promise.all([
         getTasksApi(),
         getProjectsApi(),
@@ -1429,11 +1445,17 @@ async function loadData() {
         getLeavesApi({ user_id: resourceId.value }).catch(() => []),
         getResourceWorkScheduleApi(resourceId.value).catch(() => null),
         getResourceScheduleDataApi(resourceId.value).catch(() => null),
+        getHolidaysApi().catch(() => []),
+        getResourceAvailabilityApi(resourceId.value, startStr, endStr).catch(() => null),
       ]);
     allTasks.value = tasks;
     allProjects.value = projects;
     directMemberProjects.value = memberProjs;
     leavesList.value = leaves;
+    holidaysList.value = holidays || [];
+    if (avail && avail.days) {
+      resourceAvailability.value = avail.days;
+    }
     if (workload) {
       backendWorkload.value = workload;
     }

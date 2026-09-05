@@ -352,6 +352,9 @@
       <DhtmlxGanttTimeline
         :tasks="filteredTasks"
         :projects="projects"
+        :holidays="holidays"
+        :availability="Array.from(availabilityMap.values())"
+        :is-resource-view="true"
         title="Gantt Timeline Roadmap"
         @task-click="(task) => goToTask(task.task_id)"
       />
@@ -494,8 +497,19 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar, type QTableColumn } from 'quasar';
-import { getTasksApi, getProjectsApi, getResourceAvailabilityApi } from '@/services/api';
-import type { Task, Project, DailyAvailabilityDTO, AvailabilityStatus } from '@/services/api';
+import {
+  getTasksApi,
+  getProjectsApi,
+  getResourceAvailabilityApi,
+  getHolidaysApi,
+} from '@/services/api';
+import type {
+  Task,
+  Project,
+  DailyAvailabilityDTO,
+  AvailabilityStatus,
+  HolidayItem,
+} from '@/services/api';
 import { isOverdue } from '@/utils/taskHelpers';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 
@@ -503,6 +517,7 @@ const $q = useQuasar();
 const router = useRouter();
 
 const loading = ref(true);
+const holidays = ref<HolidayItem[]>([]);
 const STORAGE_KEY_VIEW_MODE = 'taskflow_res_schedule_view_mode';
 const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
   | 'week'
@@ -737,7 +752,24 @@ const monthMatrixDays = computed(() => {
 });
 
 function getTasksOnDate(date: Date): Task[] {
-  const targetDateStr = date.toISOString().slice(0, 10);
+  const targetDateStr = formatLocalDate(date);
+  const dayAvail = getDayAvailability(date);
+
+  // If the day is a holiday, non-working day, or approved full-day leave, do not show tasks on this date
+  if (
+    dayAvail &&
+    (dayAvail.status === 'HOLIDAY' ||
+      dayAvail.status === 'NON_WORKING_DAY' ||
+      dayAvail.status === 'ON_LEAVE' ||
+      (dayAvail.leave_hours && dayAvail.leave_hours >= (dayAvail.daily_working_hours || 8)))
+  ) {
+    return [];
+  }
+
+  if (holidays.value && holidays.value.some((h) => String(h.holiday_date).slice(0, 10) === targetDateStr)) {
+    return [];
+  }
+
   return filteredTasks.value.filter((t) => {
     if (t.schedules && t.schedules.length > 0) {
       return t.schedules.some(
@@ -745,6 +777,11 @@ function getTasksOnDate(date: Date): Task[] {
           String(s.schedule_date).slice(0, 10) === targetDateStr && Number(s.allocated_hours) > 0,
       );
     }
+
+    if (isWeekend(date)) {
+      return false;
+    }
+
     const startStr =
       t.planned_start || t.actual_start || t.start_date
         ? (t.planned_start || t.actual_start || t.start_date)!.slice(0, 10)
@@ -760,7 +797,7 @@ function getTasksOnDate(date: Date): Task[] {
 }
 
 function getDailyAllocatedHours(task: Task, dateObj: Date): number | null {
-  const dateStr = dateObj.toISOString().slice(0, 10);
+  const dateStr = formatLocalDate(dateObj);
   if (task.schedules && task.schedules.length > 0) {
     const s = task.schedules.find((sch) => String(sch.schedule_date).slice(0, 10) === dateStr);
     if (s && Number(s.allocated_hours) > 0) {
@@ -770,13 +807,19 @@ function getDailyAllocatedHours(task: Task, dateObj: Date): number | null {
   return null;
 }
 
+function formatHours(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || isNaN(Number(val))) return '0';
+  const num = Number(val);
+  return parseFloat(num.toFixed(2)).toString();
+}
+
 function getTaskEffortBadgeText(task: Task, dateObj: Date): string {
   const dailyAlloc = getDailyAllocatedHours(task, dateObj);
   if (dailyAlloc !== null) {
-    return `${dailyAlloc}h scheduled`;
+    return `${formatHours(dailyAlloc)}h scheduled`;
   }
   if (task.expected_effort) {
-    return `${task.expected_effort}h effort`;
+    return `${formatHours(task.expected_effort)}h effort`;
   }
   return task.status ? task.status.replace(/_/g, ' ') : 'Task';
 }
@@ -934,15 +977,15 @@ function getAvailIcon(status: AvailabilityStatus): string {
 function getAvailShortLabel(day: DailyAvailabilityDTO): string {
   switch (day.status) {
     case 'AVAILABLE':
-      return `${day.available_hours}h Free`;
+      return `${formatHours(day.available_hours)}h Free`;
     case 'PARTIALLY_AVAILABLE':
-      return `${day.available_hours}h Free`;
+      return `${formatHours(day.available_hours)}h Free`;
     case 'FULLY_BOOKED':
       return 'Booked';
     case 'ON_LEAVE':
       return 'On Leave';
     case 'PARTIAL_LEAVE':
-      return `Leave (${day.leave_hours}h)`;
+      return `Leave (${formatHours(day.leave_hours)}h)`;
     case 'HOLIDAY':
       return 'Holiday';
     case 'NON_WORKING_DAY':
@@ -955,15 +998,15 @@ function getAvailShortLabel(day: DailyAvailabilityDTO): string {
 function getAvailTooltip(day: DailyAvailabilityDTO): string {
   switch (day.status) {
     case 'AVAILABLE':
-      return `Available: ${day.available_hours}h capacity free`;
+      return `Available: ${formatHours(day.available_hours)}h capacity free`;
     case 'PARTIALLY_AVAILABLE':
-      return `Partially available: ${day.available_hours}h free (${day.allocated_hours}h allocated)`;
+      return `Partially available: ${formatHours(day.available_hours)}h free (${formatHours(day.allocated_hours)}h allocated)`;
     case 'FULLY_BOOKED':
-      return `Fully booked: ${day.allocated_hours}h allocated of ${day.daily_working_hours}h`;
+      return `Fully booked: ${formatHours(day.allocated_hours)}h allocated of ${formatHours(day.daily_working_hours)}h`;
     case 'ON_LEAVE':
-      return `On Leave: ${day.leave_hours}h full-day leave`;
+      return `On Leave: ${formatHours(day.leave_hours)}h full-day leave`;
     case 'PARTIAL_LEAVE':
-      return `Partial leave: ${day.leave_hours}h leave (${day.available_hours}h available)`;
+      return `Partial leave: ${formatHours(day.leave_hours)}h leave (${formatHours(day.available_hours)}h available)`;
     case 'HOLIDAY':
       return `Company Holiday (0h working capacity)`;
     case 'NON_WORKING_DAY':
@@ -1003,10 +1046,10 @@ async function fetchAvailabilityForVisibleRange() {
       );
     }
   } else {
-    // Gantt or Table view: fetch current month +/- 30 days
+    // Gantt or Table view: fetch current month +/- 60-90 days to ensure full roadmap coverage
     const anchor = currentAnchorDate.value;
-    startDateStr = formatLocalDate(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
-    endDateStr = formatLocalDate(new Date(anchor.getFullYear(), anchor.getMonth() + 2, 0));
+    startDateStr = formatLocalDate(new Date(anchor.getFullYear(), anchor.getMonth() - 2, 1));
+    endDateStr = formatLocalDate(new Date(anchor.getFullYear(), anchor.getMonth() + 3, 0));
   }
 
   availabilityLoading.value = true;
@@ -1029,13 +1072,15 @@ async function fetchAvailabilityForVisibleRange() {
 async function loadData() {
   loading.value = true;
   try {
-    const [tasksRes, projectsRes] = await Promise.all([
+    const [tasksRes, projectsRes, holidaysRes] = await Promise.all([
       getTasksApi(),
       getProjectsApi(),
+      getHolidaysApi().catch(() => []),
       fetchAvailabilityForVisibleRange(),
     ]);
     tasks.value = tasksRes || [];
     projects.value = projectsRes || [];
+    holidays.value = holidaysRes || [];
   } catch {
     $q.notify({
       type: 'negative',
