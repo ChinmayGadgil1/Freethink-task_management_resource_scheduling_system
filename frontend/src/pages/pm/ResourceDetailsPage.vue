@@ -388,19 +388,68 @@
               no-data-label="No leave records found for this resource"
               :pagination="{ rowsPerPage: 5 }"
             >
+              <!-- Date / Range Formatting -->
+              <template #body-cell-leave_date="props">
+                <q-td :props="props">
+                  <template v-if="(props.row.total_days && props.row.total_days > 1) || (props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date)">
+                    <div class="text-weight-medium text-primary">
+                      {{ formatDate(props.row.start_date || props.row.leave_date) }} – {{ formatDate(props.row.end_date || props.row.leave_date) }}
+                    </div>
+                    <div class="text-caption text-grey-6 q-mb-xs">
+                      {{ props.row.total_days }} working days ({{ props.row.start_date || props.row.leave_date }} to {{ props.row.end_date || props.row.leave_date }})
+                    </div>
+                    <div class="row items-center gap-xs wrap">
+                      <q-badge
+                        :color="props.row.start_day_type === 'SECOND_HALF' ? 'primary' : 'blue-grey-6'"
+                        :label="props.row.start_day_type === 'SECOND_HALF' ? 'Start: Second Half' : 'Start: Full Day'"
+                        class="text-weight-bold"
+                        style="font-size: 10px"
+                      />
+                      <q-badge
+                        :color="props.row.end_day_type === 'FIRST_HALF' ? 'primary' : 'blue-grey-6'"
+                        :label="props.row.end_day_type === 'FIRST_HALF' ? 'End: First Half' : 'End: Full Day'"
+                        class="text-weight-bold"
+                        style="font-size: 10px"
+                      />
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="text-weight-medium">{{ formatDate(props.row.leave_date) }}</div>
+                    <div class="text-caption text-grey-6 q-mt-xs">
+                      <q-badge
+                        v-if="props.row.leave_type !== 'FULL_DAY'"
+                        color="primary"
+                        :label="props.row.leave_type === 'FIRST_HALF' ? 'First Half' : 'Second Half'"
+                        class="text-weight-bold"
+                        style="font-size: 10px"
+                      />
+                      <span v-else>{{ props.row.leave_date }} • Full Day</span>
+                    </div>
+                  </template>
+                </q-td>
+              </template>
+
               <!-- Leave Type / Hours Formatting -->
               <template #body-cell-leave_type="props">
                 <q-td :props="props">
-                  <div>
-                    {{
-                      props.row.leave_type === 'FIRST_HALF'
-                        ? 'First Half'
-                        : props.row.leave_type === 'SECOND_HALF'
-                          ? 'Second Half'
-                          : 'Full Day'
-                    }}
-                  </div>
-                  <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
+                  <template v-if="props.row.total_days && props.row.total_days > 1">
+                    <div class="text-weight-medium">Multi-Day Leave</div>
+                    <div class="text-caption text-grey-6">
+                      {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{ props.row.total_days }} days)
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="text-weight-medium">
+                      {{
+                        props.row.leave_type === 'FIRST_HALF'
+                          ? 'First Half'
+                          : props.row.leave_type === 'SECOND_HALF'
+                            ? 'Second Half'
+                            : 'Full Day'
+                      }}
+                    </div>
+                    <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
+                  </template>
                 </q-td>
               </template>
 
@@ -423,8 +472,44 @@
                     "
                     class="text-caption text-weight-bold"
                   >
+                    <q-icon
+                      :name="
+                        props.row.status === 'APPROVED'
+                          ? 'check_circle'
+                          : props.row.status === 'PENDING'
+                            ? 'hourglass_empty'
+                            : 'cancel'
+                      "
+                      size="12px"
+                      class="q-mr-xs"
+                    />
                     {{ props.row.status }}
                   </q-chip>
+                  <div
+                    v-if="props.row.status === 'APPROVED'"
+                    class="text-caption text-grey-7 q-mt-xs row items-center no-wrap gap-xs"
+                    style="font-size: 11px"
+                  >
+                    <q-icon name="verified_user" size="13px" color="positive" />
+                    <span>Approved by <strong>{{ props.row.approver_name || 'Project Manager' }}</strong></span>
+                  </div>
+                  <div
+                    v-else-if="props.row.status === 'REJECTED'"
+                    class="text-caption text-negative q-mt-xs"
+                    style="font-size: 11px"
+                  >
+                    <div>{{ props.row.rejection_reason || 'Rejected' }}</div>
+                    <div v-if="props.row.approver_name" class="text-grey-6" style="font-size: 10px">
+                      by {{ props.row.approver_name }}
+                    </div>
+                  </div>
+                  <div
+                    v-else-if="props.row.status === 'PENDING'"
+                    class="text-caption text-grey-6 q-mt-xs"
+                    style="font-size: 10px"
+                  >
+                    Pending Approval
+                  </div>
                 </q-td>
               </template>
 
@@ -433,20 +518,20 @@
                   <div class="row items-center q-gutter-xs no-wrap">
                     <template v-if="props.row.status === 'PENDING'">
                       <q-btn
-                        v-if="canApproveLeave(props.row.leave_date)"
+                        v-if="canApproveLeave(props.row.start_date || props.row.leave_date)"
                         flat
                         round
                         dense
                         icon="check"
                         color="positive"
-                        :loading="leaveActionLoadingId === props.row.leave_id"
-                        @click="handleApproveLeave(props.row.leave_id)"
+                        :loading="leaveActionLoadingId === (props.row.request_id || props.row.leave_id)"
+                        @click="handleApproveLeave(props.row.request_id || props.row.leave_id)"
                       >
                         <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
                       </q-btn>
                       <q-btn v-else flat round dense disable icon="check" color="grey-5">
                         <q-tooltip
-                          >Cannot approve: Leave date has already arrived or passed</q-tooltip
+                          >Cannot approve: Leave start date has already arrived or passed</q-tooltip
                         >
                       </q-btn>
 
@@ -456,8 +541,8 @@
                         dense
                         icon="close"
                         color="negative"
-                        :loading="leaveActionLoadingId === props.row.leave_id"
-                        @click="handleRejectLeave(props.row.leave_id)"
+                        :loading="leaveActionLoadingId === (props.row.request_id || props.row.leave_id)"
+                        @click="handleRejectLeave(props.row.request_id || props.row.leave_id)"
                       >
                         <q-tooltip>Reject Leave</q-tooltip>
                       </q-btn>
@@ -469,7 +554,7 @@
                       dense
                       icon="delete"
                       color="grey-7"
-                      @click="handleDeleteLeave(props.row.leave_id)"
+                      @click="handleDeleteLeave(props.row.request_id || props.row.leave_id)"
                     >
                       <q-tooltip>Delete / Cancel Leave</q-tooltip>
                     </q-btn>
@@ -637,9 +722,9 @@
                   map-options
                   label="Leave Type *"
                   :options="[
-                    { label: 'Full Day (Standard Hours)', value: 'FULL_DAY' },
-                    { label: 'First Half (Morning Only)', value: 'FIRST_HALF' },
-                    { label: 'Second Half (Afternoon Only)', value: 'SECOND_HALF' }
+                    { label: 'Full Day', value: 'FULL_DAY' },
+                    { label: 'First Half', value: 'FIRST_HALF' },
+                    { label: 'Second Half', value: 'SECOND_HALF' }
                   ]"
                 />
               </div>
@@ -658,7 +743,7 @@
                       label="Start Day *"
                       :options="[
                         { label: 'Full Day', value: 'FULL_DAY' },
-                        { label: 'Second Half (Afternoon)', value: 'SECOND_HALF' }
+                        { label: 'Second Half', value: 'SECOND_HALF' }
                       ]"
                     />
                   </div>
@@ -672,7 +757,7 @@
                       label="End Day *"
                       :options="[
                         { label: 'Full Day', value: 'FULL_DAY' },
-                        { label: 'First Half (Morning)', value: 'FIRST_HALF' }
+                        { label: 'First Half', value: 'FIRST_HALF' }
                       ]"
                     />
                   </div>
@@ -850,7 +935,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
-import { getInitials, formatHours, formatNumber } from '@/utils/formatters';
+import { getInitials, formatHours, formatNumber, formatDate } from '@/utils/formatters';
 import ResourceAvailabilityCalendar from '@/components/resource/ResourceAvailabilityCalendar.vue';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
@@ -1074,7 +1159,7 @@ const assignForm = reactive<{
 const leavesList = ref<LeaveItem[]>([]);
 const showLeaveDialog = ref(false);
 const leaveSubmitting = ref(false);
-const leaveActionLoadingId = ref<number | null>(null);
+const leaveActionLoadingId = ref<number | string | null>(null);
 const leaveForm = reactive<{
   start_date: string;
   end_date: string;
@@ -1122,10 +1207,10 @@ function canApproveLeave(leaveDateStr: string): boolean {
   return todayStr < leaveDateStr;
 }
 
-async function handleApproveLeave(leaveId: number) {
-  leaveActionLoadingId.value = leaveId;
+async function handleApproveLeave(identifier: number | string) {
+  leaveActionLoadingId.value = identifier;
   try {
-    await approveLeaveApi(leaveId);
+    await approveLeaveApi(identifier);
     $q.notify({
       type: 'positive',
       message: 'Leave approved! Project schedules have been recalculated.',
@@ -1142,7 +1227,7 @@ async function handleApproveLeave(leaveId: number) {
   }
 }
 
-function handleRejectLeave(leaveId: number) {
+function handleRejectLeave(identifier: number | string) {
   $q.dialog({
     title: 'Reject Leave Request',
     message: 'Enter rejection reason (optional):',
@@ -1153,10 +1238,10 @@ function handleRejectLeave(leaveId: number) {
     cancel: true,
     persistent: true,
   }).onOk((reason: string) => {
-    leaveActionLoadingId.value = leaveId;
+    leaveActionLoadingId.value = identifier;
     void (async () => {
       try {
-        await rejectLeaveApi(leaveId, reason);
+        await rejectLeaveApi(identifier, reason);
         $q.notify({
           type: 'info',
           message: 'Leave request has been rejected.',
@@ -1175,8 +1260,8 @@ function handleRejectLeave(leaveId: number) {
   });
 }
 
-function handleDeleteLeave(leaveId: number) {
-  confirmCancelLeave(leaveId);
+function handleDeleteLeave(identifier: number | string) {
+  confirmCancelLeave(identifier);
 }
 
 const taskColumns: QTableColumn<Task>[] = [
@@ -1378,20 +1463,20 @@ async function handleApplyLeave() {
   }
 }
 
-function confirmCancelLeave(leaveId: number) {
+function confirmCancelLeave(identifier: number | string) {
   $q.dialog({
     title: 'Confirm Cancellation',
-    message: 'Are you sure you want to cancel this leave?',
+    message: 'Are you sure you want to cancel this leave request?',
     cancel: true,
     persistent: true,
   }).onOk(() => {
-    void handleCancelLeave(leaveId);
+    void handleCancelLeave(identifier);
   });
 }
 
-async function handleCancelLeave(leaveId: number) {
+async function handleCancelLeave(identifier: number | string) {
   try {
-    await deleteLeaveApi(leaveId);
+    await deleteLeaveApi(identifier);
     $q.notify({
       type: 'positive',
       message: 'Leave cancelled successfully',

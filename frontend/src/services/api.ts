@@ -1113,12 +1113,27 @@ export async function deleteHolidayApi(id: number): Promise<{ message: string }>
 
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+export interface LeaveDayItem {
+  leave_id: number;
+  leave_date: string;
+  leave_hours: number;
+  leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+  status: LeaveStatus;
+}
+
 export interface LeaveItem {
   leave_id: number;
+  request_id?: string | null;
   user_id: number;
   user_name?: string;
   user_email?: string;
   leave_date: string;
+  start_date?: string | undefined;
+  end_date?: string | undefined;
+  start_day_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' | undefined;
+  end_day_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' | undefined;
+  total_days?: number | undefined;
+  total_hours?: number | undefined;
   leave_hours: number;
   leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
   status: LeaveStatus;
@@ -1127,6 +1142,7 @@ export interface LeaveItem {
   rejection_reason?: string | null;
   approved_at?: string | null;
   created_at?: string | null;
+  days_breakdown?: LeaveDayItem[];
 }
 
 /**
@@ -1198,7 +1214,7 @@ export async function createLeaveApi(payload: {
  * Approve a pending leave request (PM only)
  * PATCH /api/leaves/:id/approve
  */
-export async function approveLeaveApi(id: number): Promise<LeaveItem> {
+export async function approveLeaveApi(id: number | string): Promise<LeaveItem> {
   const response = await authenticatedFetch(`${API_BASE_URL}/leaves/${id}/approve`, {
     method: 'PATCH',
   });
@@ -1216,7 +1232,7 @@ export async function approveLeaveApi(id: number): Promise<LeaveItem> {
  * Reject a pending leave request (PM only)
  * PATCH /api/leaves/:id/reject
  */
-export async function rejectLeaveApi(id: number, reason?: string): Promise<LeaveItem> {
+export async function rejectLeaveApi(id: number | string, reason?: string): Promise<LeaveItem> {
   const response = await authenticatedFetch(`${API_BASE_URL}/leaves/${id}/reject`, {
     method: 'PATCH',
     body: JSON.stringify({ reason }),
@@ -1235,7 +1251,7 @@ export async function rejectLeaveApi(id: number, reason?: string): Promise<Leave
  * Delete / cancel a leave request
  * DELETE /api/leaves/:id
  */
-export async function deleteLeaveApi(id: number): Promise<{ message: string }> {
+export async function deleteLeaveApi(id: number | string): Promise<{ message: string }> {
   const response = await authenticatedFetch(`${API_BASE_URL}/leaves/${id}`, {
     method: 'DELETE',
   });

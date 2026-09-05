@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { createDatabasePool, getPool } from "../config/database.js";
 import type { RowDataPacket } from "mysql2/promise";
 
@@ -211,6 +212,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS user_leaves (
             leave_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            request_id VARCHAR(36) NULL,
             user_id BIGINT NOT NULL,
             leave_date DATE NOT NULL,
             leave_hours DECIMAL(4,2) NOT NULL DEFAULT 8.00,
@@ -222,7 +224,8 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
             FOREIGN KEY (approver_id) REFERENCES users(user_id) ON DELETE SET NULL,
-            UNIQUE KEY unique_user_leave (user_id, leave_date)
+            UNIQUE KEY unique_user_leave (user_id, leave_date),
+            INDEX idx_leave_request_id (request_id)
         )
     `);
     console.log("User leaves table is ready.");
@@ -269,6 +272,65 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         await pool.query(`ALTER TABLE user_leaves ADD COLUMN leave_type ENUM('FULL_DAY', 'FIRST_HALF', 'SECOND_HALF') NOT NULL DEFAULT 'FULL_DAY'`);
     } catch (e: any) {
         // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD COLUMN request_id VARCHAR(36) NULL`);
+    } catch (e: any) {
+        // Ignore if column already exists
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD INDEX idx_leave_request_id (request_id)`);
+    } catch (e: any) {
+        // Ignore if index already exists
+    }
+
+    // Migration check: assign request_id to any legacy rows in user_leaves
+    try {
+        const [nullReqRows] = await pool.query<RowDataPacket[]>(
+            `SELECT leave_id, user_id, created_at FROM user_leaves WHERE request_id IS NULL ORDER BY user_id, leave_date`
+        );
+        if (nullReqRows && nullReqRows.length > 0) {
+            const batchMap = new Map<string, number[]>();
+            for (const r of nullReqRows) {
+                const timeSec = r.created_at ? Math.floor(new Date(r.created_at).getTime() / 5000) : r.leave_id;
+                const batchKey = `${r.user_id}_${timeSec}`;
+                if (!batchMap.has(batchKey)) batchMap.set(batchKey, []);
+                batchMap.get(batchKey)!.push(Number(r.leave_id));
+            }
+            for (const [, ids] of batchMap) {
+                const reqId = randomUUID();
+                await pool.query(
+                    `UPDATE user_leaves SET request_id = ? WHERE leave_id IN (?)`,
+                    [reqId, ids]
+                );
+            }
+        }
+    } catch (e: any) {
+        console.error("Migration warning: failed to backfill request_id in user_leaves:", e);
+    }
+
+    // Migration check: backfill approver_id for APPROVED leaves where approver_id is NULL
+    try {
+        await pool.query(`
+            UPDATE user_leaves ul
+            SET approver_id = (
+                SELECT p.project_manager_id
+                FROM project_members pm
+                INNER JOIN projects p ON pm.project_id = p.project_id
+                WHERE pm.user_id = ul.user_id
+                LIMIT 1
+            )
+            WHERE ul.status = 'APPROVED' AND ul.approver_id IS NULL
+        `);
+        await pool.query(`
+            UPDATE user_leaves ul
+            SET approver_id = (
+                SELECT user_id FROM users WHERE role = 'PROJECT_MANAGER' LIMIT 1
+            )
+            WHERE ul.status = 'APPROVED' AND ul.approver_id IS NULL
+        `);
+    } catch (e: any) {
+        console.error("Migration warning: failed to backfill approver_id in user_leaves:", e);
     }
 
     // 12. Support Tickets table

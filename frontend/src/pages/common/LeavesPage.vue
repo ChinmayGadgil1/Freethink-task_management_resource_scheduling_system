@@ -220,27 +220,68 @@
           </q-td>
         </template>
 
-        <!-- Pretty Date Formatting -->
+        <!-- Date / Range Formatting -->
         <template #body-cell-leave_date="props">
           <q-td :props="props">
-            <div class="text-weight-medium">{{ formatDate(props.row.leave_date) }}</div>
-            <div class="text-caption text-grey-6">{{ props.row.leave_date }}</div>
+            <template v-if="(props.row.total_days && props.row.total_days > 1) || (props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date)">
+              <div class="text-weight-medium text-primary">
+                {{ formatDate(props.row.start_date || props.row.leave_date) }} – {{ formatDate(props.row.end_date || props.row.leave_date) }}
+              </div>
+              <div class="text-caption text-grey-6 q-mb-xs">
+                {{ props.row.total_days }} working days ({{ props.row.start_date || props.row.leave_date }} to {{ props.row.end_date || props.row.leave_date }})
+              </div>
+              <div class="row items-center gap-xs wrap">
+                <q-badge
+                  :color="props.row.start_day_type === 'SECOND_HALF' ? 'primary' : 'blue-grey-6'"
+                  :label="props.row.start_day_type === 'SECOND_HALF' ? 'Start: Second Half' : 'Start: Full Day'"
+                  class="text-weight-bold"
+                  style="font-size: 10px"
+                />
+                <q-badge
+                  :color="props.row.end_day_type === 'FIRST_HALF' ? 'primary' : 'blue-grey-6'"
+                  :label="props.row.end_day_type === 'FIRST_HALF' ? 'End: First Half' : 'End: Full Day'"
+                  class="text-weight-bold"
+                  style="font-size: 10px"
+                />
+              </div>
+            </template>
+            <template v-else>
+              <div class="text-weight-medium">{{ formatDate(props.row.leave_date) }}</div>
+              <div class="text-caption text-grey-6 q-mt-xs">
+                <q-badge
+                  v-if="props.row.leave_type !== 'FULL_DAY'"
+                  color="primary"
+                  :label="props.row.leave_type === 'FIRST_HALF' ? 'First Half' : 'Second Half'"
+                  class="text-weight-bold"
+                  style="font-size: 10px"
+                />
+                <span v-else>{{ props.row.leave_date }} • Full Day</span>
+              </div>
+            </template>
           </q-td>
         </template>
 
         <!-- Leave Type / Hours Formatting -->
         <template #body-cell-leave_type="props">
           <q-td :props="props">
-            <div>
-              {{
-                props.row.leave_type === 'FIRST_HALF'
-                  ? 'First Half'
-                  : props.row.leave_type === 'SECOND_HALF'
-                    ? 'Second Half'
-                    : 'Full Day'
-              }}
-            </div>
-            <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
+            <template v-if="props.row.total_days && props.row.total_days > 1">
+              <div class="text-weight-medium">Multi-Day Leave</div>
+              <div class="text-caption text-grey-6">
+                {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{ props.row.total_days }} days)
+              </div>
+            </template>
+            <template v-else>
+              <div class="text-weight-medium">
+                {{
+                  props.row.leave_type === 'FIRST_HALF'
+                    ? 'First Half'
+                    : props.row.leave_type === 'SECOND_HALF'
+                      ? 'Second Half'
+                      : 'Full Day'
+                }}
+              </div>
+              <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
+            </template>
           </q-td>
         </template>
 
@@ -268,16 +309,29 @@
               {{ props.row.status }}
             </q-chip>
             <div
-              v-if="props.row.status === 'REJECTED' && props.row.rejection_reason"
-              class="text-caption text-negative q-mt-xs"
+              v-if="props.row.status === 'APPROVED'"
+              class="text-caption text-grey-7 q-mt-xs row items-center no-wrap justify-center gap-xs"
+              style="font-size: 11px"
             >
-              {{ props.row.rejection_reason }}
+              <q-icon name="verified_user" size="13px" color="positive" />
+              <span>Approved by <strong>{{ props.row.approver_name || 'Project Manager' }}</strong></span>
             </div>
             <div
-              v-else-if="props.row.status === 'APPROVED' && props.row.approver_name"
-              class="text-caption text-grey-6"
+              v-else-if="props.row.status === 'REJECTED'"
+              class="text-caption text-negative q-mt-xs"
+              style="font-size: 11px"
             >
-              Approved by {{ props.row.approver_name }}
+              <div>{{ props.row.rejection_reason || 'Rejected' }}</div>
+              <div v-if="props.row.approver_name" class="text-grey-6" style="font-size: 10px">
+                by {{ props.row.approver_name }}
+              </div>
+            </div>
+            <div
+              v-else-if="props.row.status === 'PENDING'"
+              class="text-caption text-grey-6 q-mt-xs"
+              style="font-size: 10px"
+            >
+              Pending Approval
             </div>
           </q-td>
         </template>
@@ -288,22 +342,22 @@
             <div class="row items-center justify-center q-gutter-xs no-wrap">
               <!-- PM Approve Button -->
               <template v-if="isProjectManager && props.row.status === 'PENDING'">
-                <!-- Can only approve if leave_date is in the future -->
+                <!-- Can only approve if earliest date is in the future -->
                 <q-btn
-                  v-if="canApproveLeave(props.row.leave_date)"
+                  v-if="canApproveLeave(props.row.start_date || props.row.leave_date)"
                   dense
                   flat
                   round
                   color="positive"
                   icon="check"
-                  :loading="actionInProgressId === props.row.leave_id"
-                  @click="handleApproveLeave(props.row.leave_id)"
+                  :loading="actionInProgressId === (props.row.request_id || props.row.leave_id)"
+                  @click="handleApproveLeave(props.row.request_id || props.row.leave_id)"
                 >
                   <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
                 </q-btn>
                 <div v-else>
                   <q-btn dense flat round disable color="grey-5" icon="check">
-                    <q-tooltip>Cannot approve: Leave date has already arrived or passed</q-tooltip>
+                    <q-tooltip>Cannot approve: Leave start date has already arrived or passed</q-tooltip>
                   </q-btn>
                 </div>
 
@@ -314,8 +368,8 @@
                   round
                   color="negative"
                   icon="close"
-                  :loading="actionInProgressId === props.row.leave_id"
-                  @click="openRejectDialog(props.row.leave_id)"
+                  :loading="actionInProgressId === (props.row.request_id || props.row.leave_id)"
+                  @click="openRejectDialog(props.row.request_id || props.row.leave_id)"
                 >
                   <q-tooltip>Reject Leave</q-tooltip>
                 </q-btn>
@@ -328,7 +382,7 @@
                 dense
                 color="grey-7"
                 icon="delete"
-                @click="confirmCancelLeave(props.row.leave_id)"
+                @click="confirmCancelLeave(props.row.request_id || props.row.leave_id)"
               >
                 <q-tooltip>Delete / Cancel Leave</q-tooltip>
               </q-btn>
@@ -435,9 +489,9 @@
                 map-options
                 label="Leave Type *"
                 :options="[
-                  { label: 'Full Day (Standard Hours)', value: 'FULL_DAY' },
-                  { label: 'First Half (Morning Only)', value: 'FIRST_HALF' },
-                  { label: 'Second Half (Afternoon Only)', value: 'SECOND_HALF' }
+                  { label: 'Full Day', value: 'FULL_DAY' },
+                  { label: 'First Half', value: 'FIRST_HALF' },
+                  { label: 'Second Half', value: 'SECOND_HALF' }
                 ]"
               />
             </div>
@@ -456,7 +510,7 @@
                     label="Start Day *"
                     :options="[
                       { label: 'Full Day', value: 'FULL_DAY' },
-                      { label: 'Second Half (Afternoon)', value: 'SECOND_HALF' }
+                      { label: 'Second Half', value: 'SECOND_HALF' }
                     ]"
                   />
                 </div>
@@ -470,7 +524,7 @@
                     label="End Day *"
                     :options="[
                       { label: 'Full Day', value: 'FULL_DAY' },
-                      { label: 'First Half (Morning)', value: 'FIRST_HALF' }
+                      { label: 'First Half', value: 'FIRST_HALF' }
                     ]"
                   />
                 </div>
@@ -575,11 +629,11 @@ interface ResourceListItem {
 const loading = ref(false);
 const leavesList = ref<LeaveItem[]>([]);
 const resourcesList = ref<ResourceListItem[]>([]);
-const actionInProgressId = ref<number | null>(null);
+const actionInProgressId = ref<number | string | null>(null);
 
 // Reject Modal State
 const showRejectModal = ref(false);
-const rejectingLeaveId = ref<number | null>(null);
+const rejectingLeaveId = ref<number | string | null>(null);
 const rejectionReason = ref('');
 const rejectSubmitting = ref(false);
 
@@ -726,12 +780,14 @@ const pendingLeavesCount = computed(() => {
 
 const futureLeavesCount = computed(() => {
   const todayStr = new Date().toISOString().split('T')[0]!;
-  return leavesList.value.filter((l) => l.leave_date >= todayStr).length;
+  return leavesList.value.filter((l) => (l.end_date || l.leave_date) >= todayStr).length;
 });
 
 const currentMonthLeavesCount = computed(() => {
   const currentMonthStr = new Date().toISOString().substring(0, 7); // e.g. YYYY-MM
-  return leavesList.value.filter((l) => l.leave_date.startsWith(currentMonthStr)).length;
+  return leavesList.value.filter(
+    (l) => (l.start_date || l.leave_date).startsWith(currentMonthStr) || (l.end_date || l.leave_date).startsWith(currentMonthStr),
+  ).length;
 });
 
 // Resource maps lookup
@@ -879,10 +935,10 @@ async function handleApplyLeave() {
 }
 
 // PM Approve Leave Logic
-async function handleApproveLeave(leaveId: number) {
-  actionInProgressId.value = leaveId;
+async function handleApproveLeave(identifier: number | string) {
+  actionInProgressId.value = identifier;
   try {
-    await approveLeaveApi(leaveId);
+    await approveLeaveApi(identifier);
     $q.notify({
       type: 'positive',
       message: 'Leave approved! Project schedules have been automatically recalculated.',
@@ -900,8 +956,8 @@ async function handleApproveLeave(leaveId: number) {
 }
 
 // PM Reject Leave Logic
-function openRejectDialog(leaveId: number) {
-  rejectingLeaveId.value = leaveId;
+function openRejectDialog(identifier: number | string) {
+  rejectingLeaveId.value = identifier;
   rejectionReason.value = '';
   showRejectModal.value = true;
 }
@@ -930,20 +986,20 @@ async function handleRejectLeaveConfirm() {
 }
 
 // Delete leave logic
-function confirmCancelLeave(leaveId: number) {
+function confirmCancelLeave(identifier: number | string) {
   $q.dialog({
     title: 'Confirm Cancellation',
-    message: 'Are you sure you want to remove this leave record?',
+    message: 'Are you sure you want to remove this leave request?',
     cancel: true,
     persistent: true,
   }).onOk(() => {
-    void handleCancelLeave(leaveId);
+    void handleCancelLeave(identifier);
   });
 }
 
-async function handleCancelLeave(leaveId: number) {
+async function handleCancelLeave(identifier: number | string) {
   try {
-    await deleteLeaveApi(leaveId);
+    await deleteLeaveApi(identifier);
     $q.notify({
       type: 'positive',
       message: 'Leave record removed successfully',

@@ -1,12 +1,27 @@
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type LeaveType = 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
 
+export interface UserLeaveDay {
+    leave_id: number;
+    leave_date: string;
+    leave_hours: number;
+    leave_type: LeaveType;
+    status: LeaveStatus;
+}
+
 export interface UserLeave {
     leave_id: number;
+    request_id?: string | null;
     user_id: number;
     user_name?: string;
     user_email?: string;
-    leave_date: string; // ISO date string (YYYY-MM-DD)
+    leave_date: string; // ISO date string (YYYY-MM-DD) for start_date or legacy single date
+    start_date?: string;
+    end_date?: string;
+    start_day_type?: LeaveType;
+    end_day_type?: LeaveType;
+    total_days?: number;
+    total_hours?: number;
     leave_hours: number;
     leave_type: LeaveType;
     status: LeaveStatus;
@@ -15,6 +30,7 @@ export interface UserLeave {
     rejection_reason?: string | null;
     approved_at?: string | null;
     created_at?: string | null;
+    days_breakdown?: UserLeaveDay[];
 }
 
 export interface CreateLeaveDTO {

@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { initializeDatabase } from "./init.js";
 import type { ResultSetHeader } from "mysql2/promise";
@@ -112,8 +113,8 @@ async function seed() {
         const approverId = l.approver_email ? userMap[l.approver_email] : null;
         if (userId) {
             await pool.query(
-                `INSERT INTO user_leaves (user_id, leave_date, leave_hours, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?)`,
-                [userId, l.leave_date, l.leave_hours, l.status, approverId, l.approved_at]
+                `INSERT INTO user_leaves (request_id, user_id, leave_date, leave_hours, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [randomUUID(), userId, l.leave_date, l.leave_hours, l.status, approverId, l.approved_at]
             );
         }
     }

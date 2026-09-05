@@ -94,11 +94,11 @@ export async function addLeave(req: AuthRequest, res: Response): Promise<void> {
  */
 export async function approveLeaveController(req: AuthRequest<{ id: string }>, res: Response): Promise<void> {
     try {
-        const leaveId = Number(req.params.id);
-        if (isNaN(leaveId)) {
+        const idParam = req.params.id;
+        if (!idParam) {
             res.status(400).json({
                 success: false,
-                message: "Invalid leave ID."
+                message: "Leave ID or Request ID is required."
             });
             return;
         }
@@ -111,7 +111,7 @@ export async function approveLeaveController(req: AuthRequest<{ id: string }>, r
             return;
         }
 
-        const updatedLeave = await leaveService.approveLeave(leaveId, req.user.user_id);
+        const updatedLeave = await leaveService.approveLeave(idParam, req.user.user_id);
 
         res.status(200).json({
             success: true,
@@ -133,11 +133,11 @@ export async function approveLeaveController(req: AuthRequest<{ id: string }>, r
  */
 export async function rejectLeaveController(req: AuthRequest<{ id: string }>, res: Response): Promise<void> {
     try {
-        const leaveId = Number(req.params.id);
-        if (isNaN(leaveId)) {
+        const idParam = req.params.id;
+        if (!idParam) {
             res.status(400).json({
                 success: false,
-                message: "Invalid leave ID."
+                message: "Leave ID or Request ID is required."
             });
             return;
         }
@@ -151,7 +151,7 @@ export async function rejectLeaveController(req: AuthRequest<{ id: string }>, re
         }
 
         const parsed = rejectLeaveSchema.parse(req.body || {});
-        const updatedLeave = await leaveService.rejectLeave(leaveId, req.user.user_id, parsed.reason);
+        const updatedLeave = await leaveService.rejectLeave(idParam, req.user.user_id, parsed.reason);
 
         res.status(200).json({
             success: true,
@@ -182,11 +182,11 @@ export async function rejectLeaveController(req: AuthRequest<{ id: string }>, re
  */
 export async function removeLeave(req: AuthRequest<{ id: string }>, res: Response): Promise<void> {
     try {
-        const leaveId = Number(req.params.id);
-        if (isNaN(leaveId)) {
+        const idParam = req.params.id;
+        if (!idParam) {
             res.status(400).json({
                 success: false,
-                message: "Invalid leave ID."
+                message: "Leave ID or Request ID is required."
             });
             return;
         }
@@ -199,7 +199,7 @@ export async function removeLeave(req: AuthRequest<{ id: string }>, res: Respons
             return;
         }
 
-        await leaveService.cancelLeave(leaveId, req.user);
+        await leaveService.cancelLeave(idParam, req.user);
 
         res.status(200).json({
             success: true,
