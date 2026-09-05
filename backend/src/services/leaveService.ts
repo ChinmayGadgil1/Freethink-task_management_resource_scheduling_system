@@ -4,18 +4,68 @@ import type { UserLeave, CreateLeaveDTO, LeaveStatus } from "../models/leaveMode
 import { recalculate } from "./scheduler/SchedulingEngine.js";
 import { getResourceProjects } from "./resourceService.js";
 
+const DAY_OF_WEEK_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
+
+function parseNonWorkingDaysList(raw: any): string[] {
+    if (!raw) return ['SATURDAY', 'SUNDAY'];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+        } catch {
+            // fallback
+        }
+    }
+    return ['SATURDAY', 'SUNDAY'];
+}
+
+function formatDateISO(d: Date): string {
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getDatesBetween(startDateStr: string, endDateStr: string): string[] {
+    const dates: string[] = [];
+    const current = new Date(`${startDateStr}T00:00:00Z`);
+    const end = new Date(`${endDateStr}T00:00:00Z`);
+    while (current <= end) {
+        dates.push(formatDateISO(current));
+        current.setUTCDate(current.getUTCDate() + 1);
+    }
+    return dates;
+}
+
 /**
- * Apply/Add a new user leave.
+ * Apply/Add a new user leave (supports single-day or multi-day range with half-day options).
  * If applied by PM, default to APPROVED and trigger schedule recalculation.
  * If applied by RESOURCE, default to PENDING (pending PM approval, no immediate recalculation).
  */
-export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creatorId?: number): Promise<UserLeave> {
+export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creatorId?: number): Promise<UserLeave | UserLeave[]> {
     const pool = getPool();
-    const { user_id, leave_date } = data;
+    const { user_id } = data;
+
+    const startDateStr = (data.start_date || data.leave_date || '').split('T')[0]!;
+    const endDateStr = (data.end_date || startDateStr).split('T')[0]!;
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(startDateStr) || !dateRegex.test(endDateStr)) {
+        const error = new Error("Invalid date format. Expected YYYY-MM-DD.");
+        (error as any).status = 400;
+        throw error;
+    }
+
+    if (startDateStr > endDateStr) {
+        const error = new Error("Start date cannot be after end date.");
+        (error as any).status = 400;
+        throw error;
+    }
 
     // 1. Validate resource exists, is active, and has the role RESOURCE
     const [userRows] = await pool.query<RowDataPacket[]>(
-        `SELECT user_id, is_active, role, daily_working_hours FROM users WHERE user_id = ?`,
+        `SELECT user_id, is_active, role, daily_working_hours, non_working_days FROM users WHERE user_id = ?`,
         [user_id]
     );
 
@@ -38,9 +88,6 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         throw error;
     }
 
-    // Determine leave_type and leave_hours based on user's daily_working_hours
-    const leave_type = data.leave_type || 'FULL_DAY';
-    
     const userDailyHours = user.daily_working_hours !== null && user.daily_working_hours !== undefined
         ? Number(user.daily_working_hours)
         : 8.00;
@@ -49,48 +96,61 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         ? userDailyHours
         : 8.00;
 
-    let leave_hours: number;
-    if (leave_type === 'FULL_DAY') {
-        leave_hours = maxDailyHours;
-    } else {
-        leave_hours = maxDailyHours / 2;
+    // Fetch company holidays
+    const [holidayRows] = await pool.query<RowDataPacket[]>(
+        `SELECT DATE_FORMAT(holiday_date, '%Y-%m-%d') as holiday_date FROM holidays`
+    );
+    const holidaySet = new Set(holidayRows.map(h => String(h.holiday_date)));
+
+    const nonWorkingDays = parseNonWorkingDaysList(user.non_working_days);
+    const allDatesInRange = getDatesBetween(startDateStr, endDateStr);
+
+    const isSingleDayRequest = startDateStr === endDateStr;
+
+    // Filter to working days
+    const workingDates: string[] = [];
+    for (const dStr of allDatesInRange) {
+        const dObj = new Date(`${dStr}T00:00:00Z`);
+        const dayOfWeek = DAY_OF_WEEK_NAMES[dObj.getUTCDay()]!;
+        const isNonWorking = nonWorkingDays.includes(dayOfWeek);
+        const isHoliday = holidaySet.has(dStr);
+
+        if (isSingleDayRequest) {
+            if (isNonWorking || isHoliday) {
+                const reason = isHoliday ? "a company holiday" : "a non-working day";
+                const error = new Error(`Cannot apply leave on ${dStr} as it is ${reason}.`);
+                (error as any).status = 400;
+                throw error;
+            }
+            workingDates.push(dStr);
+        } else {
+            // In multi-day range, skip non-working days and holidays
+            if (!isNonWorking && !isHoliday) {
+                workingDates.push(dStr);
+            }
+        }
     }
 
-    // 2. Validate leave hours (must be positive and <= 24)
-    if (isNaN(leave_hours) || leave_hours <= 0 || leave_hours > 24) {
-        const error = new Error("Calculated leave hours must be a positive number up to 24.");
+    if (workingDates.length === 0) {
+        const error = new Error(`No working days found in the selected date range (${startDateStr} to ${endDateStr}).`);
         (error as any).status = 400;
         throw error;
     }
 
-    // 3. Format and validate Date format YYYY-MM-DD
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const formattedDate = leave_date.includes("T") ? leave_date.split("T")[0]! : leave_date;
-    if (!dateRegex.test(formattedDate)) {
-        const error = new Error("Invalid date format. Expected YYYY-MM-DD.");
-        (error as any).status = 400;
-        throw error;
-    }
-    const dateObj = new Date(`${formattedDate}T00:00:00Z`);
-    if (isNaN(dateObj.getTime())) {
-        const error = new Error("Invalid date.");
-        (error as any).status = 400;
-        throw error;
-    }
-
-    // 4. Duplicate leave check
+    // 2. Duplicate leave check
     const [existingLeaves] = await pool.query<RowDataPacket[]>(
-        `SELECT leave_id, status FROM user_leaves WHERE user_id = ? AND leave_date = ?`,
-        [user_id, formattedDate]
+        `SELECT leave_id, DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, status 
+         FROM user_leaves 
+         WHERE user_id = ? AND leave_date IN (?)`,
+        [user_id, workingDates]
     );
 
-    if (existingLeaves.length > 0 && existingLeaves[0]) {
-        const existing = existingLeaves[0];
-        if (existing.status !== "REJECTED") {
-            const error = new Error(`A leave request (${existing.status.toLowerCase()}) already exists for this resource on this date.`);
-            (error as any).status = 409;
-            throw error;
-        }
+    const conflicting = existingLeaves.filter(e => e.status !== "REJECTED");
+    if (conflicting.length > 0) {
+        const conflictDates = conflicting.map(e => String(e.leave_date)).join(", ");
+        const error = new Error(`A leave request already exists for this resource on: ${conflictDates}.`);
+        (error as any).status = 409;
+        throw error;
     }
 
     // Determine initial status: PM applying on behalf is pre-approved; resource applying is PENDING
@@ -98,13 +158,68 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
     const approverId = (userRole === "PROJECT_MANAGER" && creatorId) ? creatorId : null;
     const approvedAt = (initialStatus === "APPROVED") ? new Date() : null;
 
-    // 5. Insert leave record
-    const [result] = await pool.query<ResultSetHeader>(
-        `INSERT INTO user_leaves (user_id, leave_date, leave_hours, leave_type, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [user_id, formattedDate, leave_hours, leave_type, initialStatus, approverId, approvedAt]
-    );
+    // Prepare leave records to insert
+    const leavesToCreate: {
+        user_id: number;
+        leave_date: string;
+        leave_hours: number;
+        leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+        status: LeaveStatus;
+        approver_id: number | null;
+        approved_at: string | null;
+    }[] = [];
 
-    // 6. Recalculate schedules if approved immediately
+    for (let i = 0; i < workingDates.length; i++) {
+        const dateStr = workingDates[i]!;
+        let dayLeaveType: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' = 'FULL_DAY';
+
+        if (workingDates.length === 1) {
+            dayLeaveType = data.leave_type || data.start_day_type || 'FULL_DAY';
+        } else if (i === 0) {
+            // First working day in range
+            dayLeaveType = data.start_day_type || data.leave_type || 'FULL_DAY';
+        } else if (i === workingDates.length - 1) {
+            // Last working day in range
+            dayLeaveType = data.end_day_type || 'FULL_DAY';
+        } else {
+            // In-between working days are always full days
+            dayLeaveType = 'FULL_DAY';
+        }
+
+        const leaveHours = dayLeaveType === 'FULL_DAY' ? maxDailyHours : (maxDailyHours / 2);
+
+        leavesToCreate.push({
+            user_id,
+            leave_date: dateStr,
+            leave_hours: leaveHours,
+            leave_type: dayLeaveType,
+            status: initialStatus,
+            approver_id: approverId,
+            approved_at: approvedAt ? approvedAt.toISOString() : null
+        });
+    }
+
+    // 3. Insert records
+    const createdLeaves: UserLeave[] = [];
+    for (const item of leavesToCreate) {
+        const [result] = await pool.query<ResultSetHeader>(
+            `INSERT INTO user_leaves (user_id, leave_date, leave_hours, leave_type, status, approver_id, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [item.user_id, item.leave_date, item.leave_hours, item.leave_type, item.status, item.approver_id, approvedAt]
+        );
+
+        createdLeaves.push({
+            leave_id: result.insertId,
+            user_id: item.user_id,
+            leave_date: item.leave_date,
+            leave_hours: item.leave_hours,
+            leave_type: item.leave_type,
+            status: item.status,
+            approver_id: item.approver_id,
+            approved_at: item.approved_at
+        });
+    }
+
+    // 4. Recalculate schedules if approved immediately
     if (initialStatus === "APPROVED") {
         try {
             const projects = await getResourceProjects(user_id);
@@ -116,16 +231,7 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         }
     }
 
-    return {
-        leave_id: result.insertId,
-        user_id,
-        leave_date: formattedDate,
-        leave_hours,
-        leave_type,
-        status: initialStatus,
-        approver_id: approverId,
-        approved_at: approvedAt ? approvedAt.toISOString() : null
-    };
+    return createdLeaves.length === 1 ? createdLeaves[0]! : createdLeaves;
 }
 
 /**

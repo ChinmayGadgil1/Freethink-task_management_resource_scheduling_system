@@ -1173,9 +1173,13 @@ export async function getLeavesApi(params?: {
  */
 export async function createLeaveApi(payload: {
   user_id: number;
-  leave_date: string;
-  leave_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
-}): Promise<LeaveItem> {
+  leave_date?: string | undefined;
+  start_date?: string | undefined;
+  end_date?: string | undefined;
+  leave_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' | undefined;
+  start_day_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' | undefined;
+  end_day_type?: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' | undefined;
+}): Promise<LeaveItem | LeaveItem[]> {
   const response = await authenticatedFetch(`${API_BASE_URL}/leaves`, {
     method: 'POST',
     body: JSON.stringify(payload),

@@ -388,6 +388,22 @@
               no-data-label="No leave records found for this resource"
               :pagination="{ rowsPerPage: 5 }"
             >
+              <!-- Leave Type / Hours Formatting -->
+              <template #body-cell-leave_type="props">
+                <q-td :props="props">
+                  <div>
+                    {{
+                      props.row.leave_type === 'FIRST_HALF'
+                        ? 'First Half'
+                        : props.row.leave_type === 'SECOND_HALF'
+                          ? 'Second Half'
+                          : 'Full Day'
+                    }}
+                  </div>
+                  <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
+                </q-td>
+              </template>
+
               <template #body-cell-status="props">
                 <q-td :props="props" auto-width>
                   <q-chip
@@ -556,34 +572,115 @@
 
           <q-form @submit.prevent="handleApplyLeave">
             <q-card-section class="q-gutter-md">
-              <q-input
-                v-model="leaveForm.leave_date"
-                outlined
-                dense
-                label="Leave Date (YYYY-MM-DD) *"
-                :rules="[(val) => !!val || 'Leave date is required']"
-              >
-                <template #append>
-                  <q-icon name="event" class="cursor-pointer">
-                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                      <q-date v-model="leaveForm.leave_date" mask="YYYY-MM-DD">
-                        <div class="row items-center justify-end">
-                          <q-btn v-close-popup label="Close" color="primary" flat />
-                        </div>
-                      </q-date>
-                    </q-popup-proxy>
-                  </q-icon>
-                </template>
-              </q-input>
+              <!-- Date Pickers (Start Date & End Date) -->
+              <div class="row q-col-gutter-sm">
+                <div class="col-12 col-sm-6">
+                  <q-input
+                    v-model="leaveForm.start_date"
+                    outlined
+                    dense
+                    label="Start Date (YYYY-MM-DD) *"
+                    :rules="[(val) => !!val || 'Start date is required']"
+                    @update:model-value="(val) => { if (val && (!leaveForm.end_date || leaveForm.end_date < String(val))) leaveForm.end_date = String(val); }"
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date v-model="leaveForm.start_date" mask="YYYY-MM-DD">
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                </div>
 
-              <q-input
-                v-model.number="leaveForm.leave_hours"
-                outlined
-                dense
-                type="number"
-                label="Leave Hours"
-                :rules="[(val) => val > 0 || 'Hours must be greater than 0']"
-              />
+                <div class="col-12 col-sm-6">
+                  <q-input
+                    v-model="leaveForm.end_date"
+                    outlined
+                    dense
+                    label="End Date (YYYY-MM-DD) *"
+                    :rules="[
+                      (val) => !!val || 'End date is required',
+                      (val) => !leaveForm.start_date || val >= leaveForm.start_date || 'End date must be on or after start date',
+                    ]"
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="leaveForm.end_date"
+                            mask="YYYY-MM-DD"
+                            :options="(date) => !leaveForm.start_date || date.replaceAll('/', '-') >= leaveForm.start_date"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+
+              <!-- Single Day Leave Type Input -->
+              <div v-if="!isMultiDayLeave">
+                <q-select
+                  v-model="leaveForm.leave_type"
+                  outlined
+                  dense
+                  emit-value
+                  map-options
+                  label="Leave Type *"
+                  :options="[
+                    { label: 'Full Day (Standard Hours)', value: 'FULL_DAY' },
+                    { label: 'First Half (Morning Only)', value: 'FIRST_HALF' },
+                    { label: 'Second Half (Afternoon Only)', value: 'SECOND_HALF' }
+                  ]"
+                />
+              </div>
+
+              <!-- Multi-Day Half-Day Configuration -->
+              <div v-else class="q-gutter-sm bg-grey-1 q-pa-sm rounded-borders">
+                <div class="text-caption text-weight-medium text-grey-8">Half-Day Settings:</div>
+                <div class="row q-col-gutter-sm">
+                  <div class="col-12 col-sm-6">
+                    <q-select
+                      v-model="leaveForm.start_day_type"
+                      outlined
+                      dense
+                      emit-value
+                      map-options
+                      label="Start Day *"
+                      :options="[
+                        { label: 'Full Day', value: 'FULL_DAY' },
+                        { label: 'Second Half (Afternoon)', value: 'SECOND_HALF' }
+                      ]"
+                    />
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <q-select
+                      v-model="leaveForm.end_day_type"
+                      outlined
+                      dense
+                      emit-value
+                      map-options
+                      label="End Day *"
+                      :options="[
+                        { label: 'Full Day', value: 'FULL_DAY' },
+                        { label: 'First Half (Morning)', value: 'FIRST_HALF' }
+                      ]"
+                    />
+                  </div>
+                </div>
+                <div class="text-caption text-grey-6 q-mt-xs">
+                  Intermediate days between start and end date will be treated as Full Days. Non-working days and holidays are automatically excluded.
+                </div>
+              </div>
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
@@ -978,17 +1075,34 @@ const leavesList = ref<LeaveItem[]>([]);
 const showLeaveDialog = ref(false);
 const leaveSubmitting = ref(false);
 const leaveActionLoadingId = ref<number | null>(null);
-const leaveForm = reactive({
-  leave_date: '',
-  leave_hours: 8,
+const leaveForm = reactive<{
+  start_date: string;
+  end_date: string;
+  leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+  start_day_type: 'FULL_DAY' | 'SECOND_HALF';
+  end_day_type: 'FULL_DAY' | 'FIRST_HALF';
+}>({
+  start_date: '',
+  end_date: '',
+  leave_type: 'FULL_DAY',
+  start_day_type: 'FULL_DAY',
+  end_day_type: 'FULL_DAY',
+});
+
+const isMultiDayLeave = computed(() => {
+  return !!(
+    leaveForm.start_date &&
+    leaveForm.end_date &&
+    leaveForm.start_date < leaveForm.end_date
+  );
 });
 
 const leaveColumns: QTableColumn<LeaveItem>[] = [
   { name: 'leave_date', label: 'Date', field: (l) => l.leave_date, align: 'left', sortable: true },
   {
-    name: 'leave_hours',
-    label: 'Hours',
-    field: (l) => l.leave_hours,
+    name: 'leave_type',
+    label: 'Leave Type / Hours',
+    field: (l) => l.leave_type,
     align: 'center',
     sortable: true,
   },
@@ -1212,25 +1326,44 @@ async function handleAssignTask() {
 }
 
 function openLeaveDialog() {
-  leaveForm.leave_date = '';
-  leaveForm.leave_hours = 8;
+  leaveForm.start_date = '';
+  leaveForm.end_date = '';
+  leaveForm.leave_type = 'FULL_DAY';
+  leaveForm.start_day_type = 'FULL_DAY';
+  leaveForm.end_day_type = 'FULL_DAY';
   showLeaveDialog.value = true;
 }
 
 async function handleApplyLeave() {
-  if (!leaveForm.leave_date) {
+  if (!leaveForm.start_date || !leaveForm.end_date) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please complete all required fields.',
+    });
     return;
   }
+
+  if (leaveForm.start_date > leaveForm.end_date) {
+    $q.notify({
+      type: 'warning',
+      message: 'Start date cannot be after end date.',
+    });
+    return;
+  }
+
   leaveSubmitting.value = true;
   try {
     await createLeaveApi({
       user_id: resourceId.value,
-      leave_date: leaveForm.leave_date,
-      leave_hours: Number(leaveForm.leave_hours) || 8,
+      start_date: leaveForm.start_date,
+      end_date: leaveForm.end_date,
+      leave_type: !isMultiDayLeave.value ? leaveForm.leave_type : undefined,
+      start_day_type: isMultiDayLeave.value ? leaveForm.start_day_type : undefined,
+      end_day_type: isMultiDayLeave.value ? leaveForm.end_day_type : undefined,
     });
     $q.notify({
       type: 'positive',
-      message: 'Leave applied successfully',
+      message: 'Leave applied successfully. Project schedules recalculated.',
     });
     showLeaveDialog.value = false;
     void loadData();

@@ -19,8 +19,12 @@ export interface UserLeave {
 
 export interface CreateLeaveDTO {
     user_id: number;
-    leave_date: string;
+    leave_date?: string | undefined;
+    start_date?: string | undefined;
+    end_date?: string | undefined;
     leave_type?: LeaveType | undefined;
+    start_day_type?: LeaveType | undefined;
+    end_day_type?: LeaveType | undefined;
     status?: LeaveStatus | undefined;
     approver_id?: number | null | undefined;
 }

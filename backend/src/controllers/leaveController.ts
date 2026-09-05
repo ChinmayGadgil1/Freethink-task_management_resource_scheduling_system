@@ -5,8 +5,22 @@ import * as leaveService from "../services/leaveService.js";
 
 const addLeaveSchema = z.object({
     user_id: z.number({ message: "User ID is required" }).int().positive("User ID must be a positive integer"),
-    leave_date: z.string({ message: "Leave date is required" }).regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Expected YYYY-MM-DD"),
-    leave_type: z.enum(["FULL_DAY", "FIRST_HALF", "SECOND_HALF"]).optional()
+    leave_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Expected YYYY-MM-DD").optional(),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start_date format. Expected YYYY-MM-DD").optional(),
+    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end_date format. Expected YYYY-MM-DD").optional(),
+    leave_type: z.enum(["FULL_DAY", "FIRST_HALF", "SECOND_HALF"]).optional(),
+    start_day_type: z.enum(["FULL_DAY", "FIRST_HALF", "SECOND_HALF"]).optional(),
+    end_day_type: z.enum(["FULL_DAY", "FIRST_HALF", "SECOND_HALF"]).optional(),
+}).refine(data => data.start_date || data.leave_date, {
+    message: "Either start_date or leave_date is required",
+    path: ["start_date"]
+}).refine(data => {
+    const s = data.start_date || data.leave_date;
+    const e = data.end_date || s;
+    return !s || !e || s <= e;
+}, {
+    message: "start_date must be before or equal to end_date",
+    path: ["end_date"]
 });
 
 const getLeavesQuerySchema = z.object({
@@ -22,7 +36,7 @@ const rejectLeaveSchema = z.object({
 
 /**
  * POST /api/leaves
- * Apply / add a leave request.
+ * Apply / add a leave request (supports single day or date range).
  */
 export async function addLeave(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -41,7 +55,11 @@ export async function addLeave(req: AuthRequest, res: Response): Promise<void> {
             {
                 user_id: parsed.user_id,
                 leave_date: parsed.leave_date,
-                ...(parsed.leave_type !== undefined ? { leave_type: parsed.leave_type as any } : {})
+                start_date: parsed.start_date,
+                end_date: parsed.end_date,
+                ...(parsed.leave_type !== undefined ? { leave_type: parsed.leave_type as any } : {}),
+                ...(parsed.start_day_type !== undefined ? { start_day_type: parsed.start_day_type as any } : {}),
+                ...(parsed.end_day_type !== undefined ? { end_day_type: parsed.end_day_type as any } : {})
             },
             req.user?.role,
             req.user?.user_id
