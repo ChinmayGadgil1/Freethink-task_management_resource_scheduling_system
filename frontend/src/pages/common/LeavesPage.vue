@@ -223,12 +223,12 @@
         <!-- Date / Range Formatting -->
         <template #body-cell-leave_date="props">
           <q-td :props="props">
-            <template v-if="(props.row.total_days && props.row.total_days > 1) || (props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date)">
+            <template v-if="props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date">
               <div class="text-weight-medium text-primary">
-                {{ formatDate(props.row.start_date || props.row.leave_date) }} – {{ formatDate(props.row.end_date || props.row.leave_date) }}
+                {{ formatDate(props.row.start_date) }} – {{ formatDate(props.row.end_date) }}
               </div>
               <div class="text-caption text-grey-6 q-mb-xs">
-                {{ props.row.total_days }} working days ({{ props.row.start_date || props.row.leave_date }} to {{ props.row.end_date || props.row.leave_date }})
+                {{ props.row.total_days }} working days ({{ props.row.start_date }} to {{ props.row.end_date }})
               </div>
               <div class="row items-center gap-xs wrap">
                 <q-badge
@@ -246,16 +246,20 @@
               </div>
             </template>
             <template v-else>
-              <div class="text-weight-medium">{{ formatDate(props.row.leave_date) }}</div>
+              <div class="text-weight-medium">{{ formatDate(props.row.leave_date || props.row.start_date) }}</div>
               <div class="text-caption text-grey-6 q-mt-xs">
                 <q-badge
-                  v-if="props.row.leave_type !== 'FULL_DAY'"
                   color="primary"
-                  :label="props.row.leave_type === 'FIRST_HALF' ? 'First Half' : 'Second Half'"
+                  :label="
+                    props.row.leave_type === 'FIRST_HALF'
+                      ? 'First Half'
+                      : props.row.leave_type === 'SECOND_HALF'
+                        ? 'Second Half'
+                        : 'Full Day'
+                  "
                   class="text-weight-bold"
                   style="font-size: 10px"
                 />
-                <span v-else>{{ props.row.leave_date }} • Full Day</span>
               </div>
             </template>
           </q-td>
@@ -264,7 +268,7 @@
         <!-- Leave Type / Hours Formatting -->
         <template #body-cell-leave_type="props">
           <q-td :props="props">
-            <template v-if="props.row.total_days && props.row.total_days > 1">
+            <template v-if="props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date">
               <div class="text-weight-medium">Multi-Day Leave</div>
               <div class="text-caption text-grey-6">
                 {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{ props.row.total_days }} days)

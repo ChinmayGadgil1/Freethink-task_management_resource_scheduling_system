@@ -721,6 +721,12 @@ export async function getLeaves(filters: {
         const rejectionReason = groupRows.find(r => r.rejection_reason)?.rejection_reason || first.rejection_reason || null;
         const approvedAtVal = groupRows.find(r => r.approved_at)?.approved_at || first.approved_at;
 
+        const uniqueDates = Array.from(new Set(groupRows.map(r => String(r.leave_date))));
+        const isMultiDay = uniqueDates.length > 1 && String(first.leave_date) !== String(last.leave_date);
+        const resolvedSingleType = groupRows.length === 1 
+            ? ((first.leave_type as any) || 'FULL_DAY') 
+            : (totalHours >= 8 ? 'FULL_DAY' : ((first.leave_type as any) || 'FULL_DAY'));
+
         groupedLeaves.push({
             leave_id: Number(first.leave_id),
             request_id: first.request_id ? String(first.request_id) : null,
@@ -730,12 +736,12 @@ export async function getLeaves(filters: {
             leave_date: String(first.leave_date),
             start_date: String(first.leave_date),
             end_date: String(last.leave_date),
-            start_day_type: (first.leave_type as any) || 'FULL_DAY',
-            end_day_type: (last.leave_type as any) || 'FULL_DAY',
-            total_days: groupRows.length,
+            start_day_type: isMultiDay ? ((first.leave_type as any) || 'FULL_DAY') : resolvedSingleType,
+            end_day_type: isMultiDay ? ((last.leave_type as any) || 'FULL_DAY') : resolvedSingleType,
+            total_days: uniqueDates.length,
             total_hours: totalHours,
             leave_hours: totalHours,
-            leave_type: groupRows.length === 1 ? ((first.leave_type as any) || 'FULL_DAY') : 'FULL_DAY',
+            leave_type: isMultiDay ? 'FULL_DAY' : resolvedSingleType,
             status: aggregatedStatus,
             approver_id: approverId,
             approver_name: approverName,
