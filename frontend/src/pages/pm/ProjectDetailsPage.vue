@@ -269,6 +269,7 @@
             icon="donut_large"
             color="purple"
             note-class="note-green"
+            @click="filterAllTasks"
           />
         </div>
         <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
@@ -279,6 +280,7 @@
             icon="task_alt"
             color="teal"
             note-class="note-teal"
+            @click="filterAllTasks"
           />
         </div>
         <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
@@ -289,6 +291,7 @@
             icon="check_circle"
             color="green"
             note-class="note-green"
+            @click="filterCompletedTasks"
           />
         </div>
         <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
@@ -300,6 +303,7 @@
             color="red"
             :note-class="overdueTasksCount > 0 ? 'note-red' : 'note-green'"
             :negative="overdueTasksCount > 0"
+            @click="filterOverdueTasks"
           />
         </div>
         <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
@@ -310,6 +314,7 @@
             icon="groups"
             color="orange"
             note-class="note-orange"
+            @click="scrollToTeam"
           />
         </div>
         <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
@@ -327,6 +332,7 @@
             color="blue"
             note-class="note-blue"
             :negative="daysRemaining < 0"
+            @click="filterAllTasks"
           />
         </div>
       </div>
@@ -633,7 +639,13 @@
       </div>
 
       <!-- 05 TASK BREAKDOWN TABLE CARD -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders">
+      <q-card
+        id="task-breakdown-card"
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders"
+      >
         <q-card-section class="row items-center justify-between wrap q-gutter-y-sm">
           <div class="row items-center">
             <q-icon name="format_list_bulleted" size="20px" color="primary" class="q-mr-xs" />
@@ -995,7 +1007,13 @@
       <div class="row q-col-gutter-lg">
         <!-- Team Card -->
         <div class="col-12 col-md-6">
-          <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
+          <q-card
+            id="team-workload-card"
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="rounded-borders full-height"
+          >
             <q-card-section class="row items-center justify-between">
               <div class="row items-center">
                 <q-icon name="badge" size="20px" color="primary" class="q-mr-xs" />
@@ -2206,6 +2224,33 @@ function resetTaskFilters() {
   statusFilter.value = 'ALL';
   priorityFilter.value = 'ALL';
   assigneeFilter.value = 'ALL';
+}
+
+function scrollToTaskBreakdown() {
+  const el = document.getElementById('task-breakdown-card');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filterAllTasks() {
+  resetTaskFilters();
+  scrollToTaskBreakdown();
+}
+
+function filterCompletedTasks() {
+  resetTaskFilters();
+  statusFilter.value = 'COMPLETED';
+  scrollToTaskBreakdown();
+}
+
+function filterOverdueTasks() {
+  resetTaskFilters();
+  // Filter for in-progress or scheduled tasks and scroll to task breakdown
+  scrollToTaskBreakdown();
+}
+
+function scrollToTeam() {
+  const el = document.getElementById('team-workload-card');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function loadProjectDetails() {

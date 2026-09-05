@@ -37,15 +37,15 @@
       </div>
 
       <div class="stat-cells-grid q-mt-lg">
-        <div class="stat-cell stat-purple">
+        <div class="stat-cell stat-purple cursor-pointer" @click="goToTaskDetails">
           <div class="stat-label">Active tasks</div>
           <div class="stat-value ellipsis">{{ assignedTasks }}</div>
         </div>
-        <div class="stat-cell stat-blue">
+        <div class="stat-cell stat-blue cursor-pointer" @click="goToProgress">
           <div class="stat-label">Actual effort</div>
           <div class="stat-value ellipsis">{{ formatHours(actualHours) }}</div>
         </div>
-        <div class="stat-cell stat-mint">
+        <div class="stat-cell stat-mint cursor-pointer" @click="goToProgress">
           <div class="stat-label">Remaining effort</div>
           <div class="stat-value ellipsis">{{ formatHours(remainingHours) }}</div>
         </div>
@@ -56,6 +56,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { formatHours, formatNumber } from '@/utils/formatters';
 
 const props = defineProps<{
@@ -65,11 +66,21 @@ const props = defineProps<{
   assignedTasks: number;
 }>();
 
+const router = useRouter();
+
 const consumedPct = computed(() =>
   props.allocatedHours
     ? Math.min(100, Math.round((props.actualHours / props.allocatedHours) * 100))
     : 0,
 );
+
+function goToTaskDetails() {
+  void router.push('/app/resource-dashboard/task-details');
+}
+
+function goToProgress() {
+  void router.push('/app/resource-dashboard/progress');
+}
 </script>
 
 <style scoped lang="scss">

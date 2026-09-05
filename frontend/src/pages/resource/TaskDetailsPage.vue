@@ -110,6 +110,7 @@
             icon="task_alt"
             color="purple"
             note-class="note-purple"
+            @click="filterAllTasks"
           />
         </div>
 
@@ -121,6 +122,7 @@
             icon="autorenew"
             color="blue"
             note-class="note-blue"
+            @click="filterInProgressTasks"
           />
         </div>
 
@@ -132,6 +134,7 @@
             icon="verified_user"
             color="amber"
             note-class="note-purple"
+            @click="filterSupervisedTasks"
           />
         </div>
 
@@ -150,6 +153,7 @@
               tasks.filter((t) => isOverdue(t) || t.is_schedule_at_risk || t.is_deadline_at_risk)
                 .length > 0
             "
+            @click="filterAtRiskTasks"
           />
         </div>
       </div>
@@ -2338,6 +2342,7 @@ const searchQuery = ref('');
 const projectFilter = ref<string | null>(null);
 const statusFilter = ref<Task['status'] | null>(null);
 const priorityFilter = ref<Task['priority'] | null>(null);
+const atRiskOnly = ref(false);
 
 const statusOptions: Array<{ label: string; value: Task['status'] | null }> = [
   { label: 'All Statuses', value: null },
@@ -2356,6 +2361,51 @@ const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> 
 
 const scopeFilter = ref<'all' | 'assigned' | 'supervised'>('all');
 const currentUserId = computed(() => getCurrentUserId());
+
+// Card Click Filter Handlers
+function filterAllTasks() {
+  scopeFilter.value = 'all';
+  statusFilter.value = null;
+  priorityFilter.value = null;
+  projectFilter.value = null;
+  atRiskOnly.value = false;
+}
+
+function filterInProgressTasks() {
+  statusFilter.value = 'IN_PROGRESS';
+  atRiskOnly.value = false;
+}
+
+function filterSupervisedTasks() {
+  scopeFilter.value = 'supervised';
+  atRiskOnly.value = false;
+}
+
+function filterAtRiskTasks() {
+  atRiskOnly.value = !atRiskOnly.value;
+}
+
+// Watch route query to support navigation with ?scope=supervised, ?status=IN_PROGRESS, or ?project=...
+watch(
+  () => route.query,
+  (query) => {
+    if (query.scope && typeof query.scope === 'string') {
+      if (['all', 'assigned', 'supervised'].includes(query.scope)) {
+        scopeFilter.value = query.scope as 'all' | 'assigned' | 'supervised';
+      }
+    }
+    if (query.status && typeof query.status === 'string') {
+      statusFilter.value = query.status as Task['status'];
+    }
+    if (query.project && typeof query.project === 'string') {
+      projectFilter.value = query.project;
+    }
+    if (query.atRisk === 'true') {
+      atRiskOnly.value = true;
+    }
+  },
+  { immediate: true },
+);
 
 const createProjects = ref<Project[]>([]);
 const projectMembersForCreate = ref<Array<{ label: string; value: number }>>([]);
@@ -2431,15 +2481,19 @@ const filteredTasks = computed(() => {
     // Scope filter
     if (scopeFilter.value === 'assigned') {
       if (Number(item.supervisor_id) === myId && !isSelfAssigned(item)) {
-        // If it's solely supervised and not assigned/created by us, exclude
-        // Note: isSelfAssigned checks created_by, or check if user is supervisor
         if (Number(item.supervisor_id) === myId && item.created_by !== myId) {
-          // let's check if user is supervisor only
           return false;
         }
       }
     } else if (scopeFilter.value === 'supervised') {
       if (Number(item.supervisor_id) !== myId) {
+        return false;
+      }
+    }
+
+    if (atRiskOnly.value) {
+      const isAtRisk = isOverdue(item) || item.is_schedule_at_risk || item.is_deadline_at_risk;
+      if (!isAtRisk) {
         return false;
       }
     }

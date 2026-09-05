@@ -51,7 +51,7 @@
 
     <!-- 2. STAT SUMMARY CARDS -->
     <div class="stats-grid q-mb-md">
-      <q-card flat bordered class="stat-card">
+      <q-card flat bordered class="stat-card cursor-pointer" @click="filterAllTasks">
         <q-card-section class="stat-section">
           <q-avatar size="46px" class="stat-icon stat-purple">
             <q-icon name="event_note" size="22px" />
@@ -64,7 +64,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="stat-card">
+      <q-card flat bordered class="stat-card cursor-pointer" @click="filterInProgressTasks">
         <q-card-section class="stat-section">
           <q-avatar size="46px" class="stat-icon stat-blue-bg">
             <q-icon name="sync" size="22px" />
@@ -77,7 +77,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="stat-card">
+      <q-card flat bordered class="stat-card cursor-pointer" @click="filterCompletedTasks">
         <q-card-section class="stat-section">
           <q-avatar size="46px" class="stat-icon stat-green-bg">
             <q-icon name="check_circle" size="22px" />
@@ -90,7 +90,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="stat-card">
+      <q-card flat bordered class="stat-card cursor-pointer" @click="filterOverdueTasks">
         <q-card-section class="stat-section">
           <q-avatar size="46px" class="stat-icon stat-red-bg">
             <q-icon name="warning" size="22px" />
@@ -772,6 +772,35 @@ const projectFilter = ref<number | 'ALL'>('ALL');
 const assigneeFilter = ref<number | 'ALL'>('ALL');
 const statusFilter = ref('ALL');
 const priorityFilter = ref('ALL');
+const overdueOnly = ref(false);
+
+function resetFilters() {
+  searchQuery.value = '';
+  projectFilter.value = 'ALL';
+  assigneeFilter.value = 'ALL';
+  statusFilter.value = 'ALL';
+  priorityFilter.value = 'ALL';
+  overdueOnly.value = false;
+}
+
+function filterAllTasks() {
+  resetFilters();
+}
+
+function filterInProgressTasks() {
+  resetFilters();
+  statusFilter.value = 'IN_PROGRESS';
+}
+
+function filterCompletedTasks() {
+  resetFilters();
+  statusFilter.value = 'COMPLETED';
+}
+
+function filterOverdueTasks() {
+  resetFilters();
+  overdueOnly.value = true;
+}
 
 const showTaskDetailsDialog = ref(false);
 const selectedTaskDetails = ref<Task | null>(null);
@@ -1184,7 +1213,16 @@ const filteredTasks = computed(() => {
       assigneeFilter.value === 'ALL' ||
       (t.assigned_resource_ids && t.assigned_resource_ids.includes(Number(assigneeFilter.value)));
 
-    return matchesSearch && matchesProject && matchesStatus && matchesPriority && matchesAssignee;
+    const matchesOverdue = !overdueOnly.value || isTaskOverdue(t);
+
+    return (
+      matchesSearch &&
+      matchesProject &&
+      matchesStatus &&
+      matchesPriority &&
+      matchesAssignee &&
+      matchesOverdue
+    );
   });
 });
 

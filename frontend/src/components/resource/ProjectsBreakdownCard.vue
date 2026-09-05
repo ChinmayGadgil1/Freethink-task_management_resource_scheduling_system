@@ -24,7 +24,12 @@
     </div>
 
     <div v-else class="column">
-      <div v-for="(row, idx) in projects" :key="row.project" class="project-row">
+      <div
+        v-for="(row, idx) in projects"
+        :key="row.project"
+        class="project-row cursor-pointer"
+        @click="goToProjectTasks(row.project)"
+      >
         <div class="project-info-col row items-center gap-sm">
           <div
             class="project-icon-box flex flex-center no-shrink"
@@ -61,6 +66,8 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+
 export interface ProjectBreakdownRow {
   project: string;
   tasks: number;
@@ -70,6 +77,15 @@ export interface ProjectBreakdownRow {
 }
 
 defineProps<{ projects: ProjectBreakdownRow[] }>();
+
+const router = useRouter();
+
+function goToProjectTasks(projectName: string) {
+  void router.push({
+    path: '/app/resource-dashboard/task-details',
+    query: { project: projectName },
+  });
+}
 
 function statusClass(status: ProjectBreakdownRow['status']) {
   return { 'On Track': 'status-ok', 'At Risk': 'status-warn', Delayed: 'status-bad' }[status];

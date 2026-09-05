@@ -51,7 +51,7 @@
             icon="insights"
             color="primary"
             :progress="overallProgress"
-            :clickable="false"
+            @click="router.push('/app/resource-dashboard/task-details')"
           />
         </div>
 
@@ -63,7 +63,12 @@
             icon="check_circle"
             color="positive"
             note-class="stat-green"
-            :clickable="false"
+            @click="
+              router.push({
+                path: '/app/resource-dashboard/task-details',
+                query: { status: 'COMPLETED' },
+              })
+            "
           />
         </div>
 
@@ -75,7 +80,12 @@
             icon="autorenew"
             color="info"
             note-class="stat-blue"
-            :clickable="false"
+            @click="
+              router.push({
+                path: '/app/resource-dashboard/task-details',
+                query: { status: 'IN_PROGRESS' },
+              })
+            "
           />
         </div>
 
@@ -88,7 +98,12 @@
             color="warning"
             :note-class="delayedTasks ? 'note-red' : 'note-green'"
             :negative="delayedTasks > 0"
-            :clickable="false"
+            @click="
+              router.push({
+                path: '/app/resource-dashboard/task-details',
+                query: { atRisk: 'true' },
+              })
+            "
           />
         </div>
       </div>
@@ -134,15 +149,24 @@
                 <div
                   v-for="seg in statusDistribution"
                   :key="seg.label"
+                  class="cursor-pointer"
                   :style="{
                     width: `${(seg.value / (tasks.length || 1)) * 100}%`,
                     background: seg.color,
                   }"
+                  @click="handleStatusSegClick(seg.label)"
                 />
               </div>
 
               <q-list separator :dark="$q.dark.isActive">
-                <q-item v-for="seg in statusDistribution" :key="seg.label" dense class="q-py-xs">
+                <q-item
+                  v-for="seg in statusDistribution"
+                  :key="seg.label"
+                  dense
+                  clickable
+                  class="q-py-xs"
+                  @click="handleStatusSegClick(seg.label)"
+                >
                   <q-item-section avatar style="min-width: 24px">
                     <q-badge
                       rounded
@@ -221,7 +245,13 @@
               <div class="row q-col-gutter-md">
                 <!-- Expected -->
                 <div class="col-6 col-sm-3">
-                  <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
+                  <q-card
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="full-height cursor-pointer"
+                    @click="router.push('/app/resource-dashboard/task-details')"
+                  >
                     <q-card-section class="q-pa-md">
                       <q-icon name="schedule" color="primary" size="22px" />
                       <div
@@ -242,7 +272,13 @@
 
                 <!-- Actual -->
                 <div class="col-6 col-sm-3">
-                  <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
+                  <q-card
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="full-height cursor-pointer"
+                    @click="router.push('/app/resource-dashboard/task-details')"
+                  >
                     <q-card-section class="q-pa-md">
                       <q-icon name="timer" color="info" size="22px" />
                       <div
@@ -263,7 +299,13 @@
 
                 <!-- Progress Remaining -->
                 <div class="col-6 col-sm-3">
-                  <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
+                  <q-card
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="full-height cursor-pointer"
+                    @click="router.push('/app/resource-dashboard/task-details')"
+                  >
                     <q-card-section class="q-pa-md">
                       <q-icon name="hourglass_bottom" color="warning" size="22px" />
                       <div
@@ -284,7 +326,13 @@
 
                 <!-- Actual Remaining -->
                 <div class="col-6 col-sm-3">
-                  <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
+                  <q-card
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="full-height cursor-pointer"
+                    @click="router.push('/app/resource-dashboard/task-details')"
+                  >
                     <q-card-section class="q-pa-md">
                       <q-icon name="access_time" color="positive" size="22px" />
                       <div
@@ -390,7 +438,13 @@
         <q-card-section>
           <div class="row q-col-gutter-md">
             <div v-for="d in deadlinePerformance" :key="d.label" class="col-6 col-sm-3">
-              <q-card flat bordered :dark="$q.dark.isActive" class="full-height">
+              <q-card
+                flat
+                bordered
+                :dark="$q.dark.isActive"
+                class="full-height cursor-pointer"
+                @click="handleDeadlineCardClick(d.label)"
+              >
                 <q-card-section class="q-pa-md">
                   <div class="row items-center no-wrap">
                     <q-avatar size="34px" :color="d.color" text-color="white" :icon="d.icon" />
@@ -455,7 +509,18 @@
         <q-separator />
 
         <q-list v-if="projectProgress.length" separator :dark="$q.dark.isActive">
-          <q-item v-for="p in projectProgress" :key="p.project" class="q-py-md">
+          <q-item
+            v-for="p in projectProgress"
+            :key="p.project"
+            clickable
+            class="q-py-md"
+            @click="
+              router.push({
+                path: '/app/resource-dashboard/task-details',
+                query: { project: p.project },
+              })
+            "
+          >
             <q-item-section avatar>
               <q-avatar
                 size="38px"
@@ -1144,5 +1209,47 @@ function statusLabel(status: Task['status']) {
 
 function openTask(taskId: number) {
   void router.push(`/app/resource-dashboard/task-details/${taskId}`);
+}
+
+function handleStatusSegClick(label: string) {
+  if (label === 'Overdue') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { atRisk: 'true' },
+    });
+  } else if (label === 'In Progress') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { status: 'IN_PROGRESS' },
+    });
+  } else if (label === 'Completed') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { status: 'COMPLETED' },
+    });
+  } else if (label === 'Scheduled') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { status: 'SCHEDULED' },
+    });
+  } else {
+    void router.push('/app/resource-dashboard/task-details');
+  }
+}
+
+function handleDeadlineCardClick(label: string) {
+  if (label === 'Overdue') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { atRisk: 'true' },
+    });
+  } else if (label === 'Completed') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { status: 'COMPLETED' },
+    });
+  } else {
+    void router.push('/app/resource-dashboard/task-details');
+  }
 }
 </script>

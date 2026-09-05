@@ -1548,7 +1548,10 @@ export async function markNotificationAsReadApi(id: number): Promise<{ message: 
  * Mark all notifications as read
  * PATCH /api/notifications/read-all
  */
-export async function markAllNotificationsAsReadApi(): Promise<{ message: string; updatedCount: number }> {
+export async function markAllNotificationsAsReadApi(): Promise<{
+  message: string;
+  updatedCount: number;
+}> {
   const response = await authenticatedFetch(`${API_BASE_URL}/notifications/read-all`, {
     method: 'PATCH',
   });
@@ -1577,4 +1580,3 @@ export async function deleteNotificationApi(id: number): Promise<{ message: stri
 
   return data;
 }
-

@@ -39,6 +39,7 @@
         icon="groups"
         color="purple"
         note-class="note-purple"
+        @click="mainTab = 'resources'"
       />
 
       <StatCard
@@ -48,6 +49,7 @@
         icon="task_alt"
         color="blue"
         note-class="note-blue"
+        @click="mainTab = 'tasks'"
       />
 
       <StatCard
@@ -57,6 +59,7 @@
         icon="schedule"
         color="green"
         note-class="note-green"
+        @click="mainTab = 'tasks'"
       />
 
       <StatCard
@@ -66,6 +69,7 @@
         icon="folder"
         color="orange"
         note-class="note-orange"
+        @click="router.push('/pm/projects')"
       />
     </div>
 

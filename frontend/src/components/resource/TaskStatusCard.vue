@@ -22,11 +22,12 @@
           <div
             v-for="item in items"
             :key="item.label"
-            class="segment"
+            class="segment cursor-pointer"
             :style="{
               width: `${totalTasks ? (item.value / totalTasks) * 100 : 0}%`,
               background: item.color,
             }"
+            @click="goToStatus(item.label)"
           />
         </div>
       </div>
@@ -36,7 +37,8 @@
         <div
           v-for="item in items"
           :key="item.label"
-          class="status-row row items-center justify-between"
+          class="status-row row items-center justify-between cursor-pointer"
+          @click="goToStatus(item.label)"
         >
           <div class="row items-center no-wrap">
             <span class="status-dot" :style="{ background: item.color }" />
@@ -56,6 +58,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 
 export interface TaskStatusItem {
   label: string;
@@ -64,7 +67,24 @@ export interface TaskStatusItem {
 }
 
 const props = defineProps<{ items: TaskStatusItem[] }>();
+const router = useRouter();
+
 const totalTasks = computed(() => props.items.reduce((sum, item) => sum + item.value, 0));
+
+function goToStatus(label: string) {
+  let statusKey = 'SCHEDULED';
+  if (label.toLowerCase().includes('progress')) {
+    statusKey = 'IN_PROGRESS';
+  } else if (label.toLowerCase().includes('completed') || label.toLowerCase().includes('done')) {
+    statusKey = 'COMPLETED';
+  } else if (label.toLowerCase().includes('scheduled')) {
+    statusKey = 'SCHEDULED';
+  }
+  void router.push({
+    path: '/app/resource-dashboard/task-details',
+    query: { status: statusKey },
+  });
+}
 </script>
 
 <style scoped lang="scss">

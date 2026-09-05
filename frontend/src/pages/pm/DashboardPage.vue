@@ -50,7 +50,7 @@
               icon="task_alt"
               color="teal"
               note-class="note-teal"
-              @click="goToProjects"
+              @click="goToTasks"
             />
           </div>
           <div style="min-width: 220px">
@@ -80,7 +80,7 @@
               icon="check_circle"
               color="green"
               note-class="note-green"
-              @click="goToProjects"
+              @click="goToTasks"
             />
           </div>
           <div style="min-width: 220px">
@@ -96,7 +96,7 @@
               color="red"
               note-class="note-red"
               :negative="overdueTasks > 0"
-              @click="goToProjects"
+              @click="goToSchedule"
             />
           </div>
         </div>
@@ -198,7 +198,10 @@
                 class="timeline-project-row q-py-xs"
                 :style="{ minWidth: `${140 + timelineDays.length * 54}px` }"
               >
-                <div class="project-label">
+                <div
+                  class="project-label cursor-pointer"
+                  @click="row.projectId ? goToProject(row.projectId) : goToTasks()"
+                >
                   <span
                     class="timeline-task-label text-weight-bold"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
@@ -226,9 +229,10 @@
                   </div>
 
                   <div
-                    class="timeline-bar dynamic-timeline-bar"
+                    class="timeline-bar dynamic-timeline-bar cursor-pointer"
                     :class="`status-${row.status.toLowerCase()}`"
                     :style="{ left: `${row.left}%`, width: `${row.width}%` }"
+                    @click="row.projectId ? goToProject(row.projectId) : goToTasks()"
                   >
                     <div class="timeline-progress" :style="{ width: `${row.progress}%` }" />
                     <span class="timeline-bar-content text-caption text-weight-bold">
@@ -238,7 +242,7 @@
                       <div>{{ row.title }}</div>
                       <div>{{ row.projectName }}</div>
                       <div>{{ row.startLabel }} → {{ row.endLabel }}</div>
-                      <div>{{ row.statusLabel }} · {{ row.progress }}% complete</div>
+                      <div>{{ row.statusLabel }} · {{ row.progress }}% complete (Click to view)</div>
                     </q-tooltip>
                   </div>
                 </div>
@@ -925,8 +929,17 @@ function scrollStrip(containerId: string, direction: number | 'next' | 'prev') {
 function goToProjects() {
   void router.push('/pm/projects');
 }
+function goToProject(projectId: number) {
+  void router.push(`/pm/projects/${projectId}`);
+}
 function goToResources() {
   void router.push('/pm/resources');
+}
+function goToTasks() {
+  void router.push('/pm/tasks');
+}
+function goToSchedule() {
+  void router.push('/pm/schedule');
 }
 function goToMyTasks() {
   void router.push('/pm/tasks');
@@ -1124,6 +1137,7 @@ const positionedTimelineRows = computed(() => {
     return {
       id: t.task_id,
       title: t.title,
+      projectId: t.project_id,
       projectName: t.project_name || `Project #${t.project_id}`,
       status: t.status,
       statusLabel: t.status.replace('_', ' '),

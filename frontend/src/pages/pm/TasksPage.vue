@@ -66,6 +66,7 @@
             icon="task_alt"
             color="purple"
             note-class="note-purple"
+            @click="filterAllTasks"
           />
         </div>
         <div class="col-12 col-sm-6 col-md-3">
@@ -76,6 +77,7 @@
             icon="autorenew"
             color="blue"
             note-class="note-blue"
+            @click="filterInProgressTasks"
           />
         </div>
         <div class="col-12 col-sm-6 col-md-3">
@@ -86,6 +88,7 @@
             icon="check_circle"
             color="green"
             note-class="note-green"
+            @click="filterCompletedTasks"
           />
         </div>
         <div class="col-12 col-sm-6 col-md-3">
@@ -96,6 +99,7 @@
             icon="schedule"
             color="purple"
             note-class="note-purple"
+            @click="filterScheduledTasks"
           />
         </div>
       </div>
@@ -1020,6 +1024,32 @@ const searchQuery = ref('');
 const projectFilter = ref<number | 'ALL'>('ALL');
 const statusFilter = ref('ALL');
 const priorityFilter = ref('ALL');
+
+function resetFilters() {
+  searchQuery.value = '';
+  projectFilter.value = 'ALL';
+  statusFilter.value = 'ALL';
+  priorityFilter.value = 'ALL';
+}
+
+function filterAllTasks() {
+  resetFilters();
+}
+
+function filterInProgressTasks() {
+  resetFilters();
+  statusFilter.value = 'IN_PROGRESS';
+}
+
+function filterCompletedTasks() {
+  resetFilters();
+  statusFilter.value = 'COMPLETED';
+}
+
+function filterScheduledTasks() {
+  resetFilters();
+  statusFilter.value = 'SCHEDULED';
+}
 
 const showCreateDialog = ref(false);
 const showEditDialog = ref(false);

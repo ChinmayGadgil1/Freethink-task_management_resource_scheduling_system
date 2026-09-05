@@ -50,6 +50,7 @@
               :icon="stat.icon"
               :color="stat.color"
               :negative="stat.negative"
+              @click="handleStatCardClick(stat)"
             />
           </div>
         </div>
@@ -692,11 +693,33 @@ function statusTextColor(status: Task['status']): string {
   }
 }
 
-function goToTaskDetails(id?: number) {
+function goToTaskDetails(id?: number, query?: Record<string, string>) {
   if (id) {
     void router.push(`/app/resource-dashboard/task-details/${id}`);
+  } else if (query) {
+    void router.push({ path: '/app/resource-dashboard/task-details', query });
   } else {
     void router.push('/app/resource-dashboard/task-details');
+  }
+}
+
+function handleStatCardClick(stat: { title: string }) {
+  switch (stat.title) {
+    case 'Total Tasks':
+      goToTaskDetails();
+      break;
+    case 'In Progress':
+      goToTaskDetails(undefined, { status: 'IN_PROGRESS' });
+      break;
+    case 'Supervised':
+      goToTaskDetails(undefined, { scope: 'supervised' });
+      break;
+    case 'Delayed':
+      goToTaskDetails(undefined, { atRisk: 'true' });
+      break;
+    default:
+      goToTaskDetails();
+      break;
   }
 }
 

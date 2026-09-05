@@ -6,7 +6,15 @@
       round
       dense
       icon="notifications"
-      :color="$q.dark.isActive ? (notificationStore.hasUnread ? 'purple-2' : 'grey-4') : (notificationStore.hasUnread ? 'primary' : 'grey-7')"
+      :color="
+        $q.dark.isActive
+          ? notificationStore.hasUnread
+            ? 'purple-2'
+            : 'grey-4'
+          : notificationStore.hasUnread
+            ? 'primary'
+            : 'grey-7'
+      "
       class="header-icon-btn notification-trigger-btn"
       aria-label="Notifications"
     >
@@ -21,7 +29,11 @@
         {{ notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount }}
       </q-badge>
 
-      <q-tooltip>{{ notificationStore.unreadCount }} unread notification{{ notificationStore.unreadCount === 1 ? '' : 's' }}</q-tooltip>
+      <q-tooltip
+        >{{ notificationStore.unreadCount }} unread notification{{
+          notificationStore.unreadCount === 1 ? '' : 's'
+        }}</q-tooltip
+      >
 
       <!-- Dropdown Menu -->
       <q-menu
@@ -76,12 +88,7 @@
             <q-tab name="delays">
               <div class="row items-center no-wrap q-gutter-x-xs">
                 <span>Delays</span>
-                <q-badge
-                  v-if="delayCount > 0"
-                  color="orange-9"
-                  rounded
-                  size="xs"
-                >
+                <q-badge v-if="delayCount > 0" color="orange-9" rounded size="xs">
                   {{ delayCount }}
                 </q-badge>
               </div>
@@ -89,12 +96,7 @@
             <q-tab name="early">
               <div class="row items-center no-wrap q-gutter-x-xs">
                 <span>Early Done</span>
-                <q-badge
-                  v-if="earlyCount > 0"
-                  color="positive"
-                  rounded
-                  size="xs"
-                >
+                <q-badge v-if="earlyCount > 0" color="positive" rounded size="xs">
                   {{ earlyCount }}
                 </q-badge>
               </div>
@@ -102,12 +104,7 @@
             <q-tab name="leaves">
               <div class="row items-center no-wrap q-gutter-x-xs">
                 <span>Leaves</span>
-                <q-badge
-                  v-if="leaveCount > 0"
-                  color="primary"
-                  rounded
-                  size="xs"
-                >
+                <q-badge v-if="leaveCount > 0" color="primary" rounded size="xs">
                   {{ leaveCount }}
                 </q-badge>
               </div>
@@ -161,18 +158,16 @@
                     <span class="text-caption text-grey-5 no-wrap" style="font-size: 11px">
                       {{ formatTimeAgo(item.created_at) }}
                     </span>
-                    <div
-                      v-if="!item.is_read"
-                      class="unread-dot"
-                      title="Unread"
-                    />
+                    <div v-if="!item.is_read" class="unread-dot" title="Unread" />
                   </div>
                 </div>
 
                 <!-- Full Title (No truncation) -->
                 <div
                   class="notification-title text-body2 q-mb-xs"
-                  :class="!item.is_read ? 'text-weight-bold text-main' : 'text-weight-medium text-grey-7'"
+                  :class="
+                    !item.is_read ? 'text-weight-bold text-main' : 'text-weight-medium text-grey-7'
+                  "
                 >
                   {{ item.title }}
                 </div>
@@ -184,7 +179,12 @@
               </q-item-section>
 
               <!-- Quick Action buttons on right -->
-              <q-item-section side top class="column items-end justify-center q-pl-xs" style="min-width: 28px">
+              <q-item-section
+                side
+                top
+                class="column items-end justify-center q-pl-xs"
+                style="min-width: 28px"
+              >
                 <div class="column items-center q-gutter-y-xs item-actions">
                   <q-btn
                     v-if="!item.is_read"
@@ -231,10 +231,10 @@
                 filterTab === 'delays'
                   ? 'No Delay Risks Detected'
                   : filterTab === 'early'
-                  ? 'No Early Completions'
-                  : filterTab === 'leaves'
-                  ? 'No Leave Notifications'
-                  : 'All Clear!'
+                    ? 'No Early Completions'
+                    : filterTab === 'leaves'
+                      ? 'No Leave Notifications'
+                      : 'All Clear!'
               }}
             </div>
             <div class="text-caption text-grey-5 q-mt-xs">
@@ -242,19 +242,27 @@
                 filterTab === 'delays'
                   ? 'All ongoing tasks are currently on track.'
                   : filterTab === 'early'
-                  ? 'No early completions logged yet.'
-                  : filterTab === 'leaves'
-                  ? 'No leave requests or leave status updates.'
-                  : 'No task warnings or leave alerts at this time.'
+                    ? 'No early completions logged yet.'
+                    : filterTab === 'leaves'
+                      ? 'No leave requests or leave status updates.'
+                      : 'No task warnings or leave alerts at this time.'
               }}
             </div>
           </div>
         </q-scroll-area>
 
         <!-- Footer -->
-        <div class="q-py-xs q-px-md row items-center justify-between border-top-subtle text-caption text-grey-5 bg-subtle-footer">
-          <span>{{ filteredNotifications.length }} alert{{ filteredNotifications.length === 1 ? '' : 's' }}</span>
-          <span v-if="notificationStore.unreadCount > 0">{{ notificationStore.unreadCount }} unread</span>
+        <div
+          class="q-py-xs q-px-md row items-center justify-between border-top-subtle text-caption text-grey-5 bg-subtle-footer"
+        >
+          <span
+            >{{ filteredNotifications.length }} alert{{
+              filteredNotifications.length === 1 ? '' : 's'
+            }}</span
+          >
+          <span v-if="notificationStore.unreadCount > 0"
+            >{{ notificationStore.unreadCount }} unread</span
+          >
           <span v-else class="text-positive">All caught up</span>
         </div>
       </q-menu>
@@ -283,21 +291,18 @@ onUnmounted(() => {
 });
 
 const delayCount = computed(() => {
-  return notificationStore.notifications.filter(
-    (n) => n.type === 'POSSIBLE_DELAY' && !n.is_read,
-  ).length;
+  return notificationStore.notifications.filter((n) => n.type === 'POSSIBLE_DELAY' && !n.is_read)
+    .length;
 });
 
 const earlyCount = computed(() => {
-  return notificationStore.notifications.filter(
-    (n) => n.type === 'EARLY_COMPLETION' && !n.is_read,
-  ).length;
+  return notificationStore.notifications.filter((n) => n.type === 'EARLY_COMPLETION' && !n.is_read)
+    .length;
 });
 
 const leaveCount = computed(() => {
-  return notificationStore.notifications.filter(
-    (n) => n.type.startsWith('LEAVE_') && !n.is_read,
-  ).length;
+  return notificationStore.notifications.filter((n) => n.type.startsWith('LEAVE_') && !n.is_read)
+    .length;
 });
 
 const filteredNotifications = computed(() => {

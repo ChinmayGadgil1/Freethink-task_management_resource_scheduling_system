@@ -33,6 +33,7 @@
             badge="WORKSPACE"
             icon="folder"
             color="purple"
+            @click="filterAllProjects"
           />
         </div>
 
@@ -44,6 +45,7 @@
             badge="ON TRACK"
             icon="check_circle"
             color="green"
+            @click="filterOnTrackProjects"
           />
         </div>
 
@@ -55,6 +57,7 @@
             badge="AT RISK"
             icon="warning_amber"
             color="orange"
+            @click="filterAtRiskProjects"
           />
         </div>
 
@@ -67,6 +70,7 @@
             icon="schedule"
             color="red"
             :negative="delayedProjects > 0"
+            @click="filterDelayedProjects"
           />
         </div>
       </div>
@@ -1266,6 +1270,25 @@ function resetAllFilters() {
   healthFilter.value = 'ALL';
   startDateFilter.value = '';
   endDateFilter.value = '';
+}
+
+function filterAllProjects() {
+  resetAllFilters();
+}
+
+function filterOnTrackProjects() {
+  resetAllFilters();
+  healthFilter.value = 'ON_TRACK';
+}
+
+function filterAtRiskProjects() {
+  resetAllFilters();
+  healthFilter.value = 'AT_RISK';
+}
+
+function filterDelayedProjects() {
+  resetAllFilters();
+  healthFilter.value = 'DELAYED';
 }
 
 const currentPmName = computed(() => {

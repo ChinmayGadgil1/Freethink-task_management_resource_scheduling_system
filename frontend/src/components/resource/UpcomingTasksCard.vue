@@ -14,7 +14,8 @@
     <div
       v-for="task in tasks"
       :key="task.id"
-      class="task-row row items-center justify-between gap-sm"
+      class="task-row row items-center justify-between gap-sm cursor-pointer"
+      @click="goToTask(task.id)"
     >
       <div class="task-info">
         <div class="task-title">{{ task.name }}</div>
@@ -40,6 +41,8 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+
 export interface UpcomingTask {
   id: number;
   name: string;
@@ -51,6 +54,12 @@ export interface UpcomingTask {
 
 defineProps<{ tasks: UpcomingTask[] }>();
 defineEmits<{ (e: 'view-all'): void }>();
+
+const router = useRouter();
+
+function goToTask(taskId: number) {
+  void router.push(`/app/resource-dashboard/task-details/${taskId}`);
+}
 </script>
 
 <style scoped lang="scss">
