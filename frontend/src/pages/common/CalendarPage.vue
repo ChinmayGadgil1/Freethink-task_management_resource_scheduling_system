@@ -5,14 +5,11 @@
       <div class="row items-center justify-between q-mb-md wrap q-col-gutter-md">
         <!-- Left: Title & Subtitle -->
         <div>
-          <div class="row items-center q-gutter-xs">
-            <q-icon name="calendar_month" size="28px" color="primary" />
-            <div
-              class="text-h5 text-weight-bold"
-              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-            >
-              Company Calendar
-            </div>
+          <div
+            class="page-title text-h5 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Company Calendar
           </div>
           <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
             Track official organization holidays, weekends, and team working schedule

@@ -1,6 +1,16 @@
 <template>
   <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
     <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
+      <!-- 00. HEADER & GREETING -->
+      <div class="row items-center justify-between">
+        <div>
+          <div class="page-title">Hey, {{ currentPmName }}!</div>
+          <div class="page-subtitle">
+            Everything at a glance — real-time snapshot of all projects and active deliverables.
+          </div>
+        </div>
+      </div>
+
       <!-- 01 OVERVIEW -->
       <DashboardSection
         number="01"
@@ -787,6 +797,10 @@ import { getStatusFromProgress, formatStatusLabel, getTaskStatusClass } from '@/
 const $q = useQuasar();
 const router = useRouter();
 const authStore = useAuthStore();
+
+const currentPmName = computed(() => {
+  return authStore.user?.name || 'Project Manager';
+});
 
 const projects = ref<Project[]>([]);
 const tasks = ref<Task[]>([]);

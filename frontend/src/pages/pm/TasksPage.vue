@@ -7,8 +7,13 @@
       <!-- 1. PAGE HEADER -->
       <div class="row items-center justify-between q-mb-md">
         <div>
-          <div class="text-h4 text-weight-bolder">Tasks</div>
-          <div class="text-subtitle2" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+          <div
+            class="page-title text-h5 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
+            Tasks
+          </div>
+          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
             Track, organize, and manage work across all your active projects
           </div>
         </div>

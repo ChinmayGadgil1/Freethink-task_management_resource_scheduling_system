@@ -29,10 +29,10 @@
     <!-- ALL TASKS -->
     <div v-else-if="!hasTaskId">
       <!-- 1. PAGE HEADER -->
-      <div class="row items-end justify-between q-mb-lg q-col-gutter-md">
+      <div class="row items-center justify-between q-mb-md">
         <div>
           <div
-            class="text-h5 text-weight-bold"
+            class="page-title text-h5 text-weight-bold"
             :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
           >
             Task Specs
@@ -43,23 +43,6 @@
         </div>
 
         <div class="row items-center q-gutter-md">
-          <!-- Scope Filter Toggle -->
-          <q-btn-toggle
-            v-model="scopeFilter"
-            toggle-color="primary"
-            toggle-text-color="white"
-            :color="$q.dark.isActive ? 'grey-9' : 'white'"
-            :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
-            dense
-            unelevated
-            no-caps
-            :options="[
-              { label: 'All Tasks', value: 'all', icon: 'dashboard' },
-              { label: 'Assigned to Me', value: 'assigned', icon: 'assignment_ind' },
-              { label: 'Supervised by Me', value: 'supervised', icon: 'verified_user' },
-            ]"
-          />
-
           <!-- View Mode Switcher -->
           <q-btn-toggle
             v-model="viewMode"
@@ -81,6 +64,7 @@
             color="primary"
             icon="add"
             label="Create Task"
+            class="rounded-borders"
             @click="openCreateDialog"
           />
 
@@ -90,10 +74,30 @@
             :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
             icon="refresh"
             label="Refresh"
+            class="rounded-borders"
             :loading="loading"
             @click="loadTasks"
           />
         </div>
+      </div>
+
+      <!-- Scope Filter Toggle -->
+      <div class="row items-center q-mb-md">
+        <q-btn-toggle
+          v-model="scopeFilter"
+          toggle-color="primary"
+          toggle-text-color="white"
+          :color="$q.dark.isActive ? 'grey-9' : 'white'"
+          :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
+          dense
+          unelevated
+          no-caps
+          :options="[
+            { label: 'All Tasks', value: 'all', icon: 'dashboard' },
+            { label: 'Assigned to Me', value: 'assigned', icon: 'assignment_ind' },
+            { label: 'Supervised by Me', value: 'supervised', icon: 'verified_user' },
+          ]"
+        />
       </div>
 
       <!-- 2. STAT SUMMARY CARDS -->
@@ -876,7 +880,7 @@
               </div>
 
               <div
-                class="text-h4 text-weight-bolder"
+                class="page-title text-h5 text-weight-bold"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
                 {{ task.title }}

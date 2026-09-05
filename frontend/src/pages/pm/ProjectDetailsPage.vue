@@ -50,7 +50,7 @@
             <!-- Title & Description -->
             <div style="min-width: 0; overflow-wrap: break-word; word-break: break-word">
               <div
-                class="text-h4 text-weight-bolder"
+                class="page-title text-h5 text-weight-bold"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                 style="overflow-wrap: break-word; word-break: break-word"
               >

@@ -4,10 +4,7 @@
     <div class="row items-center justify-between q-mb-md flex-wrap gap-md">
       <!-- Left: Title & Subtitle -->
       <div>
-        <div class="row items-center gap-xs">
-          <q-icon name="event_busy" size="28px" color="primary" />
-          <h1 class="page-title q-my-none">Leaves & Time Off</h1>
-        </div>
+        <h1 class="page-title q-my-none">Leaves & Time Off</h1>
         <p class="page-subtitle q-mb-none q-mt-xs">
           {{
             isProjectManager

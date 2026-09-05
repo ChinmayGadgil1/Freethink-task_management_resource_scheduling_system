@@ -166,11 +166,11 @@ body {
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 1.5rem; /* 24px - matches text-h5 on Task Specs */
   font-weight: 700;
   color: var(--wo-text-main, #172033);
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .page-subtitle {

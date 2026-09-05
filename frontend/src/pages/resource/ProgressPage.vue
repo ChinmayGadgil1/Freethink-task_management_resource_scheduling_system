@@ -2,19 +2,15 @@
   <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
     <!-- PAGE HEADER -->
     <div class="row items-center justify-between q-mb-lg">
-      <div class="row items-center q-gutter-sm">
-        <q-avatar size="42px" color="primary" text-color="white" icon="analytics" />
-
-        <div>
-          <div
-            class="text-h5 text-weight-bold"
-            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-          >
-            Progress
-          </div>
-          <div class="text-body2" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-            Track your work, effort, deadlines and task progress.
-          </div>
+      <div>
+        <div
+          class="page-title text-h5 text-weight-bold"
+          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+        >
+          Progress
+        </div>
+        <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+          Track your work, effort, deadlines and task progress.
         </div>
       </div>
 

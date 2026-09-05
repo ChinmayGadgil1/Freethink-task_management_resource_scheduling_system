@@ -47,7 +47,7 @@
 
               <div class="column q-gutter-xs">
                 <div class="row items-center q-gutter-xs wrap">
-                  <span class="text-h6 text-weight-bolder">{{
+                  <span class="page-title text-h5 text-weight-bold">{{
                     profileData.name || 'User Profile'
                   }}</span>
                   <q-chip
