@@ -9,6 +9,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         console.log("Dropping existing tables...");
         await pool.query("SET FOREIGN_KEY_CHECKS = 0");
         const tables = [
+            "notifications",
             "password_reset_tokens",
             "support_tickets",
             "task_schedules",
@@ -231,6 +232,24 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("User leaves table is ready.");
+
+    // 12. Notifications table
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS notifications (
+            notification_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            type VARCHAR(50) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            message TEXT NOT NULL,
+            link VARCHAR(255) NULL,
+            is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            INDEX idx_user_read (user_id, is_read),
+            INDEX idx_user_created (user_id, created_at)
+        )
+    `);
+    console.log("Notifications table is ready.");
 
     // Migration check: ensure non_working_days and daily_working_hours columns exist in users table
     try {

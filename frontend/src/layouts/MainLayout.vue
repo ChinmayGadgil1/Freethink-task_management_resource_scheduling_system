@@ -53,6 +53,9 @@
 
         <!-- Right Header Actions -->
         <div class="header-actions row items-center q-gutter-sm">
+          <!-- Notification Bell Icon Button -->
+          <NotificationMenu />
+
           <!-- Dark/Light Mode -->
           <q-btn
             flat
@@ -180,6 +183,7 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
 import GlobalCommandPalette from '@/components/common/GlobalCommandPalette.vue';
+import NotificationMenu from '@/components/common/NotificationMenu.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSessionStore } from '@/stores/session';
 import { useThemeStore } from '@/stores/theme';

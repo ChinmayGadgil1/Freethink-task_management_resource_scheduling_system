@@ -1492,3 +1492,89 @@ export async function getResourceAvailabilityApi(
 
   return data.data;
 }
+
+export interface NotificationItem {
+  notification_id: number;
+  user_id: number;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface NotificationsResponse {
+  notifications: NotificationItem[];
+  unreadCount: number;
+}
+
+/**
+ * Fetch notifications for current authenticated user
+ * GET /api/notifications
+ */
+export async function getNotificationsApi(unreadOnly = false): Promise<NotificationsResponse> {
+  const url = `${API_BASE_URL}/notifications${unreadOnly ? '?unread_only=true' : ''}`;
+  const response = await authenticatedFetch(url, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch notifications');
+  }
+
+  return data;
+}
+
+/**
+ * Mark a notification as read
+ * PATCH /api/notifications/:id/read
+ */
+export async function markNotificationAsReadApi(id: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/notifications/${id}/read`, {
+    method: 'PATCH',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to mark notification as read');
+  }
+
+  return data;
+}
+
+/**
+ * Mark all notifications as read
+ * PATCH /api/notifications/read-all
+ */
+export async function markAllNotificationsAsReadApi(): Promise<{ message: string; updatedCount: number }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/notifications/read-all`, {
+    method: 'PATCH',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to mark all notifications as read');
+  }
+
+  return data;
+}
+
+/**
+ * Delete a notification
+ * DELETE /api/notifications/:id
+ */
+export async function deleteNotificationApi(id: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/notifications/${id}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete notification');
+  }
+
+  return data;
+}
+

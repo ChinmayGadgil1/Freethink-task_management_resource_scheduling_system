@@ -52,6 +52,9 @@
 
         <!-- Header Actions -->
         <div class="header-right-actions row items-center gap-sm">
+          <!-- Notification Bell Icon Button -->
+          <NotificationMenu />
+
           <q-btn
             flat
             round
@@ -125,6 +128,7 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import AppSidebar, { type SidebarNavItem } from '@/components/layout/AppSidebar.vue';
 import GlobalCommandPalette from '@/components/common/GlobalCommandPalette.vue';
+import NotificationMenu from '@/components/common/NotificationMenu.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useSessionStore } from '@/stores/session';
 import { useThemeStore } from '@/stores/theme';

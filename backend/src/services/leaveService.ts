@@ -3,6 +3,7 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import type { UserLeave, CreateLeaveDTO, LeaveStatus } from "../models/leaveModel.js";
 import { recalculate } from "./scheduler/SchedulingEngine.js";
 import { getResourceProjects } from "./resourceService.js";
+import { createNotification } from "./notificationService.js";
 import { randomUUID } from "node:crypto";
 
 const DAY_OF_WEEK_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
@@ -260,6 +261,48 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         } catch (schedError) {
             console.error("Warning: Failed to recalculate project schedules after applying approved leave:", schedError);
         }
+    } else {
+        // Resource submitted a pending leave request: notify relevant Project Managers
+        try {
+            const [pmRows] = await pool.query<RowDataPacket[]>(
+                `SELECT DISTINCT p.project_manager_id
+                 FROM projects p
+                 INNER JOIN project_members pm ON p.project_id = pm.project_id
+                 WHERE pm.user_id = ? AND p.project_manager_id IS NOT NULL`,
+                [user_id]
+            );
+
+            const pmIds = new Set<number>();
+            for (const r of pmRows) {
+                if (r.project_manager_id) pmIds.add(Number(r.project_manager_id));
+            }
+
+            // If resource is not yet in any project, notify active PMs
+            if (pmIds.size === 0) {
+                const [allPms] = await pool.query<RowDataPacket[]>(
+                    `SELECT user_id FROM users WHERE role = 'PROJECT_MANAGER' AND is_active = 1`
+                );
+                for (const r of allPms) {
+                    pmIds.add(Number(r.user_id));
+                }
+            }
+
+            const rangeStr = workingDates.length > 1
+                ? `${workingDates[0]} to ${workingDates[workingDates.length - 1]} (${workingDates.length} days, ${totalHours}h)`
+                : `${workingDates[0]} (${totalHours}h)`;
+
+            for (const pmId of pmIds) {
+                await createNotification({
+                    userId: pmId,
+                    type: "LEAVE_REQUESTED",
+                    title: `Leave Requested: ${user.name}`,
+                    message: `${user.name} submitted a leave request for ${rangeStr}. Please review and respond.`,
+                    link: "/pm/leaves",
+                });
+            }
+        } catch (notifErr) {
+            console.error("Warning: Failed to create leave request notifications for PMs:", notifErr);
+        }
     }
 
     return {
@@ -422,7 +465,7 @@ export async function approveLeave(identifier: number | string, pmUserId: number
 
     const totalHours = rows.reduce((acc, r) => acc + Number(r.leave_hours), 0);
 
-    return {
+    const approvedResult = {
         leave_id: Number(firstRow.leave_id),
         request_id: requestId,
         user_id: userId,
@@ -436,11 +479,30 @@ export async function approveLeave(identifier: number | string, pmUserId: number
         total_hours: totalHours,
         leave_hours: totalHours,
         leave_type: rows.length === 1 ? (firstRow.leave_type as any) : 'FULL_DAY',
-        status: "APPROVED",
+        status: "APPROVED" as const,
         approver_id: pmUserId,
         approver_name: pmName,
         approved_at: new Date().toISOString()
     };
+
+    // Notify resource that their leave was approved
+    try {
+        const dateRangeText = rows.length > 1
+            ? `${earliestDate} to ${String(rows[rows.length - 1]!.leave_date)} (${totalHours}h)`
+            : `${earliestDate} (${totalHours}h)`;
+
+        await createNotification({
+            userId: userId,
+            type: "LEAVE_APPROVED",
+            title: `Leave Approved: ${earliestDate}`,
+            message: `Your leave request for ${dateRangeText} was approved by ${pmName || 'Project Manager'}.`,
+            link: "/app/resource-dashboard/leaves",
+        });
+    } catch (notifErr) {
+        console.error("Warning: Failed to create leave approved notification:", notifErr);
+    }
+
+    return approvedResult;
 }
 
 /**
@@ -514,7 +576,7 @@ export async function rejectLeave(identifier: number | string, pmUserId: number,
 
     const totalHours = rows.reduce((acc, r) => acc + Number(r.leave_hours), 0);
 
-    return {
+    const rejectedResult = {
         leave_id: Number(firstRow.leave_id),
         request_id: requestId,
         user_id: userId,
@@ -528,11 +590,31 @@ export async function rejectLeave(identifier: number | string, pmUserId: number,
         total_hours: totalHours,
         leave_hours: totalHours,
         leave_type: rows.length === 1 ? (firstRow.leave_type as any) : 'FULL_DAY',
-        status: "REJECTED",
+        status: "REJECTED" as const,
         approver_id: pmUserId,
         approver_name: pmName,
-        rejection_reason: reason ?? "Rejected by Project Manager"
+        rejection_reason: reason ?? "Rejected by Project Manager",
     };
+
+    // Notify resource that their leave was rejected
+    try {
+        const startDate = String(firstRow.leave_date);
+        const dateRangeText = rows.length > 1
+            ? `${startDate} to ${String(rows[rows.length - 1]!.leave_date)}`
+            : `${startDate}`;
+
+        await createNotification({
+            userId: userId,
+            type: "LEAVE_REJECTED",
+            title: `Leave Rejected: ${startDate}`,
+            message: `Your leave request for ${dateRangeText} was rejected by ${pmName || 'Project Manager'}.${reason ? ` Reason: ${reason}` : ''}`,
+            link: "/app/resource-dashboard/leaves",
+        });
+    } catch (notifErr) {
+        console.error("Warning: Failed to create leave rejected notification:", notifErr);
+    }
+
+    return rejectedResult;
 }
 
 /**
