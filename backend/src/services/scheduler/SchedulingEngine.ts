@@ -488,7 +488,9 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             leaves.set(userId, new Map());
         }
 
-        leaves.get(userId)!.set(date, leaveHours);
+        const userLeaveMap = leaves.get(userId)!;
+        const currentHours = userLeaveMap.get(date) || 0;
+        userLeaveMap.set(date, currentHours + leaveHours);
     }
 
     const resourceSchedule = new Map<number, Map<string, number>>();

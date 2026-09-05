@@ -224,7 +224,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
             FOREIGN KEY (approver_id) REFERENCES users(user_id) ON DELETE SET NULL,
-            UNIQUE KEY unique_user_leave (user_id, leave_date),
+            UNIQUE KEY unique_user_leave_type (user_id, leave_date, leave_type),
             INDEX idx_leave_request_id (request_id)
         )
     `);
@@ -280,6 +280,18 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
     }
     try {
         await pool.query(`ALTER TABLE user_leaves ADD INDEX idx_leave_request_id (request_id)`);
+    } catch (e: any) {
+        // Ignore if index already exists
+    }
+
+    // Migration check: update unique constraint on user_leaves to allow multiple non-overlapping half days on same date
+    try {
+        await pool.query(`ALTER TABLE user_leaves DROP INDEX unique_user_leave`);
+    } catch (e: any) {
+        // Ignore if index does not exist
+    }
+    try {
+        await pool.query(`ALTER TABLE user_leaves ADD UNIQUE KEY unique_user_leave_type (user_id, leave_date, leave_type)`);
     } catch (e: any) {
         // Ignore if index already exists
     }

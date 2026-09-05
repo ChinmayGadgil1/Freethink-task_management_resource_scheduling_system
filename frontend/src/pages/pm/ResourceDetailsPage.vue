@@ -671,7 +671,11 @@
                     <template #append>
                       <q-icon name="event" class="cursor-pointer">
                         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                          <q-date v-model="leaveForm.start_date" mask="YYYY-MM-DD">
+                          <q-date
+                            v-model="leaveForm.start_date"
+                            mask="YYYY-MM-DD"
+                            :options="isStartDateAllowed"
+                          >
                             <div class="row items-center justify-end">
                               <q-btn v-close-popup label="Close" color="primary" flat />
                             </div>
@@ -699,7 +703,7 @@
                           <q-date
                             v-model="leaveForm.end_date"
                             mask="YYYY-MM-DD"
-                            :options="(date) => !leaveForm.start_date || date.replaceAll('/', '-') >= leaveForm.start_date"
+                            :options="isEndDateAllowed"
                           >
                             <div class="row items-center justify-end">
                               <q-btn v-close-popup label="Close" color="primary" flat />
@@ -721,11 +725,7 @@
                   emit-value
                   map-options
                   label="Leave Type *"
-                  :options="[
-                    { label: 'Full Day', value: 'FULL_DAY' },
-                    { label: 'First Half', value: 'FIRST_HALF' },
-                    { label: 'Second Half', value: 'SECOND_HALF' }
-                  ]"
+                  :options="singleDayLeaveOptions"
                 />
               </div>
 
@@ -741,10 +741,7 @@
                       emit-value
                       map-options
                       label="Start Day *"
-                      :options="[
-                        { label: 'Full Day', value: 'FULL_DAY' },
-                        { label: 'Second Half', value: 'SECOND_HALF' }
-                      ]"
+                      :options="startDayTypeOptions"
                     />
                   </div>
                   <div class="col-12 col-sm-6">
@@ -755,10 +752,7 @@
                       emit-value
                       map-options
                       label="End Day *"
-                      :options="[
-                        { label: 'Full Day', value: 'FULL_DAY' },
-                        { label: 'First Half', value: 'FIRST_HALF' }
-                      ]"
+                      :options="endDayTypeOptions"
                     />
                   </div>
                 </div>
@@ -931,7 +925,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
@@ -1181,6 +1175,145 @@ const isMultiDayLeave = computed(() => {
     leaveForm.start_date < leaveForm.end_date
   );
 });
+
+// Resource leaves map per date
+const userLeaveMap = computed(() => {
+  const map = new Map<string, { hasFull: boolean; hasFirstHalf: boolean; hasSecondHalf: boolean }>();
+
+  for (const l of leavesList.value) {
+    if (l.status === 'REJECTED') continue;
+
+    if (l.days_breakdown && l.days_breakdown.length > 0) {
+      for (const d of l.days_breakdown) {
+        if (d.status === 'REJECTED') continue;
+        const dStr = String(d.leave_date).split('T')[0]!;
+        if (!map.has(dStr)) {
+          map.set(dStr, { hasFull: false, hasFirstHalf: false, hasSecondHalf: false });
+        }
+        const entry = map.get(dStr)!;
+        if (d.leave_type === 'FULL_DAY') entry.hasFull = true;
+        else if (d.leave_type === 'FIRST_HALF') entry.hasFirstHalf = true;
+        else if (d.leave_type === 'SECOND_HALF') entry.hasSecondHalf = true;
+      }
+    } else {
+      const dStr = String(l.leave_date || l.start_date).split('T')[0]!;
+      if (!map.has(dStr)) {
+        map.set(dStr, { hasFull: false, hasFirstHalf: false, hasSecondHalf: false });
+      }
+      const entry = map.get(dStr)!;
+      if (l.leave_type === 'FULL_DAY') entry.hasFull = true;
+      else if (l.leave_type === 'FIRST_HALF') entry.hasFirstHalf = true;
+      else if (l.leave_type === 'SECOND_HALF') entry.hasSecondHalf = true;
+    }
+  }
+  return map;
+});
+
+function isDateFullyBooked(dateStr: string): boolean {
+  const entry = userLeaveMap.value.get(dateStr);
+  if (!entry) return false;
+  return entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf);
+}
+
+function isStartDateAllowed(date: string): boolean {
+  const dateStr = date.replaceAll('/', '-');
+  return !isDateFullyBooked(dateStr);
+}
+
+function isEndDateAllowed(date: string): boolean {
+  const dateStr = date.replaceAll('/', '-');
+  if (leaveForm.start_date && dateStr < leaveForm.start_date) return false;
+  return !isDateFullyBooked(dateStr);
+}
+
+const singleDayLeaveOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' }>>(() => {
+  if (!leaveForm.start_date) {
+    return [
+      { label: 'Full Day', value: 'FULL_DAY' },
+      { label: 'First Half', value: 'FIRST_HALF' },
+      { label: 'Second Half', value: 'SECOND_HALF' },
+    ];
+  }
+  const entry = userLeaveMap.value.get(leaveForm.start_date);
+  if (entry) {
+    if (entry.hasFirstHalf && !entry.hasSecondHalf) {
+      return [{ label: 'Second Half', value: 'SECOND_HALF' }];
+    }
+    if (entry.hasSecondHalf && !entry.hasFirstHalf) {
+      return [{ label: 'First Half', value: 'FIRST_HALF' }];
+    }
+  }
+  return [
+    { label: 'Full Day', value: 'FULL_DAY' },
+    { label: 'First Half', value: 'FIRST_HALF' },
+    { label: 'Second Half', value: 'SECOND_HALF' },
+  ];
+});
+
+const startDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'SECOND_HALF' }>>(() => {
+  if (!leaveForm.start_date) {
+    return [
+      { label: 'Full Day', value: 'FULL_DAY' },
+      { label: 'Second Half', value: 'SECOND_HALF' },
+    ];
+  }
+  const entry = userLeaveMap.value.get(leaveForm.start_date);
+  if (entry?.hasFirstHalf) {
+    return [{ label: 'Second Half', value: 'SECOND_HALF' }];
+  }
+  return [
+    { label: 'Full Day', value: 'FULL_DAY' },
+    { label: 'Second Half', value: 'SECOND_HALF' },
+  ];
+});
+
+const endDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' }>>(() => {
+  if (!leaveForm.end_date) {
+    return [
+      { label: 'Full Day', value: 'FULL_DAY' },
+      { label: 'First Half', value: 'FIRST_HALF' },
+    ];
+  }
+  const entry = userLeaveMap.value.get(leaveForm.end_date);
+  if (entry?.hasSecondHalf) {
+    return [{ label: 'First Half', value: 'FIRST_HALF' }];
+  }
+  return [
+    { label: 'Full Day', value: 'FULL_DAY' },
+    { label: 'First Half', value: 'FIRST_HALF' },
+  ];
+});
+
+// Watchers to synchronize selected leave types when options change
+watch(
+  () => [leaveForm.start_date, singleDayLeaveOptions.value],
+  () => {
+    const valid = singleDayLeaveOptions.value.map((o) => o.value);
+    if (!valid.includes(leaveForm.leave_type) && valid[0]) {
+      leaveForm.leave_type = valid[0];
+    }
+  },
+);
+
+watch(
+  () => [leaveForm.start_date, startDayTypeOptions.value],
+  () => {
+    const valid = startDayTypeOptions.value.map((o) => o.value);
+    if (!valid.includes(leaveForm.start_day_type) && valid[0]) {
+      leaveForm.start_day_type = valid[0];
+    }
+  },
+);
+
+watch(
+  () => [leaveForm.end_date, endDayTypeOptions.value],
+  () => {
+    const valid = endDayTypeOptions.value.map((o) => o.value);
+    if (!valid.includes(leaveForm.end_day_type) && valid[0]) {
+      leaveForm.end_day_type = valid[0];
+    }
+  },
+);
 
 const leaveColumns: QTableColumn<LeaveItem>[] = [
   { name: 'leave_date', label: 'Date', field: (l) => l.leave_date, align: 'left', sortable: true },

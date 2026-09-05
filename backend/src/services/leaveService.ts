@@ -137,22 +137,6 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         throw error;
     }
 
-    // 2. Duplicate leave check
-    const [existingLeaves] = await pool.query<RowDataPacket[]>(
-        `SELECT leave_id, DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, status 
-         FROM user_leaves 
-         WHERE user_id = ? AND leave_date IN (?)`,
-        [user_id, workingDates]
-    );
-
-    const conflicting = existingLeaves.filter(e => e.status !== "REJECTED");
-    if (conflicting.length > 0) {
-        const conflictDates = conflicting.map(e => String(e.leave_date)).join(", ");
-        const error = new Error(`A leave request already exists for this resource on: ${conflictDates}.`);
-        (error as any).status = 409;
-        throw error;
-    }
-
     // Determine initial status: PM applying on behalf is pre-approved; resource applying is PENDING
     const initialStatus: LeaveStatus = (userRole === "PROJECT_MANAGER") ? "APPROVED" : "PENDING";
     const approverId = (userRole === "PROJECT_MANAGER" && creatorId) ? creatorId : null;
@@ -208,6 +192,39 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
             approver_id: approverId,
             approved_at: approvedAt ? approvedAt.toISOString() : null
         });
+    }
+
+    // 2. Duplicate / Overlap leave check
+    const [existingLeaves] = await pool.query<RowDataPacket[]>(
+        `SELECT leave_id, DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, status, leave_type 
+         FROM user_leaves 
+         WHERE user_id = ? AND leave_date IN (?)`,
+        [user_id, workingDates]
+    );
+
+    const activeLeaves = existingLeaves.filter(e => e.status !== "REJECTED");
+    for (const item of leavesToCreate) {
+        const existingForDate = activeLeaves.filter(e => String(e.leave_date) === item.leave_date);
+        for (const exist of existingForDate) {
+            const existType = exist.leave_type || 'FULL_DAY';
+            if (existType === 'FULL_DAY') {
+                const error = new Error(`A full-day leave already exists for this resource on ${item.leave_date}.`);
+                (error as any).status = 409;
+                throw error;
+            }
+            if (item.leave_type === 'FULL_DAY') {
+                const label = existType === 'FIRST_HALF' ? 'first-half' : 'second-half';
+                const error = new Error(`Cannot apply full-day leave on ${item.leave_date} because a ${label} leave already exists.`);
+                (error as any).status = 409;
+                throw error;
+            }
+            if (existType === item.leave_type) {
+                const label = item.leave_type === 'FIRST_HALF' ? 'first-half' : 'second-half';
+                const error = new Error(`A ${label} leave already exists for this resource on ${item.leave_date}.`);
+                (error as any).status = 409;
+                throw error;
+            }
+        }
     }
 
     // 3. Insert records

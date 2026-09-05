@@ -440,7 +440,9 @@ export async function checkSchedulingImpact(
     const leavesMap = new Map<number, Map<string, number>>();
     const userLeaves = new Map<string, number>();
     for (const row of leaveRows) {
-        userLeaves.set(String(row.leave_date).split("T")[0]!, Number(row.leave_hours));
+        const dateStr = String(row.leave_date).split("T")[0]!;
+        const current = userLeaves.get(dateStr) || 0;
+        userLeaves.set(dateStr, current + Number(row.leave_hours));
     }
     leavesMap.set(resourceId, userLeaves);
 
@@ -628,7 +630,9 @@ export async function getResourceAvailability(
 
     const leaves = new Map<string, number>();
     for (const row of leaveRows) {
-        leaves.set(String(row.leave_date), Number(row.leave_hours));
+        const dateStr = String(row.leave_date);
+        const current = leaves.get(dateStr) || 0;
+        leaves.set(dateStr, current + Number(row.leave_hours));
     }
 
     // 6. Fetch task allocations in range
