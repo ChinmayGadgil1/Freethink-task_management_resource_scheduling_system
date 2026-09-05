@@ -659,30 +659,30 @@
               </div>
             </div>
 
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="editForm.deadline"
-                    outlined
-                    dense
-                    type="date"
-                    label="Deadline"
-                    stack-label
-                    :rules="[
-                      (val) =>
-                        !val ||
-                        !editingTaskProject?.start_date ||
-                        val >= editingTaskProject.start_date ||
-                        `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
-                      (val) =>
-                        !val ||
-                        !editingTaskProject?.deadline ||
-                        val <= editingTaskProject.deadline ||
-                        `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
-                    ]"
-                  />
-                </div>
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="editForm.deadline"
+                  outlined
+                  dense
+                  type="date"
+                  label="Deadline"
+                  stack-label
+                  :rules="[
+                    (val) =>
+                      !val ||
+                      !editingTaskProject?.start_date ||
+                      val >= editingTaskProject.start_date ||
+                      `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
+                    (val) =>
+                      !val ||
+                      !editingTaskProject?.deadline ||
+                      val <= editingTaskProject.deadline ||
+                      `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
+                  ]"
+                />
               </div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -735,7 +735,13 @@ import {
   getResourceScheduleDataApi,
   getResourceAvailabilityApi,
 } from '@/services/api';
-import type { Project, Task, ResourceUser, HolidayItem, DailyAvailabilityDTO } from '@/services/api';
+import type {
+  Project,
+  Task,
+  ResourceUser,
+  HolidayItem,
+  DailyAvailabilityDTO,
+} from '@/services/api';
 
 const $q = useQuasar();
 
@@ -744,12 +750,7 @@ const holidays = ref<HolidayItem[]>([]);
 const pmAvailabilityList = ref<DailyAvailabilityDTO[]>([]);
 const STORAGE_KEY_VIEW_MODE = 'taskflow_pm_schedule_view_mode';
 const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
-  | 'week'
-  | 'day'
-  | 'month'
-  | 'gantt'
-  | 'table'
-  | null;
+  'week' | 'day' | 'month' | 'gantt' | 'table' | null;
 const scheduleViewMode = ref<'week' | 'day' | 'month' | 'gantt' | 'table'>(
   storedViewMode || 'week',
 );

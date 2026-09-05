@@ -407,7 +407,6 @@
         </q-card>
       </q-dialog>
 
-
       <!-- DIALOG 2: ADD TASK -->
       <q-dialog v-model="showAddTaskModal">
         <q-card
@@ -871,8 +870,8 @@ const overdueTasks = computed(() => {
   }).length;
 });
 
-const selectedProjectForNewTask = computed(() =>
-  projects.value.find((p) => p.project_id === newTaskForm.project_id) || null,
+const selectedProjectForNewTask = computed(
+  () => projects.value.find((p) => p.project_id === newTaskForm.project_id) || null,
 );
 
 const projectOptions = computed(() =>

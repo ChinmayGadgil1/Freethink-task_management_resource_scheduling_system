@@ -695,9 +695,7 @@
                             <q-icon name="assignment" size="13px" color="grey-6" />
                             <div class="ellipsis">
                               <span class="text-grey-6">Status: </span>
-                              <strong class="text-main">{{
-                                formatStatus(project.status)
-                              }}</strong>
+                              <strong class="text-main">{{ formatStatus(project.status) }}</strong>
                             </div>
                           </div>
                         </div>
@@ -709,9 +707,7 @@
                             <q-icon name="event" size="13px" color="grey-6" />
                             <div class="ellipsis">
                               <span class="text-grey-6">Due: </span>
-                              <strong class="text-main">{{
-                                formatDate(project.deadline)
-                              }}</strong>
+                              <strong class="text-main">{{ formatDate(project.deadline) }}</strong>
                             </div>
                           </div>
                         </div>

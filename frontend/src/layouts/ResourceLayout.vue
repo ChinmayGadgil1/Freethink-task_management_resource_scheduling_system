@@ -34,10 +34,15 @@
 
         <!-- Search Input Trigger -->
         <div class="search-container">
-          <div class="header-search-trigger row items-center justify-between" @click="paletteOpen = true">
+          <div
+            class="header-search-trigger row items-center justify-between"
+            @click="paletteOpen = true"
+          >
             <div class="row items-center no-wrap ellipsis text-grey-6">
               <q-icon name="search" size="18px" class="q-mr-sm" />
-              <span class="search-placeholder ellipsis">Search tasks, deliverables, leaves, actions...</span>
+              <span class="search-placeholder ellipsis"
+                >Search tasks, deliverables, leaves, actions...</span
+              >
             </div>
             <div class="row items-center gap-xs">
               <span class="search-shortcut">Ctrl + K</span>
@@ -81,7 +86,11 @@
                   </q-item-section>
                 </q-item>
                 <q-separator />
-                <q-item clickable v-close-popup @click="router.push('/app/resource-dashboard/profile')">
+                <q-item
+                  clickable
+                  v-close-popup
+                  @click="router.push('/app/resource-dashboard/profile')"
+                >
                   <q-item-section avatar>
                     <q-icon name="person" color="primary" />
                   </q-item-section>

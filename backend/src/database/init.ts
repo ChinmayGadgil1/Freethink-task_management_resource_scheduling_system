@@ -86,6 +86,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             task_id BIGINT AUTO_INCREMENT PRIMARY KEY,
             project_id BIGINT NOT NULL,
             created_by BIGINT NOT NULL,
+            supervisor_id BIGINT NULL,
             title VARCHAR(150) NOT NULL,
             description TEXT,
             priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
@@ -103,7 +104,8 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-            FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
+            FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (supervisor_id) REFERENCES users(user_id) ON DELETE SET NULL
         )
     `);
     console.log("Tasks table is ready.");
@@ -434,6 +436,23 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
                OR daily_working_hours IS NULL
         `);
         console.log("Normalized daily_working_hours to 8.00 and synced schedule_configured state.");
+
+        // Migration check: ensure supervisor_id column exists in tasks table
+        try {
+            const [taskCols] = await pool.query<RowDataPacket[]>(
+                `SHOW COLUMNS FROM tasks LIKE 'supervisor_id'`
+            );
+            if (taskCols.length === 0) {
+                await pool.query(`
+                    ALTER TABLE tasks 
+                    ADD COLUMN supervisor_id BIGINT NULL AFTER created_by,
+                    ADD CONSTRAINT fk_tasks_supervisor FOREIGN KEY (supervisor_id) REFERENCES users(user_id) ON DELETE SET NULL
+                `);
+                console.log("Migrated: added supervisor_id column with foreign key to tasks table.");
+            }
+        } catch (supErr: any) {
+            console.log("Supervisor migration check warning:", supErr.message);
+        }
     } catch (migErr) {
         console.error("Warning: Migration check in initializeDatabase encountered an error:", migErr);
     }

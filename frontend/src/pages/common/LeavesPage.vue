@@ -223,12 +223,19 @@
         <!-- Date / Range Formatting -->
         <template #body-cell-leave_date="props">
           <q-td :props="props">
-            <template v-if="props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date">
+            <template
+              v-if="
+                props.row.start_date &&
+                props.row.end_date &&
+                props.row.start_date !== props.row.end_date
+              "
+            >
               <div class="text-weight-medium text-primary">
                 {{ formatDate(props.row.start_date) }} – {{ formatDate(props.row.end_date) }}
               </div>
               <div class="text-caption text-grey-6 q-mb-xs">
-                {{ props.row.total_days }} working days ({{ props.row.start_date }} to {{ props.row.end_date }})
+                {{ props.row.total_days }} working days ({{ props.row.start_date }} to
+                {{ props.row.end_date }})
               </div>
               <div class="row items-center gap-xs wrap">
                 <q-badge
@@ -248,7 +255,9 @@
               </div>
             </template>
             <template v-else>
-              <div class="text-weight-medium">{{ formatDate(props.row.leave_date || props.row.start_date) }}</div>
+              <div class="text-weight-medium">
+                {{ formatDate(props.row.leave_date || props.row.start_date) }}
+              </div>
             </template>
           </q-td>
         </template>
@@ -256,10 +265,19 @@
         <!-- Leave Type / Hours Formatting -->
         <template #body-cell-leave_type="props">
           <q-td :props="props">
-            <template v-if="props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date">
+            <template
+              v-if="
+                props.row.start_date &&
+                props.row.end_date &&
+                props.row.start_date !== props.row.end_date
+              "
+            >
               <div class="text-weight-medium">Multi-Day Leave</div>
               <div class="text-caption text-grey-6">
-                {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{ props.row.total_days }} days)
+                {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{
+                  props.row.total_days
+                }}
+                days)
               </div>
             </template>
             <template v-else>
@@ -306,7 +324,10 @@
               style="font-size: 11px"
             >
               <q-icon name="verified_user" size="13px" color="positive" />
-              <span>Approved by <strong>{{ props.row.approver_name || 'Project Manager' }}</strong></span>
+              <span
+                >Approved by
+                <strong>{{ props.row.approver_name || 'Project Manager' }}</strong></span
+              >
             </div>
             <div
               v-else-if="props.row.status === 'REJECTED'"
@@ -349,7 +370,9 @@
                 </q-btn>
                 <div v-else>
                   <q-btn dense flat round disable color="grey-5" icon="check">
-                    <q-tooltip>Cannot approve: Leave start date has already arrived or passed</q-tooltip>
+                    <q-tooltip
+                      >Cannot approve: Leave start date has already arrived or passed</q-tooltip
+                    >
                   </q-btn>
                 </div>
 
@@ -426,7 +449,12 @@
                   dense
                   label="Start Date (YYYY-MM-DD) *"
                   :rules="[(val) => !!val || 'Start date is required']"
-                  @update:model-value="(val) => { if (val && (!leaveForm.end_date || leaveForm.end_date < String(val))) leaveForm.end_date = String(val); }"
+                  @update:model-value="
+                    (val) => {
+                      if (val && (!leaveForm.end_date || leaveForm.end_date < String(val)))
+                        leaveForm.end_date = String(val);
+                    }
+                  "
                 >
                   <template #append>
                     <q-icon name="event" class="cursor-pointer">
@@ -454,7 +482,10 @@
                   label="End Date (YYYY-MM-DD) *"
                   :rules="[
                     (val) => !!val || 'End date is required',
-                    (val) => !leaveForm.start_date || val >= leaveForm.start_date || 'End date must be on or after start date',
+                    (val) =>
+                      !leaveForm.start_date ||
+                      val >= leaveForm.start_date ||
+                      'End date must be on or after start date',
                   ]"
                 >
                   <template #append>
@@ -517,7 +548,8 @@
                 </div>
               </div>
               <div class="text-caption text-grey-6 q-mt-xs">
-                Intermediate days between start and end date will be treated as Full Days. Non-working days and holidays are automatically excluded.
+                Intermediate days between start and end date will be treated as Full Days.
+                Non-working days and holidays are automatically excluded.
               </div>
             </div>
           </q-card-section>
@@ -692,11 +724,15 @@ async function onResourceSelectChange(userId: number | null) {
 
 // User leaves map per date
 const userLeaveMap = computed(() => {
-  const map = new Map<string, { hasFull: boolean; hasFirstHalf: boolean; hasSecondHalf: boolean }>();
+  const map = new Map<
+    string,
+    { hasFull: boolean; hasFirstHalf: boolean; hasSecondHalf: boolean }
+  >();
   const targetId = isProjectManager.value ? leaveForm.user_id : currentUserId.value;
-  const listToUse = isProjectManager.value && dialogLeavesList.value.length > 0
-    ? dialogLeavesList.value
-    : leavesList.value;
+  const listToUse =
+    isProjectManager.value && dialogLeavesList.value.length > 0
+      ? dialogLeavesList.value
+      : leavesList.value;
 
   for (const l of listToUse) {
     if (targetId && Number(l.user_id) !== Number(targetId)) continue;
@@ -745,7 +781,9 @@ function isEndDateAllowed(date: string): boolean {
   return !isDateFullyBooked(dateStr);
 }
 
-const singleDayLeaveOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' }>>(() => {
+const singleDayLeaveOptions = computed<
+  Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' }>
+>(() => {
   if (!leaveForm.start_date) {
     return [
       { label: 'Full Day', value: 'FULL_DAY' },
@@ -772,49 +810,53 @@ const singleDayLeaveOptions = computed<Array<{ label: string; value: 'FULL_DAY' 
   ];
 });
 
-const startDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'SECOND_HALF' }>>(() => {
-  if (!leaveForm.start_date) {
+const startDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'SECOND_HALF' }>>(
+  () => {
+    if (!leaveForm.start_date) {
+      return [
+        { label: 'Full Day', value: 'FULL_DAY' },
+        { label: 'Second Half', value: 'SECOND_HALF' },
+      ];
+    }
+    const entry = userLeaveMap.value.get(leaveForm.start_date);
+    if (entry) {
+      if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasSecondHalf) {
+        return [];
+      }
+      if (entry.hasFirstHalf) {
+        return [{ label: 'Second Half', value: 'SECOND_HALF' }];
+      }
+    }
     return [
       { label: 'Full Day', value: 'FULL_DAY' },
       { label: 'Second Half', value: 'SECOND_HALF' },
     ];
-  }
-  const entry = userLeaveMap.value.get(leaveForm.start_date);
-  if (entry) {
-    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasSecondHalf) {
-      return [];
-    }
-    if (entry.hasFirstHalf) {
-      return [{ label: 'Second Half', value: 'SECOND_HALF' }];
-    }
-  }
-  return [
-    { label: 'Full Day', value: 'FULL_DAY' },
-    { label: 'Second Half', value: 'SECOND_HALF' },
-  ];
-});
+  },
+);
 
-const endDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' }>>(() => {
-  if (!leaveForm.end_date) {
+const endDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' }>>(
+  () => {
+    if (!leaveForm.end_date) {
+      return [
+        { label: 'Full Day', value: 'FULL_DAY' },
+        { label: 'First Half', value: 'FIRST_HALF' },
+      ];
+    }
+    const entry = userLeaveMap.value.get(leaveForm.end_date);
+    if (entry) {
+      if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasFirstHalf) {
+        return [];
+      }
+      if (entry.hasSecondHalf) {
+        return [{ label: 'First Half', value: 'FIRST_HALF' }];
+      }
+    }
     return [
       { label: 'Full Day', value: 'FULL_DAY' },
       { label: 'First Half', value: 'FIRST_HALF' },
     ];
-  }
-  const entry = userLeaveMap.value.get(leaveForm.end_date);
-  if (entry) {
-    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasFirstHalf) {
-      return [];
-    }
-    if (entry.hasSecondHalf) {
-      return [{ label: 'First Half', value: 'FIRST_HALF' }];
-    }
-  }
-  return [
-    { label: 'Full Day', value: 'FULL_DAY' },
-    { label: 'First Half', value: 'FIRST_HALF' },
-  ];
-});
+  },
+);
 
 // Watchers to synchronize selected leave types when options change
 watch(
@@ -949,7 +991,9 @@ const futureLeavesCount = computed(() => {
 const currentMonthLeavesCount = computed(() => {
   const currentMonthStr = new Date().toISOString().substring(0, 7); // e.g. YYYY-MM
   return leavesList.value.filter(
-    (l) => (l.start_date || l.leave_date).startsWith(currentMonthStr) || (l.end_date || l.leave_date).startsWith(currentMonthStr),
+    (l) =>
+      (l.start_date || l.leave_date).startsWith(currentMonthStr) ||
+      (l.end_date || l.leave_date).startsWith(currentMonthStr),
   ).length;
 });
 

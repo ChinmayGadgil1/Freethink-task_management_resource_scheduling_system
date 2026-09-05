@@ -78,11 +78,33 @@ export interface AssignedResource {
   email?: string;
 }
 
+export interface PredecessorTaskInfo {
+  task_id: number;
+  project_id: number;
+  project_name?: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  deadline: string | null;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  expected_effort: number | string;
+  actual_effort: number | string;
+  progress: number | string;
+  is_schedule_at_risk?: boolean;
+  is_deadline_at_risk?: boolean;
+  assigned_resource_names?: string[];
+  supervisor_name?: string | null;
+}
+
 export interface Task {
   task_id: number;
   project_id: number;
   project_name?: string;
-  created_by: number; //added to track who created the task
+  created_by?: number; //added to track who created the task
+  supervisor_id?: number | null;
+  supervisor_name?: string | null;
+  supervisor_email?: string | null;
   title: string;
   description: string | null;
   priority: TaskPriority;
@@ -102,7 +124,9 @@ export interface Task {
   updated_at?: string;
   assigned_resource_ids?: number[];
   assigned_resources?: AssignedResource[];
+  assigned_resource_names?: string[];
   predecessor_task_ids?: number[];
+  predecessors?: PredecessorTaskInfo[];
   pacing?: TaskPacing;
   schedules?: TaskScheduleItem[];
   is_external?: boolean;
@@ -159,7 +183,11 @@ function handleSessionExpired() {
   sessionStorage.removeItem('auth');
   sessionStorage.removeItem('user');
 
-  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && window.location.pathname !== '/') {
+  if (
+    typeof window !== 'undefined' &&
+    !window.location.pathname.startsWith('/login') &&
+    window.location.pathname !== '/'
+  ) {
     sessionStorage.setItem('flashMessage', 'Your session has expired. Please log in again.');
     window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
   }
@@ -323,11 +351,17 @@ export async function updateProjectApi(
   return data.project;
 }
 
-export async function getTasksApi(projectId?: number): Promise<Task[]> {
+export async function getTasksApi(
+  projectId?: number,
+  scope?: 'all' | 'assigned' | 'supervised',
+): Promise<Task[]> {
   const url = new URL(`${API_BASE_URL}/tasks`);
 
   if (projectId !== undefined) {
     url.searchParams.set('project_id', String(projectId));
+  }
+  if (scope !== undefined) {
+    url.searchParams.set('scope', scope);
   }
 
   const response = await authenticatedFetch(url.toString());
@@ -339,6 +373,18 @@ export async function getTasksApi(projectId?: number): Promise<Task[]> {
   }
 
   return data.tasks ?? [];
+}
+
+export async function getTaskByIdApi(taskId: number): Promise<Task> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch task details');
+  }
+
+  return data.task;
 }
 
 export async function getBottleneckTasksApi(): Promise<Task[]> {
@@ -410,12 +456,13 @@ export async function getResourceWorkloadApi(resourceId?: number): Promise<Resou
 export interface CreateTaskPayload {
   project_id: number;
   title: string;
-  description?: string | null;
-  priority?: TaskPriority;
-  status?: TaskStatus;
-  deadline?: string | null;
+  description?: string | null | undefined;
+  supervisor_id?: number | null | undefined;
+  priority?: TaskPriority | undefined;
+  status?: TaskStatus | undefined;
+  deadline?: string | null | undefined;
   expected_effort: number;
-  assigned_resource_ids?: number[];
+  assigned_resource_ids?: number[] | undefined;
 }
 
 export async function createTaskApi(payload: CreateTaskPayload): Promise<Task> {
@@ -430,16 +477,11 @@ export async function createTaskApi(payload: CreateTaskPayload): Promise<Task> {
     throw new Error(data.message || 'Failed to create task');
   }
 
-  return data.task;
+  return data.task || data;
 }
 
 export type ProjectStatus =
-  | 'NOT_STARTED'
-  | 'IN_PROGRESS'
-  | 'ON_HOLD'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'ARCHIVED';
+  'NOT_STARTED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
 
 export type ProjectPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -470,6 +512,7 @@ export async function createProjectApi(payload: CreateProjectPayload): Promise<P
 export interface UpdateTaskPayload {
   title?: string;
   description?: string | null;
+  supervisor_id?: number | null;
   priority?: TaskPriority;
   status?: TaskStatus;
   deadline?: string | null;

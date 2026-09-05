@@ -1,5 +1,8 @@
 <template>
-  <q-page class="q-pa-md pm-tasks-page" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'">
+  <q-page
+    class="q-pa-md pm-tasks-page"
+    :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
+  >
     <div style="max-width: 1400px; margin: 0 auto">
       <!-- 1. PAGE HEADER -->
       <div class="row items-center justify-between q-mb-md">
@@ -209,207 +212,215 @@
                   flat
                   bordered
                   :dark="$q.dark.isActive"
-                class="rounded-borders cursor-pointer q-pa-sm"
-                :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
-                @click="openTaskDetails(task)"
-              >
-                <!-- Card Header -->
-                <div class="row items-center justify-between no-wrap q-mb-xs">
-                  <div class="row items-center q-gutter-xs ellipsis">
+                  class="rounded-borders cursor-pointer q-pa-sm"
+                  :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
+                  @click="openTaskDetails(task)"
+                >
+                  <!-- Card Header -->
+                  <div class="row items-center justify-between no-wrap q-mb-xs">
+                    <div class="row items-center q-gutter-xs ellipsis">
+                      <q-chip
+                        dense
+                        square
+                        size="xs"
+                        :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                      >
+                        {{ getProjectName(task.project_id) }}
+                      </q-chip>
+                      <q-badge color="black" text-color="white" style="font-size: 10px">
+                        {{ task.priority }}
+                      </q-badge>
+                    </div>
+
+                    <!-- 3-Dot Action Menu -->
+                    <q-btn flat round dense icon="more_vert" size="sm" color="grey-6" @click.stop>
+                      <q-menu auto-close anchor="bottom right" self="top right">
+                        <q-list dense style="min-width: 170px">
+                          <q-item clickable @click="openEditModal(task)">
+                            <q-item-section avatar
+                              ><q-icon name="edit" size="16px" color="grey-8"
+                            /></q-item-section>
+                            <q-item-section>Edit Details</q-item-section>
+                          </q-item>
+                          <q-item clickable @click="openAssignTaskMemberDialog(task.task_id)">
+                            <q-item-section avatar
+                              ><q-icon name="person_add" size="16px" color="primary"
+                            /></q-item-section>
+                            <q-item-section>Assign Member</q-item-section>
+                          </q-item>
+                          <q-item clickable @click="openDependencyDialog(task)">
+                            <q-item-section avatar
+                              ><q-icon name="account_tree" size="16px" color="teal"
+                            /></q-item-section>
+                            <q-item-section>Add Dependency</q-item-section>
+                          </q-item>
+                          <q-separator />
+                          <q-item clickable class="text-negative" @click="confirmDeleteTask(task)">
+                            <q-item-section avatar
+                              ><q-icon name="delete" size="16px" color="negative"
+                            /></q-item-section>
+                            <q-item-section>Delete Task</q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
+                    </q-btn>
+                  </div>
+
+                  <!-- Self-Assigned by Resource Indicator -->
+                  <div v-if="getSelfAssignedCreatorName(task)" class="q-mb-xs">
                     <q-chip
                       dense
                       square
                       size="xs"
                       :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                       :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                      icon="person"
+                      class="text-weight-bold"
                     >
-                      {{ getProjectName(task.project_id) }}
+                      self assigned by {{ getSelfAssignedCreatorName(task) }}
                     </q-chip>
-                    <q-badge color="black" text-color="white" style="font-size: 10px">
-                      {{ task.priority }}
-                    </q-badge>
                   </div>
 
-                  <!-- 3-Dot Action Menu -->
-                  <q-btn flat round dense icon="more_vert" size="sm" color="grey-6" @click.stop>
-                    <q-menu auto-close anchor="bottom right" self="top right">
-                      <q-list dense style="min-width: 170px">
-                        <q-item clickable @click="openEditModal(task)">
-                          <q-item-section avatar
-                            ><q-icon name="edit" size="16px" color="grey-8"
-                          /></q-item-section>
-                          <q-item-section>Edit Details</q-item-section>
-                        </q-item>
-                        <q-item clickable @click="openAssignTaskMemberDialog(task.task_id)">
-                          <q-item-section avatar
-                            ><q-icon name="person_add" size="16px" color="primary"
-                          /></q-item-section>
-                          <q-item-section>Assign Member</q-item-section>
-                        </q-item>
-                        <q-item clickable @click="openDependencyDialog(task)">
-                          <q-item-section avatar
-                            ><q-icon name="account_tree" size="16px" color="teal"
-                          /></q-item-section>
-                          <q-item-section>Add Dependency</q-item-section>
-                        </q-item>
-                        <q-separator />
-                        <q-item clickable class="text-negative" @click="confirmDeleteTask(task)">
-                          <q-item-section avatar
-                            ><q-icon name="delete" size="16px" color="negative"
-                          /></q-item-section>
-                          <q-item-section>Delete Task</q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
-                  </q-btn>
-                </div>
-
-                <!-- Self-Assigned by Resource Indicator -->
-                <div v-if="getSelfAssignedCreatorName(task)" class="q-mb-xs">
-                  <q-chip
-                    dense
-                    square
-                    size="xs"
-                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                    icon="person"
-                    class="text-weight-bold"
+                  <!-- Task Title & Description -->
+                  <div
+                    class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs"
+                    :title="task.title"
                   >
-                    self assigned by {{ getSelfAssignedCreatorName(task) }}
-                  </q-chip>
-                </div>
-
-                <!-- Task Title & Description -->
-                <div
-                  class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs"
-                  :title="task.title"
-                >
-                  {{ task.title }}
-                </div>
-                <div
-                  v-if="task.description"
-                  class="text-caption text-grey-6 ellipsis-2-lines q-mb-xs"
-                >
-                  {{ task.description }}
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="q-mt-xs">
-                  <div class="row items-center justify-between text-caption q-mb-xs">
-                    <span class="text-weight-bold">{{ Number(task.progress) || 0 }}%</span>
-                    <span class="text-grey-6"
-                      >{{ formatHours(task.expected_effort || 8) }} effort</span
-                    >
+                    {{ task.title }}
                   </div>
-                  <q-linear-progress
-                    rounded
-                    size="4px"
-                    :value="(Number(task.progress) || 0) / 100"
-                    :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
-                    :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
-                  />
-                </div>
+                  <div
+                    v-if="task.description"
+                    class="text-caption text-grey-6 ellipsis-2-lines q-mb-xs"
+                  >
+                    {{ task.description }}
+                  </div>
 
-                <!-- Card Footer -->
-                <div class="row items-center justify-between q-mt-sm text-caption">
-                  <div class="row items-center q-gutter-xs">
-                    <template
-                      v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
-                    >
-                      <q-avatar
-                        v-for="rId in task.assigned_resource_ids.slice(0, 3)"
-                        :key="rId"
-                        size="20px"
-                        color="primary"
-                        text-color="white"
-                        class="cursor-pointer text-caption"
-                        @click.stop="confirmUnassignResource(task, rId)"
+                  <!-- Progress Bar -->
+                  <div class="q-mt-xs">
+                    <div class="row items-center justify-between text-caption q-mb-xs">
+                      <span class="text-weight-bold">{{ Number(task.progress) || 0 }}%</span>
+                      <span class="text-grey-6"
+                        >{{ formatHours(task.expected_effort || 8) }} effort</span
                       >
-                        {{ getResourceName(rId).charAt(0).toUpperCase() }}
-                        <q-tooltip>{{ getResourceName(rId) }} (Click to unassign)</q-tooltip>
-                      </q-avatar>
-                    </template>
+                    </div>
+                    <q-linear-progress
+                      rounded
+                      size="4px"
+                      :value="(Number(task.progress) || 0) / 100"
+                      :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
+                      :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+                    />
+                  </div>
+
+                  <!-- Card Footer -->
+                  <div class="row items-center justify-between q-mt-sm text-caption">
+                    <div class="row items-center q-gutter-xs">
+                      <template
+                        v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
+                      >
+                        <q-avatar
+                          v-for="rId in task.assigned_resource_ids.slice(0, 3)"
+                          :key="rId"
+                          size="20px"
+                          color="primary"
+                          text-color="white"
+                          class="cursor-pointer text-caption"
+                          @click.stop="confirmUnassignResource(task, rId)"
+                        >
+                          {{ getResourceName(rId).charAt(0).toUpperCase() }}
+                          <q-tooltip>{{ getResourceName(rId) }} (Click to unassign)</q-tooltip>
+                        </q-avatar>
+                      </template>
+                      <span
+                        v-else
+                        class="text-grey-6 cursor-pointer"
+                        @click.stop="openAssignTaskMemberDialog(task.task_id)"
+                      >
+                        + Assign
+                      </span>
+                    </div>
+
                     <span
-                      v-else
-                      class="text-grey-6 cursor-pointer"
-                      @click.stop="openAssignTaskMemberDialog(task.task_id)"
+                      :class="
+                        isTaskOverdue(task) ? 'text-negative text-weight-bold' : 'text-grey-6'
+                      "
                     >
-                      + Assign
+                      <q-icon name="event" size="13px" />
+                      {{ task.deadline ? formatDate(task.deadline) : 'TBD' }}
                     </span>
                   </div>
+                </q-card>
 
-                  <span
-                    :class="isTaskOverdue(task) ? 'text-negative text-weight-bold' : 'text-grey-6'"
-                  >
-                    <q-icon name="event" size="13px" />
-                    {{ task.deadline ? formatDate(task.deadline) : 'TBD' }}
-                  </span>
-                </div>
-              </q-card>
-
-              <!-- Empty Column State -->
-              <div
-                v-if="!tasksByStatus[col.id]?.length"
-                class="q-pa-md text-center text-grey-5 column items-center justify-center col-grow"
-              >
-                <q-icon :name="col.icon" size="24px" class="q-mb-xs" />
-                <div class="text-caption">No {{ col.title.toLowerCase() }} tasks</div>
-              </div>
-            </q-card-section>
-          </div>
-
-          <!-- Column Pagination Footer -->
-          <div v-if="tasksByStatus[col.id]?.length > 0" class="kanban-column-footer">
-            <q-separator :dark="$q.dark.isActive" />
-            <div
-              class="row items-center justify-between no-wrap q-px-sm q-py-xs"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
-            >
-              <div class="row items-center no-wrap q-gutter-xs">
-                <span class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px">
-                  {{ (getColumnPage(col.id) - 1) * getColumnPageSize(col.id) + 1 }}-{{
-                    Math.min(getColumnPage(col.id) * getColumnPageSize(col.id), tasksByStatus[col.id]?.length || 0)
-                  }} of {{ tasksByStatus[col.id]?.length || 0 }}
-                </span>
-
-                <q-select
-                  :model-value="getColumnPageSize(col.id)"
-                  :options="pageSizeOptions"
-                  :display-value="getColumnPageSize(col.id) === 999 ? 'All' : getColumnPageSize(col.id) + '/col'"
-                  dense
-                  borderless
-                  emit-value
-                  map-options
-                  options-dense
-                  :dark="$q.dark.isActive"
-                  style="font-size: 11px; width: 62px"
-                  class="q-ml-xs text-caption text-weight-bold"
-                  :class="$q.dark.isActive ? 'text-purple-2' : 'text-primary'"
-                  @update:model-value="(val: number) => setColumnPageSize(col.id, val)"
+                <!-- Empty Column State -->
+                <div
+                  v-if="!tasksByStatus[col.id]?.length"
+                  class="q-pa-md text-center text-grey-5 column items-center justify-center col-grow"
                 >
-                  <q-tooltip>Tasks shown per page in this column</q-tooltip>
-                </q-select>
-              </div>
-
-              <q-pagination
-                :model-value="getColumnPage(col.id)"
-                :max="getColumnTotalPages(col.id)"
-                :max-pages="3"
-                size="xs"
-                dense
-                round
-                direction-links
-                :disable="getColumnTotalPages(col.id) <= 1"
-                :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
-                active-color="primary"
-                active-text-color="white"
-                @update:model-value="(val: number) => setColumnPage(col.id, val)"
-              />
+                  <q-icon :name="col.icon" size="24px" class="q-mb-xs" />
+                  <div class="text-caption">No {{ col.title.toLowerCase() }} tasks</div>
+                </div>
+              </q-card-section>
             </div>
-          </div>
-        </q-card>
+
+            <!-- Column Pagination Footer -->
+            <div v-if="tasksByStatus[col.id]?.length > 0" class="kanban-column-footer">
+              <q-separator :dark="$q.dark.isActive" />
+              <div
+                class="row items-center justify-between no-wrap q-px-sm q-py-xs"
+                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+              >
+                <div class="row items-center no-wrap q-gutter-xs">
+                  <span class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px">
+                    {{ (getColumnPage(col.id) - 1) * getColumnPageSize(col.id) + 1 }}-{{
+                      Math.min(
+                        getColumnPage(col.id) * getColumnPageSize(col.id),
+                        tasksByStatus[col.id]?.length || 0,
+                      )
+                    }}
+                    of {{ tasksByStatus[col.id]?.length || 0 }}
+                  </span>
+
+                  <q-select
+                    :model-value="getColumnPageSize(col.id)"
+                    :options="pageSizeOptions"
+                    :display-value="
+                      getColumnPageSize(col.id) === 999 ? 'All' : getColumnPageSize(col.id) + '/col'
+                    "
+                    dense
+                    borderless
+                    emit-value
+                    map-options
+                    options-dense
+                    :dark="$q.dark.isActive"
+                    style="font-size: 11px; width: 62px"
+                    class="q-ml-xs text-caption text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-purple-2' : 'text-primary'"
+                    @update:model-value="(val: number) => setColumnPageSize(col.id, val)"
+                  >
+                    <q-tooltip>Tasks shown per page in this column</q-tooltip>
+                  </q-select>
+                </div>
+
+                <q-pagination
+                  :model-value="getColumnPage(col.id)"
+                  :max="getColumnTotalPages(col.id)"
+                  :max-pages="3"
+                  size="xs"
+                  dense
+                  round
+                  direction-links
+                  :disable="getColumnTotalPages(col.id) <= 1"
+                  :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+                  active-color="primary"
+                  active-text-color="white"
+                  @update:model-value="(val: number) => setColumnPage(col.id, val)"
+                />
+              </div>
+            </div>
+          </q-card>
+        </div>
       </div>
-    </div>
 
       <!-- 5. TABLE / LIST VIEW -->
       <q-card v-else flat bordered :dark="$q.dark.isActive" class="rounded-borders">
@@ -593,7 +604,10 @@
         @assign-member="openAssignFromDetails"
         @add-dependency="openDependencyFromDetails"
         @unassign-member="({ resourceId }) => unassignFromDetails(resourceId)"
-        @remove-dependency="({ taskId, predecessorId, predecessorTitle }) => confirmRemoveDependencyFromDetails(taskId, predecessorId, predecessorTitle)"
+        @remove-dependency="
+          ({ taskId, predecessorId, predecessorTitle }) =>
+            confirmRemoveDependencyFromDetails(taskId, predecessorId, predecessorTitle)
+        "
       />
 
       <!-- ASSIGN MEMBER DIALOG -->
@@ -728,7 +742,11 @@
                     <q-item-label :class="{ 'text-grey-6': opt.disable }">
                       {{ opt.label }}
                     </q-item-label>
-                    <q-item-label v-if="opt.isCyclic" caption class="text-negative text-weight-medium">
+                    <q-item-label
+                      v-if="opt.isCyclic"
+                      caption
+                      class="text-negative text-weight-medium"
+                    >
                       Cannot select: would create circular dependency
                     </q-item-label>
                   </q-item-section>
@@ -738,7 +756,13 @@
                     </q-chip>
                   </q-item-section>
                   <q-item-section v-else-if="opt.isCyclic" side>
-                    <q-chip dense square color="negative" text-color="white" style="font-size: 10px">
+                    <q-chip
+                      dense
+                      square
+                      color="negative"
+                      text-color="white"
+                      style="font-size: 10px"
+                    >
                       Cycle
                     </q-chip>
                   </q-item-section>
@@ -768,6 +792,7 @@
         v-model="showCreateDialog"
         :projects="projectSelectOptions"
         :member-options="createMemberOptions"
+        :supervisor-options="createMemberOptions"
         :predecessor-options="createPredecessorOptions"
         :loading="submitting"
         @submit="handleCreateTask"
@@ -818,6 +843,27 @@
                     :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
                     :dark="$q.dark.isActive"
                   />
+                </div>
+              </div>
+
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-select
+                    v-model="editForm.supervisor_id"
+                    outlined
+                    dense
+                    clearable
+                    emit-value
+                    map-options
+                    label="Supervisor / Reviewer"
+                    :options="editSupervisorOptions"
+                    :dark="$q.dark.isActive"
+                    hint="Designate an experienced resource to supervise and review deliverables"
+                  >
+                    <template #prepend>
+                      <q-icon name="verified_user" color="amber-9" />
+                    </template>
+                  </q-select>
                 </div>
               </div>
 
@@ -1226,6 +1272,7 @@ const createForm = reactive<{
   deadline: string;
   assigned_resource_ids: number[];
   predecessor_task_ids: number[];
+  supervisor_id?: number | null;
 }>({
   project_id: null,
   title: '',
@@ -1235,6 +1282,7 @@ const createForm = reactive<{
   deadline: '',
   assigned_resource_ids: [],
   predecessor_task_ids: [],
+  supervisor_id: null,
 });
 
 watch(
@@ -1242,6 +1290,7 @@ watch(
   async (newProjectId) => {
     createForm.assigned_resource_ids = [];
     createForm.predecessor_task_ids = [];
+    createForm.supervisor_id = null;
     if (newProjectId) {
       const members = await getResourcesApi(newProjectId).catch(() => []);
       createProjectMembers.value = members;
@@ -1283,6 +1332,7 @@ const editForm = reactive<{
   progress: number;
   expected_effort: number;
   deadline: string;
+  supervisor_id: number | null;
 }>({
   title: '',
   status: 'UNASSIGNED',
@@ -1290,6 +1340,20 @@ const editForm = reactive<{
   progress: 0,
   expected_effort: 8,
   deadline: '',
+  supervisor_id: null,
+});
+
+const editSupervisorOptions = computed(() => {
+  if (!editingTaskId.value)
+    return resources.value.map((r) => ({ label: r.name, value: r.user_id }));
+  const t = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+  if (!t?.project_id) return resources.value.map((r) => ({ label: r.name, value: r.user_id }));
+  const projectMembers =
+    taskProjectMembers.value.length > 0 ? taskProjectMembers.value : resources.value;
+  return projectMembers.map((r) => ({
+    label: r.name,
+    value: r.user_id,
+  }));
 });
 
 const statusFilterOptions = [
@@ -1350,7 +1414,11 @@ const currentTaskPredecessors = computed(() => {
   return tasks.value.filter((t) => predIds.includes(Number(t.task_id)));
 });
 
-const dependencyToRemove = ref<{ task_id: number; title: string; successorTaskId?: number | undefined } | null>(null);
+const dependencyToRemove = ref<{
+  task_id: number;
+  title: string;
+  successorTaskId?: number | undefined;
+} | null>(null);
 const showRemoveDependencyDialog = ref(false);
 const dependencyRemoving = ref(false);
 
@@ -1561,14 +1629,11 @@ function getPaginatedTasks(colId: string): Task[] {
   return all.slice(start, start + pageSize);
 }
 
-watch(
-  [searchQuery, projectFilter, statusFilter, priorityFilter],
-  () => {
-    for (const key of Object.keys(columnPages)) {
-      columnPages[key] = 1;
-    }
-  },
-);
+watch([searchQuery, projectFilter, statusFilter, priorityFilter], () => {
+  for (const key of Object.keys(columnPages)) {
+    columnPages[key] = 1;
+  }
+});
 
 function getProjectName(projectId: number): string {
   const p = projects.value.find((proj) => proj.project_id === projectId);
@@ -1706,7 +1771,11 @@ function confirmRemoveDependency(pred: { task_id: number; title: string }) {
   showRemoveDependencyDialog.value = true;
 }
 
-function confirmRemoveDependencyFromDetails(taskId: number, predecessorId: number, predecessorTitle: string) {
+function confirmRemoveDependencyFromDetails(
+  taskId: number,
+  predecessorId: number,
+  predecessorTitle: string,
+) {
   dependencyToRemove.value = {
     task_id: predecessorId,
     title: predecessorTitle,
@@ -1776,6 +1845,7 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       expected_effort: Number(data.expected_effort) || 8,
       deadline: data.deadline || null,
       assigned_resource_ids: data.assigned_resource_ids,
+      supervisor_id: data.supervisor_id || undefined,
     });
 
     const newTaskId = newTask?.task_id;
@@ -1808,6 +1878,7 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
     createForm.description = '';
     createForm.assigned_resource_ids = [];
     createForm.predecessor_task_ids = [];
+    createForm.supervisor_id = null;
     await loadData();
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to create task';
@@ -1828,6 +1899,7 @@ function openEditModal(task: Task) {
   editForm.progress = Number(task.progress) || 0;
   editForm.expected_effort = Number(task.expected_effort) || 8;
   editForm.deadline = task.deadline?.split('T')[0] ?? '';
+  editForm.supervisor_id = task.supervisor_id ? Number(task.supervisor_id) : null;
   showEditDialog.value = true;
 }
 
@@ -1861,6 +1933,7 @@ async function handleUpdateTask() {
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
       deadline: editForm.deadline || null,
+      supervisor_id: editForm.supervisor_id ?? null,
     });
 
     $q.notify({

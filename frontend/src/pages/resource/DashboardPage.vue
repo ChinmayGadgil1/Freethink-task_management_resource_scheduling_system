@@ -247,7 +247,6 @@
           </q-card>
         </div>
 
-
         <!-- 4. WORKLOAD + TASK STATUS ROW -->
         <div class="row q-col-gutter-lg">
           <div class="col-12 col-md-6">
@@ -473,8 +472,11 @@ const activeTasksCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'SCHEDULED').length,
 );
 
-const completedTasksCount = computed(
-  () => tasks.value.filter((t) => t.status === 'COMPLETED').length,
+const supervisedTasksCount = computed(
+  () =>
+    tasks.value.filter(
+      (t) => currentUserId.value && Number(t.supervisor_id) === currentUserId.value,
+    ).length,
 );
 
 const delayedTasksCount = computed(
@@ -501,11 +503,11 @@ const pastelStatCards = computed(() => [
     negative: false,
   },
   {
-    title: 'Completed',
-    value: completedTasksCount.value,
-    subtitle: 'Done',
-    badge: 'Delivered',
-    icon: 'check_circle',
+    title: 'Supervised',
+    value: supervisedTasksCount.value,
+    subtitle: 'Deliverable oversight',
+    badge: 'Reviewer',
+    icon: 'verified_user',
     color: 'mint',
     negative: false,
   },

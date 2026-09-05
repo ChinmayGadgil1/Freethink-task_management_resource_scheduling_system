@@ -151,7 +151,9 @@
         <q-card flat bordered class="metric-mini-card bg-leave-soft">
           <q-card-section class="q-pa-sm">
             <div class="text-caption text-grey-7">Total Leave Hours</div>
-            <div class="text-h6 text-weight-bold text-purple-8">{{ formatHours(totalLeaveHours) }}h</div>
+            <div class="text-h6 text-weight-bold text-purple-8">
+              {{ formatHours(totalLeaveHours) }}h
+            </div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
               Approved time off in range
             </div>

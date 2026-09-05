@@ -204,7 +204,10 @@
                 <!-- CARD TOP: AVATAR, NAME, CHIP -->
                 <div class="row items-center justify-between no-wrap q-mb-md">
                   <div class="row items-center no-wrap col q-mr-sm" style="min-width: 0">
-                    <q-avatar size="42px" class="resource-card-avatar avatar-purple q-mr-sm flex-shrink-0">
+                    <q-avatar
+                      size="42px"
+                      class="resource-card-avatar avatar-purple q-mr-sm flex-shrink-0"
+                    >
                       {{ getInitials(res.name) }}
                     </q-avatar>
                     <div class="col" style="min-width: 0">

@@ -394,12 +394,19 @@
               <!-- Date / Range Formatting -->
               <template #body-cell-leave_date="props">
                 <q-td :props="props">
-                  <template v-if="props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date">
+                  <template
+                    v-if="
+                      props.row.start_date &&
+                      props.row.end_date &&
+                      props.row.start_date !== props.row.end_date
+                    "
+                  >
                     <div class="text-weight-medium text-primary">
                       {{ formatDate(props.row.start_date) }} – {{ formatDate(props.row.end_date) }}
                     </div>
                     <div class="text-caption text-grey-6 q-mb-xs">
-                      {{ props.row.total_days }} working days ({{ props.row.start_date }} to {{ props.row.end_date }})
+                      {{ props.row.total_days }} working days ({{ props.row.start_date }} to
+                      {{ props.row.end_date }})
                     </div>
                     <div class="row items-center gap-xs wrap">
                       <q-badge
@@ -419,7 +426,9 @@
                     </div>
                   </template>
                   <template v-else>
-                    <div class="text-weight-medium">{{ formatDate(props.row.leave_date || props.row.start_date) }}</div>
+                    <div class="text-weight-medium">
+                      {{ formatDate(props.row.leave_date || props.row.start_date) }}
+                    </div>
                   </template>
                 </q-td>
               </template>
@@ -427,10 +436,19 @@
               <!-- Leave Type / Hours Formatting -->
               <template #body-cell-leave_type="props">
                 <q-td :props="props">
-                  <template v-if="props.row.start_date && props.row.end_date && props.row.start_date !== props.row.end_date">
+                  <template
+                    v-if="
+                      props.row.start_date &&
+                      props.row.end_date &&
+                      props.row.start_date !== props.row.end_date
+                    "
+                  >
                     <div class="text-weight-medium">Multi-Day Leave</div>
                     <div class="text-caption text-grey-6">
-                      {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{ props.row.total_days }} days)
+                      {{ formatHours(props.row.total_hours || props.row.leave_hours) }} ({{
+                        props.row.total_days
+                      }}
+                      days)
                     </div>
                   </template>
                   <template v-else>
@@ -443,7 +461,9 @@
                             : 'Full Day'
                       }}
                     </div>
-                    <div class="text-caption text-grey-6">{{ formatHours(props.row.leave_hours) }}</div>
+                    <div class="text-caption text-grey-6">
+                      {{ formatHours(props.row.leave_hours) }}
+                    </div>
                   </template>
                 </q-td>
               </template>
@@ -486,7 +506,10 @@
                     style="font-size: 11px"
                   >
                     <q-icon name="verified_user" size="13px" color="positive" />
-                    <span>Approved by <strong>{{ props.row.approver_name || 'Project Manager' }}</strong></span>
+                    <span
+                      >Approved by
+                      <strong>{{ props.row.approver_name || 'Project Manager' }}</strong></span
+                    >
                   </div>
                   <div
                     v-else-if="props.row.status === 'REJECTED'"
@@ -519,7 +542,9 @@
                         dense
                         icon="check"
                         color="positive"
-                        :loading="leaveActionLoadingId === (props.row.request_id || props.row.leave_id)"
+                        :loading="
+                          leaveActionLoadingId === (props.row.request_id || props.row.leave_id)
+                        "
                         @click="handleApproveLeave(props.row.request_id || props.row.leave_id)"
                       >
                         <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
@@ -536,7 +561,9 @@
                         dense
                         icon="close"
                         color="negative"
-                        :loading="leaveActionLoadingId === (props.row.request_id || props.row.leave_id)"
+                        :loading="
+                          leaveActionLoadingId === (props.row.request_id || props.row.leave_id)
+                        "
                         @click="handleRejectLeave(props.row.request_id || props.row.leave_id)"
                       >
                         <q-tooltip>Reject Leave</q-tooltip>
@@ -661,7 +688,12 @@
                     dense
                     label="Start Date (YYYY-MM-DD) *"
                     :rules="[(val) => !!val || 'Start date is required']"
-                    @update:model-value="(val) => { if (val && (!leaveForm.end_date || leaveForm.end_date < String(val))) leaveForm.end_date = String(val); }"
+                    @update:model-value="
+                      (val) => {
+                        if (val && (!leaveForm.end_date || leaveForm.end_date < String(val)))
+                          leaveForm.end_date = String(val);
+                      }
+                    "
                   >
                     <template #append>
                       <q-icon name="event" class="cursor-pointer">
@@ -689,7 +721,10 @@
                     label="End Date (YYYY-MM-DD) *"
                     :rules="[
                       (val) => !!val || 'End date is required',
-                      (val) => !leaveForm.start_date || val >= leaveForm.start_date || 'End date must be on or after start date',
+                      (val) =>
+                        !leaveForm.start_date ||
+                        val >= leaveForm.start_date ||
+                        'End date must be on or after start date',
                     ]"
                   >
                     <template #append>
@@ -752,7 +787,8 @@
                   </div>
                 </div>
                 <div class="text-caption text-grey-6 q-mt-xs">
-                  Intermediate days between start and end date will be treated as Full Days. Non-working days and holidays are automatically excluded.
+                  Intermediate days between start and end date will be treated as Full Days.
+                  Non-working days and holidays are automatically excluded.
                 </div>
               </div>
             </q-card-section>
@@ -1179,7 +1215,10 @@ const isMultiDayLeave = computed(() => {
 
 // Resource leaves map per date
 const userLeaveMap = computed(() => {
-  const map = new Map<string, { hasFull: boolean; hasFirstHalf: boolean; hasSecondHalf: boolean }>();
+  const map = new Map<
+    string,
+    { hasFull: boolean; hasFirstHalf: boolean; hasSecondHalf: boolean }
+  >();
 
   for (const l of leavesList.value) {
     if (l.status === 'REJECTED') continue;
@@ -1227,7 +1266,9 @@ function isEndDateAllowed(date: string): boolean {
   return !isDateFullyBooked(dateStr);
 }
 
-const singleDayLeaveOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' }>>(() => {
+const singleDayLeaveOptions = computed<
+  Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF' }>
+>(() => {
   if (!leaveForm.start_date) {
     return [
       { label: 'Full Day', value: 'FULL_DAY' },
@@ -1254,49 +1295,53 @@ const singleDayLeaveOptions = computed<Array<{ label: string; value: 'FULL_DAY' 
   ];
 });
 
-const startDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'SECOND_HALF' }>>(() => {
-  if (!leaveForm.start_date) {
+const startDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'SECOND_HALF' }>>(
+  () => {
+    if (!leaveForm.start_date) {
+      return [
+        { label: 'Full Day', value: 'FULL_DAY' },
+        { label: 'Second Half', value: 'SECOND_HALF' },
+      ];
+    }
+    const entry = userLeaveMap.value.get(leaveForm.start_date);
+    if (entry) {
+      if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasSecondHalf) {
+        return [];
+      }
+      if (entry.hasFirstHalf) {
+        return [{ label: 'Second Half', value: 'SECOND_HALF' }];
+      }
+    }
     return [
       { label: 'Full Day', value: 'FULL_DAY' },
       { label: 'Second Half', value: 'SECOND_HALF' },
     ];
-  }
-  const entry = userLeaveMap.value.get(leaveForm.start_date);
-  if (entry) {
-    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasSecondHalf) {
-      return [];
-    }
-    if (entry.hasFirstHalf) {
-      return [{ label: 'Second Half', value: 'SECOND_HALF' }];
-    }
-  }
-  return [
-    { label: 'Full Day', value: 'FULL_DAY' },
-    { label: 'Second Half', value: 'SECOND_HALF' },
-  ];
-});
+  },
+);
 
-const endDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' }>>(() => {
-  if (!leaveForm.end_date) {
+const endDayTypeOptions = computed<Array<{ label: string; value: 'FULL_DAY' | 'FIRST_HALF' }>>(
+  () => {
+    if (!leaveForm.end_date) {
+      return [
+        { label: 'Full Day', value: 'FULL_DAY' },
+        { label: 'First Half', value: 'FIRST_HALF' },
+      ];
+    }
+    const entry = userLeaveMap.value.get(leaveForm.end_date);
+    if (entry) {
+      if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasFirstHalf) {
+        return [];
+      }
+      if (entry.hasSecondHalf) {
+        return [{ label: 'First Half', value: 'FIRST_HALF' }];
+      }
+    }
     return [
       { label: 'Full Day', value: 'FULL_DAY' },
       { label: 'First Half', value: 'FIRST_HALF' },
     ];
-  }
-  const entry = userLeaveMap.value.get(leaveForm.end_date);
-  if (entry) {
-    if (entry.hasFull || (entry.hasFirstHalf && entry.hasSecondHalf) || entry.hasFirstHalf) {
-      return [];
-    }
-    if (entry.hasSecondHalf) {
-      return [{ label: 'First Half', value: 'FIRST_HALF' }];
-    }
-  }
-  return [
-    { label: 'Full Day', value: 'FULL_DAY' },
-    { label: 'First Half', value: 'FIRST_HALF' },
-  ];
-});
+  },
+);
 
 // Watchers to synchronize selected leave types when options change
 watch(
@@ -1435,19 +1480,29 @@ async function loadData() {
     const startStr = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, '0')}-${String(startDateObj.getDate()).padStart(2, '0')}`;
     const endStr = `${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`;
 
-    const [tasks, projects, workload, resUser, memberProjs, leaves, sched, schedData, holidays, avail] =
-      await Promise.all([
-        getTasksApi(),
-        getProjectsApi(),
-        getResourceWorkloadApi(resourceId.value).catch(() => null),
-        getResourceByIdApi(resourceId.value).catch(() => null),
-        getResourceProjectsApi(resourceId.value).catch(() => []),
-        getLeavesApi({ user_id: resourceId.value }).catch(() => []),
-        getResourceWorkScheduleApi(resourceId.value).catch(() => null),
-        getResourceScheduleDataApi(resourceId.value).catch(() => null),
-        getHolidaysApi().catch(() => []),
-        getResourceAvailabilityApi(resourceId.value, startStr, endStr).catch(() => null),
-      ]);
+    const [
+      tasks,
+      projects,
+      workload,
+      resUser,
+      memberProjs,
+      leaves,
+      sched,
+      schedData,
+      holidays,
+      avail,
+    ] = await Promise.all([
+      getTasksApi(),
+      getProjectsApi(),
+      getResourceWorkloadApi(resourceId.value).catch(() => null),
+      getResourceByIdApi(resourceId.value).catch(() => null),
+      getResourceProjectsApi(resourceId.value).catch(() => []),
+      getLeavesApi({ user_id: resourceId.value }).catch(() => []),
+      getResourceWorkScheduleApi(resourceId.value).catch(() => null),
+      getResourceScheduleDataApi(resourceId.value).catch(() => null),
+      getHolidaysApi().catch(() => []),
+      getResourceAvailabilityApi(resourceId.value, startStr, endStr).catch(() => null),
+    ]);
     allTasks.value = tasks;
     allProjects.value = projects;
     directMemberProjects.value = memberProjs;
@@ -1501,7 +1556,10 @@ const completedTasksCount = computed(
 );
 
 const totalEffort = computed(() => {
-  if (backendWorkload.value?.daily_allocations && backendWorkload.value.daily_allocations.length > 0) {
+  if (
+    backendWorkload.value?.daily_allocations &&
+    backendWorkload.value.daily_allocations.length > 0
+  ) {
     const sum = backendWorkload.value.daily_allocations.reduce(
       (acc, d) => acc + (Number(d.allocated_hours) || 0),
       0,
@@ -1510,14 +1568,16 @@ const totalEffort = computed(() => {
   }
   if (backendWorkload.value?.tasks && backendWorkload.value.tasks.length > 0) {
     const sum = backendWorkload.value.tasks.reduce(
-      (acc, t) => acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+      (acc, t) =>
+        acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
       0,
     );
     return Math.round(sum * 10) / 10;
   }
   const activeTasks = resourceTasks.value.filter((t) => t.status !== 'COMPLETED');
   const sum = activeTasks.reduce(
-    (acc, t) => acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+    (acc, t) =>
+      acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
     0,
   );
   return Math.round(sum * 10) / 10;

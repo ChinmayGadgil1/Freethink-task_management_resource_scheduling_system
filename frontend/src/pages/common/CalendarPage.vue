@@ -123,9 +123,7 @@
       >
         <!-- Calendar Toolbar & Month Switcher -->
         <!-- Calendar Toolbar & Month Switcher -->
-        <q-card-section
-          class="row items-center justify-between q-pa-md wrap q-col-gutter-sm"
-        >
+        <q-card-section class="row items-center justify-between q-pa-md wrap q-col-gutter-sm">
           <!-- Month Navigation -->
           <div class="row items-center q-gutter-xs">
             <q-btn flat dense round icon="chevron_left" @click="prevMonth">
@@ -192,7 +190,7 @@
               :class="[
                 getDayBgClass(timestamp),
                 {
-                  'dimmed': timestamp.outside,
+                  dimmed: timestamp.outside,
                   'today-cell': timestamp.current,
                 },
               ]"
@@ -210,10 +208,16 @@
                       timestamp.current
                         ? 'white'
                         : timestamp.outside
-                          ? ($q.dark.isActive ? 'grey-7' : 'grey-5')
+                          ? $q.dark.isActive
+                            ? 'grey-7'
+                            : 'grey-5'
                           : isDateKeyNonWorking(timestamp.date, timestamp.weekday)
-                            ? ($q.dark.isActive ? 'grey-5' : 'grey-6')
-                            : ($q.dark.isActive ? 'grey-3' : 'grey-9')
+                            ? $q.dark.isActive
+                              ? 'grey-5'
+                              : 'grey-6'
+                            : $q.dark.isActive
+                              ? 'grey-3'
+                              : 'grey-9'
                     "
                     class="text-weight-bold"
                   >

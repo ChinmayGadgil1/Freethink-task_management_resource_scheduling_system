@@ -142,10 +142,31 @@
           <span v-else class="text-caption text-grey-5">No members currently assigned</span>
         </div>
 
+        <!-- Supervisor in Popup -->
+        <div class="popup-supervisor-block q-mt-md">
+          <div class="detail-label q-mb-xs">Task Supervisor / Reviewer</div>
+          <div v-if="task.supervisor_name || task.supervisor_id" class="row items-center gap-xs">
+            <q-chip
+              dense
+              square
+              color="amber-1"
+              text-color="amber-10"
+              icon="verified_user"
+              class="text-weight-bold"
+            >
+              {{ task.supervisor_name || `Resource #${task.supervisor_id}` }}
+            </q-chip>
+            <span v-if="task.supervisor_email" class="text-caption text-grey-6"
+              >({{ task.supervisor_email }})</span
+            >
+          </div>
+          <span v-else class="text-caption text-grey-5">No supervisor designated</span>
+        </div>
+
         <!-- Dependencies in Popup -->
         <div v-if="showDependencies" class="popup-dependencies-block q-mt-md">
           <div class="row items-center justify-between q-mb-xs">
-            <div class="detail-label">Dependencies (Predecessors)</div>
+            <div class="detail-label">Upstream Dependencies (Predecessors)</div>
             <q-btn
               v-if="allowAddDependency"
               flat
@@ -159,7 +180,68 @@
             />
           </div>
           <div
-            v-if="task.predecessor_task_ids && task.predecessor_task_ids.length > 0"
+            v-if="task.predecessors && task.predecessors.length > 0"
+            class="column q-gutter-y-xs q-mt-xs"
+          >
+            <q-card
+              v-for="pred in task.predecessors"
+              :key="pred.task_id"
+              flat
+              bordered
+              :dark="$q.dark.isActive"
+              class="q-pa-xs rounded-borders"
+            >
+              <div class="row items-center justify-between no-wrap">
+                <div class="row items-center gap-xs ellipsis">
+                  <q-icon name="account_tree" size="14px" color="teal" />
+                  <span class="text-weight-bold text-caption ellipsis" :title="pred.title">{{
+                    pred.title
+                  }}</span>
+                  <q-chip
+                    dense
+                    square
+                    size="xs"
+                    :color="pred.status === 'COMPLETED' ? 'green-1' : 'blue-1'"
+                    :text-color="pred.status === 'COMPLETED' ? 'green-9' : 'blue-9'"
+                  >
+                    {{ formatStatus(pred.status) }}
+                  </q-chip>
+                </div>
+                <div class="row items-center gap-xs">
+                  <span class="text-caption text-weight-bold text-primary"
+                    >{{ Number(pred.progress) || 0 }}%</span
+                  >
+                  <q-btn
+                    v-if="allowRemoveDependency"
+                    flat
+                    round
+                    dense
+                    size="xs"
+                    icon="close"
+                    color="grey-6"
+                    title="Remove dependency"
+                    @click="handleRemoveDependencyClick(pred.task_id)"
+                  />
+                </div>
+              </div>
+              <q-linear-progress
+                rounded
+                size="4px"
+                :value="(Number(pred.progress) || 0) / 100"
+                :color="pred.status === 'COMPLETED' ? 'positive' : 'primary'"
+                class="q-mt-xs"
+              />
+              <div
+                v-if="pred.assigned_resource_names && pred.assigned_resource_names.length > 0"
+                class="text-caption text-grey-6 q-mt-xs"
+                style="font-size: 10.5px"
+              >
+                Assigned: {{ pred.assigned_resource_names.join(', ') }}
+              </div>
+            </q-card>
+          </div>
+          <div
+            v-else-if="task.predecessor_task_ids && task.predecessor_task_ids.length > 0"
             class="row q-gutter-xs wrap"
           >
             <q-chip
@@ -395,15 +477,15 @@ function resolveResourceName(resourceId: number): string {
   if (props.resourceNamesMap?.[resourceId]) {
     return props.resourceNamesMap[resourceId];
   }
-  const assigned = props.task?.assigned_resources?.find(
-    (r) => Number(r.user_id) === Number(resourceId),
-  );
-  if (assigned?.name) {
-    return assigned.name;
+  if (props.task?.assigned_resource_ids && props.task?.assigned_resource_names) {
+    const idx = props.task.assigned_resource_ids.findIndex(
+      (id) => Number(id) === Number(resourceId),
+    );
+    if (idx !== -1 && props.task.assigned_resource_names[idx]) {
+      return props.task.assigned_resource_names[idx];
+    }
   }
-  const sched = props.task?.schedules?.find(
-    (s) => Number(s.user_id) === Number(resourceId),
-  );
+  const sched = props.task?.schedules?.find((s) => Number(s.user_id) === Number(resourceId));
   if (sched?.resource_name) {
     return sched.resource_name;
   }

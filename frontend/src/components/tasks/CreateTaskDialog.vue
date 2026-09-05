@@ -165,6 +165,30 @@
             </div>
           </div>
 
+          <!-- Supervisor Selection Field -->
+          <div v-if="showSupervisor" class="row q-col-gutter-sm">
+            <div class="col-12">
+              <q-select
+                v-model="form.supervisor_id"
+                outlined
+                dense
+                clearable
+                label="Supervisor / Reviewer (Optional)"
+                :options="
+                  supervisorOptions && supervisorOptions.length ? supervisorOptions : memberOptions
+                "
+                emit-value
+                map-options
+                :disable="!activeProjectId"
+                hint="Select a senior resource to oversee progress and review deliverables"
+              >
+                <template #prepend>
+                  <q-icon name="verified_user" color="primary" />
+                </template>
+              </q-select>
+            </div>
+          </div>
+
           <!-- Dependencies Field -->
           <div v-if="showDependencies" class="row q-col-gutter-sm">
             <div class="col-12">
@@ -243,6 +267,7 @@ export interface CreateTaskFormData {
   project_id: number | null;
   title: string;
   description: string;
+  supervisor_id?: number | null;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   expected_effort: number;
   deadline: string;
@@ -267,8 +292,10 @@ export interface CreateTaskDialogProps {
   dialogTitle?: string;
   submitLabel?: string;
   memberOptions?: Array<{ label: string; value: number; alreadyAssigned?: boolean }>;
+  supervisorOptions?: Array<{ label: string; value: number }>;
   predecessorOptions?: Array<{ label: string; value: number; alreadyDependent?: boolean }>;
   showAssignees?: boolean;
+  showSupervisor?: boolean;
   showDependencies?: boolean;
   loading?: boolean;
   initialProjectId?: number | null;
@@ -284,8 +311,10 @@ const props = withDefaults(defineProps<CreateTaskDialogProps>(), {
   dialogTitle: 'Create New Task',
   submitLabel: 'Create Task',
   memberOptions: () => [],
+  supervisorOptions: () => [],
   predecessorOptions: () => [],
   showAssignees: true,
+  showSupervisor: true,
   showDependencies: true,
   loading: false,
   initialProjectId: null,
@@ -324,6 +353,7 @@ const form = reactive<CreateTaskFormData>({
   project_id: null,
   title: '',
   description: '',
+  supervisor_id: null,
   priority: 'MEDIUM',
   expected_effort: 8,
   deadline: '',
@@ -339,6 +369,7 @@ function resetForm() {
   form.project_id = pid;
   form.title = '';
   form.description = '';
+  form.supervisor_id = null;
   form.priority = 'MEDIUM';
   form.expected_effort = 8;
   form.deadline = '';
@@ -374,6 +405,7 @@ function handleSubmit() {
     project_id: props.fixedProjectId ?? form.project_id,
     title: form.title.trim(),
     description: form.description.trim(),
+    supervisor_id: form.supervisor_id ? Number(form.supervisor_id) : null,
     assigned_resource_ids: sanitizedResourceIds,
     predecessor_task_ids: sanitizedPredecessorIds,
   });

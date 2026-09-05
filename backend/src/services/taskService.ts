@@ -12,7 +12,8 @@ export async function createTask(
     status: TaskStatus,
     deadline: string | null,
     expectedEffort: number,
-    assignedResourceIds?: number[]
+    assignedResourceIds?: number[],
+    supervisorId?: number | null
 ) {
     const pool = getPool();
     const connection = await pool.getConnection();
@@ -31,11 +32,11 @@ export async function createTask(
         const [result] = await connection.query<ResultSetHeader>(
             `
         INSERT INTO tasks
-            (project_id, created_by, title, description, priority, status, deadline, expected_effort, progress)
+            (project_id, created_by, supervisor_id, title, description, priority, status, deadline, expected_effort, progress)
         VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, 0)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             `,
-            [projectId, createdBy, title, description, priority, initialStatus, deadline, expectedEffort]
+            [projectId, createdBy, supervisorId ?? null, title, description, priority, initialStatus, deadline, expectedEffort]
         );
 
         const taskId = result.insertId;
@@ -115,21 +116,70 @@ export async function createTask(
     }
 }
 
+async function getPredecessorDetailsMap(allPredIds: number[]): Promise<Map<number, any>> {
+    if (allPredIds.length === 0) return new Map();
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT t.task_id, t.project_id, p.name as project_name, t.title, t.status, t.priority, t.deadline,
+                t.planned_start, t.planned_end, t.expected_effort, t.actual_effort, t.progress,
+                t.is_schedule_at_risk, t.is_deadline_at_risk,
+                u_sup.name as supervisor_name,
+                GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names
+         FROM tasks t
+         LEFT JOIN projects p ON t.project_id = p.project_id
+         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
+         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
+         WHERE t.task_id IN (?)
+         GROUP BY t.task_id`,
+        [allPredIds]
+    );
+
+    const map = new Map<number, any>();
+    for (const r of rows) {
+        map.set(Number(r.task_id), {
+            task_id: Number(r.task_id),
+            project_id: Number(r.project_id),
+            project_name: r.project_name || undefined,
+            title: r.title,
+            status: r.status,
+            priority: r.priority,
+            deadline: r.deadline ? (r.deadline instanceof Date ? r.deadline.toISOString().split("T")[0] : String(r.deadline).split("T")[0]) : null,
+            planned_start: r.planned_start ? String(r.planned_start) : null,
+            planned_end: r.planned_end ? String(r.planned_end) : null,
+            expected_effort: Number(r.expected_effort || 0),
+            actual_effort: Number(r.actual_effort || 0),
+            progress: Number(r.progress || 0),
+            is_schedule_at_risk: Boolean(r.is_schedule_at_risk),
+            is_deadline_at_risk: Boolean(r.is_deadline_at_risk),
+            assigned_resource_names: r.assigned_resource_names ? String(r.assigned_resource_names).split(", ").filter(Boolean) : [],
+            supervisor_name: r.supervisor_name || null
+        });
+    }
+    return map;
+}
+
 export async function getTasksList(filters: {
     projectId?: number | undefined;
     resourceId?: number | undefined;
     projectIds?: number[] | undefined;
+    assignedOrSupervisedByUserId?: number | undefined;
 }) {
     const pool = getPool();
 
     let query = `
         SELECT t.*, 
             p.name as project_name,
+            u_sup.name as supervisor_name,
+            u_sup.email as supervisor_email,
             GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
+            GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names,
             GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
         FROM tasks t
         LEFT JOIN projects p ON t.project_id = p.project_id
+        LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN users u_res ON ta.user_id = u_res.user_id
         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
     `;
     const params: any[] = [];
@@ -149,7 +199,10 @@ export async function getTasksList(filters: {
         }
     }
 
-    if (filters.resourceId) {
+    if (filters.assignedOrSupervisedByUserId) {
+        whereClauses.push("(t.task_id IN (SELECT task_id FROM task_assignments WHERE user_id = ?) OR t.supervisor_id = ?)");
+        params.push(filters.assignedOrSupervisedByUserId, filters.assignedOrSupervisedByUserId);
+    } else if (filters.resourceId) {
         whereClauses.push("t.task_id IN (SELECT task_id FROM task_assignments WHERE user_id = ?)");
         params.push(filters.resourceId);
     }
@@ -213,6 +266,7 @@ export async function getTasksList(filters: {
         });
     }
 
+<<<<<<< Updated upstream
     return tasks.map(t => ({
         ...t,
         assigned_resource_ids: t.assigned_resource_ids
@@ -224,6 +278,44 @@ export async function getTasksList(filters: {
             : [],
         schedules: scheduleMap.get(Number(t.task_id)) || []
     }));
+=======
+    // Collect all unique predecessor task IDs across all fetched tasks
+    const allPredecessorIdsSet = new Set<number>();
+    for (const t of tasks) {
+        if (t.predecessor_task_ids) {
+            String(t.predecessor_task_ids).split(",").map(Number).forEach(id => {
+                if (id && !isNaN(id)) allPredecessorIdsSet.add(id);
+            });
+        }
+    }
+
+    const predDetailsMap = await getPredecessorDetailsMap(Array.from(allPredecessorIdsSet));
+
+    return tasks.map(t => {
+        const predIds = t.predecessor_task_ids
+            ? String(t.predecessor_task_ids).split(",").map(Number).filter(id => !isNaN(id))
+            : [];
+        const predecessors = predIds
+            .map(id => predDetailsMap.get(id))
+            .filter(Boolean);
+
+        return {
+            ...t,
+            supervisor_id: t.supervisor_id ? Number(t.supervisor_id) : null,
+            supervisor_name: t.supervisor_name || null,
+            supervisor_email: t.supervisor_email || null,
+            assigned_resource_ids: t.assigned_resource_ids
+                ? String(t.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
+                : [],
+            assigned_resource_names: t.assigned_resource_names
+                ? String(t.assigned_resource_names).split(", ").filter(Boolean)
+                : [],
+            predecessor_task_ids: predIds,
+            predecessors,
+            schedules: scheduleMap.get(Number(t.task_id)) || []
+        };
+    });
+>>>>>>> Stashed changes
 }
 
 export async function getTaskById(taskId: number) {
@@ -231,10 +323,17 @@ export async function getTaskById(taskId: number) {
     const [tasks] = await pool.query<RowDataPacket[]>(
         `
         SELECT t.*, 
+               p.name as project_name,
+               u_sup.name as supervisor_name,
+               u_sup.email as supervisor_email,
                GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
+               GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names,
                GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
         FROM tasks t
+        LEFT JOIN projects p ON t.project_id = p.project_id
+        LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN users u_res ON ta.user_id = u_res.user_id
         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
         WHERE t.task_id = ?
         GROUP BY t.task_id
@@ -284,15 +383,31 @@ export async function getTaskById(taskId: number) {
         resource_name: s.resource_name || undefined
     }));
 
+    const predIds = task.predecessor_task_ids
+        ? String(task.predecessor_task_ids).split(",").map(Number).filter((id: number) => !isNaN(id))
+        : [];
+    const predDetailsMap = await getPredecessorDetailsMap(predIds);
+    const predecessors = predIds.map((id: number) => predDetailsMap.get(id)).filter(Boolean);
+
     return {
         ...task,
+        supervisor_id: task.supervisor_id ? Number(task.supervisor_id) : null,
+        supervisor_name: task.supervisor_name || null,
+        supervisor_email: task.supervisor_email || null,
         assigned_resource_ids: task.assigned_resource_ids
-            ? String(task.assigned_resource_ids).split(",").map(Number)
+            ? String(task.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
             : [],
+<<<<<<< Updated upstream
         assigned_resources: assignedResources,
         predecessor_task_ids: task.predecessor_task_ids
             ? String(task.predecessor_task_ids).split(",").map(Number)
+=======
+        assigned_resource_names: task.assigned_resource_names
+            ? String(task.assigned_resource_names).split(", ").filter(Boolean)
+>>>>>>> Stashed changes
             : [],
+        predecessor_task_ids: predIds,
+        predecessors,
         schedules: formattedSchedules
     } as any;
 }

@@ -13,7 +13,7 @@ export interface ResourceTask {
   hoursWorked: number;
   estimatedHours: number;
   workUpdate: string;
-  description?: string | null;
-  created_by?: number;
-  isSelfAssigned?: boolean;
+  description?: string | null | undefined;
+  created_by?: number | undefined;
+  isSelfAssigned?: boolean | undefined;
 }

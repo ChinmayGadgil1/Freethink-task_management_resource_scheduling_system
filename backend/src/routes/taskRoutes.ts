@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
-import { create, list, update, addDependency, getResourceWorkloadController, checkImpactController, assignResource, addWorkLog, getWorkLogs, getBottlenecksController, deleteTaskController, unassignResourceController, removeTaskDependencyController, startSessionController, stopSessionController, getActiveSessionController, getTaskActiveSessionsController } from "../controllers/taskController.js";
+import { create, list, getTaskController, update, addDependency, getResourceWorkloadController, checkImpactController, assignResource, addWorkLog, getWorkLogs, getBottlenecksController, deleteTaskController, unassignResourceController, removeTaskDependencyController, startSessionController, stopSessionController, getActiveSessionController, getTaskActiveSessionsController } from "../controllers/taskController.js";
 
 const taskRoutes = Router();
 
@@ -11,6 +11,7 @@ taskRoutes.post("/", create);
 taskRoutes.get("/", list);
 taskRoutes.get("/session/active", getActiveSessionController);
 taskRoutes.get("/bottlenecks", getBottlenecksController);
+taskRoutes.get("/:id", getTaskController);
 taskRoutes.put("/:id", update);
 taskRoutes.patch("/:id", update);
 taskRoutes.delete("/:id", deleteTaskController);

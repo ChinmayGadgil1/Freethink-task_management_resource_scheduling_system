@@ -1,5 +1,8 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg resource-tasks-page">
+  <q-page
+    :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
+    class="q-pa-lg resource-tasks-page"
+  >
     <!-- Loading -->
     <div v-if="loading" class="flex flex-center q-pa-xl">
       <q-spinner color="primary" size="45px" />
@@ -40,6 +43,23 @@
         </div>
 
         <div class="row items-center q-gutter-md">
+          <!-- Scope Filter Toggle -->
+          <q-btn-toggle
+            v-model="scopeFilter"
+            toggle-color="primary"
+            toggle-text-color="white"
+            :color="$q.dark.isActive ? 'grey-9' : 'white'"
+            :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
+            dense
+            unelevated
+            no-caps
+            :options="[
+              { label: 'All Tasks', value: 'all', icon: 'dashboard' },
+              { label: 'Assigned to Me', value: 'assigned', icon: 'assignment_ind' },
+              { label: 'Supervised by Me', value: 'supervised', icon: 'verified_user' },
+            ]"
+          />
+
           <!-- View Mode Switcher -->
           <q-btn-toggle
             v-model="viewMode"
@@ -82,7 +102,7 @@
           <StatCard
             title="Total Tasks"
             :value="tasks.length"
-            subtitle="All assigned tasks"
+            subtitle="Visible deliverables"
             icon="task_alt"
             color="purple"
             note-class="note-purple"
@@ -93,7 +113,7 @@
           <StatCard
             title="In Progress"
             :value="tasks.filter((t) => t.status === 'IN_PROGRESS').length"
-            subtitle="Active work"
+            subtitle="Active deliverables"
             icon="autorenew"
             color="blue"
             note-class="note-blue"
@@ -102,24 +122,30 @@
 
         <div class="col-12 col-sm-6 col-md-3">
           <StatCard
-            title="Completed"
-            :value="tasks.filter((t) => t.status === 'COMPLETED').length"
-            subtitle="Done"
-            icon="check_circle"
-            color="green"
-            note-class="note-green"
+            title="Supervised by Me"
+            :value="tasks.filter((t) => Number(t.supervisor_id) === currentUserId).length"
+            subtitle="Oversight & review"
+            icon="verified_user"
+            color="amber"
+            note-class="note-purple"
           />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
           <StatCard
-            title="Delayed"
-            :value="tasks.filter(isOverdue).length"
+            title="At Risk / Delayed"
+            :value="
+              tasks.filter((t) => isOverdue(t) || t.is_schedule_at_risk || t.is_deadline_at_risk)
+                .length
+            "
             subtitle="Need attention"
             icon="warning_amber"
             color="red"
             note-class="note-red"
-            :negative="tasks.filter(isOverdue).length > 0"
+            :negative="
+              tasks.filter((t) => isOverdue(t) || t.is_schedule_at_risk || t.is_deadline_at_risk)
+                .length > 0
+            "
           />
         </div>
       </div>
@@ -179,7 +205,10 @@
       </q-card>
 
       <!-- 4. KANBAN BOARD VIEW -->
-      <div v-if="viewMode === 'board'" class="full-width overflow-auto q-pb-md resource-kanban-board">
+      <div
+        v-if="viewMode === 'board'"
+        class="full-width overflow-auto q-pb-md resource-kanban-board"
+      >
         <div class="row q-col-gutter-md">
           <div v-for="col in KANBAN_COLUMNS" :key="col.id" class="col-12 col-md-4">
             <q-card
@@ -236,148 +265,217 @@
                     :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
                     @click="openTask(item.task_id)"
                   >
-                <!-- Top Info Section -->
-                <div>
-                  <!-- Card Top Row: Project, Priority & Self-Assigned Badges -->
-                  <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-xs">
-                    <q-chip
-                      dense
-                      square
-                      size="sm"
-                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                      icon="folder"
-                      :label="item.project_name || `Project #${item.project_id}`"
-                      class="text-weight-bold ellipsis"
-                      style="max-width: 140px"
-                    />
+                    <!-- Top Info Section -->
+                    <div>
+                      <!-- Card Top Row: Project, Priority & Self-Assigned Badges -->
+                      <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-xs">
+                        <q-chip
+                          dense
+                          square
+                          size="sm"
+                          :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                          :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                          icon="folder"
+                          :label="item.project_name || `Project #${item.project_id}`"
+                          class="text-weight-bold ellipsis"
+                          style="max-width: 140px"
+                        />
 
-                    <q-chip
-                      dense
-                      square
-                      size="sm"
-                      :color="priorityBgColor(item.priority)"
-                      :text-color="priorityTextColor(item.priority)"
-                      :label="item.priority"
-                      class="text-weight-bold"
-                    />
+                        <q-chip
+                          dense
+                          square
+                          size="sm"
+                          :color="priorityBgColor(item.priority)"
+                          :text-color="priorityTextColor(item.priority)"
+                          :label="item.priority"
+                          class="text-weight-bold"
+                        />
 
-                    <q-chip
-                      v-if="isSelfAssigned(item)"
-                      dense
-                      square
-                      size="sm"
-                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                      icon="person"
-                      label="Self-assigned"
-                      class="text-weight-bold"
-                    />
-                  </div>
+                        <q-chip
+                          v-if="Number(item.supervisor_id) === currentUserId"
+                          dense
+                          square
+                          size="sm"
+                          color="amber-9"
+                          text-color="white"
+                          icon="verified_user"
+                          label="Supervised by You"
+                          class="text-weight-bold"
+                        />
 
-                  <!-- Task Title -->
-                  <div
-                    class="text-subtitle2 text-weight-medium ellipsis-2-lines q-mb-xs"
-                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                    :title="item.title"
-                  >
-                    {{ item.title }}
-                  </div>
+                        <q-chip
+                          v-else-if="item.supervisor_name"
+                          dense
+                          square
+                          size="sm"
+                          :color="$q.dark.isActive ? 'grey-8' : 'amber-1'"
+                          :text-color="$q.dark.isActive ? 'amber-2' : 'amber-10'"
+                          icon="shield"
+                          :label="'Sup: ' + item.supervisor_name"
+                          class="text-weight-medium"
+                        />
 
-                  <!-- Task Description -->
-                  <div
-                    v-if="item.description"
-                    class="text-caption ellipsis-2-lines q-mb-xs"
-                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                  >
-                    {{ item.description }}
-                  </div>
-                </div>
+                        <q-chip
+                          v-if="item.predecessors && item.predecessors.length > 0"
+                          dense
+                          square
+                          size="sm"
+                          :color="
+                            item.predecessors.every((p) => p.status === 'COMPLETED')
+                              ? $q.dark.isActive
+                                ? 'green-10'
+                                : 'green-1'
+                              : item.predecessors.some(
+                                    (p) => p.is_schedule_at_risk || p.is_deadline_at_risk,
+                                  )
+                                ? $q.dark.isActive
+                                  ? 'red-10'
+                                  : 'red-1'
+                                : $q.dark.isActive
+                                  ? 'teal-10'
+                                  : 'teal-1'
+                          "
+                          :text-color="
+                            item.predecessors.every((p) => p.status === 'COMPLETED')
+                              ? $q.dark.isActive
+                                ? 'green-2'
+                                : 'green-9'
+                              : item.predecessors.some(
+                                    (p) => p.is_schedule_at_risk || p.is_deadline_at_risk,
+                                  )
+                                ? $q.dark.isActive
+                                  ? 'red-2'
+                                  : 'negative'
+                                : $q.dark.isActive
+                                  ? 'teal-2'
+                                  : 'teal-9'
+                          "
+                          icon="account_tree"
+                          :label="
+                            item.predecessors.every((p) => p.status === 'COMPLETED')
+                              ? 'Ready'
+                              : `${item.predecessors.length} Pred`
+                          "
+                          class="text-weight-medium"
+                        />
 
-                <!-- Bottom Info Section (Progress & Actions) -->
-                <div>
-                  <!-- Progress & Effort Bar -->
-                  <div class="q-pt-sm">
-                    <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
-                      <span
-                        class="text-caption text-weight-bold"
-                        :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                        <q-chip
+                          v-if="isSelfAssigned(item)"
+                          dense
+                          square
+                          size="sm"
+                          :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                          :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                          icon="person"
+                          label="Self-assigned"
+                          class="text-weight-bold"
+                        />
+                      </div>
+
+                      <!-- Task Title -->
+                      <div
+                        class="text-subtitle2 text-weight-medium ellipsis-2-lines q-mb-xs"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :title="item.title"
                       >
-                        {{ Number(item.progress) || 0 }}%
-                      </span>
-                      <span
-                        class="text-caption"
-                        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                        {{ item.title }}
+                      </div>
+
+                      <!-- Task Description -->
+                      <div
+                        v-if="item.description"
+                        class="text-caption ellipsis-2-lines q-mb-xs"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                       >
-                        {{ formatHours(item.expected_effort) }} effort
-                      </span>
+                        {{ item.description }}
+                      </div>
                     </div>
-                    <q-linear-progress
-                      rounded
-                      size="5px"
-                      :value="(Number(item.progress) || 0) / 100"
-                      :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
-                      :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                    />
-                  </div>
 
-                  <div class="q-my-xs" />
+                    <!-- Bottom Info Section (Progress & Actions) -->
+                    <div>
+                      <!-- Progress & Effort Bar -->
+                      <div class="q-pt-sm">
+                        <div class="row items-center justify-between no-wrap text-caption q-mb-xs">
+                          <span
+                            class="text-caption text-weight-bold"
+                            :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                          >
+                            {{ Number(item.progress) || 0 }}%
+                          </span>
+                          <span
+                            class="text-caption"
+                            :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                          >
+                            {{ formatHours(item.expected_effort) }} effort
+                          </span>
+                        </div>
+                        <q-linear-progress
+                          rounded
+                          size="5px"
+                          :value="(Number(item.progress) || 0) / 100"
+                          :color="col.id === 'COMPLETED' ? 'positive' : 'primary'"
+                          :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                        />
+                      </div>
 
-                  <!-- Card Bottom Row: Deadline & Action Buttons -->
-                  <div class="row items-center justify-between no-wrap">
-                    <q-chip
-                      dense
-                      square
-                      size="sm"
-                      :color="
-                        isTaskOverdue(item)
-                          ? $q.dark.isActive
-                            ? 'red-10'
-                            : 'red-1'
-                          : $q.dark.isActive
-                            ? 'grey-9'
-                            : 'grey-2'
-                      "
-                      :text-color="
-                        isTaskOverdue(item)
-                          ? $q.dark.isActive
-                            ? 'red-2'
-                            : 'negative'
-                          : $q.dark.isActive
-                            ? 'grey-4'
-                            : 'grey-7'
-                      "
-                      icon="event"
-                      :label="item.deadline ? formatDate(item.deadline) : 'TBD'"
-                      class="text-weight-medium"
-                    />
+                      <div class="q-my-xs" />
 
-                    <div class="row items-center q-gutter-xs">
-                      <q-btn
-                        outline
-                        no-caps
-                        dense
-                        color="primary"
-                        size="sm"
-                        label="Specs"
-                        icon="article"
-                        @click.stop="openTask(item.task_id)"
-                      />
+                      <!-- Card Bottom Row: Deadline & Action Buttons -->
+                      <div class="row items-center justify-between no-wrap">
+                        <q-chip
+                          dense
+                          square
+                          size="sm"
+                          :color="
+                            isTaskOverdue(item)
+                              ? $q.dark.isActive
+                                ? 'red-10'
+                                : 'red-1'
+                              : $q.dark.isActive
+                                ? 'grey-9'
+                                : 'grey-2'
+                          "
+                          :text-color="
+                            isTaskOverdue(item)
+                              ? $q.dark.isActive
+                                ? 'red-2'
+                                : 'negative'
+                              : $q.dark.isActive
+                                ? 'grey-4'
+                                : 'grey-7'
+                          "
+                          icon="event"
+                          :label="item.deadline ? formatDate(item.deadline) : 'TBD'"
+                          class="text-weight-medium"
+                        />
 
-                      <q-btn
-                        unelevated
-                        no-caps
-                        dense
-                        color="primary"
-                        size="sm"
-                        label="Edit"
-                        icon="edit"
-                        @click.stop="openUpdateTaskDialog(item)"
-                      />
+                        <div class="row items-center q-gutter-xs">
+                          <q-btn
+                            outline
+                            no-caps
+                            dense
+                            color="primary"
+                            size="sm"
+                            label="Specs"
+                            icon="article"
+                            @click.stop="openTask(item.task_id)"
+                          />
+
+                          <q-btn
+                            v-if="isAssignedToMe(item)"
+                            unelevated
+                            no-caps
+                            dense
+                            color="primary"
+                            size="sm"
+                            label="Edit"
+                            icon="edit"
+                            @click.stop="openUpdateTaskDialog(item)"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </q-card>
+                  </q-card>
 
                   <!-- Empty State for Column -->
                   <div
@@ -487,6 +585,58 @@
                   {{ props.row.title }}
                 </div>
                 <q-chip
+                  v-if="Number(props.row.supervisor_id) === currentUserId"
+                  dense
+                  square
+                  size="sm"
+                  color="amber-9"
+                  text-color="white"
+                  icon="verified_user"
+                  label="Supervised by You"
+                  class="text-weight-bold"
+                />
+                <q-chip
+                  v-else-if="props.row.supervisor_name"
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'grey-8' : 'amber-1'"
+                  :text-color="$q.dark.isActive ? 'amber-2' : 'amber-10'"
+                  icon="shield"
+                  :label="'Sup: ' + props.row.supervisor_name"
+                  class="text-weight-medium"
+                />
+                <q-chip
+                  v-if="props.row.predecessors && props.row.predecessors.length > 0"
+                  dense
+                  square
+                  size="sm"
+                  :color="
+                    props.row.predecessors.every(
+                      (p: PredecessorTaskInfo) => p.status === 'COMPLETED',
+                    )
+                      ? $q.dark.isActive
+                        ? 'green-10'
+                        : 'green-1'
+                      : $q.dark.isActive
+                        ? 'teal-10'
+                        : 'teal-1'
+                  "
+                  :text-color="
+                    props.row.predecessors.every(
+                      (p: PredecessorTaskInfo) => p.status === 'COMPLETED',
+                    )
+                      ? $q.dark.isActive
+                        ? 'green-2'
+                        : 'green-9'
+                      : $q.dark.isActive
+                        ? 'teal-2'
+                        : 'teal-9'
+                  "
+                  icon="account_tree"
+                  :label="`${props.row.predecessors.length} Pred`"
+                />
+                <q-chip
                   v-if="isSelfAssigned(props.row)"
                   dense
                   square
@@ -581,6 +731,7 @@
                 />
 
                 <q-btn
+                  v-if="isAssignedToMe(props.row)"
                   unelevated
                   no-caps
                   dense
@@ -800,6 +951,56 @@
                   </q-chip>
                 </div>
               </div>
+
+              <!-- Task Supervisor / Reviewer Details -->
+              <div class="q-mt-md">
+                <div
+                  class="text-caption text-weight-bold q-mb-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
+                  SUPERVISOR / REVIEWER
+                </div>
+                <div
+                  v-if="task.supervisor_name || task.supervisor_id"
+                  class="row items-center gap-xs"
+                >
+                  <q-chip
+                    dense
+                    square
+                    :color="
+                      Number(task.supervisor_id) === getCurrentUserId()
+                        ? 'amber-9'
+                        : $q.dark.isActive
+                          ? 'grey-9'
+                          : 'amber-1'
+                    "
+                    :text-color="
+                      Number(task.supervisor_id) === getCurrentUserId() ? 'white' : 'amber-10'
+                    "
+                    class="text-weight-bold"
+                  >
+                    <q-avatar
+                      size="20px"
+                      :color="
+                        Number(task.supervisor_id) === getCurrentUserId() ? 'amber-10' : 'amber-8'
+                      "
+                      text-color="white"
+                      icon="verified_user"
+                    />
+                    {{ task.supervisor_name || `Resource #${task.supervisor_id}` }}
+                    <span
+                      v-if="Number(task.supervisor_id) === getCurrentUserId()"
+                      class="q-ml-xs text-weight-bolder"
+                    >
+                      (You)
+                    </span>
+                  </q-chip>
+                  <span v-if="task.supervisor_email" class="text-caption text-grey-6">
+                    {{ task.supervisor_email }}
+                  </span>
+                </div>
+                <div v-else class="text-caption text-grey-5">No supervisor designated</div>
+              </div>
             </div>
 
             <!-- Right Column: Deadline (Compact, Aligned at Top Right) + Action Buttons -->
@@ -859,65 +1060,76 @@
                 </q-card>
               </div>
 
-              <!-- Action Buttons -->
+              <!-- Action Buttons (Only for assigned resources; read-only for supervisors and dependent viewers) -->
               <div class="column gap-sm q-mt-md full-width" style="max-width: 320px">
-                <!-- Primary Actions Row -->
-                <div class="row q-col-gutter-sm">
-                  <div class="col-12">
-                    <q-btn
-                      v-if="!isCurrentTaskSessionActive"
-                      unelevated
-                      no-caps
-                      color="positive"
-                      icon="play_arrow"
-                      label="Start"
-                      class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px"
-                      :loading="sessionStore.loading"
-                      @click="handleStartSession(task.task_id)"
-                    />
-                    <q-btn
-                      v-else
-                      unelevated
-                      no-caps
-                      color="negative"
-                      icon="stop"
-                      label="Stop"
-                      class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px"
-                      :loading="sessionStore.loading"
-                      @click="promptStopSession"
-                    />
+                <template v-if="isAssignedToMe(task)">
+                  <!-- Primary Actions Row -->
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-btn
+                        v-if="!isCurrentTaskSessionActive"
+                        unelevated
+                        no-caps
+                        color="positive"
+                        icon="play_arrow"
+                        label="Start Working Session"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        :loading="sessionStore.loading"
+                        @click="handleStartSession(task.task_id)"
+                      />
+                      <q-btn
+                        v-else
+                        unelevated
+                        no-caps
+                        color="negative"
+                        icon="stop"
+                        label="Stop & Log Work"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        :loading="sessionStore.loading"
+                        @click="promptStopSession"
+                      />
+                    </div>
                   </div>
-                  <!-- <div class="col-6">
-                    <q-btn
-                      unelevated
-                      no-caps
-                      color="primary"
-                      icon="edit_note"
-                      label="Add Update"
-                      class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px"
-                      @click="updateDialog = true"
-                    />
-                  </div> -->
-                </div>
 
-                <!-- Secondary Action Row -->
-                <div class="row">
-                  <div class="col-12">
-                    <q-btn
-                      outline
-                      no-caps
-                      color="primary"
-                      icon="edit"
-                      label="Edit Task Details"
-                      class="full-width text-weight-bold"
-                      style="border-radius: 8px; height: 40px"
-                      @click="openUpdateTaskDialog(task)"
-                    />
+                  <!-- Secondary Action Row -->
+                  <div class="row">
+                    <div class="col-12">
+                      <q-btn
+                        outline
+                        no-caps
+                        color="primary"
+                        icon="edit"
+                        label="Edit Task Specs"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        @click="openUpdateTaskDialog(task)"
+                      />
+                    </div>
                   </div>
-                </div>
+                </template>
+
+                <template v-else>
+                  <q-banner
+                    dense
+                    rounded
+                    :class="$q.dark.isActive ? 'bg-grey-9 text-grey-3' : 'bg-amber-1 text-amber-10'"
+                    class="q-pa-sm text-caption text-weight-medium"
+                  >
+                    <template #avatar>
+                      <q-icon name="visibility" :color="$q.dark.isActive ? 'amber-2' : 'amber-9'" />
+                    </template>
+                    <span v-if="Number(task.supervisor_id) === getCurrentUserId()">
+                      You are supervising this task in <b>Review & Oversight mode (Read-only)</b>.
+                      Progress is logged by the assigned resources.
+                    </span>
+                    <span v-else>
+                      <b>Dependency View Mode (Read-only)</b>. You can monitor progress and specs
+                      for your dependent work without modifying effort.
+                    </span>
+                  </q-banner>
+                </template>
               </div>
             </div>
           </div>
@@ -1079,6 +1291,168 @@
                   </div>
                 </q-card-section>
               </q-card>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- 2.5. UPSTREAM DEPENDENCIES & LIVE PROGRESS CARD -->
+      <q-card
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders q-mb-lg overflow-hidden"
+      >
+        <q-card-section class="row items-center justify-between q-pa-md">
+          <div class="row items-center">
+            <q-avatar
+              size="34px"
+              rounded
+              :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+              :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
+              icon="account_tree"
+              class="q-mr-sm"
+            />
+            <div>
+              <div
+                class="text-subtitle1 text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Upstream Dependencies & Live Progress
+              </div>
+              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                Monitor prerequisite tasks that must be completed before or alongside this
+                deliverable.
+              </div>
+            </div>
+          </div>
+          <q-badge color="teal" class="text-weight-bold q-pa-xs">
+            {{ (task.predecessors || []).length }} Upstream Prerequisite{{
+              (task.predecessors || []).length === 1 ? '' : 's'
+            }}
+          </q-badge>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pa-md">
+          <div v-if="task.predecessors && task.predecessors.length > 0" class="row q-col-gutter-md">
+            <div v-for="pred in task.predecessors" :key="pred.task_id" class="col-12 col-md-6">
+              <q-card
+                flat
+                bordered
+                :dark="$q.dark.isActive"
+                class="q-pa-md rounded-borders column justify-between"
+                style="min-height: 140px"
+              >
+                <div>
+                  <div class="row items-center justify-between q-mb-xs">
+                    <div class="row items-center gap-xs ellipsis" style="max-width: 70%">
+                      <q-icon name="account_tree" size="16px" color="teal" />
+                      <span class="text-subtitle2 text-weight-bold ellipsis" :title="pred.title">{{
+                        pred.title
+                      }}</span>
+                    </div>
+                    <q-chip
+                      dense
+                      square
+                      size="sm"
+                      :color="statusBgColor(pred.status)"
+                      :text-color="statusTextColor(pred.status)"
+                      class="text-weight-bold"
+                    >
+                      {{ formatStatusLabel(pred.status) }}
+                    </q-chip>
+                  </div>
+
+                  <div
+                    class="row items-center q-gutter-xs wrap q-my-xs text-caption text-grey-6"
+                    style="font-size: 11px"
+                  >
+                    <span
+                      v-if="pred.assigned_resource_names && pred.assigned_resource_names.length > 0"
+                    >
+                      <q-icon name="people" size="13px" />
+                      {{ pred.assigned_resource_names.join(', ') }}
+                    </span>
+                    <span v-if="pred.deadline">
+                      · <q-icon name="event" size="13px" /> Due: {{ formatDate(pred.deadline) }}
+                    </span>
+                    <span v-if="pred.expected_effort"> · {{ pred.expected_effort }}h effort </span>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div class="q-mt-sm">
+                    <div class="row items-center justify-between text-caption q-mb-xs">
+                      <span
+                        class="text-weight-bold"
+                        :class="Number(pred.progress) === 100 ? 'text-positive' : 'text-primary'"
+                      >
+                        {{ Number(pred.progress) || 0 }}% Complete
+                      </span>
+                      <q-badge
+                        v-if="pred.status === 'COMPLETED'"
+                        color="positive"
+                        class="text-caption text-weight-bold"
+                      >
+                        Unblocked & Done
+                      </q-badge>
+                      <q-badge
+                        v-else-if="pred.is_schedule_at_risk || pred.is_deadline_at_risk"
+                        color="negative"
+                        class="text-caption text-weight-bold"
+                      >
+                        Possible Delay Risk
+                      </q-badge>
+                    </div>
+                    <q-linear-progress
+                      rounded
+                      size="7px"
+                      :value="(Number(pred.progress) || 0) / 100"
+                      :color="
+                        pred.status === 'COMPLETED'
+                          ? 'positive'
+                          : pred.is_schedule_at_risk || pred.is_deadline_at_risk
+                            ? 'warning'
+                            : 'primary'
+                      "
+                      :track-color="$q.dark.isActive ? 'grey-9' : 'teal-1'"
+                    />
+                  </div>
+                </div>
+
+                <div class="row justify-end q-mt-sm">
+                  <q-btn
+                    flat
+                    no-caps
+                    dense
+                    size="sm"
+                    color="primary"
+                    icon="visibility"
+                    label="View Upstream Specs"
+                    @click="openTask(pred.task_id)"
+                  />
+                </div>
+              </q-card>
+            </div>
+          </div>
+
+          <div v-else class="text-center text-grey-5 q-pa-lg column items-center">
+            <q-avatar
+              size="44px"
+              :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+              :text-color="$q.dark.isActive ? 'teal-2' : 'teal-8'"
+              icon="check_circle"
+              class="q-mb-xs"
+            />
+            <div
+              class="text-body2 text-weight-medium"
+              :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
+            >
+              No upstream dependencies linked.
+            </div>
+            <div class="text-caption text-grey-5 q-mt-xs">
+              This deliverable can start independently without blocking prerequisites.
             </div>
           </div>
         </q-card-section>
@@ -1513,6 +1887,27 @@
 
             <div class="row q-col-gutter-sm">
               <div class="col-12">
+                <q-select
+                  v-model="createForm.supervisor_id"
+                  :options="projectMembersForCreate"
+                  label="Supervisor / Reviewer (Optional)"
+                  outlined
+                  dense
+                  clearable
+                  emit-value
+                  map-options
+                  options-dense
+                  hint="Designate an experienced resource to supervise and review deliverables"
+                >
+                  <template #prepend>
+                    <q-icon name="verified_user" color="primary" />
+                  </template>
+                </q-select>
+              </div>
+            </div>
+
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
                 <q-input
                   v-model="createForm.deadline"
                   label="Deadline"
@@ -1610,14 +2005,18 @@ import {
   createWorkLogApi,
   createTaskApi,
   getProjectsApi,
+  getResourcesApi,
   getTasksApi,
+  getTaskByIdApi,
   getWorkLogsApi,
   getTaskActiveSessionsApi, // Added API to fetch live active sessions of co-assigned resources
   updateTaskApi,
 } from '@/services/api';
 import type {
   CreateWorkLogPayload,
+  PredecessorTaskInfo,
   Project,
+  ResourceUser,
   Task,
   TaskSession, // Added TaskSession type for active session states
   WorkLog,
@@ -1666,7 +2065,15 @@ function resolveMemberName(userId?: number | null): string {
     return resourceNamesMap.value[numId];
   }
 
-  // Check current task assigned_resources directly
+  // Check current task assigned_resources or assigned_resource_names
+  if (task.value?.assigned_resource_ids && task.value?.assigned_resource_names) {
+    const idx = task.value.assigned_resource_ids.findIndex((id) => Number(id) === numId);
+    if (idx !== -1 && task.value.assigned_resource_names[idx]) {
+      resourceNamesMap.value[numId] = task.value.assigned_resource_names[idx];
+      return task.value.assigned_resource_names[idx];
+    }
+  }
+
   const assigned = task.value?.assigned_resources?.find((r) => Number(r.user_id) === numId);
   if (assigned?.name) {
     resourceNamesMap.value[numId] = assigned.name;
@@ -1759,6 +2166,20 @@ function isSelfAssigned(item: Task | ResourceTask | null | undefined): boolean {
   const currentUserId = getCurrentUserId();
   const createdBy = Number(t.created_by ?? t.createdBy ?? t.created_by_id);
   if (currentUserId && createdBy && currentUserId === createdBy) {
+    return true;
+  }
+  return false;
+}
+
+function isAssignedToMe(item: Task | ResourceTask | null | undefined): boolean {
+  if (!item) return false;
+  const currentUserId = getCurrentUserId();
+  if (!currentUserId) return false;
+  const taskObj = item as Task;
+  if (Array.isArray(taskObj.assigned_resource_ids) && taskObj.assigned_resource_ids.length > 0) {
+    return taskObj.assigned_resource_ids.map(Number).includes(currentUserId);
+  }
+  if (isSelfAssigned(item)) {
     return true;
   }
   return false;
@@ -1929,7 +2350,11 @@ const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> 
   { label: 'Critical', value: 'CRITICAL' },
 ];
 
+const scopeFilter = ref<'all' | 'assigned' | 'supervised'>('all');
+const currentUserId = computed(() => getCurrentUserId());
+
 const createProjects = ref<Project[]>([]);
+const projectMembersForCreate = ref<Array<{ label: string; value: number }>>([]);
 
 interface CreateTaskForm {
   project_id: number | null;
@@ -1938,6 +2363,7 @@ interface CreateTaskForm {
   priority: Task['priority'];
   deadline: string;
   expected_effort: number;
+  supervisor_id: number | null;
 }
 
 const createForm = ref<CreateTaskForm>({
@@ -1947,7 +2373,29 @@ const createForm = ref<CreateTaskForm>({
   priority: 'MEDIUM',
   deadline: '',
   expected_effort: 0,
+  supervisor_id: null,
 });
+
+watch(
+  () => createForm.value.project_id,
+  async (newProjectId) => {
+    if (!newProjectId) {
+      projectMembersForCreate.value = [];
+      createForm.value.supervisor_id = null;
+      return;
+    }
+    try {
+      const res = await getResourcesApi({ project_id: newProjectId });
+      projectMembersForCreate.value = res.map((r: ResourceUser) => ({
+        label: `${r.name || r.email || `User #${r.user_id}`} (${r.role || 'RESOURCE'})`,
+        value: Number(r.user_id),
+      }));
+    } catch (err) {
+      console.warn('Failed to load project members for supervisor select:', err);
+      projectMembersForCreate.value = [];
+    }
+  },
+);
 
 const projectOptionsForCreate = computed(() => createProjects.value);
 
@@ -1955,10 +2403,12 @@ const hasTaskId = computed(() => Boolean(route.params.id));
 
 const taskId = computed(() => Number(route.params.id));
 
+const individualTask = ref<Task | null>(null);
+
 const task = computed<Task | null>(() => {
   if (!hasTaskId.value) return null;
 
-  return tasks.value.find((item) => item.task_id === taskId.value) ?? null;
+  return tasks.value.find((item) => item.task_id === taskId.value) ?? individualTask.value ?? null;
 });
 
 const projectOptions = computed(() => {
@@ -1971,15 +2421,33 @@ const projectOptions = computed(() => {
 
 const filteredTasks = computed(() => {
   const q = searchQuery.value.toLowerCase().trim();
+  const myId = currentUserId.value;
 
   return tasks.value.filter((item) => {
+    // Scope filter
+    if (scopeFilter.value === 'assigned') {
+      if (Number(item.supervisor_id) === myId && !isSelfAssigned(item)) {
+        // If it's solely supervised and not assigned/created by us, exclude
+        // Note: isSelfAssigned checks created_by, or check if user is supervisor
+        if (Number(item.supervisor_id) === myId && item.created_by !== myId) {
+          // let's check if user is supervisor only
+          return false;
+        }
+      }
+    } else if (scopeFilter.value === 'supervised') {
+      if (Number(item.supervisor_id) !== myId) {
+        return false;
+      }
+    }
+
     const projectName = item.project_name || `Project #${item.project_id}`;
 
     const matchesSearch =
       !q ||
       item.title.toLowerCase().includes(q) ||
       projectName.toLowerCase().includes(q) ||
-      (item.description || '').toLowerCase().includes(q);
+      (item.description || '').toLowerCase().includes(q) ||
+      (item.supervisor_name || '').toLowerCase().includes(q);
 
     const matchesProject = !projectFilter.value || projectName === projectFilter.value;
 
@@ -2060,14 +2528,11 @@ function getPaginatedTasks(colId: string): Task[] {
   return all.slice(start, start + pageSize);
 }
 
-watch(
-  [searchQuery, projectFilter, statusFilter, priorityFilter],
-  () => {
-    for (const key of Object.keys(columnPages)) {
-      columnPages[key] = 1;
-    }
-  },
-);
+watch([searchQuery, projectFilter, statusFilter, priorityFilter], () => {
+  for (const key of Object.keys(columnPages)) {
+    columnPages[key] = 1;
+  }
+});
 
 const selectedCreateProject = computed(() => {
   if (!createForm.value.project_id) return null;
@@ -2096,7 +2561,9 @@ function resetCreateForm() {
     priority: 'MEDIUM',
     deadline: '',
     expected_effort: 0,
+    supervisor_id: null,
   };
+  projectMembersForCreate.value = [];
 }
 
 const sessionStore = useSessionStore();
@@ -2229,6 +2696,7 @@ async function createTask() {
       priority: createForm.value.priority,
       deadline: createForm.value.deadline || null,
       expected_effort: Number(createForm.value.expected_effort),
+      supervisor_id: createForm.value.supervisor_id || undefined,
     });
 
     createDialog.value = false;
@@ -2299,12 +2767,22 @@ function stopLiveSync() {
   }
 }
 
-watch(taskId, (id) => {
+watch(taskId, async (id) => {
   if (!id) {
+    individualTask.value = null;
     workLogs.value = [];
     historyError.value = '';
     stopLiveSync();
     return;
+  }
+
+  // If task is not present in tasks list, load it individually (e.g. upstream dependency task)
+  if (!tasks.value.some((t) => t.task_id === id)) {
+    try {
+      individualTask.value = await getTaskByIdApi(id);
+    } catch {
+      individualTask.value = null;
+    }
   }
 
   if (task.value) {
@@ -2337,6 +2815,14 @@ async function loadTasks() {
         });
       }
     });
+
+    if (hasTaskId.value && !tasks.value.some((t) => t.task_id === taskId.value)) {
+      try {
+        individualTask.value = await getTaskByIdApi(taskId.value);
+      } catch {
+        individualTask.value = null;
+      }
+    }
 
     if (task.value) {
       await loadHistory(task.value.task_id);

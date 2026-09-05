@@ -179,6 +179,18 @@ export async function startSession(taskId: number, userId: number) {
     try {
         await connection.beginTransaction();
 
+        // Verify task exists and user is assigned to this task
+        const [tasks] = await connection.query<RowDataPacket[]>(
+            `SELECT t.task_id FROM tasks t
+             JOIN task_assignments ta ON t.task_id = ta.task_id
+             WHERE t.task_id = ? AND ta.user_id = ?`,
+            [taskId, userId]
+        );
+
+        if (tasks.length === 0) {
+            throw new Error("Cannot start session: You are not assigned to this task");
+        }
+
         // Ensure user has no other active sessions
         const [activeSessions] = await connection.query<RowDataPacket[]>(
             "SELECT session_id, task_id FROM task_sessions WHERE user_id = ? AND is_active = TRUE",

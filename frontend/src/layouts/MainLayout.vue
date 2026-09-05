@@ -35,10 +35,15 @@
 
         <!-- Center / Global Search -->
         <div class="search-container">
-          <div class="header-search-trigger row items-center justify-between" @click="paletteOpen = true">
+          <div
+            class="header-search-trigger row items-center justify-between"
+            @click="paletteOpen = true"
+          >
             <div class="row items-center no-wrap ellipsis text-grey-6">
               <q-icon name="search" size="18px" class="q-mr-sm" />
-              <span class="search-placeholder ellipsis">Search projects, tasks, team, actions...</span>
+              <span class="search-placeholder ellipsis"
+                >Search projects, tasks, team, actions...</span
+              >
             </div>
             <div class="row items-center gap-xs">
               <span class="search-shortcut">Ctrl + K</span>

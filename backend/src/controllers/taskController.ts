@@ -16,7 +16,8 @@ const createTaskSchema = z.object({
     status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive("Expected effort must be positive"),
-    assigned_resource_ids: z.array(z.number().int().positive()).optional()
+    assigned_resource_ids: z.array(z.number().int().positive()).optional(),
+    supervisor_id: z.number().int().positive().nullable().optional()
 });
 
 function validateTaskDeadlineAgainstProject(
@@ -83,7 +84,7 @@ export async function create(req: AuthRequest, res: Response) {
 
         // If self-assigned by a RESOURCE, assign them automatically
         let resourceIds = parsed.assigned_resource_ids;
-        if (userRole === "RESOURCE") {
+        if (userRole === "RESOURCE" && (!resourceIds || resourceIds.length === 0)) {
             resourceIds = [req.user!.user_id];
         }
 
@@ -102,7 +103,8 @@ export async function create(req: AuthRequest, res: Response) {
             taskStatus as any,
             parsed.deadline ?? null,
             parsed.expected_effort,
-            resourceIds
+            resourceIds,
+            parsed.supervisor_id ?? null
         );
 
         // Hook to trigger recalculation for the project
@@ -131,9 +133,11 @@ export async function list(req: AuthRequest, res: Response) {
 
         const projectId = req.query.project_id ? Number(req.query.project_id) : undefined;
         const resourceId = req.query.resource_id ? Number(req.query.resource_id) : undefined;
+        const scope = typeof req.query.scope === "string" ? req.query.scope : undefined;
 
         let projectIds: number[] | undefined;
         let actualResourceId = resourceId;
+        let assignedOrSupervisedUserId: number | undefined;
 
         if (userRole === "PROJECT_MANAGER") {
             if (projectId !== undefined) {
@@ -150,7 +154,16 @@ export async function list(req: AuthRequest, res: Response) {
                 projectIds = projects.map(p => Number(p.project_id));
             }
         } else if (userRole === "RESOURCE") {
-            actualResourceId = userId; // Resources only see their own assigned tasks
+            if (scope === "assigned") {
+                actualResourceId = userId;
+            } else if (scope === "supervised") {
+                // Will filter tasks where supervisor_id = userId
+                assignedOrSupervisedUserId = userId;
+            } else {
+                // Default: resources see all tasks they are assigned to OR supervise
+                assignedOrSupervisedUserId = userId;
+            }
+
             if (projectId !== undefined) {
                 const project = await getProjectById(projectId);
                 if (!project) {
@@ -166,9 +179,51 @@ export async function list(req: AuthRequest, res: Response) {
             }
         }
 
-        const tasks = await getTasksList({ resourceId: actualResourceId, projectIds });
+        const tasks = await getTasksList({
+            resourceId: actualResourceId,
+            projectIds,
+            assignedOrSupervisedByUserId: assignedOrSupervisedUserId
+        });
 
-        return res.status(200).json({ tasks });
+        // If scope is explicitly 'supervised', filter in memory if needed
+        const filteredTasks = (userRole === "RESOURCE" && scope === "supervised")
+            ? tasks.filter(t => Number(t.supervisor_id) === userId)
+            : tasks;
+
+        return res.status(200).json({ tasks: filteredTasks });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function getTaskController(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        const taskId = Number(req.params.id);
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
+
+        const task = await getTaskById(taskId) as any;
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        const project = await getProjectById(task.project_id);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        if (userRole === "PROJECT_MANAGER") {
+            if (project.project_manager_id !== userId) {
+                return res.status(403).json({ message: "You are not authorized to view this task" });
+            }
+        } else if (userRole === "RESOURCE") {
+            const isMember = await isProjectMember(task.project_id, userId!);
+            if (!isMember) {
+                return res.status(403).json({ message: "You are not authorized to view this task" });
+            }
+        }
+
+        return res.status(200).json({ task });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
@@ -177,6 +232,7 @@ export async function list(req: AuthRequest, res: Response) {
 const updateTaskSchema = z.object({
     title: z.string().min(1).optional(),
     description: z.string().nullable().optional(),
+    supervisor_id: z.number().int().positive().nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
     status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
     deadline: z.string().nullable().optional(),
@@ -220,7 +276,7 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
         } else if (userRole === "RESOURCE") {
             const isAssigned = (task.assigned_resource_ids || []).includes(userId);
             if (!isAssigned) {
-                return res.status(403).json({ message: "You are not authorized to update this task" });
+                return res.status(403).json({ message: "You are not authorized to alter progress or update this task. Only assigned resources can make updates." });
             }
         }
 
@@ -548,8 +604,9 @@ export async function getWorkLogs(req: AuthRequest<{ id: string }>, res: Respons
 
         if (userRole === "RESOURCE") {
             const isAssigned = (task.assigned_resource_ids || []).includes(userId);
+            const isSupervisor = Number(task.supervisor_id) === userId;
 
-            if (!isAssigned) {
+            if (!isAssigned && !isSupervisor) {
                 return res.status(403).json({
                     message: "You are not authorized to view this task's progress history"
                 });

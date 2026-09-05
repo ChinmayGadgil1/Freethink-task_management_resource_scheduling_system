@@ -119,11 +119,7 @@
             QUICK SHORTCUTS & NAVIGATION
           </div>
           <div class="row q-col-gutter-xs">
-            <div
-              v-for="action in defaultActions"
-              :key="action.id"
-              class="col-12 col-sm-6"
-            >
+            <div v-for="action in defaultActions" :key="action.id" class="col-12 col-sm-6">
               <div
                 class="palette-shortcut-card row items-center q-pa-sm rounded-borders cursor-pointer"
                 @click="executeItem(action)"
@@ -267,7 +263,7 @@ const defaultActions = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
         id: 'act-res-dash',
         category: 'Navigation',
         title: 'Resource Dashboard',
-        subtitle: 'View overall workload & today\'s focus',
+        subtitle: "View overall workload & today's focus",
         icon: 'space_dashboard',
         iconColor: 'text-purple',
         iconBg: 'bg-purple-1',
@@ -465,17 +461,9 @@ const searchResults = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
         iconBg: 'bg-teal-1',
         badge: t.priority,
         badgeColor:
-          t.priority === 'CRITICAL'
-            ? 'red-1'
-            : t.priority === 'HIGH'
-              ? 'orange-1'
-              : 'teal-1',
+          t.priority === 'CRITICAL' ? 'red-1' : t.priority === 'HIGH' ? 'orange-1' : 'teal-1',
         badgeTextColor:
-          t.priority === 'CRITICAL'
-            ? 'red-9'
-            : t.priority === 'HIGH'
-              ? 'orange-9'
-              : 'teal-9',
+          t.priority === 'CRITICAL' ? 'red-9' : t.priority === 'HIGH' ? 'orange-9' : 'teal-9',
         action: () => {
           if (isResource.value) {
             void router.push(`/app/resource-dashboard/task-details/${t.task_id}`);
@@ -516,10 +504,7 @@ const searchResults = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
 
   // 4. Navigation & Shortcuts matching query
   defaultActions.value.forEach((a) => {
-    if (
-      a.title.toLowerCase().includes(q) ||
-      (a.subtitle && a.subtitle.toLowerCase().includes(q))
-    ) {
+    if (a.title.toLowerCase().includes(q) || (a.subtitle && a.subtitle.toLowerCase().includes(q))) {
       items.push(a);
     }
   });

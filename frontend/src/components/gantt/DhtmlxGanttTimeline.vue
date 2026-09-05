@@ -155,30 +155,47 @@
         <span class="legend-label text-weight-bold">Timeline Guide:</span>
 
         <!-- Today Indicator -->
-        <div class="legend-item row items-center no-wrap" title="Current calendar date (Purple solid vertical line)">
+        <div
+          class="legend-item row items-center no-wrap"
+          title="Current calendar date (Purple solid vertical line)"
+        >
           <span class="legend-line-sample sample-today q-mr-xs"></span>
           <span>Today</span>
         </div>
 
         <!-- Holiday Indicator (Both PM and Resource) -->
-        <div class="legend-item row items-center no-wrap" title="Company Holiday (Orange dashed vertical line & highlight in Day view)">
+        <div
+          class="legend-item row items-center no-wrap"
+          title="Company Holiday (Orange dashed vertical line & highlight in Day view)"
+        >
           <span class="legend-line-sample sample-holiday q-mr-xs"></span>
           <span class="text-deep-orange-9 text-weight-medium">Company Holiday</span>
         </div>
 
         <!-- Leave Indicator -->
-        <div v-if="isResourceView || (availability && availability.length > 0)" class="legend-item row items-center no-wrap" title="Approved Leave (Purple dashed vertical line & highlight in Day view)">
+        <div
+          v-if="isResourceView || (availability && availability.length > 0)"
+          class="legend-item row items-center no-wrap"
+          title="Approved Leave (Purple dashed vertical line & highlight in Day view)"
+        >
           <span class="legend-line-sample sample-leave q-mr-xs"></span>
           <span class="text-purple-8 text-weight-medium">Approved Leave</span>
         </div>
 
         <!-- Non-Working / Weekend -->
-        <div v-if="isResourceView || (availability && availability.length > 0)" class="legend-item row items-center no-wrap" title="Non-working day / Weekend off (Muted shading in Day view)">
+        <div
+          v-if="isResourceView || (availability && availability.length > 0)"
+          class="legend-item row items-center no-wrap"
+          title="Non-working day / Weekend off (Muted shading in Day view)"
+        >
           <span class="legend-box-sample sample-nwd q-mr-xs"></span>
           <span class="text-grey-7">Off-Day</span>
         </div>
 
-        <span v-if="activeScale !== 'day' && activeScale !== 'hour'" class="text-caption text-grey-5 q-ml-xs">
+        <span
+          v-if="activeScale !== 'day' && activeScale !== 'hour'"
+          class="text-caption text-grey-5 q-ml-xs"
+        >
           (Switch to Day view to see vertical holiday &amp; leave line markers)
         </span>
       </div>
@@ -252,7 +269,13 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { gantt } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
-import type { Task, Project, ResourceUser, HolidayItem, DailyAvailabilityDTO } from '@/services/api';
+import type {
+  Task,
+  Project,
+  ResourceUser,
+  HolidayItem,
+  DailyAvailabilityDTO,
+} from '@/services/api';
 import { useThemeStore } from '@/stores/theme';
 
 export interface GanttTimelineProps {
@@ -358,14 +381,8 @@ const ganttContainer = ref<HTMLElement | null>(null);
 const internalSearchQuery = ref('');
 const STORAGE_KEY_SCALE = 'taskflow_gantt_scale';
 const storedScale = localStorage.getItem(STORAGE_KEY_SCALE) as
-  | 'hour'
-  | 'day'
-  | 'week'
-  | 'month'
-  | null;
-const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(
-  storedScale || props.initialScale,
-);
+  'hour' | 'day' | 'week' | 'month' | null;
+const activeScale = ref<'hour' | 'day' | 'week' | 'month'>(storedScale || props.initialScale);
 
 watch(activeScale, (newScale) => {
   if (newScale) {
@@ -543,7 +560,10 @@ function getTaskWorkSegments(task: Task): {
         const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
         const lastDateStr = String(lastInSeg.schedule_date).split('T')[0]!;
         const lastDate = parseDateLocal(lastDateStr);
-        if (!lastDate) { currentSegSchedules = [curr]; continue; }
+        if (!lastDate) {
+          currentSegSchedules = [curr];
+          continue;
+        }
         const expectedNextDateStr = formatDateIso(addDays(lastDate, 1));
 
         if (currDateStr === expectedNextDateStr) {
@@ -555,7 +575,10 @@ function getTaskWorkSegments(task: Task): {
           const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
           const segStartDate = parseDateLocal(segStartStr);
           const rawSegEnd = parseDateLocal(segEndStr);
-          if (!segStartDate || !rawSegEnd) { currentSegSchedules = [curr]; continue; }
+          if (!segStartDate || !rawSegEnd) {
+            currentSegSchedules = [curr];
+            continue;
+          }
           const segEndDate = addDays(rawSegEnd, 1);
           const segHours = currentSegSchedules.reduce(
             (sum, s) => sum + Number(s.allocated_hours),
@@ -1124,21 +1147,30 @@ function configureGanttEngine() {
           avail.leave_type === 'FIRST_HALF' ||
           avail.leave_type === 'SECOND_HALF' ||
           avail.status === 'PARTIAL_LEAVE' ||
-          (avail.leave_hours !== undefined && avail.leave_hours !== null && Number(avail.leave_hours) > 0 && Number(avail.leave_hours) < (avail.daily_working_hours || 8));
+          (avail.leave_hours !== undefined &&
+            avail.leave_hours !== null &&
+            Number(avail.leave_hours) > 0 &&
+            Number(avail.leave_hours) < (avail.daily_working_hours || 8));
 
         if (isHalfDay) {
           if (activeScale.value === 'hour') {
             const h = date.getHours();
-            const isSecondHalf = avail.leave_type === 'SECOND_HALF' || String(avail.leave_type).toUpperCase().includes('SECOND') || String(avail.leave_type).toUpperCase().includes('2');
+            const isSecondHalf =
+              avail.leave_type === 'SECOND_HALF' ||
+              String(avail.leave_type).toUpperCase().includes('SECOND') ||
+              String(avail.leave_type).toUpperCase().includes('2');
             if (isSecondHalf) {
-              return (h >= 14 && h < 18) ? 'gantt-col-leave' : '';
+              return h >= 14 && h < 18 ? 'gantt-col-leave' : '';
             } else {
-              return (h >= 10 && h < 14) ? 'gantt-col-leave' : '';
+              return h >= 10 && h < 14 ? 'gantt-col-leave' : '';
             }
           }
           return '';
         }
-        if (avail.status === 'ON_LEAVE' || (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))) {
+        if (
+          avail.status === 'ON_LEAVE' ||
+          (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))
+        ) {
           return 'gantt-col-leave';
         }
         if (avail.status === 'NON_WORKING_DAY') {
@@ -1166,21 +1198,30 @@ function configureGanttEngine() {
           avail.leave_type === 'FIRST_HALF' ||
           avail.leave_type === 'SECOND_HALF' ||
           avail.status === 'PARTIAL_LEAVE' ||
-          (avail.leave_hours !== undefined && avail.leave_hours !== null && Number(avail.leave_hours) > 0 && Number(avail.leave_hours) < (avail.daily_working_hours || 8));
+          (avail.leave_hours !== undefined &&
+            avail.leave_hours !== null &&
+            Number(avail.leave_hours) > 0 &&
+            Number(avail.leave_hours) < (avail.daily_working_hours || 8));
 
         if (isHalfDay) {
           if (activeScale.value === 'hour') {
             const h = date.getHours();
-            const isSecondHalf = avail.leave_type === 'SECOND_HALF' || String(avail.leave_type).toUpperCase().includes('SECOND') || String(avail.leave_type).toUpperCase().includes('2');
+            const isSecondHalf =
+              avail.leave_type === 'SECOND_HALF' ||
+              String(avail.leave_type).toUpperCase().includes('SECOND') ||
+              String(avail.leave_type).toUpperCase().includes('2');
             if (isSecondHalf) {
-              return (h >= 14 && h < 18) ? 'gantt-scale-leave' : '';
+              return h >= 14 && h < 18 ? 'gantt-scale-leave' : '';
             } else {
-              return (h >= 10 && h < 14) ? 'gantt-scale-leave' : '';
+              return h >= 10 && h < 14 ? 'gantt-scale-leave' : '';
             }
           }
           return '';
         }
-        if (avail.status === 'ON_LEAVE' || (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))) {
+        if (
+          avail.status === 'ON_LEAVE' ||
+          (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))
+        ) {
           return 'gantt-scale-leave';
         }
         if (avail.status === 'NON_WORKING_DAY') {
@@ -1281,7 +1322,11 @@ function updateCustomMarkers() {
   }
 
   // 2. Resource Leaves Markers (Shown when resource availability is present)
-  if ((props.isResourceView || (props.availability && props.availability.length > 0)) && props.availability && props.availability.length > 0) {
+  if (
+    (props.isResourceView || (props.availability && props.availability.length > 0)) &&
+    props.availability &&
+    props.availability.length > 0
+  ) {
     props.availability.forEach((avail) => {
       if (!avail || !avail.date) return;
       const dStr = String(avail.date).split('T')[0]!;
@@ -1294,13 +1339,19 @@ function updateCustomMarkers() {
         avail.leave_type === 'FIRST_HALF' ||
         avail.leave_type === 'SECOND_HALF' ||
         avail.status === 'PARTIAL_LEAVE' ||
-        (avail.leave_hours !== undefined && avail.leave_hours !== null && Number(avail.leave_hours) > 0 && Number(avail.leave_hours) < (avail.daily_working_hours || 8));
+        (avail.leave_hours !== undefined &&
+          avail.leave_hours !== null &&
+          Number(avail.leave_hours) > 0 &&
+          Number(avail.leave_hours) < (avail.daily_working_hours || 8));
 
       if (isHalfDay) {
         // Half-day / Partial leaves only show vertical markers in hourly scale view
         if (activeScale.value !== 'hour') return;
 
-        const isSecondHalf = avail.leave_type === 'SECOND_HALF' || String(avail.leave_type).toUpperCase().includes('SECOND') || String(avail.leave_type).toUpperCase().includes('2');
+        const isSecondHalf =
+          avail.leave_type === 'SECOND_HALF' ||
+          String(avail.leave_type).toUpperCase().includes('SECOND') ||
+          String(avail.leave_type).toUpperCase().includes('2');
         if (isSecondHalf) {
           d.setHours(14, 0, 0, 0);
         } else {
@@ -1318,7 +1369,10 @@ function updateCustomMarkers() {
         } catch (e) {
           console.warn('Failed to add partial leave marker:', e);
         }
-      } else if (avail.status === 'ON_LEAVE' || (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))) {
+      } else if (
+        avail.status === 'ON_LEAVE' ||
+        (avail.leave_hours && avail.leave_hours >= (avail.daily_working_hours || 8))
+      ) {
         if (activeScale.value === 'hour') {
           d.setHours(10, 0, 0, 0);
         }

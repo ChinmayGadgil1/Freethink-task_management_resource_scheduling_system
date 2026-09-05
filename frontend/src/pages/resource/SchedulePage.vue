@@ -520,12 +520,7 @@ const loading = ref(true);
 const holidays = ref<HolidayItem[]>([]);
 const STORAGE_KEY_VIEW_MODE = 'taskflow_res_schedule_view_mode';
 const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
-  | 'week'
-  | 'day'
-  | 'month'
-  | 'gantt'
-  | 'table'
-  | null;
+  'week' | 'day' | 'month' | 'gantt' | 'table' | null;
 const scheduleViewMode = ref<'week' | 'day' | 'month' | 'gantt' | 'table'>(
   storedViewMode || 'week',
 );
@@ -766,7 +761,10 @@ function getTasksOnDate(date: Date): Task[] {
     return [];
   }
 
-  if (holidays.value && holidays.value.some((h) => String(h.holiday_date).slice(0, 10) === targetDateStr)) {
+  if (
+    holidays.value &&
+    holidays.value.some((h) => String(h.holiday_date).slice(0, 10) === targetDateStr)
+  ) {
     return [];
   }
 

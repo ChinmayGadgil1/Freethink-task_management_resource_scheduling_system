@@ -2,9 +2,32 @@ export type TaskStatus = 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
+export interface PredecessorTaskInfo {
+    task_id: number;
+    project_id: number;
+    project_name?: string;
+    title: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    deadline: string | null;
+    planned_start?: string | null;
+    planned_end?: string | null;
+    expected_effort: number;
+    actual_effort: number;
+    progress: number;
+    is_schedule_at_risk?: boolean;
+    is_deadline_at_risk?: boolean;
+    assigned_resource_names?: string[];
+    supervisor_name?: string | null;
+}
+
 export interface Task {
     task_id: number;
     project_id: number;
+    created_by?: number;
+    supervisor_id?: number | null;
+    supervisor_name?: string | null;
+    supervisor_email?: string | null;
     title: string;
     description: string | null;
     priority: TaskPriority;
@@ -19,6 +42,10 @@ export interface Task {
     progress: number;          // percentage 0 to 100
     is_schedule_at_risk?: boolean;
     is_deadline_at_risk?: boolean;
+    assigned_resource_ids?: number[];
+    assigned_resource_names?: string[];
+    predecessor_task_ids?: number[];
+    predecessors?: PredecessorTaskInfo[];
     created_at: Date;
     updated_at: Date;
 }
