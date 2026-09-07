@@ -1505,8 +1505,14 @@
         </q-card-section>
       </q-card>
 
-      <!-- 3. DAILY UPDATES & START/STOP SESSION LOG SECTION -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
+      <!-- 3. DAILY UPDATES & START/STOP SESSION LOG SECTION (Only visible to assigned resources or supervisor) -->
+      <q-card
+        v-if="canViewTaskHistory"
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders overflow-hidden"
+      >
         <q-card-section class="row items-center justify-between q-pa-md">
           <div class="row items-center">
             <q-avatar
@@ -1602,6 +1608,7 @@
                 No daily updates recorded for this task yet.
               </div>
               <q-btn
+                v-if="isAssignedToMe(task)"
                 outline
                 no-caps
                 color="primary"
@@ -2835,6 +2842,11 @@ function resetCreateForm() {
 
 const sessionStore = useSessionStore();
 
+const canViewTaskHistory = computed(() => {
+  if (!task.value) return false;
+  return isAssignedToMe(task.value) || Number(task.value.supervisor_id) === currentUserId.value;
+});
+
 const isCurrentTaskSessionActive = computed(() => {
   return !!task.value && sessionStore.isTaskSessionActive(task.value.task_id);
 });
@@ -3003,6 +3015,7 @@ let liveSyncTimer: ReturnType<typeof setInterval> | null = null;
 
 async function syncActiveSessions(currentTaskId: number) {
   if (!currentTaskId) return;
+  if (task.value && !canViewTaskHistory.value) return;
   try {
     const activeRes = await getTaskActiveSessionsApi(currentTaskId);
     activeCoAssigneeSessions.value = activeRes.sessions || [];
@@ -3052,9 +3065,14 @@ watch(taskId, async (id) => {
     }
   }
 
-  if (task.value) {
+  if (task.value && canViewTaskHistory.value) {
     void loadHistory(id);
     startLiveSync(id);
+  } else {
+    workLogs.value = [];
+    activeCoAssigneeSessions.value = [];
+    historyError.value = '';
+    stopLiveSync();
   }
 });
 
@@ -3094,11 +3112,12 @@ async function loadTasks() {
       }
     }
 
-    if (task.value) {
+    if (task.value && canViewTaskHistory.value) {
       await loadHistory(task.value.task_id);
       startLiveSync(task.value.task_id);
-    } else if (hasTaskId.value) {
+    } else {
       workLogs.value = [];
+      activeCoAssigneeSessions.value = [];
       historyError.value = '';
       stopLiveSync();
     }
@@ -3191,6 +3210,13 @@ async function saveTaskSpecUpdate(payload: {
 
 // Load all work logs and active working sessions for this task so co-assignees can view complete progress
 async function loadHistory(currentTaskId: number) {
+  if (task.value && !canViewTaskHistory.value) {
+    workLogs.value = [];
+    activeCoAssigneeSessions.value = [];
+    historyError.value = '';
+    historyLoading.value = false;
+    return;
+  }
   historyLoading.value = true;
   historyError.value = '';
 
