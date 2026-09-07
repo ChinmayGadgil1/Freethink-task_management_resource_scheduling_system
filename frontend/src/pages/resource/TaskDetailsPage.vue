@@ -96,6 +96,7 @@
             { label: 'All Tasks', value: 'all', icon: 'dashboard' },
             { label: 'Assigned to Me', value: 'assigned', icon: 'assignment_ind' },
             { label: 'Supervised by Me', value: 'supervised', icon: 'verified_user' },
+            { label: 'Upstream Dependencies', value: 'upstream', icon: 'account_tree' },
           ]"
         />
       </div>
@@ -366,6 +367,25 @@
                           "
                           class="text-weight-medium"
                         />
+
+                        <q-chip
+                          v-if="getBlockedMyTaskNames(item.task_id).length > 0"
+                          dense
+                          square
+                          size="sm"
+                          :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+                          :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
+                          icon="link"
+                          :label="`Blocks: ${getBlockedMyTaskNames(item.task_id)[0]}${getBlockedMyTaskNames(item.task_id).length > 1 ? ` +${getBlockedMyTaskNames(item.task_id).length - 1}` : ''}`"
+                          class="text-weight-bold"
+                        >
+                          <q-tooltip v-if="getBlockedMyTaskNames(item.task_id).length > 0">
+                            Prerequisite for your task{{ getBlockedMyTaskNames(item.task_id).length > 1 ? 's' : '' }}:
+                            <div v-for="tTitle in getBlockedMyTaskNames(item.task_id)" :key="tTitle">
+                              • {{ tTitle }}
+                            </div>
+                          </q-tooltip>
+                        </q-chip>
 
                         <q-chip
                           v-if="getCreatedByResourceName(item)"
@@ -644,6 +664,25 @@
                   icon="account_tree"
                   :label="`${props.row.predecessors.length} Pred`"
                 />
+                <q-chip
+                  v-if="getBlockedMyTaskNames(props.row.task_id).length > 0"
+                  dense
+                  square
+                  size="sm"
+                  :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+                  :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
+                  icon="link"
+                  :label="`Blocks: ${getBlockedMyTaskNames(props.row.task_id)[0]}${getBlockedMyTaskNames(props.row.task_id).length > 1 ? ` +${getBlockedMyTaskNames(props.row.task_id).length - 1}` : ''}`"
+                  class="text-weight-bold"
+                >
+                  <q-tooltip v-if="getBlockedMyTaskNames(props.row.task_id).length > 0">
+                    Prerequisite for your task{{ getBlockedMyTaskNames(props.row.task_id).length > 1 ? 's' : '' }}:
+                    <div v-for="tTitle in getBlockedMyTaskNames(props.row.task_id)" :key="tTitle">
+                      • {{ tTitle }}
+                    </div>
+                  </q-tooltip>
+                </q-chip>
+
                 <q-chip
                   v-if="getCreatedByResourceName(props.row)"
                   dense
@@ -2420,8 +2459,73 @@ const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> 
   { label: 'Critical', value: 'CRITICAL' },
 ];
 
-const scopeFilter = ref<'all' | 'assigned' | 'supervised'>('all');
+const scopeFilter = ref<'all' | 'assigned' | 'supervised' | 'upstream'>('all');
 const currentUserId = computed(() => getCurrentUserId());
+
+// Compute tasks directly assigned to current user
+const myAssignedTasks = computed(() => {
+  return tasks.value.filter((t) => isAssignedToMe(t));
+});
+
+// Map of predecessor task_id -> array of user's task titles that depend on it
+const blockedTasksByPredecessorId = computed(() => {
+  const map: Record<number, string[]> = {};
+  myAssignedTasks.value.forEach((myTask) => {
+    // Check predecessor_task_ids (can be array or comma-separated string)
+    if (myTask.predecessor_task_ids) {
+      const ids = Array.isArray(myTask.predecessor_task_ids)
+        ? myTask.predecessor_task_ids
+        : String(myTask.predecessor_task_ids).split(',').map(Number);
+      ids.forEach((pId) => {
+        const numId = Number(pId);
+        if (numId && !isNaN(numId)) {
+          if (!map[numId]) map[numId] = [];
+          if (!map[numId].includes(myTask.title)) {
+            map[numId].push(myTask.title);
+          }
+        }
+      });
+    }
+    // Check predecessors array
+    if (Array.isArray(myTask.predecessors)) {
+      myTask.predecessors.forEach((p) => {
+        const numId = Number(p.task_id);
+        if (numId && !isNaN(numId)) {
+          if (!map[numId]) map[numId] = [];
+          if (!map[numId].includes(myTask.title)) {
+            map[numId].push(myTask.title);
+          }
+        }
+      });
+    }
+  });
+  return map;
+});
+
+// Map of predecessor task_id -> PredecessorTaskInfo extracted from predecessors array of all myAssignedTasks
+const predecessorObjectsMap = computed(() => {
+  const map: Record<number, PredecessorTaskInfo> = {};
+  myAssignedTasks.value.forEach((myTask) => {
+    if (Array.isArray(myTask.predecessors)) {
+      myTask.predecessors.forEach((p) => {
+        if (p.task_id) {
+          map[Number(p.task_id)] = p;
+        }
+      });
+    }
+  });
+  return map;
+});
+
+// Set of all predecessor task IDs for tasks assigned to the current user
+const myUpstreamPredecessorIds = computed(() => {
+  return new Set(Object.keys(blockedTasksByPredecessorId.value).map(Number));
+});
+
+// Helper to get blocked task names for an upstream task
+function getBlockedMyTaskNames(predTaskId: number): string[] {
+  return blockedTasksByPredecessorId.value[Number(predTaskId)] || [];
+}
 
 // Card Click Filter Handlers
 function filterAllTasks() {
@@ -2446,13 +2550,13 @@ function filterAtRiskTasks() {
   atRiskOnly.value = !atRiskOnly.value;
 }
 
-// Watch route query to support navigation with ?scope=supervised, ?status=IN_PROGRESS, or ?project=...
+// Watch route query to support navigation with ?scope=supervised, ?scope=upstream, ?status=IN_PROGRESS, or ?project=...
 watch(
   () => route.query,
   (query) => {
     if (query.scope && typeof query.scope === 'string') {
-      if (['all', 'assigned', 'supervised'].includes(query.scope)) {
-        scopeFilter.value = query.scope as 'all' | 'assigned' | 'supervised';
+      if (['all', 'assigned', 'supervised', 'upstream'].includes(query.scope)) {
+        scopeFilter.value = query.scope as 'all' | 'assigned' | 'supervised' | 'upstream';
       }
     }
     if (query.status && typeof query.status === 'string') {
@@ -2538,8 +2642,52 @@ const filteredTasks = computed(() => {
   const q = searchQuery.value.toLowerCase().trim();
   const myId = currentUserId.value;
 
-  return tasks.value.filter((item) => {
-    // Scope filter
+  // Determine base source list of tasks depending on scope
+  const sourceTasks: Task[] = (() => {
+    if (scopeFilter.value === 'upstream') {
+      // When in upstream scope, gather all predecessor tasks directly from myAssignedTasks.predecessors
+      // and match them with tasks from the global tasks list (or format from predecessorObjectsMap)
+      const upstreamMap = new Map<number, Task>();
+
+      // 1. Check full task objects that exist in tasks.value whose task_id is a predecessor
+      tasks.value.forEach((t) => {
+        if (myUpstreamPredecessorIds.value.has(t.task_id)) {
+          upstreamMap.set(t.task_id, t);
+        }
+      });
+
+      // 2. Also check predecessor objects directly present on myAssignedTasks
+      Object.values(predecessorObjectsMap.value).forEach((pObj) => {
+        if (pObj && pObj.task_id && !upstreamMap.has(pObj.task_id)) {
+          upstreamMap.set(pObj.task_id, {
+            task_id: pObj.task_id,
+            project_id: pObj.project_id,
+            project_name: pObj.project_name,
+            title: pObj.title,
+            description: null,
+            priority: pObj.priority,
+            status: pObj.status,
+            deadline: pObj.deadline,
+            planned_start: pObj.planned_start,
+            planned_end: pObj.planned_end,
+            expected_effort: pObj.expected_effort,
+            actual_effort: pObj.actual_effort,
+            progress: pObj.progress,
+            is_schedule_at_risk: pObj.is_schedule_at_risk,
+            is_deadline_at_risk: pObj.is_deadline_at_risk,
+            assigned_resource_names: pObj.assigned_resource_names,
+            supervisor_name: pObj.supervisor_name,
+          } as Task);
+        }
+      });
+
+      return Array.from(upstreamMap.values());
+    }
+    return tasks.value;
+  })();
+
+  return sourceTasks.filter((item) => {
+    // Scope filter for non-upstream
     if (scopeFilter.value === 'assigned') {
       if (Number(item.supervisor_id) === myId && !isSelfAssigned(item)) {
         if (Number(item.supervisor_id) === myId && item.created_by !== myId) {
