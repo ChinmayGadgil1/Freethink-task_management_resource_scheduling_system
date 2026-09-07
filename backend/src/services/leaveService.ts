@@ -89,6 +89,25 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         throw error;
     }
 
+    // PM can only apply leave for resources assigned to projects they manage
+    if (userRole === "PROJECT_MANAGER" && creatorId) {
+        const [pmProjects] = await pool.query<RowDataPacket[]>(
+            `
+            SELECT p.project_id
+            FROM projects p
+            INNER JOIN project_members pm ON p.project_id = pm.project_id
+            WHERE p.project_manager_id = ? AND pm.user_id = ?
+            `,
+            [creatorId, user_id]
+        );
+
+        if (pmProjects.length === 0) {
+            const error = new Error("Access denied. You can only apply leave for resource members assigned to projects you manage.");
+            (error as any).status = 403;
+            throw error;
+        }
+    }
+
     const userDailyHours = user.daily_working_hours !== null && user.daily_working_hours !== undefined
         ? Number(user.daily_working_hours)
         : 8.00;

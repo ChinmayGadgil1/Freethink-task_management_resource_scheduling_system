@@ -119,7 +119,7 @@
           <q-tab name="gantt" icon="timeline" label="Gantt Timeline" />
           <q-tab name="availability" icon="event_available" label="Daily Availability" />
           <q-tab name="workload" icon="speed" label="Capacity & Workload" />
-          <q-tab name="leaves" icon="event_busy" label="Leaves & Time Off" />
+          <q-tab name="leaves" icon="event_busy" label="Leaves" />
         </q-tabs>
 
         <q-separator />
@@ -371,7 +371,7 @@
           <!-- TAB 4: LEAVES & TIME OFF -->
           <q-tab-panel name="leaves" class="q-pa-md">
             <div class="row items-center justify-between q-mb-md">
-              <div class="text-h6 text-weight-bold">Leaves & Time Off</div>
+              <div class="text-h6 text-weight-bold">Leaves</div>
               <q-btn
                 color="primary"
                 icon="add"
