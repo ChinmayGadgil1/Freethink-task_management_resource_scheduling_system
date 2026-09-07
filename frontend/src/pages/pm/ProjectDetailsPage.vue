@@ -1754,7 +1754,26 @@ interface TeamMember {
   capacity: number;
 }
 
-const teamMembers = ref<TeamMember[]>([]);
+const teamMembers = computed<TeamMember[]>(() => {
+  return projectMembersResources.value.map((resource) => {
+    const rId = Number(resource.user_id);
+    const assigned = tasks.value.filter((task) => {
+      const ids = (task.assigned_resource_ids || []).map(Number);
+      if (ids.includes(rId)) return true;
+      if (task.assigned_resources?.some((ar) => Number(ar.user_id) === rId)) return true;
+      return false;
+    });
+    const effort = assigned.reduce((sum, task) => sum + (Number(task.expected_effort) || 0), 0);
+    const cap = calculateResourceWeeklyCapacity(resource);
+    return {
+      id: rId,
+      name: resource.name,
+      role: resource.role || 'Team Resource',
+      assignedTasks: assigned.length,
+      capacity: Math.min(100, Math.round((effort / Math.max(1, cap)) * 100)),
+    };
+  });
+});
 
 interface Milestone {
   id: number;
@@ -2511,20 +2530,6 @@ async function loadProjectTeamMembers() {
     ]);
     projectMembersResources.value = fetchedProjectMembers;
     allSystemResources.value = fetchedAllResources;
-    teamMembers.value = fetchedProjectMembers.map((resource) => {
-      const assigned = tasks.value.filter((task) =>
-        task.assigned_resource_ids?.includes(resource.user_id),
-      );
-      const effort = assigned.reduce((sum, task) => sum + (Number(task.expected_effort) || 0), 0);
-      const cap = calculateResourceWeeklyCapacity(resource);
-      return {
-        id: resource.user_id,
-        name: resource.name,
-        role: resource.role || 'Team Resource',
-        assignedTasks: assigned.length,
-        capacity: Math.min(100, Math.round((effort / Math.max(1, cap)) * 100)),
-      };
-    });
   } catch (error) {
     console.warn('Failed to load team resources:', error);
   } finally {
