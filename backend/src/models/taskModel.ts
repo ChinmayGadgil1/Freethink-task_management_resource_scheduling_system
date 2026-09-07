@@ -25,6 +25,8 @@ export interface Task {
     task_id: number;
     project_id: number;
     created_by?: number;
+    created_by_name?: string | null;
+    created_by_role?: string | null;
     supervisor_id?: number | null;
     supervisor_name?: string | null;
     supervisor_email?: string | null;

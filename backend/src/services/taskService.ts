@@ -41,6 +41,14 @@ export async function createTask(
 
         const taskId = result.insertId;
 
+        const [creatorRows] = await connection.query<RowDataPacket[]>(
+            "SELECT name, role FROM users WHERE user_id = ?",
+            [createdBy]
+        );
+        const creatorFirst = creatorRows[0];
+        const creatorName = creatorFirst?.name ? String(creatorFirst.name) : null;
+        const creatorRole = creatorFirst?.role ? String(creatorFirst.role) : null;
+
         if (assignedResourceIds && assignedResourceIds.length > 0) {
             // Verify roles and fetch profile details
             const [users] = await connection.query<RowDataPacket[]>(
@@ -78,6 +86,8 @@ export async function createTask(
                 task_id: taskId,
                 project_id: projectId,
                 created_by: createdBy,
+                created_by_name: creatorName,
+                created_by_role: creatorRole,
                 title,
                 description,
                 priority,
@@ -97,6 +107,8 @@ export async function createTask(
             task_id: taskId,
             project_id: projectId,
             created_by: createdBy,
+            created_by_name: creatorName,
+            created_by_role: creatorRole,
             title,
             description,
             priority,
@@ -172,12 +184,15 @@ export async function getTasksList(filters: {
             p.name as project_name,
             u_sup.name as supervisor_name,
             u_sup.email as supervisor_email,
+            u_creator.name as created_by_name,
+            u_creator.role as created_by_role,
             GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
             GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names,
             GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
         FROM tasks t
         LEFT JOIN projects p ON t.project_id = p.project_id
         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
+        LEFT JOIN users u_creator ON t.created_by = u_creator.user_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
@@ -288,6 +303,9 @@ export async function getTasksList(filters: {
 
         return {
             ...t,
+            created_by: t.created_by ? Number(t.created_by) : undefined,
+            created_by_name: t.created_by_name || null,
+            created_by_role: t.created_by_role || null,
             supervisor_id: t.supervisor_id ? Number(t.supervisor_id) : null,
             supervisor_name: t.supervisor_name || null,
             supervisor_email: t.supervisor_email || null,
@@ -313,12 +331,15 @@ export async function getTaskById(taskId: number) {
                p.name as project_name,
                u_sup.name as supervisor_name,
                u_sup.email as supervisor_email,
+               u_creator.name as created_by_name,
+               u_creator.role as created_by_role,
                GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
                GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names,
                GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
         FROM tasks t
         LEFT JOIN projects p ON t.project_id = p.project_id
         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
+        LEFT JOIN users u_creator ON t.created_by = u_creator.user_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
@@ -378,6 +399,9 @@ export async function getTaskById(taskId: number) {
 
     return {
         ...task,
+        created_by: task.created_by ? Number(task.created_by) : undefined,
+        created_by_name: task.created_by_name || null,
+        created_by_role: task.created_by_role || null,
         supervisor_id: task.supervisor_id ? Number(task.supervisor_id) : null,
         supervisor_name: task.supervisor_name || null,
         supervisor_email: task.supervisor_email || null,

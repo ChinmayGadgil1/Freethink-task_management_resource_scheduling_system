@@ -15,5 +15,7 @@ export interface ResourceTask {
   workUpdate: string;
   description?: string | null | undefined;
   created_by?: number | undefined;
+  created_by_name?: string | null | undefined;
+  created_by_role?: string | null | undefined;
   isSelfAssigned?: boolean | undefined;
 }

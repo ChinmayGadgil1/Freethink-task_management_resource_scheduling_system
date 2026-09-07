@@ -102,6 +102,8 @@ export interface Task {
   project_id: number;
   project_name?: string;
   created_by?: number; //added to track who created the task
+  created_by_name?: string | null;
+  created_by_role?: string | null;
   supervisor_id?: number | null;
   supervisor_name?: string | null;
   supervisor_email?: string | null;

@@ -368,14 +368,14 @@
                         />
 
                         <q-chip
-                          v-if="isSelfAssigned(item)"
+                          v-if="getCreatedByResourceName(item)"
                           dense
                           square
                           size="sm"
                           :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                           :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
                           icon="person"
-                          label="Self-assigned"
+                          :label="`Resource ${getCreatedByResourceName(item)} created task`"
                           class="text-weight-bold"
                         />
                       </div>
@@ -645,14 +645,14 @@
                   :label="`${props.row.predecessors.length} Pred`"
                 />
                 <q-chip
-                  v-if="isSelfAssigned(props.row)"
+                  v-if="getCreatedByResourceName(props.row)"
                   dense
                   square
                   size="sm"
                   :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                   :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
                   icon="person"
-                  label="Self-assigned"
+                  :label="`Resource ${getCreatedByResourceName(props.row)} created task`"
                   class="text-weight-bold"
                 />
               </div>
@@ -871,14 +871,14 @@
                 />
 
                 <q-chip
-                  v-if="isSelfAssigned(task)"
+                  v-if="getCreatedByResourceName(task)"
                   dense
                   square
                   size="sm"
                   :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                   :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
                   icon="person"
-                  label="Self-assigned"
+                  :label="`Resource ${getCreatedByResourceName(task)} created task`"
                   class="text-weight-bold"
                 />
               </div>
@@ -2137,6 +2137,8 @@ type TaskLike = {
   created_by?: number | string;
   createdBy?: number | string;
   created_by_id?: number | string;
+  created_by_name?: string | null;
+  created_by_role?: string | null;
   isSelfAssigned?: boolean;
 };
 
@@ -2162,6 +2164,65 @@ function getCurrentUserId(): number | null {
   } catch {
     // ignore
   }
+  return null;
+}
+
+function getCreatedByResourceName(item: Task | ResourceTask | null | undefined): string | null {
+  if (!item) return null;
+  const t = item as TaskLike;
+
+  if (t.created_by_role === 'PROJECT_MANAGER') {
+    return null;
+  }
+
+  if (t.created_by_role === 'RESOURCE' && t.created_by_name) {
+    return t.created_by_name;
+  }
+
+  const createdById = Number(t.created_by ?? t.createdBy ?? t.created_by_id);
+  const currentUserId = getCurrentUserId();
+
+  if (currentUserId && createdById && currentUserId === createdById) {
+    const u = authStore.user as UserLike | null;
+    return u?.name || t.created_by_name || 'You';
+  }
+
+  if (!createdById) return null;
+
+  if (resourceNamesMap.value[createdById]) {
+    return resourceNamesMap.value[createdById];
+  }
+
+  const taskObj = item as Task;
+  if (Array.isArray(taskObj.assigned_resources)) {
+    const ar = taskObj.assigned_resources.find((r) => Number(r.user_id) === createdById);
+    if (ar?.name) {
+      resourceNamesMap.value[createdById] = ar.name;
+      return ar.name;
+    }
+  }
+
+  for (const tk of tasks.value) {
+    if (Number(tk.created_by) === createdById && tk.created_by_name) {
+      resourceNamesMap.value[createdById] = tk.created_by_name;
+      return tk.created_by_name;
+    }
+    const ar = tk.assigned_resources?.find((r) => Number(r.user_id) === createdById);
+    if (ar?.name) {
+      resourceNamesMap.value[createdById] = ar.name;
+      return ar.name;
+    }
+    const sc = tk.schedules?.find((s) => Number(s.user_id) === createdById);
+    if (sc?.resource_name) {
+      resourceNamesMap.value[createdById] = sc.resource_name;
+      return sc.resource_name;
+    }
+  }
+
+  if (typeof t.created_by_name === 'string' && t.created_by_name) {
+    return t.created_by_name;
+  }
+
   return null;
 }
 
@@ -2858,6 +2919,9 @@ async function loadTasks() {
 
     // Populate resource names map from assigned_resources and schedules across tasks
     tasks.value.forEach((t) => {
+      if (t.created_by && t.created_by_name) {
+        resourceNamesMap.value[Number(t.created_by)] = t.created_by_name;
+      }
       if (Array.isArray(t.assigned_resources)) {
         t.assigned_resources.forEach((ar) => {
           if (ar.user_id && ar.name) {
@@ -2917,6 +2981,8 @@ function mapToResourceTask(item: Task): ResourceTask {
     workUpdate: '',
     description: item.description || '',
     created_by: item.created_by,
+    created_by_name: item.created_by_name,
+    created_by_role: item.created_by_role,
     isSelfAssigned: isSelfAssigned(item),
   };
 }

@@ -287,7 +287,7 @@
                       icon="person"
                       class="text-weight-bold"
                     >
-                      self assigned by {{ getSelfAssignedCreatorName(task) }}
+                      Resource {{ getSelfAssignedCreatorName(task) }} created task
                     </q-chip>
                   </div>
 
@@ -457,7 +457,7 @@
                   icon="person"
                   class="text-weight-bold"
                 >
-                  self assigned by {{ getSelfAssignedCreatorName(props.row) }}
+                  resource {{ getSelfAssignedCreatorName(props.row) }} created task
                 </q-chip>
               </div>
               <div v-if="props.row.description" class="text-caption text-grey-6 ellipsis">
