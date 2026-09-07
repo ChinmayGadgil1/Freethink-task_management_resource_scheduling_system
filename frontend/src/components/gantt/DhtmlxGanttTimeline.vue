@@ -2194,7 +2194,7 @@ defineExpose({
         display: inline-block;
 
         &.dot-low {
-          background: #10b981;
+          background: #64748b;
         }
         &.dot-medium {
           background: #0284c7;
@@ -2556,8 +2556,8 @@ defineExpose({
       color: #0284c7;
     }
     &.p-low {
-      background: #ecfdf5;
-      color: #059669;
+      background: #f1f5f9;
+      color: #475569;
     }
   }
 
@@ -2752,8 +2752,14 @@ defineExpose({
       box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
     }
 
-    /* 4. Green (Low Priority / Completed) */
-    &.bar-p-low,
+    /* 4. Slate (Low Priority) */
+    &.bar-p-low {
+      background: linear-gradient(90deg, #64748b 0%, #94a3b8 100%) !important;
+      border: 1px solid #475569 !important;
+      box-shadow: 0 2px 8px rgba(100, 116, 139, 0.35) !important;
+    }
+
+    /* 5. Green (Completed Status) */
     &.bar-s-completed {
       background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
       border: 1px solid #047857 !important;
@@ -3188,8 +3194,8 @@ body.body--dark {
         color: #3b82f6;
       }
       &.p-low {
-        background: rgba(16, 185, 129, 0.15);
-        color: #10b981;
+        background: rgba(148, 163, 184, 0.15);
+        color: #94a3b8;
       }
     }
 
