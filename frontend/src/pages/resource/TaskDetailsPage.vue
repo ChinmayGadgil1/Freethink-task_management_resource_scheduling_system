@@ -2544,13 +2544,19 @@ function filterAllTasks() {
 }
 
 function filterInProgressTasks() {
-  statusFilter.value = 'IN_PROGRESS';
+  scopeFilter.value = 'all';
+  priorityFilter.value = null;
+  projectFilter.value = null;
   atRiskOnly.value = false;
+  statusFilter.value = statusFilter.value === 'IN_PROGRESS' ? null : 'IN_PROGRESS';
 }
 
 function filterSupervisedTasks() {
-  scopeFilter.value = 'supervised';
+  statusFilter.value = null;
+  priorityFilter.value = null;
+  projectFilter.value = null;
   atRiskOnly.value = false;
+  scopeFilter.value = scopeFilter.value === 'supervised' ? 'all' : 'supervised';
 }
 
 function filterAtRiskTasks() {

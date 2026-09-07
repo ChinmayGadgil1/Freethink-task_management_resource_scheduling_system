@@ -950,7 +950,123 @@
         :allow-assign-member="false"
         :allow-add-dependency="false"
         :show-dependencies="false"
+        @edit="openEditFromDetails"
       />
+
+      <!-- EDIT TASK MODAL -->
+      <q-dialog v-model="showEditDialog">
+        <q-card :dark="$q.dark.isActive" style="min-width: 450px" class="rounded-borders">
+          <q-card-section class="row items-center justify-between">
+            <div class="text-subtitle1 text-weight-bold">Update Task: {{ editingTaskTitle }}</div>
+            <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+          </q-card-section>
+
+          <q-form @submit.prevent="handleUpdateTask">
+            <q-card-section class="column q-gutter-y-md">
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="editForm.title"
+                    outlined
+                    dense
+                    label="Task Title"
+                    :dark="$q.dark.isActive"
+                    :rules="[(val) => !!val.trim() || 'Title is required']"
+                  />
+                </div>
+              </div>
+
+              <div class="row q-col-gutter-sm">
+                <div class="col-6">
+                  <q-select
+                    v-model="editForm.status"
+                    outlined
+                    dense
+                    label="Status"
+                    :options="['UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED']"
+                    :dark="$q.dark.isActive"
+                    @update:model-value="onEditStatusChange"
+                  />
+                </div>
+                <div class="col-6">
+                  <q-select
+                    v-model="editForm.priority"
+                    outlined
+                    dense
+                    label="Priority"
+                    :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                    :dark="$q.dark.isActive"
+                  />
+                </div>
+              </div>
+
+              <div class="row q-col-gutter-sm">
+                <div class="col-6">
+                  <q-input
+                    v-model.number="editForm.progress"
+                    outlined
+                    dense
+                    type="number"
+                    min="0"
+                    max="100"
+                    label="Progress (%)"
+                    :dark="$q.dark.isActive"
+                    @update:model-value="onEditProgressChange"
+                  />
+                </div>
+                <div class="col-6">
+                  <q-input
+                    v-model.number="editForm.expected_effort"
+                    outlined
+                    dense
+                    type="number"
+                    label="Effort (Hours)"
+                    :dark="$q.dark.isActive"
+                  />
+                </div>
+              </div>
+
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="editForm.deadline"
+                    outlined
+                    dense
+                    type="date"
+                    label="Deadline"
+                    stack-label
+                    :dark="$q.dark.isActive"
+                    :rules="[
+                      (val) =>
+                        !val ||
+                        !editingTaskProject?.start_date ||
+                        val >= editingTaskProject.start_date ||
+                        `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
+                      (val) =>
+                        !val ||
+                        !editingTaskProject?.deadline ||
+                        val <= editingTaskProject.deadline ||
+                        `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
+                    ]"
+                  />
+                </div>
+              </div>
+            </q-card-section>
+
+            <q-card-actions align="right" class="q-pa-md">
+              <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+              <q-btn
+                type="submit"
+                unelevated
+                no-caps
+                color="primary"
+                label="Save Changes"
+                :loading="submitting"
+              />
+            </q-card-actions>
+          </q-form>
+        </q-card>
+      </q-dialog>
     </template>
   </q-page>
 </template>
@@ -966,6 +1082,7 @@ import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
 import {
   createTaskApi,
+  updateTaskApi,
   getProjectsApi,
   getResourceByIdApi,
   getResourceProjectsApi,
@@ -1141,6 +1258,119 @@ const resourceAvailability = ref<DailyAvailabilityDTO[]>([]);
 
 const showTaskDetailsDialog = ref(false);
 const selectedTaskDetails = ref<Task | null>(null);
+
+const showEditDialog = ref(false);
+const editingTaskId = ref<number | null>(null);
+
+const editForm = reactive<{
+  title: string;
+  status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  progress: number;
+  expected_effort: number;
+  deadline: string;
+}>({
+  title: '',
+  status: 'UNASSIGNED',
+  priority: 'MEDIUM',
+  progress: 0,
+  expected_effort: 8,
+  deadline: '',
+});
+
+const editingTaskTitle = computed(() => {
+  if (!editingTaskId.value) return '';
+  const t = allTasks.value.find((item) => Number(item.task_id) === Number(editingTaskId.value));
+  return t ? t.title : '';
+});
+
+const editingTaskProject = computed(() => {
+  if (!editingTaskId.value) return null;
+  const t = allTasks.value.find((item) => Number(item.task_id) === Number(editingTaskId.value));
+  if (!t) return null;
+  return allProjects.value.find((p) => Number(p.project_id) === Number(t.project_id)) || null;
+});
+
+function openEditModal(task: Task) {
+  editingTaskId.value = task.task_id;
+  editForm.title = task.title;
+  editForm.status = task.status;
+  editForm.priority = task.priority;
+  editForm.progress = Number(task.progress) || 0;
+  editForm.expected_effort = Number(task.expected_effort) || 8;
+  editForm.deadline = task.deadline?.split('T')[0] ?? '';
+  showEditDialog.value = true;
+}
+
+function openEditFromDetails() {
+  if (selectedTaskDetails.value) {
+    const t = selectedTaskDetails.value;
+    showTaskDetailsDialog.value = false;
+    openEditModal(t);
+  }
+}
+
+function getStatusFromProgress(
+  p: number,
+): 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' {
+  if (p === 100) return 'COMPLETED';
+  if (p > 0) return 'IN_PROGRESS';
+  return 'SCHEDULED';
+}
+
+function onEditProgressChange(val: number | string | null) {
+  const num = Math.min(100, Math.max(0, Number(val) || 0));
+  editForm.status = getStatusFromProgress(num);
+}
+
+function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
+  if (newStatus === 'COMPLETED') {
+    editForm.progress = 100;
+  } else if (newStatus === 'SCHEDULED') {
+    editForm.progress = 0;
+  } else if (
+    newStatus === 'IN_PROGRESS' &&
+    (editForm.progress === 0 || editForm.progress === 100)
+  ) {
+    editForm.progress = 50;
+  }
+}
+
+async function handleUpdateTask() {
+  if (!editingTaskId.value || !editForm.title.trim()) return;
+
+  submitting.value = true;
+  try {
+    await updateTaskApi(editingTaskId.value, {
+      title: editForm.title.trim(),
+      status: editForm.status,
+      priority: editForm.priority,
+      progress: Number(editForm.progress) || 0,
+      expected_effort: Number(editForm.expected_effort) || 8,
+      deadline: editForm.deadline || null,
+    });
+
+    $q.notify({
+      type: 'positive',
+      message: 'Task updated successfully',
+    });
+
+    showEditDialog.value = false;
+    await loadData();
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === editingTaskId.value) {
+      const updated = allTasks.value.find((t) => t.task_id === editingTaskId.value);
+      selectedTaskDetails.value = updated || null;
+    }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to update task';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+    });
+  } finally {
+    submitting.value = false;
+  }
+}
 
 const resourceNamesMap = computed(() => {
   const map: Record<number, string> = {};
