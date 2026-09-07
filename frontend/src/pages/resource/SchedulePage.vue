@@ -8,20 +8,18 @@
       </div>
 
       <div class="header-actions row items-center q-gutter-sm">
-        <!-- View Toggle Buttons: Week, Day, Month, Gantt, Table -->
+        <!-- View Toggle Buttons: Card, Gantt, List -->
         <q-btn-toggle
-          v-model="scheduleViewMode"
+          v-model="mainViewMode"
           toggle-color="primary"
           toggle-text-color="white"
-          color="white"
-          text-color="grey-8"
+          :color="$q.dark?.isActive ? 'grey-9' : 'white'"
+          :text-color="$q.dark?.isActive ? 'grey-3' : 'grey-8'"
           dense
           unelevated
           class="view-toggle-btn shadow-subtle q-mr-xs"
           :options="[
-            { label: 'Week', value: 'week', icon: 'view_week' },
-            { label: 'Day', value: 'day', icon: 'view_day' },
-            { label: 'Month', value: 'month', icon: 'calendar_month' },
+            { label: 'Card', value: 'card', icon: 'grid_view' },
             { label: 'Gantt', value: 'gantt', icon: 'timeline' },
             { label: 'List', value: 'table', icon: 'table_rows' },
           ]"
@@ -97,7 +95,7 @@
     <!-- 3. CALENDAR TOOLBAR & FILTERS -->
     <q-card flat bordered class="calendar-toolbar-card q-mb-md">
       <div class="toolbar-content row items-center justify-between q-pa-sm">
-        <!-- Date Navigation Controls -->
+        <!-- Date Navigation Controls & Card Subview Selector -->
         <div class="date-nav-block row items-center gap-xs">
           <q-btn
             flat
@@ -120,8 +118,40 @@
             @click="navigateDate(1)"
           />
           <q-btn outline dense no-caps label="Today" class="today-btn q-px-sm" @click="goToToday" />
-          <div class="current-range-label q-ml-sm">
+          <div class="current-range-label q-mx-sm">
             {{ formattedDateRangeHeader }}
+          </div>
+
+          <!-- Card Subview Selector (Visible under Card view): Week | Day | Month -->
+          <div
+            v-if="mainViewMode === 'card'"
+            class="scale-toggle-group row items-center no-wrap q-ml-xs"
+            :class="{ 'is-dark': $q.dark?.isActive }"
+          >
+            <button
+              type="button"
+              class="scale-btn"
+              :class="{ active: cardSubMode === 'week' }"
+              @click="cardSubMode = 'week'"
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              class="scale-btn"
+              :class="{ active: cardSubMode === 'day' }"
+              @click="cardSubMode = 'day'"
+            >
+              Day
+            </button>
+            <button
+              type="button"
+              class="scale-btn"
+              :class="{ active: cardSubMode === 'month' }"
+              @click="cardSubMode = 'month'"
+            >
+              Month
+            </button>
           </div>
         </div>
 
@@ -518,16 +548,56 @@ const router = useRouter();
 
 const loading = ref(true);
 const holidays = ref<HolidayItem[]>([]);
+type MainViewMode = 'card' | 'gantt' | 'table';
+type CardSubMode = 'week' | 'day' | 'month';
+type ScheduleViewMode = 'week' | 'day' | 'month' | 'gantt' | 'table';
+
+const STORAGE_KEY_MAIN_VIEW = 'taskflow_res_schedule_main_view';
+const STORAGE_KEY_CARD_SUB_VIEW = 'taskflow_res_schedule_card_sub_view';
 const STORAGE_KEY_VIEW_MODE = 'taskflow_res_schedule_view_mode';
-const storedViewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE) as
-  'week' | 'day' | 'month' | 'gantt' | 'table' | null;
-const scheduleViewMode = ref<'week' | 'day' | 'month' | 'gantt' | 'table'>(
-  storedViewMode || 'week',
+
+const legacyStoredMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
+const storedMainMode = (localStorage.getItem(STORAGE_KEY_MAIN_VIEW) ||
+  (legacyStoredMode === 'gantt' || legacyStoredMode === 'table'
+    ? legacyStoredMode
+    : 'card')) as MainViewMode;
+const storedCardSubMode = (localStorage.getItem(STORAGE_KEY_CARD_SUB_VIEW) ||
+  (legacyStoredMode === 'day' || legacyStoredMode === 'month' || legacyStoredMode === 'week'
+    ? legacyStoredMode
+    : 'week')) as CardSubMode;
+
+const mainViewMode = ref<MainViewMode>(
+  ['card', 'gantt', 'table'].includes(storedMainMode) ? storedMainMode : 'card',
+);
+const cardSubMode = ref<CardSubMode>(
+  ['week', 'day', 'month'].includes(storedCardSubMode) ? storedCardSubMode : 'week',
 );
 
-watch(scheduleViewMode, (newMode) => {
+const scheduleViewMode = computed<'week' | 'day' | 'month' | 'gantt' | 'table'>({
+  get: () => (mainViewMode.value === 'card' ? cardSubMode.value : mainViewMode.value),
+  set: (val: ScheduleViewMode) => {
+    if (val === 'gantt' || val === 'table') {
+      mainViewMode.value = val;
+    } else {
+      mainViewMode.value = 'card';
+      cardSubMode.value = val;
+    }
+  },
+});
+
+watch(mainViewMode, (newMode) => {
   if (newMode) {
-    localStorage.setItem(STORAGE_KEY_VIEW_MODE, newMode);
+    localStorage.setItem(STORAGE_KEY_MAIN_VIEW, newMode);
+    localStorage.setItem(STORAGE_KEY_VIEW_MODE, newMode === 'card' ? cardSubMode.value : newMode);
+  }
+});
+
+watch(cardSubMode, (newSubMode) => {
+  if (newSubMode) {
+    localStorage.setItem(STORAGE_KEY_CARD_SUB_VIEW, newSubMode);
+    if (mainViewMode.value === 'card') {
+      localStorage.setItem(STORAGE_KEY_VIEW_MODE, newSubMode);
+    }
   }
 });
 const currentAnchorDate = ref<Date>(new Date());
@@ -1185,6 +1255,54 @@ onMounted(() => {
     font-size: 14.5px;
     font-weight: 700;
     color: var(--wo-text-main, #1e293b);
+  }
+
+  /* Segmented Scale Toggle under Card view */
+  .scale-toggle-group {
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+
+    .scale-btn {
+      border: none;
+      background: transparent;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #64748b;
+      padding: 3px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &.active {
+        background: var(--wo-primary, #7c3aed);
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35);
+      }
+
+      &:hover:not(.active) {
+        color: #1e293b;
+      }
+    }
+
+    &.is-dark {
+      background: #1e1e2d;
+      border-color: #2d2d3f;
+
+      .scale-btn {
+        color: #94a3b8;
+
+        &.active {
+          background: var(--wo-primary, #7c3aed);
+          color: #ffffff;
+        }
+
+        &:hover:not(.active) {
+          color: #f1f5f9;
+        }
+      }
+    }
   }
 }
 
