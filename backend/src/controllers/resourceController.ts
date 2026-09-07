@@ -37,6 +37,9 @@ export async function listResources(
                     message: "Invalid manager ID"
                 });
             }
+        } else if (req.user?.role === "PROJECT_MANAGER") {
+            // Default to the requesting project manager's ID so PM only retrieves members of projects they manage
+            managerId = req.user.user_id;
         }
 
         const resources = await getResources(projectId, managerId);

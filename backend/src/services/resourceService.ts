@@ -37,7 +37,7 @@ export async function getResources(projectId?: number, managerId?: number) {
     const pool = getPool();
 
     let query = `
-        SELECT
+        SELECT DISTINCT
             u.user_id,
             u.name,
             u.email,
@@ -52,7 +52,14 @@ export async function getResources(projectId?: number, managerId?: number) {
 
     const params: number[] = [];
 
-    if (projectId !== undefined) {
+    if (projectId !== undefined && managerId !== undefined) {
+        query += `
+            INNER JOIN project_members pm
+                ON u.user_id = pm.user_id
+            INNER JOIN projects p
+                ON pm.project_id = p.project_id
+        `;
+    } else if (projectId !== undefined) {
         query += `
             INNER JOIN project_members pm
                 ON u.user_id = pm.user_id
@@ -71,7 +78,13 @@ export async function getResources(projectId?: number, managerId?: number) {
           AND u.is_active = TRUE
     `;
 
-    if (projectId !== undefined) {
+    if (projectId !== undefined && managerId !== undefined) {
+        query += `
+          AND pm.project_id = ?
+          AND p.project_manager_id = ?
+        `;
+        params.push(projectId, managerId);
+    } else if (projectId !== undefined) {
         query += `
           AND pm.project_id = ?
         `;

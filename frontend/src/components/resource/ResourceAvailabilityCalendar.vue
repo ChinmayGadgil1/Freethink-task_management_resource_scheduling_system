@@ -155,7 +155,7 @@
               {{ formatHours(totalLeaveHours) }}h
             </div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
-              Approved time off in range
+              Approved leave in range
             </div>
           </q-card-section>
         </q-card>

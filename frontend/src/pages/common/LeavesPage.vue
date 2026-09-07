@@ -4,12 +4,12 @@
     <div class="row items-center justify-between q-mb-md flex-wrap gap-md">
       <!-- Left: Title & Subtitle -->
       <div>
-        <h1 class="page-title q-my-none">Leaves & Time Off</h1>
+        <h1 class="page-title q-my-none">Leaves</h1>
         <p class="page-subtitle q-mb-none q-mt-xs">
           {{
             isProjectManager
-              ? 'Track, review, approve, and manage time off requests across team resources'
-              : 'Review your scheduled leaves, check your capacity, and request new time off'
+              ? 'Track, review, approve, and manage leaves requests across team resources'
+              : 'Review your scheduled leaves, check your capacity, and request new leaves'
           }}
         </p>
       </div>
@@ -19,7 +19,7 @@
         <q-btn
           color="primary"
           icon="add"
-          label="Request Time Off"
+          label="Request Leave"
           unelevated
           no-caps
           class="action-btn-primary"
@@ -67,7 +67,7 @@
         <q-card flat bordered class="metric-card bg-blue-soft text-blue q-pa-md">
           <div class="row items-center justify-between no-wrap">
             <div>
-              <div class="text-caption text-grey-7">Future Time Off</div>
+              <div class="text-caption text-grey-7">Future Leaves</div>
               <div class="text-h5 text-weight-bold">{{ futureLeavesCount }}</div>
             </div>
             <q-avatar color="white" text-color="blue" icon="upcoming" size="44px" />
@@ -967,13 +967,22 @@ function canApproveLeave(leaveDateStr: string): boolean {
   return todayStr < leaveDateStr;
 }
 
-// Dropdown options for resources selection
-const resourceOptions = computed(() =>
-  resourcesList.value.map((r) => ({
-    label: r.name,
-    value: Number(r.user_id),
-  })),
-);
+// Dropdown options for resources selection (guaranteed unique by user_id)
+const resourceOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+  for (const r of resourcesList.value) {
+    const id = Number(r.user_id);
+    if (!seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: r.name,
+        value: id,
+      });
+    }
+  }
+  return opts.sort((a, b) => a.label.localeCompare(b.label));
+});
 
 // Summary metrics computed properties
 const pendingLeavesCount = computed(() => {
