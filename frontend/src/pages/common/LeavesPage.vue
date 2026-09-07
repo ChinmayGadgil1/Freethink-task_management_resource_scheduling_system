@@ -19,7 +19,7 @@
         <q-btn
           color="primary"
           icon="add"
-          label="Request Time Off"
+          :label="isProjectManager ? 'Apply Leave' : 'Request Leave'"
           unelevated
           no-caps
           class="action-btn-primary"
@@ -414,7 +414,7 @@
           >
             {{
               isProjectManager
-                ? 'Apply Leave (On Behalf - Pre-approved)'
+                ? 'Apply Leave (On Behalf of Resource)'
                 : 'Request Leave (Pending PM Approval)'
             }}
           </div>
