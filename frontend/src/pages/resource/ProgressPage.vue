@@ -672,8 +672,7 @@ const assignedTasks = computed(() => {
   return tasks.value.filter(
     (t) =>
       t.assigned_resource_ids?.includes(myId) ||
-      t.assigned_resources?.some((ar) => ar.user_id === myId) ||
-      (!t.assigned_resource_ids?.length && !t.assigned_resources?.length),
+      t.assigned_resources?.some((ar) => ar.user_id === myId),
   );
 });
 
