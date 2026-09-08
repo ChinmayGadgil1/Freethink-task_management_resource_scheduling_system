@@ -74,6 +74,10 @@ const routes: RouteRecordRaw[] = [
         redirect: '/pm/projects',
       },
       {
+        path: 'analytics',
+        component: () => import('@/pages/pm/AnalyticsPage.vue'),
+      },
+      {
         path: 'help',
         component: () => import('@/pages/help/HelpPage.vue'),
       },
@@ -128,6 +132,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/common/ProfilePage.vue'),
       },
     ],
+  },
+
+  // Public preview route for isolated analytics prototype
+  {
+    path: '/analytics-preview',
+    component: () => import('@/pages/pm/AnalyticsPage.vue'),
   },
 
   // Catch-all 404 route

@@ -396,6 +396,18 @@ const defaultActions = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
       },
     },
     {
+      id: 'act-pm-analytics',
+      category: 'Navigation',
+      title: 'System Analytics & Performance Metrics',
+      subtitle: 'Resource capacity, workload, effort variance, and project health',
+      icon: 'insights',
+      iconColor: 'text-purple',
+      iconBg: 'bg-purple-1',
+      action: () => {
+        void router.push('/pm/analytics');
+      },
+    },
+    {
       id: 'act-pm-leaves',
       category: 'Navigation',
       title: 'Leave Approvals & Calendar',

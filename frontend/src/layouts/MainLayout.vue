@@ -236,6 +236,13 @@ const pmNavItems = computed<SidebarNavItem[]>(() => [
     bgClass: 'bg-blue-soft',
   },
   {
+    title: 'Analytics',
+    to: '/pm/analytics',
+    icon: 'insights',
+    colorClass: 'text-purple',
+    bgClass: 'bg-purple-soft',
+  },
+  {
     title: 'Calendar',
     to: '/pm/calendar',
     icon: 'calendar_month',

@@ -26,6 +26,7 @@
     "@quasar/extras": "^2.0.3",
     "@quasar/quasar-ui-qcalendar": "^5.3.0",
     "dhtmlx-gantt": "^10.0.2",
+    "echarts": "^6.1.0",
     "pinia": "^4.0.2",
     "pinia-plugin-persistedstate": "^4.7.1",
     "quasar": "^2.24.0",
