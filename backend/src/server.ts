@@ -10,6 +10,7 @@ import leaveRoutes from "./routes/leaveRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import binRoutes from "./routes/binRoutes.js";
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use("/api/holidays", holidayRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/bin", binRoutes);
 
 async function startServer() {
     try {

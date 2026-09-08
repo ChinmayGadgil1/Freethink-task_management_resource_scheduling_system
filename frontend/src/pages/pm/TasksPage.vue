@@ -947,14 +947,14 @@
       <!-- DELETE TASK CONFIRMATION DIALOG -->
       <ConfirmActionDialog
         v-model="showDeleteTaskDialog"
-        title="Delete Task"
-        subtitle="This action cannot be undone"
-        confirm-label="Delete Task"
+        title="Move Task to Recycle Bin"
+        subtitle="You can restore it anytime from the Recycle Bin"
+        confirm-label="Move to Bin"
         :loading="deletingTask"
         @confirm="handleExecuteDeleteTask"
       >
-        Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>? All
-        associated dependencies and work logs will be removed.
+        Are you sure you want to move task <strong>"{{ taskToDelete?.title }}"</strong> to the
+        Recycle Bin?
       </ConfirmActionDialog>
 
       <!-- UNASSIGN TASK RESOURCE DIALOG -->
@@ -1113,10 +1113,12 @@ async function handleExecuteDeleteTask() {
 
   deletingTask.value = true;
   try {
-    await deleteTaskApi(taskToDelete.value.task_id);
+    const res = await deleteTaskApi(taskToDelete.value.task_id);
     $q.notify({
       type: 'positive',
-      message: `Task "${taskToDelete.value.title}" deleted successfully`,
+      message: res.message || `Task "${taskToDelete.value.title}" moved to Recycle Bin`,
+      position: 'top-right',
+      icon: 'delete_sweep',
     });
     showDeleteTaskDialog.value = false;
     taskToDelete.value = null;
@@ -1124,7 +1126,8 @@ async function handleExecuteDeleteTask() {
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Failed to delete task',
+      message: error instanceof Error ? error.message : 'Failed to move task to bin',
+      position: 'top-right',
     });
   } finally {
     deletingTask.value = false;
@@ -1456,7 +1459,12 @@ const projectFilterOptions = computed(() => {
 
 const projectSelectOptions = computed(() => {
   const seen = new Set<number>();
-  const opts: Array<{ label: string; value: number; start_date?: string | null; deadline?: string | null }> = [];
+  const opts: Array<{
+    label: string;
+    value: number;
+    start_date?: string | null;
+    deadline?: string | null;
+  }> = [];
   for (const p of projects.value) {
     const id = Number(p.project_id);
     if (id && !isNaN(id) && !seen.has(id)) {

@@ -85,6 +85,10 @@ const routes: RouteRecordRaw[] = [
         path: 'profile',
         component: () => import('@/pages/common/ProfilePage.vue'),
       },
+      {
+        path: 'bin',
+        component: () => import('@/pages/pm/BinPage.vue'),
+      },
     ],
   },
 

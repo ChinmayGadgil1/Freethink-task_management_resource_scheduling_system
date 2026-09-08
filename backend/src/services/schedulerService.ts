@@ -51,9 +51,10 @@ export async function getProjectSchedule(projectId: number) {
 
     // 1. Fetch project details
     const [projectRows] = await pool.query<RowDataPacket[]>(
-        `SELECT project_id, name, status, priority, start_date, deadline, progress
+        `SELECT project_id, project_manager_id, name, description, status, priority, start_date, deadline, progress, created_at, updated_at
          FROM projects
-         WHERE project_id = ?`,
+         WHERE project_id = ?
+           AND deleted_at IS NULL`,
         [projectId]
     );
 
@@ -71,6 +72,7 @@ export async function getProjectSchedule(projectId: number) {
          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
          LEFT JOIN task_dependencies td ON t.task_id = td.task_id
          WHERE t.project_id = ?
+           AND t.deleted_at IS NULL
          GROUP BY t.task_id
          ORDER BY t.created_at ASC`,
         [projectId]
@@ -83,6 +85,7 @@ export async function getProjectSchedule(projectId: number) {
          JOIN tasks t ON ts.task_id = t.task_id
          LEFT JOIN users u ON ts.user_id = u.user_id
          WHERE t.project_id = ?
+           AND t.deleted_at IS NULL
          ORDER BY ts.schedule_date ASC`,
         [projectId]
     );
@@ -217,18 +220,20 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
     }
     const resource = userRows[0]!;
 
-    // 2. Fetch all tasks assigned to the resource
+    // 2. Fetch all tasks assigned to this resource (with project info & dependency links)
     const [tasks] = await pool.query<RowDataPacket[]>(
         `SELECT t.*,
                 p.name as project_name,
-                p.project_manager_id,
-                GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
+                GROUP_CONCAT(DISTINCT ta_all.user_id) as assigned_resource_ids,
                 GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
          FROM tasks t
-         JOIN task_assignments ta ON t.task_id = ta.task_id
          JOIN projects p ON t.project_id = p.project_id
+         JOIN task_assignments ta ON t.task_id = ta.task_id
+         LEFT JOIN task_assignments ta_all ON t.task_id = ta_all.task_id
          LEFT JOIN task_dependencies td ON t.task_id = td.task_id
          WHERE ta.user_id = ?
+           AND t.deleted_at IS NULL
+           AND p.deleted_at IS NULL
          GROUP BY t.task_id
          ORDER BY t.planned_start ASC, t.created_at ASC`,
         [resourceId]
@@ -246,8 +251,11 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
         `SELECT ts.*, u.name as resource_name
          FROM task_schedules ts
          JOIN tasks t ON ts.task_id = t.task_id
+         JOIN projects p ON t.project_id = p.project_id
          LEFT JOIN users u ON ts.user_id = u.user_id
          WHERE ts.user_id = ?
+           AND t.deleted_at IS NULL
+           AND p.deleted_at IS NULL
          ORDER BY ts.schedule_date ASC`,
         [resourceId]
     );

@@ -74,8 +74,10 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             start_date DATE,
             deadline DATE,
             progress DECIMAL(5,2) NOT NULL DEFAULT 0,
+            deleted_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_projects_deleted (deleted_at),
             FOREIGN KEY (project_manager_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     `);
@@ -102,8 +104,10 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             progress DECIMAL(5,2) NOT NULL DEFAULT 0,
             is_schedule_at_risk BOOLEAN NOT NULL DEFAULT FALSE,
             is_deadline_at_risk BOOLEAN NOT NULL DEFAULT FALSE,
+            deleted_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_tasks_deleted (deleted_at),
             FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
             FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE,
             FOREIGN KEY (supervisor_id) REFERENCES users(user_id) ON DELETE SET NULL
@@ -471,6 +475,40 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             }
         } catch (supErr: any) {
             console.log("Supervisor migration check warning:", supErr.message);
+        }
+
+        // Migration check: ensure deleted_at column exists in projects table
+        try {
+            const [projCols] = await pool.query<RowDataPacket[]>(
+                `SHOW COLUMNS FROM projects LIKE 'deleted_at'`
+            );
+            if (projCols.length === 0) {
+                await pool.query(`
+                    ALTER TABLE projects 
+                    ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER progress,
+                    ADD INDEX idx_projects_deleted (deleted_at)
+                `);
+                console.log("Migrated: added deleted_at column to projects table.");
+            }
+        } catch (projErr: any) {
+            console.log("Projects deleted_at migration check warning:", projErr.message);
+        }
+
+        // Migration check: ensure deleted_at column exists in tasks table
+        try {
+            const [taskDelCols] = await pool.query<RowDataPacket[]>(
+                `SHOW COLUMNS FROM tasks LIKE 'deleted_at'`
+            );
+            if (taskDelCols.length === 0) {
+                await pool.query(`
+                    ALTER TABLE tasks 
+                    ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER is_deadline_at_risk,
+                    ADD INDEX idx_tasks_deleted (deleted_at)
+                `);
+                console.log("Migrated: added deleted_at column to tasks table.");
+            }
+        } catch (taskDelErr: any) {
+            console.log("Tasks deleted_at migration check warning:", taskDelErr.message);
         }
     } catch (migErr) {
         console.error("Warning: Migration check in initializeDatabase encountered an error:", migErr);

@@ -222,6 +222,9 @@ export async function getTasksList(filters: {
         params.push(filters.resourceId);
     }
 
+    whereClauses.push("t.deleted_at IS NULL");
+    whereClauses.push("(p.deleted_at IS NULL OR p.deleted_at IS NOT NULL AND t.project_id IS NULL)");
+
     if (whereClauses.length > 0) {
         query += " WHERE " + whereClauses.join(" AND ");
     }
@@ -615,6 +618,8 @@ export async function getBottleneckTasks(projectManagerId: number) {
         FROM tasks t
         JOIN projects p ON t.project_id = p.project_id
         WHERE p.project_manager_id = ?
+          AND t.deleted_at IS NULL
+          AND p.deleted_at IS NULL
           AND t.status != 'COMPLETED'
           AND (
               (t.deadline IS NOT NULL AND t.deadline < CURRENT_DATE)
@@ -628,6 +633,151 @@ export async function getBottleneckTasks(projectManagerId: number) {
     return tasks;
 }
 
+/**
+ * Move Task to Recycle Bin (Fake Delete / Soft Delete)
+ * Safeguard: Blocks deletion if task is IN_PROGRESS or has an active timer session.
+ */
+export async function moveToBinTask(taskId: number): Promise<{ success: boolean; projectId?: number; message?: string }> {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // 1. Check for IN_PROGRESS status or active timer session
+        const [taskRows] = await connection.query<RowDataPacket[]>(
+            `
+            SELECT t.task_id, t.project_id, t.title, t.status,
+                   EXISTS (
+                       SELECT 1 FROM task_sessions ts
+                       WHERE ts.task_id = t.task_id AND ts.is_active = TRUE
+                   ) as has_active_session
+            FROM tasks t
+            WHERE t.task_id = ? AND t.deleted_at IS NULL
+            FOR UPDATE
+            `,
+            [taskId]
+        );
+
+        if (taskRows.length === 0) {
+            await connection.rollback();
+            return { success: false, message: "Task not found or already in bin." };
+        }
+
+        const task = taskRows[0]!;
+        if (task.status === "IN_PROGRESS") {
+            throw new Error(`CANNOT_DELETE_ACTIVE_TASK: Task "${task.title}" is currently in progress. Please pause or complete it before moving to the bin.`);
+        }
+
+        if (Boolean(task.has_active_session)) {
+            throw new Error(`CANNOT_DELETE_ACTIVE_TASK: Task "${task.title}" currently has an active work timer running. Please stop the timer first.`);
+        }
+
+        const projectId = Number(task.project_id);
+
+        // 2. Soft delete the task
+        await connection.query(
+            "UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+            [taskId]
+        );
+
+        // 3. Clear Gantt daily allocations for this task to immediately release resource capacity
+        await connection.query("DELETE FROM task_schedules WHERE task_id = ?", [taskId]);
+
+        await connection.commit();
+        return { success: true, projectId };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+/**
+ * Get all binned tasks for a project manager or project
+ */
+export async function getBinnedTasks(projectManagerId: number) {
+    const pool = getPool();
+
+    const [tasks] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT 
+            t.task_id,
+            t.project_id,
+            t.title,
+            t.description,
+            t.priority,
+            t.status,
+            t.deadline,
+            t.expected_effort,
+            t.actual_effort,
+            t.progress,
+            t.deleted_at,
+            p.name as project_name,
+            p.deleted_at as project_deleted_at,
+            GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') as assigned_resource_names
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.project_id
+        LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN users u ON ta.user_id = u.user_id
+        WHERE p.project_manager_id = ?
+          AND t.deleted_at IS NOT NULL
+        GROUP BY t.task_id
+        ORDER BY t.deleted_at DESC
+        `,
+        [projectManagerId]
+    );
+
+    return tasks;
+}
+
+/**
+ * Restore a task from the bin
+ */
+export async function restoreTaskFromBin(taskId: number): Promise<{ success: boolean; projectId?: number; error?: string }> {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [taskRows] = await connection.query<RowDataPacket[]>(
+            `
+            SELECT t.task_id, t.project_id, t.title, p.deleted_at as project_deleted_at
+            FROM tasks t
+            JOIN projects p ON t.project_id = p.project_id
+            WHERE t.task_id = ? AND t.deleted_at IS NOT NULL
+            FOR UPDATE
+            `,
+            [taskId]
+        );
+
+        if (taskRows.length === 0) {
+            await connection.rollback();
+            return { success: false, error: "Task not found in bin." };
+        }
+
+        const task = taskRows[0]!;
+        const projectId = Number(task.project_id);
+
+        // Safeguard: If parent project is still binned, restore parent project as well or alert
+        if (task.project_deleted_at !== null) {
+            await connection.query("UPDATE projects SET deleted_at = NULL WHERE project_id = ?", [projectId]);
+        }
+
+        await connection.query("UPDATE tasks SET deleted_at = NULL WHERE task_id = ?", [taskId]);
+
+        await connection.commit();
+        return { success: true, projectId };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
 export async function deleteTask(taskId: number): Promise<boolean> {
     const pool = getPool();
     const connection = await pool.getConnection();
@@ -635,6 +785,7 @@ export async function deleteTask(taskId: number): Promise<boolean> {
     try {
         await connection.beginTransaction();
 
+        await connection.query("DELETE FROM task_schedules WHERE task_id = ?", [taskId]);
         await connection.query(
             "DELETE FROM task_dependencies WHERE task_id = ? OR predecessor_task_id = ?",
             [taskId, taskId]
@@ -642,6 +793,7 @@ export async function deleteTask(taskId: number): Promise<boolean> {
 
         await connection.query("DELETE FROM task_assignments WHERE task_id = ?", [taskId]);
         await connection.query("DELETE FROM work_logs WHERE task_id = ?", [taskId]);
+        await connection.query("DELETE FROM task_sessions WHERE task_id = ?", [taskId]);
 
         const [result] = await connection.query<ResultSetHeader>(
             "DELETE FROM tasks WHERE task_id = ?",

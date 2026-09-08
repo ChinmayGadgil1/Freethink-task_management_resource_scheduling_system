@@ -48,6 +48,7 @@ export interface Task {
     assigned_resource_names?: string[];
     predecessor_task_ids?: number[];
     predecessors?: PredecessorTaskInfo[];
+    deleted_at?: Date | string | null;
     created_at: Date;
     updated_at: Date;
 }

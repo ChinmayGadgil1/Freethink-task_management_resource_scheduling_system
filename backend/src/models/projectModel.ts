@@ -22,6 +22,7 @@ export interface Project {
     start_date: Date | null;
     deadline: Date | null;
     progress: number;
+    deleted_at?: Date | string | null;
     created_at: Date;
     updated_at: Date;
 }

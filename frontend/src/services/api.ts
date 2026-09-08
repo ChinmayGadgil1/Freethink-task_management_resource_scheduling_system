@@ -1582,3 +1582,139 @@ export async function deleteNotificationApi(id: number): Promise<{ message: stri
 
   return data;
 }
+
+// ----------------------------------------------------
+// Recycle Bin API
+// ----------------------------------------------------
+
+export interface BinnedProject extends Project {
+  binned_task_count?: number;
+  deleted_at: string;
+}
+
+export interface BinnedTask {
+  task_id: number;
+  project_id: number;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  deadline: string | null;
+  expected_effort: number;
+  actual_effort: number;
+  progress: number;
+  deleted_at: string;
+  project_name: string;
+  project_deleted_at: string | null;
+  assigned_resource_names?: string;
+}
+
+export interface BinContentsResponse {
+  projects: BinnedProject[];
+  tasks: BinnedTask[];
+  total_items: number;
+}
+
+/**
+ * Fetch all items in the Recycle Bin
+ * GET /api/bin
+ */
+export async function getBinContentsApi(): Promise<BinContentsResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/bin`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch Recycle Bin contents');
+  }
+
+  return data;
+}
+
+/**
+ * Restore a project from the Recycle Bin
+ * POST /api/bin/projects/:id/restore
+ */
+export async function restoreProjectApi(projectId: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/bin/projects/${projectId}/restore`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to restore project');
+  }
+
+  return data;
+}
+
+/**
+ * Restore a task from the Recycle Bin
+ * POST /api/bin/tasks/:id/restore
+ */
+export async function restoreTaskApi(
+  taskId: number,
+): Promise<{ message: string; projectId?: number }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/bin/tasks/${taskId}/restore`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to restore task');
+  }
+
+  return data;
+}
+
+/**
+ * Permanently delete a project from database
+ * DELETE /api/bin/projects/:id
+ */
+export async function permanentDeleteProjectApi(projectId: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/bin/projects/${projectId}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to permanently delete project');
+  }
+
+  return data;
+}
+
+/**
+ * Permanently delete a task from database
+ * DELETE /api/bin/tasks/:id
+ */
+export async function permanentDeleteTaskApi(taskId: number): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/bin/tasks/${taskId}`, {
+    method: 'DELETE',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to permanently delete task');
+  }
+
+  return data;
+}
+
+/**
+ * Empty the entire Recycle Bin
+ * POST /api/bin/empty
+ */
+export async function emptyBinApi(): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/bin/empty`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to empty Recycle Bin');
+  }
+
+  return data;
+}

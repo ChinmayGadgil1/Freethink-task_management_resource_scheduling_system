@@ -308,10 +308,11 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             t.*,
             GROUP_CONCAT(DISTINCT ta.user_id) AS assigned_resource_ids
         FROM tasks t
-        LEFT JOIN task_assignments ta
-            ON t.task_id = ta.task_id
+        JOIN projects p ON t.project_id = p.project_id
         WHERE t.project_id = ?
           AND t.status != 'COMPLETED'
+          AND t.deleted_at IS NULL
+          AND p.deleted_at IS NULL
         GROUP BY t.task_id
         `,
         [projectId]
@@ -358,9 +359,11 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             td.task_id,
             td.predecessor_task_id
         FROM task_dependencies td
-        INNER JOIN tasks t
-            ON td.task_id = t.task_id
+        INNER JOIN tasks t ON td.task_id = t.task_id
+        INNER JOIN tasks pred ON td.predecessor_task_id = pred.task_id
         WHERE t.project_id = ?
+          AND t.deleted_at IS NULL
+          AND pred.deleted_at IS NULL
         `,
         [projectId]
     );
@@ -434,6 +437,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             INNER JOIN tasks t
                 ON ta.task_id = t.task_id
             WHERE t.project_id = ?
+              AND t.deleted_at IS NULL
         ) project_resources
             ON ul.user_id = project_resources.user_id
         WHERE ul.status IN ('APPROVED', 'PENDING')
@@ -455,10 +459,13 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             INNER JOIN tasks t
                 ON ta.task_id = t.task_id
             WHERE t.project_id = ?
+              AND t.deleted_at IS NULL
             UNION
             SELECT DISTINCT pm.user_id
             FROM project_members pm
+            JOIN projects p ON pm.project_id = p.project_id
             WHERE pm.project_id = ?
+              AND p.deleted_at IS NULL
         ) project_resources
             ON u.user_id = project_resources.user_id
         `,
@@ -504,7 +511,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
 
     const resourceUserIds = Array.from(resourceConfigs.keys());
 
-    // Preload existing task allocations from other projects for these resources
+    // Preload existing task allocations from other active projects for these resources
     if (resourceUserIds.length > 0) {
         const [crossProjectAllocRows] = await pool.query<RowDataPacket[]>(
             `
@@ -515,8 +522,12 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             FROM task_schedules ts
             INNER JOIN tasks t
                 ON ts.task_id = t.task_id
+            INNER JOIN projects p
+                ON t.project_id = p.project_id
             WHERE ts.user_id IN (?)
               AND t.project_id != ?
+              AND t.deleted_at IS NULL
+              AND p.deleted_at IS NULL
               AND ts.schedule_date >= CURDATE()
             GROUP BY ts.user_id, DATE_FORMAT(ts.schedule_date, '%Y-%m-%d')
             `,

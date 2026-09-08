@@ -1550,13 +1550,26 @@
       <!-- DELETE CONFIRMATION DIALOGS -->
       <ConfirmActionDialog
         v-model="showDeleteProjectDialog"
-        title="Delete Project"
-        subtitle="This action cannot be undone"
-        confirm-label="Delete Project"
+        title="Move Project to Recycle Bin"
+        subtitle="You can restore it anytime from the Recycle Bin"
+        confirm-label="Move to Bin"
         :loading="deletingProject"
         @confirm="handleExecuteDeleteProject"
       >
-        Are you sure you want to delete project <strong>"{{ project.name }}"</strong>?
+        Are you sure you want to move project <strong>"{{ project.name }}"</strong> to the Recycle
+        Bin?
+      </ConfirmActionDialog>
+
+      <ConfirmActionDialog
+        v-model="showDeleteTaskDialog"
+        title="Move Task to Recycle Bin"
+        subtitle="You can restore it anytime from the Recycle Bin"
+        confirm-label="Move to Bin"
+        :loading="deletingTask"
+        @confirm="handleExecuteDeleteTask"
+      >
+        Are you sure you want to move task <strong>"{{ taskToDelete?.title }}"</strong> to the
+        Recycle Bin?
       </ConfirmActionDialog>
 
       <ConfirmActionDialog
@@ -1844,9 +1857,7 @@ const taskPriorityOptions = [
 
 const assigneeOptions = computed(() => {
   const seen = new Set<string>();
-  const opts: Array<{ label: string; value: string }> = [
-    { label: 'All Assignees', value: 'ALL' },
-  ];
+  const opts: Array<{ label: string; value: string }> = [{ label: 'All Assignees', value: 'ALL' }];
   for (const m of teamMembers.value) {
     const idStr = String(m.id);
     if (m.id && !seen.has(idStr)) {
@@ -2481,12 +2492,21 @@ function confirmDeleteProject() {
 async function handleExecuteDeleteProject() {
   deletingProject.value = true;
   try {
-    await deleteProjectApi(projectIdParam.value);
-    $q.notify({ type: 'positive', message: 'Project deleted' });
+    const res = await deleteProjectApi(projectIdParam.value);
+    $q.notify({
+      type: 'positive',
+      message: res.message || 'Project moved to Recycle Bin',
+      position: 'top-right',
+      icon: 'delete_sweep',
+    });
     showDeleteProjectDialog.value = false;
     void router.push('/pm/projects');
-  } catch {
-    $q.notify({ type: 'negative', message: 'Failed to delete project' });
+  } catch (err: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to move project to bin',
+      position: 'top-right',
+    });
   } finally {
     deletingProject.value = false;
   }
@@ -2500,13 +2520,22 @@ async function handleExecuteDeleteTask() {
   if (!taskToDelete.value) return;
   deletingTask.value = true;
   try {
-    await deleteTaskApi(taskToDelete.value.task_id);
-    $q.notify({ type: 'positive', message: 'Task deleted' });
+    const res = await deleteTaskApi(taskToDelete.value.task_id);
+    $q.notify({
+      type: 'positive',
+      message: res.message || 'Task moved to Recycle Bin',
+      position: 'top-right',
+      icon: 'delete_sweep',
+    });
     showDeleteTaskDialog.value = false;
     taskToDelete.value = null;
     await refreshData();
-  } catch {
-    $q.notify({ type: 'negative', message: 'Failed to delete task' });
+  } catch (err: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to move task to bin',
+      position: 'top-right',
+    });
   } finally {
     deletingTask.value = false;
   }

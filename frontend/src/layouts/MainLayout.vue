@@ -256,6 +256,13 @@ const pmNavItems = computed<SidebarNavItem[]>(() => [
     colorClass: 'text-red-7',
     bgClass: 'bg-red-1',
   },
+  {
+    title: 'Recycle Bin',
+    to: '/pm/bin',
+    icon: 'delete_outline',
+    colorClass: 'text-blue-grey-6',
+    bgClass: 'bg-blue-grey-1',
+  },
 ]);
 
 function goToRoute(path: string) {

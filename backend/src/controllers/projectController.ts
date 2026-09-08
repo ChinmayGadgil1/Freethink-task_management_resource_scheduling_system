@@ -9,6 +9,7 @@ import {
     getProjectById,
     updateProject,
     deleteProject,
+    moveToBinProject,
     removeProjectMember,
     getProjectsByMember,
     isProjectMember,
@@ -344,15 +345,20 @@ export async function deleteProjectController(req: AuthRequest, res: Response) {
             return res.status(404).json({ message: "Project not found or unauthorized" });
         }
         
-        const success = await deleteProject(projectId);
-        if (!success) {
-            return res.status(404).json({ message: "Project not found" });
+        const result = await moveToBinProject(projectId);
+        if (!result.success) {
+            return res.status(400).json({ message: result.message || "Failed to move project to bin" });
         }
         
-        return res.status(200).json({ message: "Project deleted successfully" });
+        return res.status(200).json({ message: "Project moved to Recycle Bin successfully" });
     } catch (error: any) {
         console.error("Delete project error:", error);
-        return res.status(500).json({ message: "Internal server error" });
+        if (error.message && error.message.startsWith("CANNOT_DELETE_ACTIVE_PROJECT")) {
+            return res.status(400).json({
+                message: error.message.replace("CANNOT_DELETE_ACTIVE_PROJECT: ", "")
+            });
+        }
+        return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
 

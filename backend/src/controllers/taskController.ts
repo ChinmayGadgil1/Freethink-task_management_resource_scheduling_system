@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, unassignResource, removeTaskDependency } from "../services/taskService.js";
+import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, moveToBinTask, unassignResource, removeTaskDependency } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, checkSchedulingImpact } from "../services/schedulingService.js";
 // Work log and task session services for progress tracking and co-assignee updates
@@ -647,9 +647,9 @@ export async function deleteTaskController(req: AuthRequest, res: Response) {
             return res.status(403).json({ message: "Not authorized to delete this task" });
         }
         
-        const success = await deleteTask(taskId);
-        if (!success) {
-            return res.status(404).json({ message: "Task not found" });
+        const result = await moveToBinTask(taskId);
+        if (!result.success) {
+            return res.status(400).json({ message: result.message || "Failed to move task to bin" });
         }
 
         // Hook recalculation
@@ -659,8 +659,13 @@ export async function deleteTaskController(req: AuthRequest, res: Response) {
             console.error("Error triggering schedule recalculation on deleteTask:", scheduleErr);
         }
 
-        return res.status(200).json({ message: "Task deleted successfully" });
+        return res.status(200).json({ message: "Task moved to Recycle Bin successfully" });
     } catch (error: any) {
+        if (error.message && error.message.startsWith("CANNOT_DELETE_ACTIVE_TASK")) {
+            return res.status(400).json({
+                message: error.message.replace("CANNOT_DELETE_ACTIVE_TASK: ", "")
+            });
+        }
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
