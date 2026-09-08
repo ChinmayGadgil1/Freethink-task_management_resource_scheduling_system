@@ -967,20 +967,55 @@ function canApproveLeave(leaveDateStr: string): boolean {
   return todayStr < leaveDateStr;
 }
 
-// Dropdown options for resources selection (guaranteed unique by user_id)
+// Dropdown options for resources selection (guaranteed unique by user_id and disambiguated)
 const resourceOptions = computed(() => {
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
+
+  // Add from resourcesList
   for (const r of resourcesList.value) {
     const id = Number(r.user_id);
-    if (!seen.has(id)) {
+    if (id && !isNaN(id) && !seen.has(id)) {
       seen.add(id);
       opts.push({
-        label: r.name,
+        label: r.name ? String(r.name).trim() : `Resource #${id}`,
         value: id,
       });
     }
   }
+
+  // Also include any resources present in leavesList that may not be in resourcesList
+  for (const l of leavesList.value) {
+    const id = Number(l.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: l.user_name ? String(l.user_name).trim() : getResourceName(id),
+        value: id,
+      });
+    }
+  }
+
+  // Disambiguate identical labels if multiple distinct users share the exact same name
+  const labelCounts = new Map<string, number>();
+  for (const o of opts) {
+    labelCounts.set(o.label, (labelCounts.get(o.label) || 0) + 1);
+  }
+
+  const hasDuplicateLabels = Array.from(labelCounts.values()).some((count) => count > 1);
+  if (hasDuplicateLabels) {
+    return opts
+      .map((o) => {
+        if ((labelCounts.get(o.label) || 0) > 1) {
+          const r = resourcesList.value.find((res) => Number(res.user_id) === o.value);
+          const emailSuffix = r?.email ? ` (${r.email})` : ` (#${o.value})`;
+          return { ...o, label: `${o.label}${emailSuffix}` };
+        }
+        return o;
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   return opts.sort((a, b) => a.label.localeCompare(b.label));
 });
 
@@ -1234,6 +1269,15 @@ async function handleCancelLeave(identifier: number | string) {
     });
   }
 }
+
+watch(
+  () => [currentUserId.value, isProjectManager.value],
+  ([newId, newIsPm]) => {
+    if (newId || newIsPm) {
+      void loadData();
+    }
+  },
+);
 
 onMounted(() => {
   void loadData();

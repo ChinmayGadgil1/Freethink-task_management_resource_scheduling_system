@@ -1135,19 +1135,38 @@ const priorityFilterOptions = [
   { label: 'Critical', value: 'CRITICAL' },
 ];
 
-const projectFilterOptions = computed(() => [
-  { label: 'All Projects', value: 'ALL' },
-  ...projects.value.map((p) => ({ label: p.name, value: p.project_id })),
-]);
+const projectFilterOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: string | number }> = [
+    { label: 'All Projects', value: 'ALL' },
+  ];
+  for (const p of projects.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: p.name, value: id });
+    }
+  }
+  return opts;
+});
 
-const projectSelectOptions = computed(() =>
-  projects.value.map((p) => ({
-    label: p.name,
-    value: p.project_id,
-    start_date: p.start_date,
-    deadline: p.deadline,
-  })),
-);
+const projectSelectOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number; start_date?: string | null; deadline?: string | null }> = [];
+  for (const p of projects.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: p.name,
+        value: id,
+        start_date: p.start_date,
+        deadline: p.deadline,
+      });
+    }
+  }
+  return opts;
+});
 
 const editingTaskProject = computed(() => {
   if (!editingTaskId.value) return null;
@@ -1156,10 +1175,20 @@ const editingTaskProject = computed(() => {
   return projects.value.find((p) => Number(p.project_id) === Number(t.project_id)) || null;
 });
 
-const assigneeFilterOptions = computed(() => [
-  { label: 'All Assignees', value: 'ALL' },
-  ...resources.value.map((r) => ({ label: r.name, value: r.user_id })),
-]);
+const assigneeFilterOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: string | number }> = [
+    { label: 'All Assignees', value: 'ALL' },
+  ];
+  for (const r of resources.value) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: r.name, value: id });
+    }
+  }
+  return opts;
+});
 
 const resourceNamesMap = computed<Record<number, string>>(() => {
   const map: Record<number, string> = {};

@@ -677,10 +677,20 @@ const overdueCount = computed(() => {
   return tasks.value.filter((t) => isOverdue(t) && t.status !== 'COMPLETED').length;
 });
 
-const projectFilterOptions = computed(() => [
-  { label: 'All Projects', value: null },
-  ...projects.value.map((p) => ({ label: p.name, value: String(p.project_id) })),
-]);
+const projectFilterOptions = computed(() => {
+  const seen = new Set<string>();
+  const opts: Array<{ label: string; value: string | null }> = [
+    { label: 'All Projects', value: null },
+  ];
+  for (const p of projects.value) {
+    const idStr = String(p.project_id);
+    if (p.project_id && !seen.has(idStr)) {
+      seen.add(idStr);
+      opts.push({ label: p.name, value: idStr });
+    }
+  }
+  return opts;
+});
 
 const statusFilterOptions = [
   { label: 'All Statuses', value: null },

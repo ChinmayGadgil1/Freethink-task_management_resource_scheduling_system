@@ -477,12 +477,17 @@ const searchResults = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
 
   // 3. Team Resources (PM only)
   if (!isResource.value) {
+    const seenResourceIds = new Set<number>();
     resources.value.forEach((r) => {
+      const rId = Number(r.user_id);
       if (
-        r.name.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        (r.role && r.role.toLowerCase().includes(q))
+        rId &&
+        !seenResourceIds.has(rId) &&
+        (r.name.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          (r.role && r.role.toLowerCase().includes(q)))
       ) {
+        seenResourceIds.add(rId);
         items.push({
           id: `res-${r.user_id}`,
           category: 'Team & Resources',

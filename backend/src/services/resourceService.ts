@@ -102,7 +102,17 @@ export async function getResources(projectId?: number, managerId?: number) {
 
     const [resources] = await pool.query<RowDataPacket[]>(query, params);
 
-    return resources.map(formatResourceRow);
+    const seenUserIds = new Set<number>();
+    const uniqueResources: ReturnType<typeof formatResourceRow>[] = [];
+    for (const row of resources) {
+        const formatted = formatResourceRow(row);
+        if (!seenUserIds.has(formatted.user_id)) {
+            seenUserIds.add(formatted.user_id);
+            uniqueResources.push(formatted);
+        }
+    }
+
+    return uniqueResources;
 }
 
 export async function getResourceById(resourceId: number) {

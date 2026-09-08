@@ -2070,7 +2070,6 @@ import type {
   CreateWorkLogPayload,
   PredecessorTaskInfo,
   Project,
-  ResourceUser,
   Task,
   TaskSession, // Added TaskSession type for active session states
   WorkLog,
@@ -2618,10 +2617,19 @@ watch(
     }
     try {
       const res = await getResourcesApi({ project_id: newProjectId });
-      projectMembersForCreate.value = res.map((r: ResourceUser) => ({
-        label: `${r.name || r.email || `User #${r.user_id}`} (${r.role || 'RESOURCE'})`,
-        value: Number(r.user_id),
-      }));
+      const seen = new Set<number>();
+      const opts: Array<{ label: string; value: number }> = [];
+      for (const r of res) {
+        const id = Number(r.user_id);
+        if (id && !isNaN(id) && !seen.has(id)) {
+          seen.add(id);
+          opts.push({
+            label: `${r.name || r.email || `User #${r.user_id}`} (${r.role || 'RESOURCE'})`,
+            value: id,
+          });
+        }
+      }
+      projectMembersForCreate.value = opts;
     } catch (err) {
       console.warn('Failed to load project members for supervisor select:', err);
       projectMembersForCreate.value = [];
@@ -2629,7 +2637,18 @@ watch(
   },
 );
 
-const projectOptionsForCreate = computed(() => createProjects.value);
+const projectOptionsForCreate = computed(() => {
+  const seen = new Set<number>();
+  const opts: Project[] = [];
+  for (const p of createProjects.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push(p);
+    }
+  }
+  return opts;
+});
 
 const hasTaskId = computed(() => Boolean(route.params.id));
 

@@ -892,13 +892,31 @@ const selectedProjectForNewTask = computed(
   () => projects.value.find((p) => p.project_id === newTaskForm.project_id) || null,
 );
 
-const projectOptions = computed(() =>
-  projects.value.map((p) => ({ label: p.name, value: p.project_id })),
-);
+const projectOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+  for (const p of projects.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: p.name, value: id });
+    }
+  }
+  return opts;
+});
 
-const resourceOptions = computed(() =>
-  resources.value.map((r: ResourceUser) => ({ label: r.name, value: r.user_id })),
-);
+const resourceOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+  for (const r of resources.value) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: r.name, value: id });
+    }
+  }
+  return opts.sort((a, b) => a.label.localeCompare(b.label));
+});
 
 const allocateTaskOptions = computed(() => {
   if (!allocateForm.project_id) return [];

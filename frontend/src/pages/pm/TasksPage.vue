@@ -1285,15 +1285,29 @@ const resourceMemberSelectOptions = computed(() => {
   const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
   const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
 
-  return source.map((r) => {
-    const isAssigned = alreadyAssignedIds.includes(r.user_id);
-    return {
-      label: r.name,
-      value: r.user_id,
-      alreadyAssigned: isAssigned,
-      disable: isAssigned,
-    };
-  });
+  const seen = new Set<number>();
+  const opts: Array<{
+    label: string;
+    value: number;
+    alreadyAssigned: boolean;
+    disable: boolean;
+  }> = [];
+
+  for (const r of source) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      const isAssigned = alreadyAssignedIds.includes(id);
+      opts.push({
+        label: r.name,
+        value: id,
+        alreadyAssigned: isAssigned,
+        disable: isAssigned,
+      });
+    }
+  }
+
+  return opts;
 });
 
 const createProjectMembers = ref<ResourceUser[]>([]);
@@ -1339,10 +1353,19 @@ watch(
 const createMemberOptions = computed(() => {
   const source =
     createProjectMembers.value.length > 0 ? createProjectMembers.value : resources.value;
-  return source.map((r) => ({
-    label: r.name,
-    value: r.user_id,
-  }));
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+  for (const r of source) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: r.name,
+        value: id,
+      });
+    }
+  }
+  return opts;
 });
 
 const createPredecessorOptions = computed(() => {
@@ -1379,16 +1402,25 @@ const editForm = reactive<{
 });
 
 const editSupervisorOptions = computed(() => {
-  if (!editingTaskId.value)
-    return resources.value.map((r) => ({ label: r.name, value: r.user_id }));
-  const t = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
-  if (!t?.project_id) return resources.value.map((r) => ({ label: r.name, value: r.user_id }));
-  const projectMembers =
-    taskProjectMembers.value.length > 0 ? taskProjectMembers.value : resources.value;
-  return projectMembers.map((r) => ({
-    label: r.name,
-    value: r.user_id,
-  }));
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+
+  const getSource = () => {
+    if (!editingTaskId.value) return resources.value;
+    const t = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+    if (!t?.project_id) return resources.value;
+    return taskProjectMembers.value.length > 0 ? taskProjectMembers.value : resources.value;
+  };
+
+  for (const r of getSource()) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: r.name, value: id });
+    }
+  }
+
+  return opts;
 });
 
 const statusFilterOptions = [
@@ -1407,19 +1439,38 @@ const priorityFilterOptions = [
   { label: 'Critical', value: 'CRITICAL' },
 ];
 
-const projectFilterOptions = computed(() => [
-  { label: 'All Projects', value: 'ALL' },
-  ...projects.value.map((p) => ({ label: p.name, value: p.project_id })),
-]);
+const projectFilterOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: string | number }> = [
+    { label: 'All Projects', value: 'ALL' },
+  ];
+  for (const p of projects.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: p.name, value: id });
+    }
+  }
+  return opts;
+});
 
-const projectSelectOptions = computed(() =>
-  projects.value.map((p) => ({
-    label: p.name,
-    value: p.project_id,
-    start_date: p.start_date,
-    deadline: p.deadline,
-  })),
-);
+const projectSelectOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number; start_date?: string | null; deadline?: string | null }> = [];
+  for (const p of projects.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: p.name,
+        value: id,
+        start_date: p.start_date,
+        deadline: p.deadline,
+      });
+    }
+  }
+  return opts;
+});
 
 const editingTaskProject = computed(() => {
   if (!editingTaskId.value) return null;

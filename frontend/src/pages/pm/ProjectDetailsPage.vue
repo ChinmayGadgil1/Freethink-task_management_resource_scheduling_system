@@ -1842,10 +1842,20 @@ const taskPriorityOptions = [
   { label: 'Critical', value: 'CRITICAL' },
 ];
 
-const assigneeOptions = computed(() => [
-  { label: 'All Assignees', value: 'ALL' },
-  ...teamMembers.value.map((m) => ({ label: m.name, value: String(m.id) })),
-]);
+const assigneeOptions = computed(() => {
+  const seen = new Set<string>();
+  const opts: Array<{ label: string; value: string }> = [
+    { label: 'All Assignees', value: 'ALL' },
+  ];
+  for (const m of teamMembers.value) {
+    const idStr = String(m.id);
+    if (m.id && !seen.has(idStr)) {
+      seen.add(idStr);
+      opts.push({ label: m.name, value: idStr });
+    }
+  }
+  return opts;
+});
 
 const taskStatusFormOptions: {
   label: string;
@@ -1873,17 +1883,40 @@ const projectPriorityOptions = [
   { label: 'Critical', value: 'CRITICAL' },
 ];
 
-const createTaskAssigneeOptions = computed(() =>
-  teamMembers.value.map((m) => ({ label: m.name, value: m.id })),
-);
+const createTaskAssigneeOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+  for (const m of teamMembers.value) {
+    const id = Number(m.id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({ label: m.name, value: id });
+    }
+  }
+  return opts;
+});
 
 const availableResourcesToAdd = computed(() => {
   const currentMemberIds = new Set(teamMembers.value.map((m) => m.id));
-  return allSystemResources.value.map((r: ResourceUser) => ({
-    label: `${r.name} (${r.role || 'Team Member'})`,
-    value: r.user_id,
-    alreadyMember: currentMemberIds.has(r.user_id),
-  }));
+  const seen = new Set<number>();
+  const opts: Array<{
+    label: string;
+    value: number;
+    alreadyMember: boolean;
+  }> = [];
+
+  for (const r of allSystemResources.value) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: `${r.name} (${r.role || 'Team Member'})`,
+        value: id,
+        alreadyMember: currentMemberIds.has(id),
+      });
+    }
+  }
+  return opts;
 });
 
 const selectedDependencyTaskName = computed(() => {

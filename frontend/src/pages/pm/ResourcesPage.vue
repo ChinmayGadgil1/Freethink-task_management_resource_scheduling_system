@@ -1105,13 +1105,23 @@ const statusOptions = [
   { label: 'Overallocated (>100%)', value: 'OVERALLOCATED' },
 ];
 
-const projectFilterOptions = computed(() => [
-  { label: 'All Projects', value: 'ALL' },
-  ...projectList.value.map((p) => ({
-    label: p.name,
-    value: p.project_id,
-  })),
-]);
+const projectFilterOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: string | number }> = [
+    { label: 'All Projects', value: 'ALL' },
+  ];
+  for (const p of projectList.value) {
+    const id = Number(p.project_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: p.name,
+        value: id,
+      });
+    }
+  }
+  return opts;
+});
 
 interface ResourceAggregate {
   resource_id: number;
@@ -1263,16 +1273,28 @@ const resourceMemberSelectOptions = computed(() => {
       .map((m) => Number(m.user_id))
       .filter((id) => !isNaN(id) && id > 0),
   );
-  return resourceList.value.map((r) => {
+  const seen = new Set<number>();
+  const opts: Array<{
+    label: string;
+    value: number;
+    alreadyMember: boolean;
+    disable: boolean;
+  }> = [];
+
+  for (const r of resourceList.value) {
     const rId = Number(r.user_id);
-    const isMember = existingIds.has(rId);
-    return {
-      label: r.name,
-      value: rId,
-      alreadyMember: isMember,
-      disable: isMember,
-    };
-  });
+    if (rId && !isNaN(rId) && !seen.has(rId)) {
+      seen.add(rId);
+      const isMember = existingIds.has(rId);
+      opts.push({
+        label: r.name,
+        value: rId,
+        alreadyMember: isMember,
+        disable: isMember,
+      });
+    }
+  }
+  return opts;
 });
 
 const resourceMap = computed(() => {
