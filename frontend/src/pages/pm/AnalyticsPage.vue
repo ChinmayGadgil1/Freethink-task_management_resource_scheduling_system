@@ -1,13 +1,22 @@
 <template>
-  <q-page class="analytics-page q-pa-lg">
+  <q-page
+    :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
+    class="analytics-page q-pa-lg"
+  >
     <div class="analytics-page-wrapper">
       <!-- 1. PAGE HEADER -->
       <div class="row items-center justify-between q-mb-md wrap gap-sm">
         <div>
-          <h1 class="page-title text-h5 text-weight-bold text-dark q-ma-none">
+          <h1
+            class="page-title text-h5 text-weight-bold q-ma-none"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             Project & Resource Analytics
           </h1>
-          <p class="page-subtitle text-caption text-grey-7 q-mt-xs q-mb-none">
+          <p
+            class="page-subtitle text-caption q-mt-xs q-mb-none"
+            :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+          >
             Real-time insights for better project planning and resource allocation
           </p>
         </div>
@@ -23,7 +32,8 @@
             dense
             outlined
             rounded
-            bg-color="white"
+            :dark="$q.dark.isActive"
+            :bg-color="$q.dark.isActive ? 'dark' : 'white'"
             class="project-filter-select"
             @update:model-value="handleProjectFilterChange"
           >
@@ -33,20 +43,39 @@
           </q-select>
 
           <!-- Interactive Date Range Picker Filter -->
-          <div class="date-range-badge row items-center gap-xs gt-xs cursor-pointer">
-            <q-icon name="calendar_today" size="14px" color="grey-7" />
+          <div
+            class="date-range-badge row items-center gap-xs gt-xs cursor-pointer"
+            :class="{ 'date-range-badge-dark': $q.dark.isActive }"
+          >
+            <q-icon
+              name="calendar_today"
+              size="14px"
+              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+            />
             <span>{{ formattedWeekRange }}</span>
-            <q-icon name="arrow_drop_down" size="14px" color="grey-7" />
+            <q-icon
+              name="arrow_drop_down"
+              size="14px"
+              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+            />
             <q-popup-proxy cover transition-show="scale" transition-hide="scale">
               <q-date
                 v-model="customDateRange"
                 range
                 mask="YYYY-MM-DD"
                 color="primary"
+                :dark="$q.dark.isActive"
                 @update:model-value="onDateRangeChange"
               >
                 <div class="row items-center justify-end q-gutter-xs q-pa-xs">
-                  <q-btn v-close-popup label="Reset Week" flat dense color="primary" @click="resetToCurrentWeek" />
+                  <q-btn
+                    v-close-popup
+                    label="Reset Week"
+                    flat
+                    dense
+                    color="primary"
+                    @click="resetToCurrentWeek"
+                  />
                   <q-btn v-close-popup label="Done" color="primary" dense class="q-px-sm" />
                 </div>
               </q-date>
@@ -62,6 +91,7 @@
             label="Refresh"
             no-caps
             class="q-px-sm refresh-btn"
+            :class="{ 'refresh-btn-dark': $q.dark.isActive }"
             :loading="loading"
             @click="loadAllAnalyticsData"
           />
@@ -77,7 +107,8 @@
           align="left"
           active-color="primary"
           indicator-color="primary"
-          class="text-grey-7"
+          :dark="$q.dark.isActive"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
         >
           <q-tab name="all" label="Overview" />
           <q-tab name="resources" label="Resources" />
@@ -118,15 +149,21 @@
         <div class="row q-col-gutter-md q-mb-lg">
           <!-- KPI 1: Team Utilization -->
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered class="kpi-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card">
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title">Team Utilization</span>
+                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
+                    >Team Utilization</span
+                  >
                   <div class="row items-baseline gap-xs q-mt-xs">
-                    <span class="kpi-value">{{ resourceStats.averageUtilization }}%</span>
+                    <span class="kpi-value" :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >{{ resourceStats.averageUtilization }}%</span
+                    >
                     <span
                       class="kpi-delta text-weight-medium"
-                      :class="resourceStats.averageUtilization > 85 ? 'text-negative' : 'text-positive'"
+                      :class="
+                        resourceStats.averageUtilization > 85 ? 'text-negative' : 'text-positive'
+                      "
                     >
                       {{ resourceStats.averageUtilization > 85 ? '▲ Overloaded' : '● Optimal' }}
                     </span>
@@ -142,12 +179,16 @@
 
           <!-- KPI 2: Available Headroom -->
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered class="kpi-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card">
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title">Available Headroom</span>
+                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
+                    >Available Headroom</span
+                  >
                   <div class="row items-baseline gap-xs q-mt-xs">
-                    <span class="kpi-value">{{ resourceStats.totalAvailableHeadroom }}h</span>
+                    <span class="kpi-value" :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >{{ resourceStats.totalAvailableHeadroom }}h</span
+                    >
                     <span class="kpi-delta text-teal text-weight-medium">Ready</span>
                   </div>
                   <span class="kpi-subtitle">Across {{ resourceList.length }} resources</span>
@@ -161,12 +202,16 @@
 
           <!-- KPI 3: Task Completion -->
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered class="kpi-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card">
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title">Task Completion</span>
+                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
+                    >Task Completion</span
+                  >
                   <div class="row items-baseline gap-xs q-mt-xs">
-                    <span class="kpi-value">{{ taskStats.completionPercent }}%</span>
+                    <span class="kpi-value" :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >{{ taskStats.completionPercent }}%</span
+                    >
                     <span class="kpi-delta text-positive text-weight-medium">Active</span>
                   </div>
                   <span class="kpi-subtitle">
@@ -185,20 +230,32 @@
             <q-card
               flat
               bordered
+              :dark="$q.dark.isActive"
               class="kpi-card"
               :class="{ 'kpi-card-alert': resourceStats.overloadedCount > 0 }"
             >
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title">Overloaded Resources</span>
+                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
+                    >Overloaded Resources</span
+                  >
                   <div class="row items-baseline gap-xs q-mt-xs">
                     <span
                       class="kpi-value"
-                      :class="resourceStats.overloadedCount > 0 ? 'text-negative' : 'text-dark'"
+                      :class="
+                        resourceStats.overloadedCount > 0
+                          ? 'text-negative'
+                          : $q.dark.isActive
+                            ? 'text-white'
+                            : 'text-dark'
+                      "
                     >
                       {{ resourceStats.overloadedCount }}
                     </span>
-                    <span v-if="resourceStats.overloadedCount > 0" class="kpi-delta text-negative text-weight-medium">
+                    <span
+                      v-if="resourceStats.overloadedCount > 0"
+                      class="kpi-delta text-negative text-weight-medium"
+                    >
                       ▲ Attention
                     </span>
                   </div>
@@ -221,18 +278,25 @@
         >
           <!-- 1A: Resource Workload & Utilization -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Resource Workload & Utilization</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip>Current allocation percentage against the 85% operational limit</q-tooltip>
+                      <q-tooltip
+                        >Current allocation percentage against the 85% operational limit</q-tooltip
+                      >
                     </q-icon>
                   </div>
-                  <div class="chart-caption">Current allocation against 85% operational limit</div>
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                    Current allocation against 85% operational limit
+                  </div>
                 </div>
-                <div class="badge-tag">Weekly</div>
+                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">Weekly</div>
               </div>
               <div ref="utilizationChartRef" class="echarts-box"></div>
             </q-card>
@@ -240,23 +304,44 @@
 
           <!-- 1B: Resource Task Trend -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Resource Task Trend</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip>Number of active tasks assigned to each resource over time</q-tooltip>
+                      <q-tooltip
+                        >Number of active tasks assigned to each resource over time</q-tooltip
+                      >
                     </q-icon>
                   </div>
-                  <div class="chart-caption">Number of active tasks assigned to each resource over time</div>
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                    Number of active tasks assigned to each resource over time
+                  </div>
                 </div>
-                <div class="badge-tag">Last 4 Weeks</div>
+                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">
+                  Last 4 Weeks
+                </div>
               </div>
               <div ref="taskTrendChartRef" class="echarts-box task-trend-chart-box"></div>
-              <div class="trend-insight-banner row items-center q-px-md q-py-xs q-mt-sm">
-                <q-icon name="lightbulb_outline" size="16px" color="primary" class="q-mr-xs" />
-                <span class="trend-insight-text">Shows how your active task count has changed over the last 4 weeks.</span>
+              <div
+                class="trend-insight-banner row items-center q-px-md q-py-xs q-mt-sm"
+                :class="{ 'trend-insight-banner-dark': $q.dark.isActive }"
+              >
+                <q-icon
+                  name="lightbulb_outline"
+                  size="16px"
+                  :color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  class="q-mr-xs"
+                />
+                <span
+                  class="trend-insight-text"
+                  :class="{ 'trend-insight-text-dark': $q.dark.isActive }"
+                  >Shows how your active task count has changed over the last 4 weeks.</span
+                >
               </div>
             </q-card>
           </div>
@@ -278,18 +363,28 @@
             v-show="activeCategoryTab === 'all' || activeCategoryTab === 'resources'"
             class="col-12 col-lg-6"
           >
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Resource Availability Heatmap</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip>Daily working schedule availability for automated task dispatch</q-tooltip>
+                      <q-tooltip
+                        >Daily working schedule availability for automated task dispatch</q-tooltip
+                      >
                     </q-icon>
                   </div>
-                  <div class="chart-caption">Daily schedule status for automated task dispatch</div>
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                    Daily schedule status for automated task dispatch
+                  </div>
                 </div>
-                <div class="row items-center gap-sm text-caption text-grey-7 gt-xs">
+                <div
+                  class="row items-center gap-sm text-caption gt-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
                   <span class="row items-center gap-xs">
                     <span class="legend-dot bg-teal"></span> Available
                   </span>
@@ -311,20 +406,29 @@
           <!-- 2B: Task Status Distribution -->
           <div
             v-show="activeCategoryTab === 'all' || activeCategoryTab === 'tasks'"
-            :class="activeCategoryTab === 'tasks' ? 'col-12 col-lg-8 offset-lg-2' : 'col-12 col-lg-6'"
+            :class="
+              activeCategoryTab === 'tasks' ? 'col-12 col-lg-8 offset-lg-2' : 'col-12 col-lg-6'
+            "
           >
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Task Status Distribution</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
                       <q-tooltip>Pipeline volume aggregated by task status</q-tooltip>
                     </q-icon>
                   </div>
-                  <div class="chart-caption">Execution pipeline state across active tasks</div>
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                    Execution pipeline state across active tasks
+                  </div>
                 </div>
-                <div class="badge-tag">{{ selectedProjectName }}</div>
+                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">
+                  {{ selectedProjectName }}
+                </div>
               </div>
               <div ref="taskStatusChartRef" class="echarts-box"></div>
             </q-card>
@@ -347,23 +451,39 @@
             v-show="activeCategoryTab === 'all' || activeCategoryTab === 'projects'"
             :class="activeCategoryTab === 'projects' ? 'col-12' : 'col-12 col-lg-6'"
           >
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Project Schedule Health</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip>Actual completion progress against planned pace derived from milestone dates</q-tooltip>
+                      <q-tooltip
+                        >Actual completion progress against planned pace derived from milestone
+                        dates</q-tooltip
+                      >
                     </q-icon>
                   </div>
-                  <div class="chart-caption">Actual milestone completion vs. planned pace</div>
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                    Actual milestone completion vs. planned pace
+                  </div>
                 </div>
-                <div class="row items-center gap-md text-caption text-grey-7 gt-xs">
+                <div
+                  class="row items-center gap-md text-caption gt-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
                   <span class="row items-center gap-xs">
-                    <span class="legend-dot" style="background-color: #7654d6"></span> Actual Progress
+                    <span class="legend-dot" style="background-color: #7654d6"></span> Actual
+                    Progress
                   </span>
                   <span class="row items-center gap-xs">
-                    <span class="legend-dot" style="background-color: #e2e5eb"></span> Planned Pace
+                    <span
+                      class="legend-dot"
+                      :style="{ backgroundColor: $q.dark.isActive ? '#334155' : '#e2e5eb' }"
+                    ></span>
+                    Planned Pace
                   </span>
                 </div>
               </div>
@@ -376,18 +496,26 @@
             v-show="activeCategoryTab === 'all' || activeCategoryTab === 'tasks'"
             :class="activeCategoryTab === 'tasks' ? 'col-12' : 'col-12 col-lg-6'"
           >
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Planned vs. Actual Effort</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
                       <q-tooltip>Hours variance on key project deliverables</q-tooltip>
                     </q-icon>
                   </div>
-                  <div class="chart-caption">Hours variance on critical project deliverables</div>
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                    Hours variance on critical project deliverables
+                  </div>
                 </div>
-                <div class="row items-center gap-md text-caption text-grey-7 gt-xs">
+                <div
+                  class="row items-center gap-md text-caption gt-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
                   <span class="row items-center gap-xs">
                     <span class="legend-dot" style="background-color: #7654d6"></span> Planned (hrs)
                   </span>
@@ -414,20 +542,28 @@
         >
           <!-- 4A: Capacity vs Assigned Effort (Full Width) -->
           <div class="col-12">
-            <q-card flat bordered class="chart-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
-                  <div class="chart-title row items-center gap-xs">
+                  <div
+                    class="chart-title row items-center gap-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
                     <span>Capacity vs. Assigned Effort</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip>Remaining headroom available for automatic scheduling engine dispatch</q-tooltip>
+                      <q-tooltip
+                        >Remaining headroom available for automatic scheduling engine
+                        dispatch</q-tooltip
+                      >
                     </q-icon>
                   </div>
-                  <div class="chart-caption">
+                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
                     Remaining headroom available for automatic scheduling engine dispatch
                   </div>
                 </div>
-                <div class="badge-tag">Auto-Scheduler</div>
+                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">
+                  Auto-Scheduler
+                </div>
               </div>
               <div ref="capacityChartRef" class="echarts-box"></div>
             </q-card>
@@ -440,6 +576,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { useQuasar } from 'quasar';
 import * as echarts from 'echarts';
 import type { ECharts, EChartsOption } from 'echarts';
 import {
@@ -465,6 +602,8 @@ import {
   computeEffortVariance,
   computeAvailabilityHeatmap,
 } from '@/components/analytics/analyticsCalculations';
+
+const $q = useQuasar();
 
 // -------------------------------------------------------------
 // Component State
@@ -514,17 +653,36 @@ function getOrInitChart(el: HTMLDivElement | null): ECharts | null {
 
 const FONT_FAMILY = "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-const COMMON_TOOLTIP_BASE = {
-  backgroundColor: '#FFFFFF',
-  borderColor: ANALYTICS_PALETTE.border,
-  borderWidth: 1,
-  textStyle: {
-    color: ANALYTICS_PALETTE.darkText,
-    fontFamily: FONT_FAMILY,
-    fontSize: 12,
-  },
-  extraCssText: 'box-shadow: 0 4px 14px rgba(29, 36, 51, 0.08); border-radius: 8px; padding: 10px 14px;',
-};
+function getThemeColors() {
+  const isDark = $q.dark.isActive;
+  return {
+    isDark,
+    darkText: isDark ? '#F1F5F9' : '#1D2433',
+    mutedText: isDark ? '#94A3B8' : '#697386',
+    border: isDark ? '#283042' : '#E6E8ED',
+    gridLine: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F0F2F5',
+    cardBg: isDark ? '#181D28' : '#FFFFFF',
+    plannedBar: isDark ? '#334155' : '#E2E5EB',
+    headroomBar: isDark ? '#14B8A6' : '#BEE7E4',
+    tooltipBg: isDark ? '#1E293B' : '#FFFFFF',
+    tooltipBorder: isDark ? '#334155' : '#E6E8ED',
+    tooltipShadow: isDark ? '0 4px 14px rgba(0, 0, 0, 0.45)' : '0 4px 14px rgba(29, 36, 51, 0.08)',
+  };
+}
+
+function getCommonTooltip(theme: ReturnType<typeof getThemeColors>) {
+  return {
+    backgroundColor: theme.tooltipBg,
+    borderColor: theme.tooltipBorder,
+    borderWidth: 1,
+    textStyle: {
+      color: theme.darkText,
+      fontFamily: FONT_FAMILY,
+      fontSize: 12,
+    },
+    extraCssText: `box-shadow: ${theme.tooltipShadow}; border-radius: 8px; padding: 10px 14px;`,
+  };
+}
 
 // -------------------------------------------------------------
 // Formatted Display & Filtering Computeds
@@ -682,6 +840,7 @@ function initUtilizationChart() {
   utilizationChart = getOrInitChart(utilizationChartRef.value);
   if (!utilizationChart) return;
 
+  const theme = getThemeColors();
   const data = resourceStats.value.items;
   const names = data.map((d) => d.name);
 
@@ -689,7 +848,7 @@ function initUtilizationChart() {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const item = Array.isArray(params) ? params[0] : params;
         const r = data[item.dataIndex as number];
@@ -700,13 +859,13 @@ function initUtilizationChart() {
             ? ANALYTICS_PALETTE.green
             : ANALYTICS_PALETTE.teal;
         return `
-          <div style="font-weight: 600; font-size: 13px;">${r.name}</div>
-          <div style="font-size: 11px; color: ${ANALYTICS_PALETTE.mutedText}; margin-bottom: 6px;">${r.role}</div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="font-weight: 600; font-size: 13px; color: ${theme.darkText};">${r.name}</div>
+          <div style="font-size: 11px; color: ${theme.mutedText}; margin-bottom: 6px;">${r.role}</div>
+          <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
             <span>Utilization:</span>
             <strong style="color:${color};">${r.utilization}%</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
             <span>Allocated Effort:</span>
             <strong>${r.assignedHours}h / ${r.weeklyCapacity}h</strong>
           </div>
@@ -725,21 +884,21 @@ function initUtilizationChart() {
       max: (value) => Math.max(100, Math.ceil(value.max * 1.1)),
       axisLabel: {
         formatter: '{value}%',
-        color: ANALYTICS_PALETTE.mutedText,
+        color: theme.mutedText,
         fontSize: 11,
       },
       splitLine: {
-        lineStyle: { color: ANALYTICS_PALETTE.gridLine, type: 'dashed' },
+        lineStyle: { color: theme.gridLine, type: 'dashed' },
       },
     },
     yAxis: {
       type: 'category',
       data: names,
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
+      axisLine: { lineStyle: { color: theme.border } },
       axisLabel: {
         interval: 0,
-        color: ANALYTICS_PALETTE.darkText,
+        color: theme.darkText,
         fontSize: 12,
         fontWeight: 500,
       },
@@ -763,7 +922,7 @@ function initUtilizationChart() {
           show: true,
           position: 'right',
           formatter: '{c}%',
-          color: ANALYTICS_PALETTE.mutedText,
+          color: theme.mutedText,
           fontSize: 11,
           fontWeight: 600,
         },
@@ -783,7 +942,7 @@ function initUtilizationChart() {
     ],
   };
 
-  utilizationChart.setOption(option);
+  utilizationChart.setOption(option, true);
 }
 
 // 2. Resource Task Trend (Multi-series Line Chart over 4 Weeks)
@@ -792,6 +951,7 @@ function initTaskTrendChart() {
   taskTrendChart = getOrInitChart(taskTrendChartRef.value);
   if (!taskTrendChart) return;
 
+  const theme = getThemeColors();
   const resources = resourceList.value;
   const tasks = filteredTasks.value;
 
@@ -846,9 +1006,7 @@ function initTaskTrendChart() {
       (t) =>
         t.assigned_resource_ids?.includes(r.user_id) ||
         t.assigned_resources?.some((ar) => ar.user_id === r.user_id) ||
-        t.assigned_resource_names?.some(
-          (name) => name.toLowerCase() === r.name.toLowerCase(),
-        ),
+        t.assigned_resource_names?.some((name) => name.toLowerCase() === r.name.toLowerCase()),
     );
 
     const weeklyCounts = weeks.map((w) => {
@@ -922,10 +1080,7 @@ function initTaskTrendChart() {
     };
   });
 
-  const maxRecorded = Math.max(
-    ...seriesData.flatMap((s) => s.rawWeeklyCounts),
-    0,
-  );
+  const maxRecorded = Math.max(...seriesData.flatMap((s) => s.rawWeeklyCounts), 0);
   // Guarantee Y-axis goes to at least 5 (matching SaaS reference mockup) to leave generous headroom
   // and prevent lines from ever touching the legend or top ceiling
   const yMax = Math.max(5, maxRecorded + 1);
@@ -936,11 +1091,11 @@ function initTaskTrendChart() {
       axisPointer: {
         type: 'line',
         lineStyle: {
-          color: '#CBD5E1',
+          color: theme.border,
           type: 'dashed',
         },
       },
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const list = Array.isArray(params) ? params : [params];
         if (!list.length) return '';
@@ -950,15 +1105,14 @@ function initTaskTrendChart() {
           dataIndex?: number;
         };
         const weekLabel = firstItem?.axisValueLabel || firstItem?.name || '';
-        const dataIndex =
-          typeof firstItem?.dataIndex === 'number' ? firstItem.dataIndex : 0;
-        let html = `<div style="font-weight:700; font-size:12px; margin-bottom:6px; color:${ANALYTICS_PALETTE.darkText};">${weekLabel}</div>`;
+        const dataIndex = typeof firstItem?.dataIndex === 'number' ? firstItem.dataIndex : 0;
+        let html = `<div style="font-weight:700; font-size:12px; margin-bottom:6px; color:${theme.darkText};">${weekLabel}</div>`;
         seriesData.forEach((s) => {
           const color = s.itemStyle.color;
           const count = s.rawWeeklyCounts[dataIndex] ?? 0;
           html += `
             <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:3px; font-size:11.5px;">
-              <span style="display:flex; align-items:center; gap:6px; color:${ANALYTICS_PALETTE.darkText};">
+              <span style="display:flex; align-items:center; gap:6px; color:${theme.darkText};">
                 <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${color};"></span>
                 ${s.name}
               </span>
@@ -977,7 +1131,7 @@ function initTaskTrendChart() {
       itemHeight: 8,
       itemGap: 12,
       textStyle: {
-        color: ANALYTICS_PALETTE.darkText,
+        color: theme.darkText,
         fontFamily: FONT_FAMILY,
         fontSize: 10.5,
         fontWeight: 500,
@@ -996,9 +1150,9 @@ function initTaskTrendChart() {
       data: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
       boundaryGap: false,
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
+      axisLine: { lineStyle: { color: theme.border } },
       axisLabel: {
-        color: ANALYTICS_PALETTE.mutedText,
+        color: theme.mutedText,
         fontFamily: FONT_FAMILY,
         fontSize: 11,
       },
@@ -1012,15 +1166,15 @@ function initTaskTrendChart() {
       max: yMax,
       interval: 1,
       nameTextStyle: {
-        color: ANALYTICS_PALETTE.mutedText,
+        color: theme.mutedText,
         fontFamily: FONT_FAMILY,
         fontSize: 11,
       },
       splitLine: {
-        lineStyle: { color: ANALYTICS_PALETTE.gridLine, type: 'dashed' },
+        lineStyle: { color: theme.gridLine, type: 'dashed' },
       },
       axisLabel: {
-        color: ANALYTICS_PALETTE.mutedText,
+        color: theme.mutedText,
         fontFamily: FONT_FAMILY,
         fontSize: 11,
       },
@@ -1037,6 +1191,7 @@ function initHeatmapChart() {
   heatmapChart = getOrInitChart(heatmapChartRef.value);
   if (!heatmapChart) return;
 
+  const theme = getThemeColors();
   const heatmap = computeAvailabilityHeatmap(
     resourceList.value,
     availabilityMap.value,
@@ -1053,7 +1208,7 @@ function initHeatmapChart() {
   const option: EChartsOption = {
     tooltip: {
       position: 'top',
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const item = params as { value: [number, number, number] };
         const day = heatmap.days[item.value[0]] ?? '';
@@ -1064,12 +1219,12 @@ function initHeatmapChart() {
         const statusConfig = STATUS_LABELS[statusIdx] ?? STATUS_LABELS[0]!;
 
         return `
-          <div style="font-weight:600;">${res} – ${day}</div>
-          <div style="margin-top:4px; display:flex; align-items:center; gap:6px;">
+          <div style="font-weight:600; color:${theme.darkText};">${res} – ${day}</div>
+          <div style="margin-top:4px; display:flex; align-items:center; gap:6px; color:${theme.darkText};">
             <span style="display:inline-block; width:8px; height:8px; border-radius:2px; background:${statusConfig.color};"></span>
             <span>Status: <strong>${detail?.label || statusConfig.label}</strong></span>
           </div>
-          ${detail?.hours ? `<div style="font-size:11px; color:#697386; margin-top:2px;">Scheduled: ${detail.hours}h</div>` : ''}
+          ${detail?.hours ? `<div style="font-size:11px; color:${theme.mutedText}; margin-top:2px;">Scheduled: ${detail.hours}h</div>` : ''}
         `;
       },
     },
@@ -1083,18 +1238,18 @@ function initHeatmapChart() {
     xAxis: {
       type: 'category',
       data: heatmap.days,
-      splitArea: { show: true },
+      splitArea: { show: false },
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
-      axisLabel: { interval: 0, color: ANALYTICS_PALETTE.darkText, fontSize: 12, fontWeight: 500 },
+      axisLine: { lineStyle: { color: theme.border } },
+      axisLabel: { interval: 0, color: theme.darkText, fontSize: 12, fontWeight: 500 },
     },
     yAxis: {
       type: 'category',
       data: heatmap.resources,
-      splitArea: { show: true },
+      splitArea: { show: false },
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
-      axisLabel: { interval: 0, color: ANALYTICS_PALETTE.darkText, fontSize: 12, fontWeight: 500 },
+      axisLine: { lineStyle: { color: theme.border } },
+      axisLabel: { interval: 0, color: theme.darkText, fontSize: 12, fontWeight: 500 },
     },
     visualMap: {
       show: false,
@@ -1124,14 +1279,14 @@ function initHeatmapChart() {
         },
         itemStyle: {
           borderRadius: 4,
-          borderColor: '#FFFFFF',
+          borderColor: theme.cardBg,
           borderWidth: 3,
         },
       },
     ],
   };
 
-  heatmapChart.setOption(option);
+  heatmapChart.setOption(option, true);
 }
 
 // 4. Task Status Distribution
@@ -1140,20 +1295,21 @@ function initTaskStatusChart() {
   taskStatusChart = getOrInitChart(taskStatusChartRef.value);
   if (!taskStatusChart) return;
 
+  const theme = getThemeColors();
   const stats = taskStats.value;
 
   const option: EChartsOption = {
     tooltip: {
       trigger: 'item',
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const it = params as { name: string; value: number; percent: number; color: string };
         return `
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px; color:${theme.darkText};">
             <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${it.color};"></span>
             <strong>${it.name}</strong>
           </div>
-          <div>${it.value} tasks (${it.percent}%)</div>
+          <div style="color:${theme.mutedText};">${it.value} tasks (${it.percent}%)</div>
         `;
       },
     },
@@ -1162,7 +1318,7 @@ function initTaskStatusChart() {
       left: 'center',
       itemWidth: 10,
       itemHeight: 10,
-      textStyle: { color: ANALYTICS_PALETTE.mutedText, fontSize: 11 },
+      textStyle: { color: theme.mutedText, fontSize: 11 },
       formatter: (name: string) => {
         const item = stats.items.find((d) => d.label === name);
         return `${name}  ${item ? item.count : ''}`;
@@ -1176,7 +1332,7 @@ function initTaskStatusChart() {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 3,
-          borderColor: '#FFFFFF',
+          borderColor: theme.cardBg,
           borderWidth: 2,
         },
         label: { show: false },
@@ -1196,19 +1352,19 @@ function initTaskStatusChart() {
       textStyle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: ANALYTICS_PALETTE.darkText,
+        color: theme.darkText,
         fontFamily: FONT_FAMILY,
       },
       subtextStyle: {
         fontSize: 10,
         fontWeight: 600,
-        color: ANALYTICS_PALETTE.mutedText,
+        color: theme.mutedText,
         fontFamily: FONT_FAMILY,
       },
     },
   };
 
-  taskStatusChart.setOption(option);
+  taskStatusChart.setOption(option, true);
 }
 
 // 5. Project Schedule Health
@@ -1217,6 +1373,7 @@ function initProjectScheduleChart() {
   projectScheduleChart = getOrInitChart(projectScheduleChartRef.value);
   if (!projectScheduleChart) return;
 
+  const theme = getThemeColors();
   const projects = computeProjectScheduleHealth(filteredProjects.value);
   const names = projects.map((p) => p.name);
 
@@ -1224,19 +1381,19 @@ function initProjectScheduleChart() {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const items = params as Array<{ dataIndex: number }>;
         const p = projects[items[0]?.dataIndex ?? 0];
         if (!p) return '';
         return `
-          <div style="font-weight:600; font-size:13px;">${p.name}</div>
-          <div style="font-size:11px; color:${ANALYTICS_PALETTE.mutedText}; margin-bottom:6px;">Target Deadline: ${p.deadline}</div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="font-weight:600; font-size:13px; color:${theme.darkText};">${p.name}</div>
+          <div style="font-size:11px; color:${theme.mutedText}; margin-bottom:6px;">Target Deadline: ${p.deadline}</div>
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Actual Progress:</span>
             <strong>${p.actualProgress}%</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Planned Pace:</span>
             <strong>${p.plannedPace}%</strong>
           </div>
@@ -1251,7 +1408,7 @@ function initProjectScheduleChart() {
       right: '2%',
       itemWidth: 10,
       itemHeight: 8,
-      textStyle: { color: ANALYTICS_PALETTE.mutedText, fontSize: 11 },
+      textStyle: { color: theme.mutedText, fontSize: 11 },
       data: ['Actual Progress', 'Planned Pace'],
     },
     grid: {
@@ -1264,17 +1421,17 @@ function initProjectScheduleChart() {
     xAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { formatter: '{value}%', color: ANALYTICS_PALETTE.mutedText, fontSize: 10 },
-      splitLine: { lineStyle: { color: ANALYTICS_PALETTE.gridLine, type: 'dashed' } },
+      axisLabel: { formatter: '{value}%', color: theme.mutedText, fontSize: 10 },
+      splitLine: { lineStyle: { color: theme.gridLine, type: 'dashed' } },
     },
     yAxis: {
       type: 'category',
       data: names,
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
+      axisLine: { lineStyle: { color: theme.border } },
       axisLabel: {
         interval: 0,
-        color: ANALYTICS_PALETTE.darkText,
+        color: theme.darkText,
         fontSize: 11,
         formatter: (val: string) => (val.length > 24 ? val.substring(0, 23) + '…' : val),
       },
@@ -1298,14 +1455,14 @@ function initProjectScheduleChart() {
         barWidth: 8,
         data: projects.map((d) => d.plannedPace),
         itemStyle: {
-          color: '#E2E5EB',
+          color: theme.plannedBar,
           borderRadius: [0, 3, 3, 0],
         },
       },
     ],
   };
 
-  projectScheduleChart.setOption(option);
+  projectScheduleChart.setOption(option, true);
 }
 
 // 6. Planned vs Actual Effort
@@ -1314,6 +1471,7 @@ function initEffortVarianceChart() {
   effortVarianceChart = getOrInitChart(effortVarianceChartRef.value);
   if (!effortVarianceChart) return;
 
+  const theme = getThemeColors();
   const taskEfforts = computeEffortVariance(filteredTasks.value);
   const titles = taskEfforts.map((t) => t.title);
 
@@ -1321,7 +1479,7 @@ function initEffortVarianceChart() {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const items = params as Array<{ dataIndex: number }>;
         const t = taskEfforts[items[0]?.dataIndex ?? 0];
@@ -1330,12 +1488,12 @@ function initEffortVarianceChart() {
           t.variance > 0 ? `+${t.variance}h Overrun` : `${t.variance}h Within Estimate`;
         const varianceColor = t.isOverrun ? ANALYTICS_PALETTE.danger : ANALYTICS_PALETTE.green;
         return `
-          <div style="font-weight:600; font-size:12px; margin-bottom:4px;">${t.title}</div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="font-weight:600; font-size:12px; margin-bottom:4px; color:${theme.darkText};">${t.title}</div>
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Planned Effort:</span>
             <strong>${t.plannedHours}h</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Actual Logged:</span>
             <strong>${t.actualHours}h</strong>
           </div>
@@ -1350,7 +1508,7 @@ function initEffortVarianceChart() {
       right: '2%',
       itemWidth: 10,
       itemHeight: 8,
-      textStyle: { color: ANALYTICS_PALETTE.mutedText, fontSize: 11 },
+      textStyle: { color: theme.mutedText, fontSize: 11 },
       data: ['Planned (hrs)', 'Actual (hrs)'],
     },
     grid: {
@@ -1364,10 +1522,10 @@ function initEffortVarianceChart() {
       type: 'category',
       data: titles,
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
+      axisLine: { lineStyle: { color: theme.border } },
       axisLabel: {
         interval: 0,
-        color: ANALYTICS_PALETTE.darkText,
+        color: theme.darkText,
         fontSize: 10,
         rotate: 15,
         formatter: (val: string) => (val.length > 18 ? val.substring(0, 17) + '…' : val),
@@ -1375,8 +1533,8 @@ function initEffortVarianceChart() {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { formatter: '{value}h', color: ANALYTICS_PALETTE.mutedText, fontSize: 10 },
-      splitLine: { lineStyle: { color: ANALYTICS_PALETTE.gridLine, type: 'dashed' } },
+      axisLabel: { formatter: '{value}h', color: theme.mutedText, fontSize: 10 },
+      splitLine: { lineStyle: { color: theme.gridLine, type: 'dashed' } },
     },
     series: [
       {
@@ -1401,7 +1559,7 @@ function initEffortVarianceChart() {
     ],
   };
 
-  effortVarianceChart.setOption(option);
+  effortVarianceChart.setOption(option, true);
 }
 
 // 7. Capacity vs Assigned Effort (Scheduling Intelligence)
@@ -1410,6 +1568,7 @@ function initCapacityChart() {
   capacityChart = getOrInitChart(capacityChartRef.value);
   if (!capacityChart) return;
 
+  const theme = getThemeColors();
   const data = resourceStats.value.items;
   const names = data.map((d) => d.name);
 
@@ -1417,7 +1576,7 @@ function initCapacityChart() {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      ...COMMON_TOOLTIP_BASE,
+      ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const items = params as Array<{ dataIndex: number }>;
         const r = data[items[0]?.dataIndex ?? 0];
@@ -1426,21 +1585,21 @@ function initCapacityChart() {
           ? `<span style="color:${ANALYTICS_PALETTE.teal}; font-weight:600;">Eligible for Auto-Dispatch (+${r.remainingHeadroom}h free)</span>`
           : `<span style="color:${ANALYTICS_PALETTE.danger}; font-weight:600;">Capacity Constrained (&lt; 4h headroom)</span>`;
         return `
-          <div style="font-weight:600; font-size:13px;">${r.name}</div>
-          <div style="font-size:11px; color:${ANALYTICS_PALETTE.mutedText}; margin-bottom:6px;">${r.role}</div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="font-weight:600; font-size:13px; color:${theme.darkText};">${r.name}</div>
+          <div style="font-size:11px; color:${theme.mutedText}; margin-bottom:6px;">${r.role}</div>
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Weekly Capacity:</span>
             <strong>${r.weeklyCapacity}h</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Assigned Workload:</span>
             <strong style="color:${ANALYTICS_PALETTE.primary};">${r.assignedHours}h</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:16px;">
+          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
             <span>Schedulable Headroom:</span>
             <strong style="color:${ANALYTICS_PALETTE.teal};">${r.remainingHeadroom}h</strong>
           </div>
-          <div style="margin-top:6px; padding-top:4px; border-top:1px dashed #eee;">
+          <div style="margin-top:6px; padding-top:4px; border-top:1px dashed ${theme.border};">
             ${dispatchBadge}
           </div>
         `;
@@ -1451,7 +1610,7 @@ function initCapacityChart() {
       right: '2%',
       itemWidth: 10,
       itemHeight: 10,
-      textStyle: { color: ANALYTICS_PALETTE.mutedText, fontSize: 11 },
+      textStyle: { color: theme.mutedText, fontSize: 11 },
       data: ['Assigned Effort', 'Schedulable Headroom'],
     },
     grid: {
@@ -1465,10 +1624,10 @@ function initCapacityChart() {
       type: 'category',
       data: names,
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: ANALYTICS_PALETTE.border } },
+      axisLine: { lineStyle: { color: theme.border } },
       axisLabel: {
         interval: 0,
-        color: ANALYTICS_PALETTE.darkText,
+        color: theme.darkText,
         fontSize: 12,
         fontWeight: 600,
       },
@@ -1476,9 +1635,9 @@ function initCapacityChart() {
     yAxis: {
       type: 'value',
       name: 'Hours / Week',
-      nameTextStyle: { color: ANALYTICS_PALETTE.mutedText, fontSize: 10 },
-      axisLabel: { color: ANALYTICS_PALETTE.mutedText, fontSize: 11 },
-      splitLine: { lineStyle: { color: ANALYTICS_PALETTE.gridLine, type: 'dashed' } },
+      nameTextStyle: { color: theme.mutedText, fontSize: 10 },
+      axisLabel: { color: theme.mutedText, fontSize: 11 },
+      splitLine: { lineStyle: { color: theme.gridLine, type: 'dashed' } },
     },
     series: [
       {
@@ -1496,14 +1655,14 @@ function initCapacityChart() {
         barWidth: 32,
         data: data.map((d) => d.remainingHeadroom),
         itemStyle: {
-          color: '#BEE7E4',
+          color: theme.headroomBar,
           borderRadius: [4, 4, 0, 0],
         },
       },
     ],
   };
 
-  capacityChart.setOption(option);
+  capacityChart.setOption(option, true);
 }
 
 // -------------------------------------------------------------
@@ -1547,6 +1706,15 @@ watch(selectedProjectId, () => {
   });
 });
 
+watch(
+  () => $q.dark.isActive,
+  () => {
+    void nextTick(() => {
+      renderAllCharts();
+    });
+  },
+);
+
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeAll);
 
@@ -1582,6 +1750,7 @@ onBeforeUnmount(() => {
 .analytics-page {
   background-color: #f7f7fa;
   min-height: 100%;
+  transition: background-color 0.2s ease;
 }
 
 .analytics-page-wrapper {
@@ -1614,10 +1783,22 @@ onBeforeUnmount(() => {
   font-size: 11px;
   color: #555f71;
   font-weight: 500;
+  transition: all 0.2s ease;
+
+  &.date-range-badge-dark {
+    background: #181d28;
+    border-color: #283042;
+    color: #f3f4f6;
+  }
 }
 
 .refresh-btn {
   border-radius: 8px;
+
+  &.refresh-btn-dark {
+    border-color: rgba(158, 132, 236, 0.4);
+    color: #c4b5fd !important;
+  }
 }
 
 .category-tabs-row {
@@ -1632,7 +1813,9 @@ onBeforeUnmount(() => {
   padding: 14px 16px;
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(29, 36, 51, 0.05);
@@ -1706,7 +1889,10 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: box-shadow 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover {
     box-shadow: 0 4px 14px rgba(29, 36, 51, 0.04);
@@ -1736,6 +1922,12 @@ onBeforeUnmount(() => {
   background: #f2f4f7;
   padding: 3px 8px;
   border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &.badge-tag-dark {
+    background: #222938;
+    color: #94a3b8;
+  }
 }
 
 .echarts-box {
@@ -1752,12 +1944,22 @@ onBeforeUnmount(() => {
   border: 1px solid #dbeafe;
   border-radius: 6px;
   min-height: 34px;
+  transition: all 0.2s ease;
+
+  &.trend-insight-banner-dark {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(59, 130, 246, 0.25);
+  }
 }
 
 .trend-insight-text {
   font-size: 11.5px;
   color: #1e40af;
   font-weight: 500;
+
+  &.trend-insight-text-dark {
+    color: #bfdbfe;
+  }
 }
 
 .legend-dot {
@@ -1788,6 +1990,105 @@ onBeforeUnmount(() => {
   font-size: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid #f2f4f7;
+}
+
+/* Dark Mode Scoped Overrides */
+body.body--dark {
+  .analytics-page {
+    background-color: var(--wo-bg-page, #0f1219);
+  }
+
+  .analytics-page-wrapper {
+    color: var(--wo-text-main, #f3f4f6);
+  }
+
+  .date-range-badge {
+    background: #181d28;
+    border-color: #283042;
+    color: #f3f4f6;
+  }
+
+  .category-tabs-row {
+    border-bottom-color: #283042;
+  }
+
+  .kpi-card {
+    border-color: #283042;
+    background: #181d28;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    &.kpi-card-alert {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .kpi-title {
+    color: #94a3b8;
+  }
+
+  .kpi-value {
+    color: #f3f4f6;
+  }
+
+  .kpi-subtitle {
+    color: #64748b;
+  }
+
+  .bg-purple-soft {
+    background-color: rgba(118, 84, 214, 0.2);
+  }
+
+  .bg-blue-soft {
+    background-color: rgba(63, 127, 213, 0.2);
+  }
+
+  .bg-green-soft {
+    background-color: rgba(50, 165, 107, 0.2);
+  }
+
+  .bg-red-soft {
+    background-color: rgba(224, 82, 96, 0.2);
+  }
+
+  .chart-card {
+    border-color: #283042;
+    background: #181d28;
+
+    &:hover {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .chart-title {
+    color: #f3f4f6;
+  }
+
+  .chart-caption {
+    color: #94a3b8;
+  }
+
+  .badge-tag {
+    background: #222938;
+    color: #94a3b8;
+  }
+
+  .milestones-table-box {
+    border-color: #283042;
+  }
+
+  .milestones-table :deep(thead tr th) {
+    color: #94a3b8;
+    background-color: #1e2433;
+  }
+
+  .milestones-table :deep(tbody tr td) {
+    color: #f3f4f6;
+    border-bottom: 1px solid #283042;
+  }
 }
 
 .gap-xs {

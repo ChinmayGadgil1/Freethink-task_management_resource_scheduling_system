@@ -229,6 +229,11 @@ function handleQuickAction() {
 .app-sidebar-drawer {
   background: var(--wo-bg-card, #ffffff);
   border-right: 1px solid var(--wo-border, #eaecef);
+  position: fixed !important;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: 100vh !important;
 }
 
 .sidebar-dual-container {

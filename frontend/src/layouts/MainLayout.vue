@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh lpR lFf" class="main-layout-root">
+  <q-layout view="lHh LpR lFf" class="main-layout-root">
     <!-- REUSABLE DUAL-RAIL SIDEBAR -->
     <AppSidebar
       v-model="leftDrawerOpen"
