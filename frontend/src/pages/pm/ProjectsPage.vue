@@ -242,111 +242,154 @@
 
       <!-- 4. SECONDARY DASHBOARD WIDGETS (Health Donut, Upcoming Deadlines) -->
       <div class="row q-col-gutter-md q-mb-lg">
-        <!-- Project Health Distribution (5 cols) -->
+        <!-- Active Resource Allocations (5 cols) -->
         <div class="col-12 col-md-5">
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
             <q-card-section class="row items-center justify-between q-pb-xs">
               <div>
-                <div class="text-subtitle1 text-weight-bold">Overall Project Health</div>
+                <div class="text-subtitle1 text-weight-bold">Active Resource Allocations</div>
                 <div class="text-caption text-grey-6">
-                  Portfolio delivery balance across all projects
+                  Team engagement across active projects
                 </div>
               </div>
-              <q-chip
-                dense
-                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-                :text-color="$q.dark.isActive ? 'white' : 'dark'"
-              >
-                {{ totalProjects }} Total
-              </q-chip>
+              <div class="row items-center q-gutter-xs">
+                <q-chip
+                  dense
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  class="text-weight-bold"
+                >
+                  {{ activeAssignedCount }} / {{ totalResourceCount }} Active
+                </q-chip>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="open_in_new"
+                  size="sm"
+                  color="grey-6"
+                  title="View All Resources"
+                  @click="goToResourcesList"
+                />
+              </div>
             </q-card-section>
 
-            <q-card-section class="row items-center justify-around">
-              <!-- SVG Donut Chart -->
-              <div style="position: relative; width: 120px; height: 120px">
-                <svg
-                  viewBox="0 0 120 120"
-                  style="width: 100%; height: 100%; transform: rotate(-90deg)"
-                >
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="46"
-                    fill="none"
-                    :stroke="$q.dark.isActive ? '#333' : '#F1F3F7'"
-                    stroke-width="12"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="46"
-                    fill="none"
-                    stroke="#34D399"
-                    stroke-width="12"
-                    :stroke-dasharray="healthDonut.onTrackDash"
-                    :stroke-dashoffset="healthDonut.onTrackOffset"
-                    stroke-linecap="round"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="46"
-                    fill="none"
-                    stroke="#FB923C"
-                    stroke-width="12"
-                    :stroke-dasharray="healthDonut.atRiskDash"
-                    :stroke-dashoffset="healthDonut.atRiskOffset"
-                    stroke-linecap="round"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="46"
-                    fill="none"
-                    stroke="#FB7185"
-                    stroke-width="12"
-                    :stroke-dasharray="healthDonut.delayedDash"
-                    :stroke-dashoffset="healthDonut.delayedOffset"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                <div
-                  style="position: absolute; inset: 0"
-                  class="column items-center justify-center"
-                >
-                  <div class="text-subtitle1 text-weight-bolder">{{ onTrackRatio }}%</div>
-                  <div class="text-caption text-grey-6" style="font-size: 10px">On Track</div>
-                </div>
+            <q-card-section class="q-pt-xs">
+              <div
+                v-if="resourceAllocations.length === 0"
+                class="q-pa-md text-center text-grey-6"
+              >
+                <q-icon name="group_off" size="32px" />
+                <div class="q-mt-xs">No resources found</div>
               </div>
 
-              <!-- Health Legend -->
-              <div class="column q-gutter-xs">
-                <div class="row items-center justify-between gap-md" style="min-width: 140px">
-                  <div class="row items-center q-gutter-xs">
-                    <span
-                      style="width: 8px; height: 8px; border-radius: 50%; background: #34d399"
-                    />
-                    <span class="text-caption">On Track</span>
+              <div v-else class="column q-gutter-xs">
+                <div
+                  v-for="item in resourceAllocations.slice(0, 4)"
+                  :key="item.user.user_id"
+                  class="row items-center justify-between q-pa-sm rounded-borders cursor-pointer"
+                  :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
+                  @click="goToResource(item.user.user_id)"
+                >
+                  <!-- Resource Avatar & Info -->
+                  <div class="row items-center q-gutter-sm no-wrap" style="min-width: 0; flex: 1">
+                    <div style="position: relative; display: inline-block">
+                      <q-avatar
+                        size="34px"
+                        :color="item.hasActiveTasks ? 'primary' : 'grey-5'"
+                        text-color="white"
+                        class="text-weight-bold text-caption"
+                      >
+                        {{ item.user.name.charAt(0).toUpperCase() }}
+                      </q-avatar>
+                      <span
+                        style="
+                          position: absolute;
+                          bottom: 0;
+                          right: 0;
+                          width: 10px;
+                          height: 10px;
+                          border-radius: 50%;
+                          border: 2px solid;
+                        "
+                        :style="{
+                          background: item.hasActiveTasks ? '#10b981' : '#94a3b8',
+                          borderColor: $q.dark.isActive ? '#1e293b' : '#ffffff',
+                        }"
+                      />
+                    </div>
+
+                    <div class="column justify-center" style="min-width: 0; flex: 1">
+                      <div class="row items-center q-gutter-xs no-wrap">
+                        <span class="text-weight-bold text-caption ellipsis" style="font-size: 13px">
+                          {{ item.user.name }}
+                        </span>
+                      </div>
+
+                      <!-- Project Assignment Badges -->
+                      <div class="row items-center q-gutter-xs wrap q-mt-xs">
+                        <template v-if="item.projects.length > 0">
+                          <q-chip
+                            v-for="p in item.projects.slice(0, 2)"
+                            :key="p.id"
+                            dense
+                            size="xs"
+                            square
+                            :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                            :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                            class="q-ma-none text-weight-medium ellipsis"
+                            style="max-width: 120px"
+                          >
+                            {{ p.name }}
+                          </q-chip>
+                          <span
+                            v-if="item.projects.length > 2"
+                            class="text-caption text-grey-6"
+                            style="font-size: 10px"
+                          >
+                            +{{ item.projects.length - 2 }} more
+                          </span>
+                        </template>
+                        <q-chip
+                          v-else
+                          dense
+                          size="xs"
+                          square
+                          :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                          :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                          class="q-ma-none"
+                        >
+                          Available
+                        </q-chip>
+                      </div>
+                    </div>
                   </div>
-                  <span class="text-caption text-weight-bold">{{ onTrackProjects }}</span>
-                </div>
-                <div class="row items-center justify-between gap-md" style="min-width: 140px">
+
+                  <!-- Active Task Badge & Action -->
                   <div class="row items-center q-gutter-xs">
-                    <span
-                      style="width: 8px; height: 8px; border-radius: 50%; background: #fb923c"
-                    />
-                    <span class="text-caption">At Risk</span>
+                    <q-badge
+                      :color="
+                        item.hasActiveTasks
+                          ? $q.dark.isActive
+                            ? 'teal-10'
+                            : 'teal-1'
+                          : $q.dark.isActive
+                            ? 'grey-9'
+                            : 'grey-2'
+                      "
+                      :text-color="
+                        item.hasActiveTasks
+                          ? $q.dark.isActive
+                            ? 'teal-2'
+                            : 'teal-8'
+                          : 'grey-6'
+                      "
+                      class="text-weight-bold"
+                    >
+                      {{ item.activeTasksCount }} {{ item.activeTasksCount === 1 ? 'task' : 'tasks' }}
+                    </q-badge>
+                    <q-icon name="chevron_right" color="grey-6" size="16px" />
                   </div>
-                  <span class="text-caption text-weight-bold">{{ atRiskProjects }}</span>
-                </div>
-                <div class="row items-center justify-between gap-md" style="min-width: 140px">
-                  <div class="row items-center q-gutter-xs">
-                    <span
-                      style="width: 8px; height: 8px; border-radius: 50%; background: #fb7185"
-                    />
-                    <span class="text-caption">Delayed</span>
-                  </div>
-                  <span class="text-caption text-weight-bold">{{ delayedProjects }}</span>
                 </div>
               </div>
             </q-card-section>
@@ -1094,8 +1137,16 @@ import {
   getProjectsApi,
   archiveProjectApi,
   unarchiveProjectApi,
+  getResourcesApi,
+  getTasksApi,
 } from '@/services/api';
-import type { CreateProjectPayload, Project, ProjectPriority } from '@/services/api';
+import type {
+  CreateProjectPayload,
+  Project,
+  ProjectPriority,
+  ResourceUser,
+  Task,
+} from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const $q = useQuasar();
@@ -1106,7 +1157,17 @@ function goToProject(projectId: number) {
   void router.push(`/pm/projects/${projectId}`);
 }
 
+function goToResource(userId: number) {
+  void router.push(`/pm/resources/${userId}`);
+}
+
+function goToResourcesList() {
+  void router.push('/pm/resources');
+}
+
 const projects = ref<Project[]>([]);
+const resourcesList = ref<ResourceUser[]>([]);
+const tasksList = ref<Task[]>([]);
 const loading = ref(false);
 const creating = ref(false);
 const showCreateDialog = ref(false);
@@ -1584,10 +1645,6 @@ const completionAverage = computed(() => {
   return Math.round(total / activeWorkspaceProjects.value.length);
 });
 
-const onTrackRatio = computed(() => {
-  if (!totalProjects.value) return 0;
-  return Math.round((onTrackProjects.value / totalProjects.value) * 100);
-});
 
 const featuredProject = computed(() => {
   if (!activeWorkspaceProjects.value.length) return null;
@@ -1604,29 +1661,63 @@ const featuredProject = computed(() => {
   return activeWorkspaceProjects.value[0];
 });
 
-const CIRCUMFERENCE = 289.02;
-const healthDonut = computed(() => {
-  const total = totalProjects.value || 1;
-  const onTrackLen = (onTrackProjects.value / total) * CIRCUMFERENCE;
-  const atRiskLen = (atRiskProjects.value / total) * CIRCUMFERENCE;
-  const delayedLen = (delayedProjects.value / total) * CIRCUMFERENCE;
+export interface ResourceAllocationItem {
+  user: ResourceUser;
+  activeTasksCount: number;
+  hasActiveTasks: boolean;
+  projects: Array<{ id: number; name: string; taskCount: number }>;
+}
 
-  const categoriesWithValues = [
-    onTrackProjects.value,
-    atRiskProjects.value,
-    delayedProjects.value,
-  ].filter((c) => c > 0).length;
-  const gap = categoriesWithValues > 1 ? 2 : 0;
+const resourceAllocations = computed<ResourceAllocationItem[]>(() => {
+  return resourcesList.value
+    .map((r) => {
+      const activeTasks = tasksList.value.filter((t) => {
+        if (t.status === 'COMPLETED') return false;
+        const isAssignedViaList = t.assigned_resources?.some(
+          (ar) => Number(ar.user_id) === Number(r.user_id),
+        );
+        const isAssignedViaIds = t.assigned_resource_ids?.some(
+          (id) => Number(id) === Number(r.user_id),
+        );
+        const isDirectAssigned =
+          (t as unknown as { assigned_to?: number }).assigned_to !== undefined &&
+          Number((t as unknown as { assigned_to?: number }).assigned_to) === Number(r.user_id);
+        return Boolean(isAssignedViaList || isAssignedViaIds || isDirectAssigned);
+      });
 
-  return {
-    onTrackDash: `${Math.max(0, onTrackLen > 0 ? onTrackLen - gap : 0)} ${CIRCUMFERENCE}`,
-    onTrackOffset: '0',
-    atRiskDash: `${Math.max(0, atRiskLen > 0 ? atRiskLen - gap : 0)} ${CIRCUMFERENCE}`,
-    atRiskOffset: `-${onTrackLen}`,
-    delayedDash: `${Math.max(0, delayedLen > 0 ? delayedLen - gap : 0)} ${CIRCUMFERENCE}`,
-    delayedOffset: `-${onTrackLen + atRiskLen}`,
-  };
+      const projMap = new Map<number, { id: number; name: string; taskCount: number }>();
+      activeTasks.forEach((t) => {
+        const p = projects.value.find((proj) => proj.project_id === t.project_id);
+        const pName = p?.name || t.project_name || `Project #${t.project_id}`;
+        const existing = projMap.get(t.project_id);
+        if (!existing) {
+          projMap.set(t.project_id, { id: t.project_id, name: pName, taskCount: 1 });
+        } else {
+          existing.taskCount += 1;
+        }
+      });
+
+      return {
+        user: r,
+        activeTasksCount: activeTasks.length,
+        hasActiveTasks: activeTasks.length > 0,
+        projects: Array.from(projMap.values()),
+      };
+    })
+    .sort((a, b) => {
+      if (a.hasActiveTasks && !b.hasActiveTasks) return -1;
+      if (!a.hasActiveTasks && b.hasActiveTasks) return 1;
+      if (b.activeTasksCount !== a.activeTasksCount) {
+        return b.activeTasksCount - a.activeTasksCount;
+      }
+      return a.user.name.localeCompare(b.user.name);
+    });
 });
+
+const totalResourceCount = computed(() => resourcesList.value.length);
+const activeAssignedCount = computed(
+  () => resourceAllocations.value.filter((r) => r.hasActiveTasks).length,
+);
 
 const upcomingDeadlinesList = computed(() => {
   return [...activeWorkspaceProjects.value]
@@ -1664,7 +1755,14 @@ async function loadProjects() {
   loading.value = true;
 
   try {
-    projects.value = await getProjectsApi();
+    const [projs, tsks, res] = await Promise.all([
+      getProjectsApi(),
+      getTasksApi().catch(() => [] as Task[]),
+      getResourcesApi().catch(() => [] as ResourceUser[]),
+    ]);
+    projects.value = projs;
+    tasksList.value = tsks;
+    resourcesList.value = res;
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
