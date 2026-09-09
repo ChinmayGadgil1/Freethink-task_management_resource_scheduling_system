@@ -98,20 +98,7 @@
           v-if="task.status === 'COMPLETED' && task.task_type !== 'VERIFICATION'"
           class="popup-verification-block q-mb-md"
         >
-          <div class="row items-center justify-between q-mb-xs">
-            <div class="detail-label">Peer Verification Review</div>
-            <q-btn
-              v-if="!task.verification_task"
-              flat
-              dense
-              no-caps
-              size="sm"
-              color="primary"
-              icon="verified"
-              label="Assign Verifier"
-              @click="emit('assignVerification', task)"
-            />
-          </div>
+          <div class="detail-label q-mb-xs">Peer Verification Review</div>
 
           <q-card
             v-if="task.verification_task"
@@ -470,8 +457,19 @@
 
       <q-separator class="q-mt-md" />
 
-      <q-card-actions align="right" class="q-pa-md">
+      <q-card-actions align="right" class="q-pa-md q-gutter-sm">
         <q-btn flat no-caps label="Close" color="grey-7" v-close-popup class="text-weight-medium" />
+        <q-btn
+          v-if="task.status === 'COMPLETED' && task.task_type !== 'VERIFICATION' && !task.verification_task"
+          unelevated
+          no-caps
+          icon="verified"
+          label="Assign Verifier"
+          color="primary"
+          text-color="white"
+          class="rounded-borders action-btn-primary"
+          @click="emit('assignVerification', task)"
+        />
         <q-btn
           unelevated
           no-caps

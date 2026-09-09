@@ -85,6 +85,14 @@
             align="left"
           >
             <q-tab name="all" label="All" />
+            <q-tab name="tasks">
+              <div class="row items-center no-wrap q-gutter-x-xs">
+                <span>Tasks</span>
+                <q-badge v-if="taskCount > 0" color="purple-8" rounded size="xs">
+                  {{ taskCount }}
+                </q-badge>
+              </div>
+            </q-tab>
             <q-tab name="delays">
               <div class="row items-center no-wrap q-gutter-x-xs">
                 <span>Delays</span>
@@ -280,7 +288,7 @@ const router = useRouter();
 const notificationStore = useNotificationStore();
 
 const menuOpen = ref(false);
-const filterTab = ref<'all' | 'delays' | 'early' | 'leaves' | 'unread'>('all');
+const filterTab = ref<'all' | 'tasks' | 'delays' | 'early' | 'leaves' | 'unread'>('all');
 
 onMounted(() => {
   notificationStore.startPolling();
@@ -288,6 +296,16 @@ onMounted(() => {
 
 onUnmounted(() => {
   notificationStore.stopPolling();
+});
+
+const taskCount = computed(() => {
+  return notificationStore.notifications.filter(
+    (n) =>
+      (n.type === 'TASK_VERIFICATION' ||
+        n.type === 'TASK_CREATED' ||
+        n.type === 'TASK_ASSIGNED') &&
+      !n.is_read
+  ).length;
 });
 
 const delayCount = computed(() => {
@@ -306,6 +324,14 @@ const leaveCount = computed(() => {
 });
 
 const filteredNotifications = computed(() => {
+  if (filterTab.value === 'tasks') {
+    return notificationStore.notifications.filter(
+      (n) =>
+        n.type === 'TASK_VERIFICATION' ||
+        n.type === 'TASK_CREATED' ||
+        n.type === 'TASK_ASSIGNED'
+    );
+  }
   if (filterTab.value === 'delays') {
     return notificationStore.notifications.filter((n) => n.type === 'POSSIBLE_DELAY');
   }
@@ -358,6 +384,27 @@ interface TypeMeta {
 }
 
 function getTypeMeta(type: string): TypeMeta {
+  if (type === 'TASK_VERIFICATION') {
+    return {
+      icon: 'verified',
+      bgColor: 'purple-1',
+      textColor: 'purple-8',
+    };
+  }
+  if (type === 'TASK_CREATED') {
+    return {
+      icon: 'playlist_add_check',
+      bgColor: 'purple-1',
+      textColor: 'purple-8',
+    };
+  }
+  if (type === 'TASK_ASSIGNED') {
+    return {
+      icon: 'assignment_ind',
+      bgColor: 'blue-1',
+      textColor: 'blue-8',
+    };
+  }
   if (type === 'EARLY_COMPLETION') {
     return {
       icon: 'check_circle',
@@ -396,6 +443,12 @@ function getTypeMeta(type: string): TypeMeta {
 
 function getBadgeLabel(type: string): string {
   switch (type) {
+    case 'TASK_VERIFICATION':
+      return 'VERIFICATION REQUEST';
+    case 'TASK_CREATED':
+      return 'SELF ASSIGNED';
+    case 'TASK_ASSIGNED':
+      return 'TASK ASSIGNED';
     case 'EARLY_COMPLETION':
       return 'EARLY COMPLETION';
     case 'POSSIBLE_DELAY':
@@ -413,6 +466,11 @@ function getBadgeLabel(type: string): string {
 
 function getBadgeColor(type: string, isDark: boolean): string {
   switch (type) {
+    case 'TASK_VERIFICATION':
+    case 'TASK_CREATED':
+      return isDark ? 'purple-10' : 'purple-1';
+    case 'TASK_ASSIGNED':
+      return isDark ? 'blue-10' : 'blue-1';
     case 'EARLY_COMPLETION':
     case 'LEAVE_APPROVED':
       return isDark ? 'green-10' : 'green-1';
@@ -428,6 +486,11 @@ function getBadgeColor(type: string, isDark: boolean): string {
 
 function getBadgeTextColor(type: string, isDark: boolean): string {
   switch (type) {
+    case 'TASK_VERIFICATION':
+    case 'TASK_CREATED':
+      return isDark ? 'purple-2' : 'purple-9';
+    case 'TASK_ASSIGNED':
+      return isDark ? 'blue-3' : 'blue-9';
     case 'EARLY_COMPLETION':
     case 'LEAVE_APPROVED':
       return isDark ? 'green-3' : 'green-9';

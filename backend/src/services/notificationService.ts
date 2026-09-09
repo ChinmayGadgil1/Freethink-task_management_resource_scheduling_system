@@ -7,7 +7,9 @@ export type NotificationType =
     | "LEAVE_REQUESTED"
     | "LEAVE_APPROVED"
     | "LEAVE_REJECTED"
-    | "TASK_VERIFICATION";
+    | "TASK_VERIFICATION"
+    | "TASK_ASSIGNED"
+    | "TASK_CREATED";
 
 export interface NotificationRecord {
     notification_id: number;
@@ -63,7 +65,9 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
             'LEAVE_REQUESTED',
             'LEAVE_APPROVED',
             'LEAVE_REJECTED',
-            'TASK_VERIFICATION'
+            'TASK_VERIFICATION',
+            'TASK_ASSIGNED',
+            'TASK_CREATED'
         )`
     );
 

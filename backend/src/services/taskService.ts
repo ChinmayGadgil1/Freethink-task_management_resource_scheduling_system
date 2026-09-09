@@ -88,6 +88,25 @@ export async function createTask(
                 [memberValues]
             );
 
+            // Generate notification for assigned resources (self-assigned vs manager-assigned)
+            for (const rId of assignedResourceIds) {
+                const isSelf = Number(rId) === createdBy;
+                const notifType = isSelf ? "TASK_CREATED" : "TASK_ASSIGNED";
+                const notifTitle = isSelf
+                    ? `Self-Assigned Task: ${title}`
+                    : `Task Assignment: ${title}`;
+                const notifMessage = isSelf
+                    ? `You created and assigned yourself to task "${title}".`
+                    : `${creatorName || "Project Manager"} assigned you to task "${title}".`;
+                const notifLink = `/app/resource-dashboard/task-details/${taskId}`;
+
+                await connection.query(
+                    `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                     VALUES (?, ?, ?, ?, ?, FALSE, NOW())`,
+                    [rId, notifType, notifTitle, notifMessage, notifLink]
+                );
+            }
+
             await connection.commit();
 
             const assignedResources = users.map(u => ({
@@ -716,6 +735,29 @@ export async function assignResourceToTask(
                 [taskId]
             );
         }
+
+        // Fetch task and PM info to generate notification
+        const [taskInfoRows] = await connection.query<RowDataPacket[]>(
+            `SELECT t.title, u.name as pm_name
+             FROM tasks t
+             LEFT JOIN projects p ON t.project_id = p.project_id
+             LEFT JOIN users u ON p.project_manager_id = u.user_id
+             WHERE t.task_id = ?`,
+            [taskId]
+        );
+        const taskTitle = taskInfoRows[0]?.title || "Task";
+        const pmName = taskInfoRows[0]?.pm_name || "Project Manager";
+
+        await connection.query(
+            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+             VALUES (?, 'TASK_ASSIGNED', ?, ?, ?, FALSE, NOW())`,
+            [
+                resourceId,
+                `Task Assignment: ${taskTitle}`,
+                `${pmName} assigned you to task "${taskTitle}".`,
+                `/app/resource-dashboard/task-details/${taskId}`
+            ]
+        );
 
         await connection.commit();
 

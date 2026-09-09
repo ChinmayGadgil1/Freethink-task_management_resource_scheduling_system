@@ -341,22 +341,6 @@
                             >Verified by {{ item.verification_task.verifier_name }}</q-tooltip
                           >
                         </q-chip>
-                        <q-btn
-                          v-else-if="
-                            item.status === 'COMPLETED' && item.task_type !== 'VERIFICATION'
-                          "
-                          flat
-                          dense
-                          no-caps
-                          size="xs"
-                          color="primary"
-                          icon="verified"
-                          label="Verify"
-                          class="q-px-xs"
-                          @click.stop="openAssignVerification(item)"
-                        >
-                          <q-tooltip>Assign a resource to verify this completed task</q-tooltip>
-                        </q-btn>
 
                         <q-chip
                           v-if="Number(item.supervisor_id) === currentUserId"
@@ -541,6 +525,7 @@
                         />
 
                         <div class="row items-center q-gutter-xs">
+
                           <q-btn
                             outline
                             no-caps
@@ -549,11 +534,12 @@
                             size="sm"
                             label="Specs"
                             icon="article"
+                            class="rounded-borders"
                             @click.stop="openTask(item.task_id)"
                           />
 
                           <q-btn
-                            v-if="isAssignedToMe(item)"
+                            v-if="isSelfAssigned(item)"
                             unelevated
                             no-caps
                             dense
@@ -561,6 +547,7 @@
                             size="sm"
                             label="Edit"
                             icon="edit"
+                            class="rounded-borders"
                             @click.stop="openUpdateTaskDialog(item)"
                           />
                         </div>
@@ -855,7 +842,7 @@
                 />
 
                 <q-btn
-                  v-if="isAssignedToMe(props.row)"
+                  v-if="isSelfAssigned(props.row)"
                   unelevated
                   no-caps
                   dense
@@ -1044,30 +1031,20 @@
 
               <!-- Peer Verification Block on Completed Standard Tasks -->
               <div
-                v-if="task.status === 'COMPLETED' && task.task_type !== 'VERIFICATION'"
+                v-if="
+                  task.status === 'COMPLETED' &&
+                  task.task_type !== 'VERIFICATION' &&
+                  task.verification_task
+                "
                 class="q-mt-md"
               >
-                <div class="row items-center justify-between q-mb-xs">
-                  <div
-                    class="text-caption text-weight-bold"
-                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                  >
-                    PEER VERIFICATION REVIEW
-                  </div>
-                  <q-btn
-                    v-if="!task.verification_task"
-                    flat
-                    dense
-                    no-caps
-                    size="sm"
-                    color="primary"
-                    icon="verified"
-                    label="Assign Verifier"
-                    @click="openAssignVerification(task)"
-                  />
+                <div
+                  class="text-caption text-weight-bold q-mb-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
+                  PEER VERIFICATION REVIEW
                 </div>
                 <q-card
-                  v-if="task.verification_task"
                   flat
                   bordered
                   :dark="$q.dark.isActive"
@@ -1115,6 +1092,7 @@
                   />
                 </q-card>
               </div>
+
 
               <div
                 class="text-body1 q-mt-md"
@@ -1290,6 +1268,30 @@
               <!-- Action Buttons (Only for assigned resources; read-only for supervisors and dependent viewers) -->
               <div class="column gap-sm q-mt-md full-width" style="max-width: 320px">
                 <template v-if="isAssignedToMe(task)">
+                  <!-- Assign Verifier Action (if task completed and no verifier assigned) -->
+                  <div
+                    v-if="
+                      task.status === 'COMPLETED' &&
+                      task.task_type !== 'VERIFICATION' &&
+                      !task.verification_task
+                    "
+                    class="row q-mb-xs"
+                  >
+                    <div class="col-12">
+                      <q-btn
+                        unelevated
+                        no-caps
+                        color="primary"
+                        text-color="white"
+                        icon="verified"
+                        label="Assign Verifier"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        @click="openAssignVerification(task)"
+                      />
+                    </div>
+                  </div>
+
                   <!-- Primary Actions Row -->
                   <div class="row q-col-gutter-sm">
                     <div class="col-12">
@@ -1320,8 +1322,8 @@
                     </div>
                   </div>
 
-                  <!-- Secondary Action Row -->
-                  <div class="row">
+                  <!-- Secondary Action Row (Only for self-assigned tasks) -->
+                  <div v-if="isSelfAssigned(task)" class="row">
                     <div class="col-12">
                       <q-btn
                         outline
