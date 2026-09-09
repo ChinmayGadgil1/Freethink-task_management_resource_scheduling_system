@@ -359,6 +359,27 @@ export async function getTasksList(filters: {
         }
     }
 
+    // Also fetch successor task mappings for all fetched tasks in one query
+    const [allSuccessorRows] = await pool.query<RowDataPacket[]>(
+        `SELECT td.predecessor_task_id, td.task_id as successor_task_id 
+         FROM task_dependencies td 
+         WHERE td.predecessor_task_id IN (?)`,
+        [taskIds]
+    );
+
+    const successorMap = new Map<number, number[]>();
+    for (const sRow of allSuccessorRows) {
+        const predId = Number(sRow.predecessor_task_id);
+        const succId = Number(sRow.successor_task_id);
+        if (predId && succId) {
+            if (!successorMap.has(predId)) {
+                successorMap.set(predId, []);
+            }
+            successorMap.get(predId)!.push(succId);
+            allPredecessorIdsSet.add(succId);
+        }
+    }
+
     const predDetailsMap = await getPredecessorDetailsMap(Array.from(allPredecessorIdsSet));
 
     return tasks.map(t => {
@@ -366,6 +387,11 @@ export async function getTasksList(filters: {
             ? String(t.predecessor_task_ids).split(",").map(Number).filter(id => !isNaN(id))
             : [];
         const predecessors = predIds
+            .map(id => predDetailsMap.get(id))
+            .filter(Boolean);
+
+        const succIds = successorMap.get(Number(t.task_id)) || [];
+        const successors = succIds
             .map(id => predDetailsMap.get(id))
             .filter(Boolean);
 
@@ -395,6 +421,8 @@ export async function getTasksList(filters: {
                 : (assignmentMap.get(Number(t.task_id)) || []).map(a => a.name),
             predecessor_task_ids: predIds,
             predecessors,
+            successor_task_ids: succIds,
+            successors,
             schedules: scheduleMap.get(Number(t.task_id)) || []
         };
     });
@@ -496,8 +524,17 @@ export async function getTaskById(taskId: number) {
     const predIds = task.predecessor_task_ids
         ? String(task.predecessor_task_ids).split(",").map(Number).filter((id: number) => !isNaN(id))
         : [];
-    const predDetailsMap = await getPredecessorDetailsMap(predIds);
-    const predecessors = predIds.map((id: number) => predDetailsMap.get(id)).filter(Boolean);
+
+    const [succRows] = await pool.query<RowDataPacket[]>(
+        `SELECT td.task_id FROM task_dependencies td WHERE td.predecessor_task_id = ?`,
+        [taskId]
+    );
+    const succIds = succRows.map(r => Number(r.task_id)).filter(id => !isNaN(id));
+
+    const allDepIds = Array.from(new Set([...predIds, ...succIds]));
+    const depDetailsMap = await getPredecessorDetailsMap(allDepIds);
+    const predecessors = predIds.map((id: number) => depDetailsMap.get(id)).filter(Boolean);
+    const successors = succIds.map((id: number) => depDetailsMap.get(id)).filter(Boolean);
 
     return {
         ...task,
@@ -522,6 +559,8 @@ export async function getTaskById(taskId: number) {
             : assignedResources.map(a => a.name),
         predecessor_task_ids: predIds,
         predecessors,
+        successor_task_ids: succIds,
+        successors,
         schedules: formattedSchedules
     } as any;
 }

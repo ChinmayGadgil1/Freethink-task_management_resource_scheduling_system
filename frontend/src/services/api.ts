@@ -147,6 +147,8 @@ export interface Task {
   assigned_resource_names?: string[];
   predecessor_task_ids?: number[];
   predecessors?: PredecessorTaskInfo[];
+  successor_task_ids?: number[];
+  successors?: PredecessorTaskInfo[];
   pacing?: TaskPacing;
   schedules?: TaskScheduleItem[];
   is_external?: boolean;

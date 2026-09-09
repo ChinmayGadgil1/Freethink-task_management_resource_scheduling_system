@@ -261,10 +261,10 @@
           <span v-else class="text-caption text-grey-5">No supervisor designated</span>
         </div>
 
-        <!-- Dependencies in Popup -->
+        <!-- Dependencies & Impact Flow in Popup -->
         <div v-if="showDependencies" class="popup-dependencies-block q-mt-md">
           <div class="row items-center justify-between q-mb-xs">
-            <div class="detail-label">Upstream Dependencies (Predecessors)</div>
+            <div class="detail-label">Task Dependencies & Impact Flow</div>
             <q-btn
               v-if="allowAddDependency"
               flat
@@ -277,40 +277,116 @@
               @click="emit('addDependency', task.task_id)"
             />
           </div>
-          <div
-            v-if="task.predecessors && task.predecessors.length > 0"
-            class="column q-gutter-y-xs q-mt-xs"
-          >
+
+          <!-- Dependency Direction Filter Tabs -->
+          <div class="row items-center q-mb-xs">
+            <q-tabs
+              v-model="activeDependencyTab"
+              dense
+              no-caps
+              active-color="primary"
+              indicator-color="primary"
+              align="left"
+              class="text-grey-7"
+              style="font-size: 11.5px"
+            >
+              <q-tab name="all">
+                <div class="row items-center gap-xs">
+                  <span>All</span>
+                  <q-badge
+                    :color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+                    :text-color="$q.dark.isActive ? 'grey-2' : 'grey-9'"
+                    class="text-weight-bold"
+                    style="font-size: 10px"
+                  >
+                    {{ totalDependencyCount }}
+                  </q-badge>
+                </div>
+              </q-tab>
+              <q-tab name="upstream">
+                <div class="row items-center gap-xs">
+                  <span>Upstream (Prerequisites)</span>
+                  <q-badge
+                    color="teal-1"
+                    text-color="teal-9"
+                    class="text-weight-bold"
+                    style="font-size: 10px"
+                  >
+                    {{ upstreamCount }}
+                  </q-badge>
+                </div>
+              </q-tab>
+              <q-tab name="downstream">
+                <div class="row items-center gap-xs">
+                  <span>Downstream (Dependents)</span>
+                  <q-badge
+                    color="purple-1"
+                    text-color="purple-9"
+                    class="text-weight-bold"
+                    style="font-size: 10px"
+                  >
+                    {{ downstreamCount }}
+                  </q-badge>
+                </div>
+              </q-tab>
+            </q-tabs>
+          </div>
+
+          <!-- Dependencies List -->
+          <div v-if="filteredDependencies.length > 0" class="column q-gutter-y-xs q-mt-xs">
             <q-card
-              v-for="pred in task.predecessors"
-              :key="pred.task_id"
+              v-for="dep in filteredDependencies"
+              :key="`${dep.direction}-${dep.task_id}`"
               flat
               bordered
               :dark="$q.dark.isActive"
               class="q-pa-xs rounded-borders"
+              :style="
+                dep.direction === 'UPSTREAM'
+                  ? 'border-left: 3px solid #00897b;'
+                  : 'border-left: 3px solid #7c4dff;'
+              "
             >
               <div class="row items-center justify-between no-wrap">
                 <div class="row items-center gap-xs ellipsis">
-                  <q-icon name="account_tree" size="14px" color="teal" />
-                  <span class="text-weight-bold text-caption ellipsis" :title="pred.title">{{
-                    pred.title
-                  }}</span>
                   <q-chip
                     dense
                     square
                     size="xs"
-                    :color="pred.status === 'COMPLETED' ? 'green-1' : 'blue-1'"
-                    :text-color="pred.status === 'COMPLETED' ? 'green-9' : 'blue-9'"
+                    :color="dep.direction === 'UPSTREAM' ? 'teal-1' : 'purple-1'"
+                    :text-color="dep.direction === 'UPSTREAM' ? 'teal-9' : 'purple-9'"
+                    class="text-weight-bold"
+                    style="font-size: 10px"
                   >
-                    {{ formatStatus(pred.status) }}
+                    {{ dep.direction === 'UPSTREAM' ? 'Blocked By' : 'Blocks' }}
+                  </q-chip>
+                  <span
+                    class="text-weight-bold text-caption ellipsis"
+                    :title="dep.title"
+                    style="font-size: 11.5px"
+                  >
+                    {{ dep.title }}
+                  </span>
+                  <span class="text-caption text-grey-5" style="font-size: 10.5px">
+                    #{{ dep.task_id }}
+                  </span>
+                  <q-chip
+                    v-if="dep.status"
+                    dense
+                    square
+                    size="xs"
+                    :class="['status-chip', getTaskStatusClass(dep.status)]"
+                    style="font-size: 10px"
+                  >
+                    {{ formatStatus(dep.status) }}
                   </q-chip>
                 </div>
                 <div class="row items-center gap-xs">
-                  <span class="text-caption text-weight-bold text-primary"
-                    >{{ Number(pred.progress) || 0 }}%</span
-                  >
+                  <span class="text-caption text-weight-bold text-primary" style="font-size: 11px">
+                    {{ Number(dep.progress) || 0 }}%
+                  </span>
                   <q-btn
-                    v-if="allowRemoveDependency"
+                    v-if="dep.direction === 'UPSTREAM' && allowRemoveDependency"
                     flat
                     round
                     dense
@@ -318,47 +394,47 @@
                     icon="close"
                     color="grey-6"
                     title="Remove dependency"
-                    @click="handleRemoveDependencyClick(pred.task_id)"
+                    @click="handleRemoveDependencyClick(dep.task_id)"
                   />
                 </div>
+              </div>
+              <div
+                class="text-caption text-grey-6 q-mt-xs"
+                style="font-size: 10.5px; line-height: 1.2"
+              >
+                {{ dep.relationshipNote }}
               </div>
               <q-linear-progress
                 rounded
                 size="4px"
-                :value="(Number(pred.progress) || 0) / 100"
-                :color="pred.status === 'COMPLETED' ? 'positive' : 'primary'"
+                :value="(Number(dep.progress) || 0) / 100"
+                :color="
+                  dep.status === 'COMPLETED'
+                    ? 'positive'
+                    : dep.direction === 'UPSTREAM'
+                      ? 'teal'
+                      : 'primary'
+                "
                 class="q-mt-xs"
               />
               <div
-                v-if="pred.assigned_resource_names && pred.assigned_resource_names.length > 0"
+                v-if="dep.assigned_resource_names && dep.assigned_resource_names.length > 0"
                 class="text-caption text-grey-6 q-mt-xs"
                 style="font-size: 10.5px"
               >
-                Assigned: {{ pred.assigned_resource_names.join(', ') }}
+                Assigned: {{ dep.assigned_resource_names.join(', ') }}
               </div>
             </q-card>
           </div>
-          <div
-            v-else-if="task.predecessor_task_ids && task.predecessor_task_ids.length > 0"
-            class="row q-gutter-xs wrap"
-          >
-            <q-chip
-              v-for="pId in task.predecessor_task_ids"
-              :key="pId"
-              dense
-              square
-              :removable="allowRemoveDependency"
-              color="teal-1"
-              text-color="teal-9"
-              style="font-size: 11px"
-              @remove="handleRemoveDependencyClick(pId)"
-            >
-              <q-icon name="account_tree" size="13px" class="q-mr-xs" color="teal" />
-              {{ resolvePredecessorTitle(pId) }} (#{{ pId }})
-              <q-tooltip v-if="allowRemoveDependency">Click X to remove this dependency</q-tooltip>
-            </q-chip>
+          <div v-else class="text-caption text-grey-5 q-py-xs">
+            {{
+              activeDependencyTab === 'upstream'
+                ? 'This task is not blocked by any prerequisites.'
+                : activeDependencyTab === 'downstream'
+                  ? 'This task does not block any downstream deliverables.'
+                  : 'No dependencies linked to this deliverable.'
+            }}
           </div>
-          <span v-else class="text-caption text-grey-5">No predecessor dependencies</span>
         </div>
 
         <!-- Work Logs / Daily Updates History in Popup -->
@@ -606,6 +682,116 @@ function getResourceInitial(resourceId: number): string {
   const name = resolveResourceName(resourceId);
   return getInitials(name, 'R').charAt(0).toUpperCase();
 }
+
+const activeDependencyTab = ref<'all' | 'upstream' | 'downstream'>('all');
+
+interface DialogDependencyItem {
+  task_id: number;
+  project_id?: number | undefined;
+  project_name?: string | undefined;
+  title: string;
+  status: string;
+  priority?: string | undefined;
+  deadline?: string | null | undefined;
+  planned_start?: string | null | undefined;
+  planned_end?: string | null | undefined;
+  progress?: number | string | undefined;
+  expected_effort?: number | string | undefined;
+  actual_effort?: number | string | undefined;
+  is_schedule_at_risk?: boolean | undefined;
+  is_deadline_at_risk?: boolean | undefined;
+  assigned_resource_names?: string[] | undefined;
+  direction: 'UPSTREAM' | 'DOWNSTREAM';
+  relationshipNote: string;
+}
+
+const upstreamDependencies = computed<DialogDependencyItem[]>(() => {
+  if (!props.task) return [];
+  if (Array.isArray(props.task.predecessors) && props.task.predecessors.length > 0) {
+    return props.task.predecessors.map((p) => ({
+      task_id: Number(p.task_id),
+      project_id: p.project_id ? Number(p.project_id) : undefined,
+      project_name: p.project_name || undefined,
+      title: p.title || resolvePredecessorTitle(Number(p.task_id)),
+      status: p.status || 'UNASSIGNED',
+      priority: p.priority || 'MEDIUM',
+      deadline: p.deadline || null,
+      planned_start: p.planned_start || null,
+      planned_end: p.planned_end || null,
+      progress: p.progress ?? 0,
+      expected_effort: p.expected_effort ?? 0,
+      actual_effort: p.actual_effort ?? 0,
+      is_schedule_at_risk: Boolean(p.is_schedule_at_risk),
+      is_deadline_at_risk: Boolean(p.is_deadline_at_risk),
+      assigned_resource_names: p.assigned_resource_names || [],
+      direction: 'UPSTREAM' as const,
+      relationshipNote: 'Prerequisite deliverable that must finish before this task can proceed.',
+    }));
+  }
+  if (Array.isArray(props.task.predecessor_task_ids) && props.task.predecessor_task_ids.length > 0) {
+    return props.task.predecessor_task_ids.map((id) => ({
+      task_id: Number(id),
+      title: resolvePredecessorTitle(Number(id)),
+      status: 'UNASSIGNED',
+      progress: 0,
+      direction: 'UPSTREAM' as const,
+      relationshipNote: 'Prerequisite deliverable required before this task can proceed.',
+    }));
+  }
+  return [];
+});
+
+const downstreamDependencies = computed<DialogDependencyItem[]>(() => {
+  if (!props.task) return [];
+  if (Array.isArray(props.task.successors) && props.task.successors.length > 0) {
+    return props.task.successors.map((s) => ({
+      task_id: Number(s.task_id),
+      project_id: s.project_id ? Number(s.project_id) : undefined,
+      project_name: s.project_name || undefined,
+      title: s.title || resolvePredecessorTitle(Number(s.task_id)),
+      status: s.status || 'UNASSIGNED',
+      priority: s.priority || 'MEDIUM',
+      deadline: s.deadline || null,
+      planned_start: s.planned_start || null,
+      planned_end: s.planned_end || null,
+      progress: s.progress ?? 0,
+      expected_effort: s.expected_effort ?? 0,
+      actual_effort: s.actual_effort ?? 0,
+      is_schedule_at_risk: Boolean(s.is_schedule_at_risk),
+      is_deadline_at_risk: Boolean(s.is_deadline_at_risk),
+      assigned_resource_names: s.assigned_resource_names || [],
+      direction: 'DOWNSTREAM' as const,
+      relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
+    }));
+  }
+  if (Array.isArray(props.task.successor_task_ids) && props.task.successor_task_ids.length > 0) {
+    return props.task.successor_task_ids.map((id) => ({
+      task_id: Number(id),
+      title: resolvePredecessorTitle(Number(id)),
+      status: 'UNASSIGNED',
+      progress: 0,
+      direction: 'DOWNSTREAM' as const,
+      relationshipNote: 'Dependent deliverable waiting for this task to complete.',
+    }));
+  }
+  return [];
+});
+
+const totalDependencyCount = computed(
+  () => upstreamDependencies.value.length + downstreamDependencies.value.length,
+);
+const upstreamCount = computed(() => upstreamDependencies.value.length);
+const downstreamCount = computed(() => downstreamDependencies.value.length);
+
+const filteredDependencies = computed<DialogDependencyItem[]>(() => {
+  if (activeDependencyTab.value === 'upstream') {
+    return upstreamDependencies.value;
+  }
+  if (activeDependencyTab.value === 'downstream') {
+    return downstreamDependencies.value;
+  }
+  return [...upstreamDependencies.value, ...downstreamDependencies.value];
+});
 
 function resolvePredecessorTitle(taskId: number): string {
   return props.predecessorTitlesMap?.[taskId] || `Task #${taskId}`;

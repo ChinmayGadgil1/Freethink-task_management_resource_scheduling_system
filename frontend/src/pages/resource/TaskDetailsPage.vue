@@ -97,7 +97,8 @@
             { label: 'Assigned to Me', value: 'assigned', icon: 'assignment_ind' },
             { label: 'Supervised by Me', value: 'supervised', icon: 'verified_user' },
             { label: 'Verifications', value: 'verifications', icon: 'verified' },
-            { label: 'Upstream Dependencies', value: 'upstream', icon: 'account_tree' },
+            { label: 'Upstream (Prerequisites)', value: 'upstream', icon: 'call_made' },
+            { label: 'Downstream (Dependents)', value: 'downstream', icon: 'call_received' },
           ]"
         />
       </div>
@@ -366,19 +367,18 @@
                           class="text-weight-medium"
                         />
 
+                        <!-- Blocked By Tag -->
                         <q-chip
-                          v-if="item.predecessors && item.predecessors.length > 0"
+                          v-if="getResourceTaskBlockedBySummary(item).list.length > 0"
                           dense
                           square
                           size="sm"
                           :color="
-                            item.predecessors.every((p) => p.status === 'COMPLETED')
+                            getResourceTaskBlockedBySummary(item).isAllCompleted
                               ? $q.dark.isActive
                                 ? 'green-10'
                                 : 'green-1'
-                              : item.predecessors.some(
-                                    (p) => p.is_schedule_at_risk || p.is_deadline_at_risk,
-                                  )
+                              : getResourceTaskBlockedBySummary(item).hasRisk
                                 ? $q.dark.isActive
                                   ? 'red-10'
                                   : 'red-1'
@@ -387,13 +387,11 @@
                                   : 'teal-1'
                           "
                           :text-color="
-                            item.predecessors.every((p) => p.status === 'COMPLETED')
+                            getResourceTaskBlockedBySummary(item).isAllCompleted
                               ? $q.dark.isActive
                                 ? 'green-2'
                                 : 'green-9'
-                              : item.predecessors.some(
-                                    (p) => p.is_schedule_at_risk || p.is_deadline_at_risk,
-                                  )
+                              : getResourceTaskBlockedBySummary(item).hasRisk
                                 ? $q.dark.isActive
                                   ? 'red-2'
                                   : 'negative'
@@ -401,32 +399,37 @@
                                   ? 'teal-2'
                                   : 'teal-9'
                           "
-                          icon="account_tree"
-                          :label="
-                            item.predecessors.every((p) => p.status === 'COMPLETED')
-                              ? 'Ready'
-                              : `${item.predecessors.length} Pred`
-                          "
-                          class="text-weight-medium"
-                        />
+                          icon="link"
+                          :label="getResourceTaskBlockedBySummary(item).label"
+                          class="text-weight-bold"
+                        >
+                          <q-tooltip>
+                            <div class="text-weight-bold q-mb-xs">Blocked By (Prerequisites):</div>
+                            <div
+                              v-for="bl in getResourceTaskBlockedBySummary(item).list"
+                              :key="bl.title"
+                            >
+                              • {{ bl.title }} {{ bl.status ? `(${formatStatusLabel(bl.status)})` : '' }}
+                            </div>
+                          </q-tooltip>
+                        </q-chip>
 
+                        <!-- Blocks Tag -->
                         <q-chip
-                          v-if="getBlockedMyTaskNames(item.task_id).length > 0"
+                          v-if="getResourceTaskBlocksSummary(item).list.length > 0"
                           dense
                           square
                           size="sm"
-                          :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
-                          :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
-                          icon="link"
-                          :label="`Blocks: ${getBlockedMyTaskNames(item.task_id)[0]}${getBlockedMyTaskNames(item.task_id).length > 1 ? ` +${getBlockedMyTaskNames(item.task_id).length - 1}` : ''}`"
+                          :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                          :text-color="$q.dark.isActive ? 'purple-2' : 'purple-9'"
+                          icon="call_split"
+                          :label="getResourceTaskBlocksSummary(item).label"
                           class="text-weight-bold"
                         >
-                          <q-tooltip v-if="getBlockedMyTaskNames(item.task_id).length > 0">
-                            Prerequisite for your task{{
-                              getBlockedMyTaskNames(item.task_id).length > 1 ? 's' : ''
-                            }}:
+                          <q-tooltip>
+                            <div class="text-weight-bold q-mb-xs">Blocks (Dependents):</div>
                             <div
-                              v-for="tTitle in getBlockedMyTaskNames(item.task_id)"
+                              v-for="tTitle in getResourceTaskBlocksSummary(item).list"
                               :key="tTitle"
                             >
                               • {{ tTitle }}
@@ -684,52 +687,71 @@
                   :label="'Sup: ' + props.row.supervisor_name"
                   class="text-weight-medium"
                 />
+                <!-- Blocked By Tag (Table) -->
                 <q-chip
-                  v-if="props.row.predecessors && props.row.predecessors.length > 0"
+                  v-if="getResourceTaskBlockedBySummary(props.row).list.length > 0"
                   dense
                   square
                   size="sm"
                   :color="
-                    props.row.predecessors.every(
-                      (p: PredecessorTaskInfo) => p.status === 'COMPLETED',
-                    )
+                    getResourceTaskBlockedBySummary(props.row).isAllCompleted
                       ? $q.dark.isActive
                         ? 'green-10'
                         : 'green-1'
-                      : $q.dark.isActive
-                        ? 'teal-10'
-                        : 'teal-1'
+                      : getResourceTaskBlockedBySummary(props.row).hasRisk
+                        ? $q.dark.isActive
+                          ? 'red-10'
+                          : 'red-1'
+                        : $q.dark.isActive
+                          ? 'teal-10'
+                          : 'teal-1'
                   "
                   :text-color="
-                    props.row.predecessors.every(
-                      (p: PredecessorTaskInfo) => p.status === 'COMPLETED',
-                    )
+                    getResourceTaskBlockedBySummary(props.row).isAllCompleted
                       ? $q.dark.isActive
                         ? 'green-2'
                         : 'green-9'
-                      : $q.dark.isActive
-                        ? 'teal-2'
-                        : 'teal-9'
+                      : getResourceTaskBlockedBySummary(props.row).hasRisk
+                        ? $q.dark.isActive
+                          ? 'red-2'
+                          : 'negative'
+                        : $q.dark.isActive
+                          ? 'teal-2'
+                          : 'teal-9'
                   "
-                  icon="account_tree"
-                  :label="`${props.row.predecessors.length} Pred`"
-                />
+                  icon="link"
+                  :label="getResourceTaskBlockedBySummary(props.row).label"
+                  class="text-weight-bold"
+                >
+                  <q-tooltip>
+                    <div class="text-weight-bold q-mb-xs">Blocked By (Prerequisites):</div>
+                    <div
+                      v-for="bl in getResourceTaskBlockedBySummary(props.row).list"
+                      :key="bl.title"
+                    >
+                      • {{ bl.title }} {{ bl.status ? `(${formatStatusLabel(bl.status)})` : '' }}
+                    </div>
+                  </q-tooltip>
+                </q-chip>
+
+                <!-- Blocks Tag (Table) -->
                 <q-chip
-                  v-if="getBlockedMyTaskNames(props.row.task_id).length > 0"
+                  v-if="getResourceTaskBlocksSummary(props.row).list.length > 0"
                   dense
                   square
                   size="sm"
-                  :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
-                  :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
-                  icon="link"
-                  :label="`Blocks: ${getBlockedMyTaskNames(props.row.task_id)[0]}${getBlockedMyTaskNames(props.row.task_id).length > 1 ? ` +${getBlockedMyTaskNames(props.row.task_id).length - 1}` : ''}`"
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'purple-9'"
+                  icon="call_split"
+                  :label="getResourceTaskBlocksSummary(props.row).label"
                   class="text-weight-bold"
                 >
-                  <q-tooltip v-if="getBlockedMyTaskNames(props.row.task_id).length > 0">
-                    Prerequisite for your task{{
-                      getBlockedMyTaskNames(props.row.task_id).length > 1 ? 's' : ''
-                    }}:
-                    <div v-for="tTitle in getBlockedMyTaskNames(props.row.task_id)" :key="tTitle">
+                  <q-tooltip>
+                    <div class="text-weight-bold q-mb-xs">Blocks (Dependents):</div>
+                    <div
+                      v-for="tTitle in getResourceTaskBlocksSummary(props.row).list"
+                      :key="tTitle"
+                    >
                       • {{ tTitle }}
                     </div>
                   </q-tooltip>
@@ -1525,14 +1547,14 @@
         </q-card-section>
       </q-card>
 
-      <!-- 2.5. UPSTREAM DEPENDENCIES & LIVE PROGRESS CARD -->
+      <!-- 2. TASK DEPENDENCIES & IMPACT FLOW SECTION -->
       <q-card
         flat
         bordered
         :dark="$q.dark.isActive"
         class="rounded-borders q-mb-lg overflow-hidden"
       >
-        <q-card-section class="row items-center justify-between q-pa-md">
+        <q-card-section class="row items-center justify-between q-pa-md wrap gap-sm">
           <div class="row items-center">
             <q-avatar
               size="34px"
@@ -1547,51 +1569,144 @@
                 class="text-subtitle1 text-weight-bold"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
-                Upstream Dependencies & Live Progress
+                Task Dependencies & Impact Flow
               </div>
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                Monitor prerequisite tasks that must be completed before or alongside this
-                deliverable.
+                Explore both incoming prerequisites and outgoing dependent tasks connected to this deliverable.
               </div>
             </div>
           </div>
-          <q-badge color="teal" class="text-weight-bold q-pa-xs">
-            {{ (task.predecessors || []).length }} Upstream Prerequisite{{
-              (task.predecessors || []).length === 1 ? '' : 's'
-            }}
-          </q-badge>
+
+          <!-- Filter Tabs for Upstream / Downstream / All -->
+          <div class="row items-center gap-xs">
+            <q-tabs
+              v-model="specDependencyFilterTab"
+              dense
+              no-caps
+              class="text-grey-7"
+              active-color="primary"
+              indicator-color="primary"
+            >
+              <q-tab name="all">
+                <div class="row items-center gap-xs no-wrap">
+                  <span>All</span>
+                  <q-badge color="grey-7" rounded size="xs">
+                    {{ currentTaskUpstreamDependencies.length + currentTaskDownstreamDependencies.length }}
+                  </q-badge>
+                </div>
+              </q-tab>
+              <q-tab name="upstream">
+                <div class="row items-center gap-xs no-wrap">
+                  <q-icon name="arrow_upward" size="14px" color="teal" />
+                  <span>Upstream (Prerequisites)</span>
+                  <q-badge
+                    v-if="currentTaskUpstreamDependencies.length > 0"
+                    color="teal"
+                    rounded
+                    size="xs"
+                  >
+                    {{ currentTaskUpstreamDependencies.length }}
+                  </q-badge>
+                </div>
+              </q-tab>
+              <q-tab name="downstream">
+                <div class="row items-center gap-xs no-wrap">
+                  <q-icon name="arrow_downward" size="14px" color="indigo" />
+                  <span>Downstream (Dependents)</span>
+                  <q-badge
+                    v-if="currentTaskDownstreamDependencies.length > 0"
+                    color="indigo"
+                    rounded
+                    size="xs"
+                  >
+                    {{ currentTaskDownstreamDependencies.length }}
+                  </q-badge>
+                </div>
+              </q-tab>
+            </q-tabs>
+          </div>
         </q-card-section>
 
         <q-separator />
 
         <q-card-section class="q-pa-md">
-          <div v-if="task.predecessors && task.predecessors.length > 0" class="row q-col-gutter-md">
-            <div v-for="pred in task.predecessors" :key="pred.task_id" class="col-12 col-md-6">
+          <div
+            v-if="currentTaskFilteredDependencies.length > 0"
+            class="row q-col-gutter-md"
+          >
+            <div
+              v-for="dep in currentTaskFilteredDependencies"
+              :key="dep.task_id"
+              class="col-12 col-md-6"
+            >
               <q-card
                 flat
                 bordered
                 :dark="$q.dark.isActive"
-                class="q-pa-md rounded-borders column justify-between"
-                style="min-height: 140px"
+                class="rounded-borders q-pa-sm full-height column justify-between"
+                :style="
+                  dep.direction === 'UPSTREAM'
+                    ? 'border-left: 3px solid #00897b;'
+                    : 'border-left: 3px solid #7c4dff;'
+                "
               >
                 <div>
-                  <div class="row items-center justify-between q-mb-xs">
-                    <div class="row items-center gap-xs ellipsis" style="max-width: 70%">
-                      <q-icon name="account_tree" size="16px" color="teal" />
-                      <span class="text-subtitle2 text-weight-bold ellipsis" :title="pred.title">{{
-                        pred.title
-                      }}</span>
+                  <div class="row items-center justify-between no-wrap q-mb-xs">
+                    <div class="row items-center gap-xs ellipsis" style="max-width: 65%">
+                      <q-icon
+                        :name="dep.direction === 'UPSTREAM' ? 'link' : 'call_split'"
+                        size="16px"
+                        :color="dep.direction === 'UPSTREAM' ? 'teal' : 'indigo'"
+                      />
+                      <span class="text-subtitle2 text-weight-bold ellipsis" :title="dep.title">
+                        {{ dep.title }}
+                      </span>
                     </div>
-                    <q-chip
-                      dense
-                      square
-                      size="sm"
-                      :color="statusBgColor(pred.status)"
-                      :text-color="statusTextColor(pred.status)"
-                      class="text-weight-bold"
-                    >
-                      {{ formatStatusLabel(pred.status) }}
-                    </q-chip>
+                    <div class="row items-center gap-xs">
+                      <q-chip
+                        dense
+                        square
+                        size="xs"
+                        :color="
+                          dep.direction === 'UPSTREAM'
+                            ? $q.dark.isActive
+                              ? 'teal-10'
+                              : 'teal-1'
+                            : $q.dark.isActive
+                              ? 'indigo-10'
+                              : 'indigo-1'
+                        "
+                        :text-color="
+                          dep.direction === 'UPSTREAM'
+                            ? $q.dark.isActive
+                              ? 'teal-2'
+                              : 'teal-9'
+                            : $q.dark.isActive
+                              ? 'indigo-2'
+                              : 'indigo-9'
+                        "
+                        class="text-weight-bold"
+                      >
+                        {{ dep.direction === 'UPSTREAM' ? 'Blocked By' : 'Blocks' }}
+                      </q-chip>
+                      <q-chip
+                        dense
+                        square
+                        size="xs"
+                        :color="statusBgColor(dep.status)"
+                        :text-color="statusTextColor(dep.status)"
+                        class="text-weight-bold"
+                      >
+                        {{ formatStatusLabel(dep.status) }}
+                      </q-chip>
+                    </div>
+                  </div>
+
+                  <div
+                    class="text-caption text-grey-7 q-mb-xs"
+                    style="font-size: 11px"
+                  >
+                    {{ dep.relationshipNote }}
                   </div>
 
                   <div
@@ -1599,15 +1714,15 @@
                     style="font-size: 11px"
                   >
                     <span
-                      v-if="pred.assigned_resource_names && pred.assigned_resource_names.length > 0"
+                      v-if="dep.assigned_resource_names && dep.assigned_resource_names.length > 0"
                     >
                       <q-icon name="people" size="13px" />
-                      {{ pred.assigned_resource_names.join(', ') }}
+                      {{ dep.assigned_resource_names.join(', ') }}
                     </span>
-                    <span v-if="pred.deadline">
-                      · <q-icon name="event" size="13px" /> Due: {{ formatDate(pred.deadline) }}
+                    <span v-if="dep.deadline">
+                      · <q-icon name="event" size="13px" /> Due: {{ formatDate(dep.deadline) }}
                     </span>
-                    <span v-if="pred.expected_effort"> · {{ pred.expected_effort }}h effort </span>
+                    <span v-if="dep.expected_effort"> · {{ dep.expected_effort }}h effort </span>
                   </div>
 
                   <!-- Progress Bar -->
@@ -1615,19 +1730,19 @@
                     <div class="row items-center justify-between text-caption q-mb-xs">
                       <span
                         class="text-weight-bold"
-                        :class="Number(pred.progress) === 100 ? 'text-positive' : 'text-primary'"
+                        :class="Number(dep.progress) === 100 ? 'text-positive' : 'text-primary'"
                       >
-                        {{ Number(pred.progress) || 0 }}% Complete
+                        {{ Number(dep.progress) || 0 }}% Complete
                       </span>
                       <q-badge
-                        v-if="pred.status === 'COMPLETED'"
+                        v-if="dep.status === 'COMPLETED'"
                         color="positive"
                         class="text-caption text-weight-bold"
                       >
-                        Unblocked & Done
+                        {{ dep.direction === 'UPSTREAM' ? 'Unblocked & Done' : 'Finished' }}
                       </q-badge>
                       <q-badge
-                        v-else-if="pred.is_schedule_at_risk || pred.is_deadline_at_risk"
+                        v-else-if="dep.is_schedule_at_risk || dep.is_deadline_at_risk"
                         color="negative"
                         class="text-caption text-weight-bold"
                       >
@@ -1637,15 +1752,17 @@
                     <q-linear-progress
                       rounded
                       size="7px"
-                      :value="(Number(pred.progress) || 0) / 100"
+                      :value="(Number(dep.progress) || 0) / 100"
                       :color="
-                        pred.status === 'COMPLETED'
+                        dep.status === 'COMPLETED'
                           ? 'positive'
-                          : pred.is_schedule_at_risk || pred.is_deadline_at_risk
+                          : dep.is_schedule_at_risk || dep.is_deadline_at_risk
                             ? 'warning'
-                            : 'primary'
+                            : dep.direction === 'UPSTREAM'
+                              ? 'teal'
+                              : 'primary'
                       "
-                      :track-color="$q.dark.isActive ? 'grey-9' : 'teal-1'"
+                      :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                     />
                   </div>
                 </div>
@@ -1658,8 +1775,8 @@
                     size="sm"
                     color="primary"
                     icon="visibility"
-                    label="View Upstream Specs"
-                    @click="openTask(pred.task_id)"
+                    :label="dep.direction === 'UPSTREAM' ? 'View Prerequisite Spec' : 'View Dependent Spec'"
+                    @click="openTask(dep.task_id)"
                   />
                 </div>
               </q-card>
@@ -1671,17 +1788,29 @@
               size="44px"
               :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
               :text-color="$q.dark.isActive ? 'teal-2' : 'teal-8'"
-              icon="check_circle"
+              icon="account_tree"
               class="q-mb-xs"
             />
             <div
               class="text-body2 text-weight-medium"
               :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
             >
-              No upstream dependencies linked.
+              {{
+                specDependencyFilterTab === 'upstream'
+                  ? 'No upstream prerequisites linked to this task.'
+                  : specDependencyFilterTab === 'downstream'
+                    ? 'No downstream tasks depend on this deliverable.'
+                    : 'No dependencies linked to this task.'
+              }}
             </div>
             <div class="text-caption text-grey-5 q-mt-xs">
-              This deliverable can start independently without blocking prerequisites.
+              {{
+                specDependencyFilterTab === 'upstream'
+                  ? 'This deliverable can start independently without blocking prerequisites.'
+                  : specDependencyFilterTab === 'downstream'
+                    ? 'Other tasks can proceed independently without waiting on this deliverable.'
+                    : 'This deliverable operates independently without upstream blockers or downstream dependents.'
+              }}
             </div>
           </div>
         </q-card-section>
@@ -2656,7 +2785,7 @@ const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> 
   { label: 'Verification (No Priority)', value: 'NONE' },
 ];
 
-const scopeFilter = ref<'all' | 'assigned' | 'supervised' | 'upstream' | 'verifications'>('all');
+const scopeFilter = ref<'all' | 'assigned' | 'supervised' | 'upstream' | 'downstream' | 'verifications'>('all');
 const currentUserId = computed(() => getCurrentUserId());
 
 const showAssignVerificationDialog = ref(false);
@@ -2731,10 +2860,196 @@ const myUpstreamPredecessorIds = computed(() => {
   return new Set(Object.keys(blockedTasksByPredecessorId.value).map(Number));
 });
 
+// Map of successor task_id -> PredecessorTaskInfo extracted from successors array of all myAssignedTasks
+const successorObjectsMap = computed(() => {
+  const map: Record<number, PredecessorTaskInfo> = {};
+  myAssignedTasks.value.forEach((myTask) => {
+    if (Array.isArray(myTask.successors)) {
+      myTask.successors.forEach((s) => {
+        if (s.task_id) {
+          map[Number(s.task_id)] = s;
+        }
+      });
+    }
+  });
+  return map;
+});
+
+// Set of all downstream successor task IDs waiting on tasks assigned to the current user
+const myDownstreamSuccessorIds = computed(() => {
+  const ids = new Set<number>();
+  myAssignedTasks.value.forEach((myTask) => {
+    const myTaskId = Number(myTask.task_id);
+    if (Array.isArray(myTask.successor_task_ids)) {
+      myTask.successor_task_ids.forEach((id) => ids.add(Number(id)));
+    }
+    if (Array.isArray(myTask.successors)) {
+      myTask.successors.forEach((s) => ids.add(Number(s.task_id)));
+    }
+    tasks.value.forEach((other) => {
+      const predIds = other.predecessor_task_ids
+        ? Array.isArray(other.predecessor_task_ids)
+          ? other.predecessor_task_ids.map(Number)
+          : String(other.predecessor_task_ids).split(',').map(Number)
+        : [];
+      if (predIds.includes(myTaskId)) {
+        ids.add(Number(other.task_id));
+      }
+    });
+  });
+  return ids;
+});
+
 // Helper to get blocked task names for an upstream task
 function getBlockedMyTaskNames(predTaskId: number): string[] {
   return blockedTasksByPredecessorId.value[Number(predTaskId)] || [];
 }
+
+function getResourceTaskBlockedBySummary(taskItem: Task): {
+  label: string;
+  isAllCompleted: boolean;
+  hasRisk: boolean;
+  list: { title: string; status?: string | undefined }[];
+} {
+  const list: { title: string; status?: string | undefined }[] = [];
+  let isAllCompleted = false;
+  let hasRisk = false;
+
+  if (Array.isArray(taskItem.predecessors) && taskItem.predecessors.length > 0) {
+    isAllCompleted = taskItem.predecessors.every((p) => p.status === 'COMPLETED');
+    hasRisk = taskItem.predecessors.some((p) => p.is_schedule_at_risk || p.is_deadline_at_risk);
+    taskItem.predecessors.forEach((p) => {
+      list.push({ title: p.title || `Task #${p.task_id}`, status: p.status });
+    });
+  } else if (
+    Array.isArray(taskItem.predecessor_task_ids) &&
+    taskItem.predecessor_task_ids.length > 0
+  ) {
+    taskItem.predecessor_task_ids.forEach((id) => {
+      const match = tasks.value.find((t) => Number(t.task_id) === Number(id));
+      list.push({ title: match?.title || `Task #${id}`, status: match?.status });
+    });
+  }
+
+  if (list.length === 0) return { label: '', isAllCompleted: false, hasRisk: false, list: [] };
+  const first = list[0]!.title;
+  const extra = list.length - 1;
+  const shortFirst = first.length > 18 ? first.slice(0, 18) + '...' : first;
+  const label = `Blocked By: ${shortFirst}${extra > 0 ? ` (+${extra})` : ''}`;
+  return { label, isAllCompleted, hasRisk, list };
+}
+
+function getResourceTaskBlocksSummary(taskItem: Task): { label: string; list: string[] } {
+  const myBlocked = getBlockedMyTaskNames(taskItem.task_id);
+  const titles = [...myBlocked];
+
+  if (Array.isArray(taskItem.successors) && taskItem.successors.length > 0) {
+    taskItem.successors.forEach((s) => {
+      const title = s.title || `Task #${s.task_id}`;
+      if (!titles.includes(title)) titles.push(title);
+    });
+  }
+
+  if (titles.length === 0) return { label: '', list: [] };
+  const first = titles[0]!;
+  const extra = titles.length - 1;
+  const shortFirst = first.length > 18 ? first.slice(0, 18) + '...' : first;
+  const label = `Blocks: ${shortFirst}${extra > 0 ? ` (+${extra})` : ''}`;
+  return { label, list: titles };
+}
+
+const specDependencyFilterTab = ref<'all' | 'upstream' | 'downstream'>('all');
+
+interface DependencyCardItem {
+  task_id: number;
+  project_id: number;
+  project_name?: string | null | undefined;
+  title: string;
+  status: Task['status'];
+  priority: Task['priority'];
+  deadline?: string | null | undefined;
+  planned_start?: string | null | undefined;
+  planned_end?: string | null | undefined;
+  expected_effort?: number | string | undefined;
+  actual_effort?: number | string | undefined;
+  progress?: number | string | undefined;
+  is_schedule_at_risk?: boolean | undefined;
+  is_deadline_at_risk?: boolean | undefined;
+  assigned_resource_names?: string[] | undefined;
+  supervisor_name?: string | null | undefined;
+  direction: 'UPSTREAM' | 'DOWNSTREAM';
+  relationshipNote: string;
+}
+
+const currentTaskUpstreamDependencies = computed<DependencyCardItem[]>(() => {
+  if (!task.value) return [];
+  const preds = task.value.predecessors || [];
+  return preds.map((p) => ({
+    ...p,
+    direction: 'UPSTREAM' as const,
+    relationshipNote: 'Prerequisite that must be finished before this deliverable can proceed.',
+  }));
+});
+
+const currentTaskDownstreamDependencies = computed<DependencyCardItem[]>(() => {
+  if (!task.value) return [];
+  const currentId = Number(task.value.task_id);
+  const result: DependencyCardItem[] = [];
+
+  // 1. If backend already populated successors on task.value
+  if (Array.isArray(task.value.successors) && task.value.successors.length > 0) {
+    return task.value.successors.map((s) => ({
+      ...s,
+      direction: 'DOWNSTREAM' as const,
+      relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
+    }));
+  }
+
+  // 2. Find from all tasks in tasks.value whose predecessor_task_ids contains currentId
+  const seenIds = new Set<number>();
+  tasks.value.forEach((t) => {
+    const tId = Number(t.task_id);
+    if (tId === currentId) return;
+    const pIds = t.predecessor_task_ids
+      ? Array.isArray(t.predecessor_task_ids)
+        ? t.predecessor_task_ids.map(Number)
+        : String(t.predecessor_task_ids).split(',').map(Number)
+      : [];
+    if (pIds.includes(currentId) && !seenIds.has(tId)) {
+      seenIds.add(tId);
+      result.push({
+        task_id: tId,
+        project_id: Number(t.project_id),
+        project_name: t.project_name,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        deadline: t.deadline,
+        expected_effort: Number(t.expected_effort || 0),
+        actual_effort: Number(t.actual_effort || 0),
+        progress: Number(t.progress || 0),
+        is_schedule_at_risk: Boolean(t.is_schedule_at_risk),
+        is_deadline_at_risk: Boolean(t.is_deadline_at_risk),
+        assigned_resource_names:
+          t.assigned_resource_names || (t.assigned_resources || []).map((r) => r.name),
+        direction: 'DOWNSTREAM' as const,
+        relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
+      });
+    }
+  });
+
+  return result;
+});
+
+const currentTaskFilteredDependencies = computed<DependencyCardItem[]>(() => {
+  if (specDependencyFilterTab.value === 'upstream') {
+    return currentTaskUpstreamDependencies.value;
+  }
+  if (specDependencyFilterTab.value === 'downstream') {
+    return currentTaskDownstreamDependencies.value;
+  }
+  return [...currentTaskUpstreamDependencies.value, ...currentTaskDownstreamDependencies.value];
+});
 
 // Card Click Filter Handlers
 function filterAllTasks() {
@@ -2917,6 +3232,42 @@ const filteredTasks = computed(() => {
       });
 
       return Array.from(upstreamMap.values());
+    }
+    if (scopeFilter.value === 'downstream') {
+      // When in downstream scope, gather all successor tasks waiting on myAssignedTasks
+      const downstreamMap = new Map<number, Task>();
+
+      tasks.value.forEach((t) => {
+        if (myDownstreamSuccessorIds.value.has(t.task_id)) {
+          downstreamMap.set(t.task_id, t);
+        }
+      });
+
+      Object.values(successorObjectsMap.value).forEach((sObj) => {
+        if (sObj && sObj.task_id && !downstreamMap.has(sObj.task_id)) {
+          downstreamMap.set(sObj.task_id, {
+            task_id: sObj.task_id,
+            project_id: sObj.project_id,
+            project_name: sObj.project_name,
+            title: sObj.title,
+            description: null,
+            priority: sObj.priority,
+            status: sObj.status,
+            deadline: sObj.deadline,
+            planned_start: sObj.planned_start,
+            planned_end: sObj.planned_end,
+            expected_effort: sObj.expected_effort,
+            actual_effort: sObj.actual_effort,
+            progress: sObj.progress,
+            is_schedule_at_risk: sObj.is_schedule_at_risk,
+            is_deadline_at_risk: sObj.is_deadline_at_risk,
+            assigned_resource_names: sObj.assigned_resource_names,
+            supervisor_name: sObj.supervisor_name,
+          } as Task);
+        }
+      });
+
+      return Array.from(downstreamMap.values());
     }
     return tasks.value;
   })();
