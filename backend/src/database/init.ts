@@ -251,6 +251,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             message TEXT NOT NULL,
             link VARCHAR(255) NULL,
             is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            deleted_at TIMESTAMP NULL DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
             INDEX idx_user_read (user_id, is_read),
@@ -258,6 +259,13 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
         )
     `);
     console.log("Notifications table is ready.");
+
+    // Migration check: ensure deleted_at column exists in notifications table
+    try {
+        await pool.query(`ALTER TABLE notifications ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER is_read`);
+    } catch (e: any) {
+        // Ignore if column already exists (ER_DUP_FIELDNAME)
+    }
 
     // Migration check: ensure non_working_days and daily_working_hours columns exist in users table
     try {

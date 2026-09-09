@@ -19,7 +19,20 @@ export interface NotificationRecord {
     message: string;
     link: string | null;
     is_read: boolean;
+    deleted_at?: string | null;
     created_at: string;
+}
+
+let hasEnsuredDeletedAt = false;
+export async function ensureDeletedAtColumn(): Promise<void> {
+    if (hasEnsuredDeletedAt) return;
+    try {
+        const pool = getPool();
+        await pool.query(`ALTER TABLE notifications ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER is_read`);
+    } catch {
+        // Column already exists or table not ready
+    }
+    hasEnsuredDeletedAt = true;
 }
 
 export interface CreateNotificationPayload {
@@ -34,6 +47,7 @@ export interface CreateNotificationPayload {
  * Creates a new notification for a specific user
  */
 export async function createNotification(payload: CreateNotificationPayload): Promise<number> {
+    await ensureDeletedAtColumn();
     const pool = getPool();
     const [result] = await pool.query<ResultSetHeader>(
         `INSERT INTO notifications (user_id, type, title, message, link, is_read)
@@ -55,41 +69,20 @@ export async function createNotification(payload: CreateNotificationPayload): Pr
  * Purges any obsolete/unsupported notifications.
  */
 export async function syncTaskRiskNotifications(userId: number, userRole: string): Promise<void> {
+    await ensureDeletedAtColumn();
     const pool = getPool();
 
-    // 1. Purge any random/generic notifications (preserve supported task risk, verification & leave alert types)
-    await pool.query(
-        `DELETE FROM notifications WHERE type NOT IN (
-            'EARLY_COMPLETION',
-            'POSSIBLE_DELAY',
-            'LEAVE_REQUESTED',
-            'LEAVE_APPROVED',
-            'LEAVE_REJECTED',
-            'TASK_VERIFICATION',
-            'TASK_ASSIGNED',
-            'TASK_CREATED'
-        )`
-    );
-
-    // 2. Check existing task notifications for this user
-    const [existingTaskRows] = await pool.query<RowDataPacket[]>(
-        `SELECT notification_id FROM notifications WHERE user_id = ? AND type IN ('EARLY_COMPLETION', 'POSSIBLE_DELAY')`,
-        [userId]
-    );
-
-    // Populate task risks if not already present
-    if (existingTaskRows.length === 0) {
-
-    // 3. Populate from actual database tasks
+    // 1. Populate from actual database tasks (per-task deduplication; never regenerates dismissed alerts)
     if (userRole === "RESOURCE") {
-        // Fetch tasks assigned to this resource
+        // Fetch non-deleted tasks assigned to this resource
         const [tasks] = await pool.query<RowDataPacket[]>(
             `SELECT t.task_id, t.title, t.status, t.deadline, t.actual_end, t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
              FROM tasks t
              JOIN task_assignments ta ON t.task_id = ta.task_id
              LEFT JOIN projects p ON t.project_id = p.project_id
-             WHERE ta.user_id = ?
-             ORDER BY t.created_at DESC`,
+             WHERE ta.user_id = ? AND t.deleted_at IS NULL
+             ORDER BY t.created_at DESC
+             LIMIT 50`,
             [userId]
         );
 
@@ -103,26 +96,41 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
             const expectedEffort = Number(t.expected_effort) || 0;
             const link = `/app/resource-dashboard/task-details/${taskId}`;
 
-            // Case A: Early Completion
+            // Case A: Early Completion (ONLY for truly early tasks)
             if (status === "COMPLETED") {
                 const diffHours = expectedEffort - actualEffort;
-                let reason = "Task was finished ahead of time with all deliverables verified.";
-                if (diffHours > 0) {
+                const hasEffortSavings = expectedEffort > 0 && actualEffort > 0 && diffHours > 0;
+                let isEarly = false;
+                let reason = "";
+
+                if (hasEffortSavings) {
+                    isEarly = true;
                     reason = `Task finished with ${actualEffort}h logged (${diffHours}h less than the ${expectedEffort}h planned allocation).`;
-                } else if (deadline) {
-                    reason = `Task completed successfully on or before the ${deadline} deadline.`;
+                } else if (deadline && t.actual_end) {
+                    const deadlineDate = new Date(deadline).getTime();
+                    const endDate = new Date(t.actual_end).getTime();
+                    if (endDate < deadlineDate) {
+                        isEarly = true;
+                        reason = `Task completed successfully ahead of the ${deadline} deadline.`;
+                    }
                 }
 
-                await pool.query(
-                    `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                     VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW() - INTERVAL 2 HOUR)`,
-                    [
-                        userId,
-                        `Early Completion: ${title}`,
-                        reason,
-                        link,
-                    ]
-                );
+                if (isEarly) {
+                    const notifTitle = `Early Completion: ${title}`;
+                    // Check if ANY notification (active or dismissed) already exists for this task
+                    const [exists] = await pool.query<RowDataPacket[]>(
+                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EARLY_COMPLETION' AND (link = ? OR title = ?)`,
+                        [userId, link, notifTitle]
+                    );
+
+                    if (exists.length === 0) {
+                        await pool.query(
+                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                             VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW())`,
+                            [userId, notifTitle, reason, link]
+                        );
+                    }
+                }
             }
 
             // Case B: Possible Delay
@@ -141,27 +149,31 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                 }
 
                 if (delayReason) {
-                    await pool.query(
-                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                         VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW() - INTERVAL 45 MINUTE)`,
-                        [
-                            userId,
-                            `Possible Delay: ${title}`,
-                            delayReason,
-                            link,
-                        ]
+                    const notifTitle = `Possible Delay: ${title}`;
+                    const [exists] = await pool.query<RowDataPacket[]>(
+                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND (link = ? OR title = ?)`,
+                        [userId, link, notifTitle]
                     );
+
+                    if (exists.length === 0) {
+                        await pool.query(
+                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                             VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW())`,
+                            [userId, notifTitle, delayReason, link]
+                        );
+                    }
                 }
             }
         }
     } else {
-        // Project Manager: inspect project tasks
+        // Project Manager: inspect non-deleted project tasks
         const [tasks] = await pool.query<RowDataPacket[]>(
             `SELECT t.task_id, t.title, t.status, t.deadline, t.actual_end, t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
              FROM tasks t
              JOIN projects p ON t.project_id = p.project_id
-             WHERE p.project_manager_id = ?
-             ORDER BY t.created_at DESC`,
+             WHERE p.project_manager_id = ? AND t.deleted_at IS NULL AND p.deleted_at IS NULL
+             ORDER BY t.created_at DESC
+             LIMIT 50`,
             [userId]
         );
 
@@ -173,28 +185,41 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
             const progress = Number(t.progress) || 0;
             const actualEffort = Number(t.actual_effort) || 0;
             const expectedEffort = Number(t.expected_effort) || 0;
-            const link = `/pm/tasks`;
+            const link = `/pm/tasks?taskId=${taskId}`;
 
-            // Case A: Early Completion (limit to notable completed tasks)
+            // Case A: Early Completion (limit to notable completed tasks with real savings)
             if (status === "COMPLETED") {
                 const diffHours = expectedEffort - actualEffort;
-                let reason = `Deliverable completed ahead of schedule with 100% progress logged.`;
-                if (diffHours > 0) {
+                let isEarly = false;
+                let reason = "";
+
+                if (expectedEffort > 0 && actualEffort > 0 && diffHours > 0) {
+                    isEarly = true;
                     reason = `Task completed early saving ${diffHours} hours of planned project effort.`;
-                } else if (deadline) {
-                    reason = `Task completed and reviewed ahead of ${deadline} milestone.`;
+                } else if (deadline && t.actual_end) {
+                    const deadlineDate = new Date(deadline).getTime();
+                    const endDate = new Date(t.actual_end).getTime();
+                    if (endDate < deadlineDate) {
+                        isEarly = true;
+                        reason = `Task completed and reviewed ahead of ${deadline} milestone.`;
+                    }
                 }
 
-                await pool.query(
-                    `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                     VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW() - INTERVAL 3 HOUR)`,
-                    [
-                        userId,
-                        `Early Completion: ${title}`,
-                        reason,
-                        link,
-                    ]
-                );
+                if (isEarly) {
+                    const notifTitle = `Early Completion: ${title}`;
+                    const [exists] = await pool.query<RowDataPacket[]>(
+                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EARLY_COMPLETION' AND (link = ? OR title = ?)`,
+                        [userId, link, notifTitle]
+                    );
+
+                    if (exists.length === 0) {
+                        await pool.query(
+                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                             VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW())`,
+                            [userId, notifTitle, reason, link]
+                        );
+                    }
+                }
             }
 
             // Case B: Possible Delay
@@ -213,23 +238,25 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                 }
 
                 if (delayReason) {
-                    await pool.query(
-                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                         VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW() - INTERVAL 1 HOUR)`,
-                        [
-                            userId,
-                            `Possible Delay: ${title}`,
-                            delayReason,
-                            link,
-                        ]
+                    const notifTitle = `Possible Delay: ${title}`;
+                    const [exists] = await pool.query<RowDataPacket[]>(
+                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND (link = ? OR title = ?)`,
+                        [userId, link, notifTitle]
                     );
+
+                    if (exists.length === 0) {
+                        await pool.query(
+                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                             VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW())`,
+                            [userId, notifTitle, delayReason, link]
+                        );
+                    }
                 }
             }
         }
     }
-}
 
-    // 3. Sync existing leave notifications from database
+    // 2. Sync existing leave notifications from database (preserves dismissed ones)
     if (userRole === "RESOURCE") {
         // Fetch approved / rejected leaves for this resource
         const [leaves] = await pool.query<RowDataPacket[]>(
@@ -247,15 +274,15 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
             const notifType: NotificationType = isApproved ? "LEAVE_APPROVED" : "LEAVE_REJECTED";
             const leaveDate = String(l.leave_date);
             const link = "/app/resource-dashboard/leaves";
+            const approver = l.approver_name || "Project Manager";
+            const title = isApproved ? `Leave Approved: ${leaveDate}` : `Leave Rejected: ${leaveDate}`;
 
             const [exists] = await pool.query<RowDataPacket[]>(
-                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = ? AND link = ? AND title LIKE ?`,
-                [userId, notifType, link, `%${leaveDate}%`]
+                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = ? AND (link = ? OR title = ?)`,
+                [userId, notifType, link, title]
             );
 
             if (exists.length === 0) {
-                const approver = l.approver_name || "Project Manager";
-                const title = isApproved ? `Leave Approved: ${leaveDate}` : `Leave Rejected: ${leaveDate}`;
                 const message = isApproved
                     ? `Your leave request for ${leaveDate} (${l.leave_hours}h) was approved by ${approver}.`
                     : `Your leave request for ${leaveDate} was rejected by ${approver}.${l.rejection_reason ? ` Reason: ${l.rejection_reason}` : ''}`;
@@ -285,10 +312,11 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
         for (const pl of pendingLeaves) {
             const leaveDate = String(pl.leave_date);
             const link = "/pm/leaves";
+            const title = `Leave Requested: ${pl.resource_name}`;
 
             const [exists] = await pool.query<RowDataPacket[]>(
-                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'LEAVE_REQUESTED' AND link = ? AND message LIKE ?`,
-                [userId, link, `%${pl.resource_name}%${leaveDate}%`]
+                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'LEAVE_REQUESTED' AND link = ? AND (title = ? OR message LIKE ?)`,
+                [userId, link, title, `%${pl.resource_name}%${leaveDate}%`]
             );
 
             if (exists.length === 0) {
@@ -297,7 +325,7 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                      VALUES (?, 'LEAVE_REQUESTED', ?, ?, ?, FALSE, NOW())`,
                     [
                         userId,
-                        `Leave Requested: ${pl.resource_name}`,
+                        title,
                         `${pl.resource_name} has requested leave for ${leaveDate} (${pl.leave_hours}h). Please review and respond.`,
                         link
                     ]
@@ -315,6 +343,7 @@ export async function getUserNotifications(
     unreadOnly = false,
     userRole = "RESOURCE"
 ): Promise<{ notifications: NotificationRecord[]; unreadCount: number }> {
+    await ensureDeletedAtColumn();
     const pool = getPool();
 
     // Ensure user has task risk and leave notifications populated
@@ -324,13 +353,16 @@ export async function getUserNotifications(
         SELECT notification_id, user_id, type, title, message, link, is_read, created_at
         FROM notifications
         WHERE user_id = ?
+          AND deleted_at IS NULL
           AND type IN (
             'EARLY_COMPLETION',
             'POSSIBLE_DELAY',
             'LEAVE_REQUESTED',
             'LEAVE_APPROVED',
             'LEAVE_REJECTED',
-            'TASK_VERIFICATION'
+            'TASK_VERIFICATION',
+            'TASK_ASSIGNED',
+            'TASK_CREATED'
           )
     `;
     const params: any[] = [userId];
@@ -349,13 +381,16 @@ export async function getUserNotifications(
          FROM notifications 
          WHERE user_id = ? 
            AND is_read = FALSE 
+           AND deleted_at IS NULL
            AND type IN (
              'EARLY_COMPLETION',
              'POSSIBLE_DELAY',
              'LEAVE_REQUESTED',
              'LEAVE_APPROVED',
              'LEAVE_REJECTED',
-             'TASK_VERIFICATION'
+             'TASK_VERIFICATION',
+             'TASK_ASSIGNED',
+             'TASK_CREATED'
            )`,
         [userId]
     );
@@ -379,6 +414,7 @@ export async function getUserNotifications(
  * Marks a single notification as read
  */
 export async function markNotificationAsRead(userId: number, notificationId: number): Promise<boolean> {
+    await ensureDeletedAtColumn();
     const pool = getPool();
     const [result] = await pool.query<ResultSetHeader>(
         `UPDATE notifications SET is_read = TRUE WHERE notification_id = ? AND user_id = ?`,
@@ -391,19 +427,23 @@ export async function markNotificationAsRead(userId: number, notificationId: num
  * Marks all notifications for a user as read
  */
 export async function markAllNotificationsAsRead(userId: number): Promise<number> {
+    await ensureDeletedAtColumn();
     const pool = getPool();
     const [result] = await pool.query<ResultSetHeader>(
         `UPDATE notifications 
          SET is_read = TRUE 
          WHERE user_id = ? 
-           AND is_read = FALSE 
+           AND is_read = FALSE
+           AND deleted_at IS NULL
            AND type IN (
              'EARLY_COMPLETION',
              'POSSIBLE_DELAY',
              'LEAVE_REQUESTED',
              'LEAVE_APPROVED',
              'LEAVE_REJECTED',
-             'TASK_VERIFICATION'
+             'TASK_VERIFICATION',
+             'TASK_ASSIGNED',
+             'TASK_CREATED'
            )`,
         [userId]
     );
@@ -411,12 +451,13 @@ export async function markAllNotificationsAsRead(userId: number): Promise<number
 }
 
 /**
- * Deletes a notification
+ * Deletes a notification (soft-delete to preserve dismissal and prevent zombie re-creation)
  */
 export async function deleteNotification(userId: number, notificationId: number): Promise<boolean> {
+    await ensureDeletedAtColumn();
     const pool = getPool();
     const [result] = await pool.query<ResultSetHeader>(
-        `DELETE FROM notifications WHERE notification_id = ? AND user_id = ?`,
+        `UPDATE notifications SET deleted_at = CURRENT_TIMESTAMP, is_read = TRUE WHERE notification_id = ? AND user_id = ?`,
         [notificationId, userId]
     );
     return result.affectedRows > 0;

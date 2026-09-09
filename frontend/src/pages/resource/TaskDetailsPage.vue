@@ -409,7 +409,8 @@
                               v-for="bl in getResourceTaskBlockedBySummary(item).list"
                               :key="bl.title"
                             >
-                              • {{ bl.title }} {{ bl.status ? `(${formatStatusLabel(bl.status)})` : '' }}
+                              • {{ bl.title }}
+                              {{ bl.status ? `(${formatStatusLabel(bl.status)})` : '' }}
                             </div>
                           </q-tooltip>
                         </q-chip>
@@ -528,7 +529,6 @@
                         />
 
                         <div class="row items-center q-gutter-xs">
-
                           <q-btn
                             outline
                             no-caps
@@ -915,7 +915,7 @@
     </div>
 
     <!-- SINGLE TASK SPEC DETAIL VIEW -->
-    <div v-else-if="task" class="q-mx-auto" style="max-width: 1200px">
+    <div v-else-if="task" class="full-width">
       <!-- 1. HERO / TOP HEADER CARD -->
       <q-card
         flat
@@ -1114,7 +1114,6 @@
                   />
                 </q-card>
               </div>
-
 
               <div
                 class="text-body1 q-mt-md"
@@ -1387,658 +1386,704 @@
         </q-card-section>
       </q-card>
 
-      <!-- 2. TASK PROGRESS & EFFORT BREAKDOWN CARD -->
+      <!-- 2. DETAIL TABS CARD (PROGRESS & EFFORT, DEPENDENCIES, DAILY UPDATES) -->
       <q-card
         flat
         bordered
         :dark="$q.dark.isActive"
         class="rounded-borders q-mb-lg overflow-hidden"
       >
-        <q-card-section class="row items-center justify-between q-pa-md">
-          <div class="row items-center">
-            <q-avatar
-              size="34px"
-              rounded
-              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-              icon="insights"
-              class="q-mr-sm"
-            />
-            <div>
-              <div
-                class="text-subtitle1 text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                Task Progress & Effort
-              </div>
-              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                Track completion percentage, hours logged, and effort metrics.
-              </div>
-            </div>
-          </div>
-          <q-chip
-            dense
-            square
-            size="sm"
-            :color="statusBgColor(task.status)"
-            :text-color="statusTextColor(task.status)"
-            :label="`${Number(task.progress)}% Completed`"
-            class="text-weight-bold"
+        <q-tabs
+          v-model="taskDetailTab"
+          dense
+          no-caps
+          align="left"
+          active-color="primary"
+          indicator-color="primary"
+          class="task-detail-tabs"
+        >
+          <q-tab
+            name="progress"
+            icon="insights"
+            label="Task Progress & Effort"
+            class="task-detail-tab"
           />
-        </q-card-section>
+          <q-tab
+            name="dependencies"
+            icon="account_tree"
+            label="Task Dependencies & Impact Flow"
+            class="task-detail-tab"
+          />
+          <q-tab
+            v-if="canViewTaskHistory"
+            name="history"
+            icon="history"
+            label="Daily Updates & Session History"
+            class="task-detail-tab"
+          />
+        </q-tabs>
 
         <q-separator />
 
-        <q-card-section class="q-pa-lg">
-          <!-- Main Progress Bar -->
-          <div class="q-mb-lg">
-            <div class="row items-center justify-between q-mb-xs">
-              <span
-                class="text-subtitle2 text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                Overall Completion Progress
-              </span>
-              <span class="text-h6 text-primary text-weight-bolder">
-                {{ Number(task.progress) }}%
-              </span>
-            </div>
-            <q-linear-progress
-              :value="Number(task.progress) / 100"
-              rounded
-              size="12px"
-              color="primary"
-              :track-color="$q.dark.isActive ? 'grey-9' : 'purple-1'"
-            />
-          </div>
-
-          <!-- Effort Breakdown KPI Grid (Estimated, Actual, Remaining) -->
-          <div class="row q-col-gutter-md">
-            <!-- Estimated Effort -->
-            <div class="col-12 col-sm-4">
-              <q-card flat bordered :dark="$q.dark.isActive">
-                <q-card-section class="row items-center no-wrap q-pa-md">
-                  <q-avatar
-                    size="36px"
-                    rounded
-                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                    icon="schedule"
-                  />
-                  <div class="q-ml-md">
-                    <div
-                      class="text-caption text-weight-bold"
-                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                    >
-                      ESTIMATED EFFORT
-                    </div>
-                    <div
-                      class="text-h6 text-weight-bolder"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                    >
-                      {{ formatNumber(task.expected_effort) }}
-                      <span class="text-caption text-weight-bold">hrs</span>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <!-- Actual Effort Logged -->
-            <div class="col-12 col-sm-4">
-              <q-card flat bordered :dark="$q.dark.isActive">
-                <q-card-section class="row items-center no-wrap q-pa-md">
-                  <q-avatar
-                    size="36px"
-                    rounded
-                    :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
-                    :text-color="$q.dark.isActive ? 'blue-2' : 'blue-8'"
-                    icon="timer"
-                  />
-                  <div class="q-ml-md">
-                    <div
-                      class="text-caption text-weight-bold"
-                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                    >
-                      ACTUAL EFFORT LOGGED
-                    </div>
-                    <div
-                      class="text-h6 text-weight-bolder"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                    >
-                      {{ formatNumber(task.actual_effort) }}
-                      <span class="text-caption text-weight-bold">hrs</span>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-
-            <!-- Remaining Effort -->
-            <div class="col-12 col-sm-4">
-              <q-card flat bordered :dark="$q.dark.isActive">
-                <q-card-section class="row items-center no-wrap q-pa-md">
-                  <q-avatar
-                    size="36px"
-                    rounded
-                    :color="$q.dark.isActive ? 'green-10' : 'green-1'"
-                    :text-color="$q.dark.isActive ? 'green-2' : 'green-8'"
-                    icon="hourglass_empty"
-                  />
-                  <div class="q-ml-md">
-                    <div
-                      class="text-caption text-weight-bold"
-                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                    >
-                      REMAINING EFFORT
-                    </div>
-                    <div
-                      class="text-h6 text-weight-bolder"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                    >
-                      {{ formatNumber(remainingHours) }}
-                      <span class="text-caption text-weight-bold">hrs</span>
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-
-      <!-- 2. TASK DEPENDENCIES & IMPACT FLOW SECTION -->
-      <q-card
-        flat
-        bordered
-        :dark="$q.dark.isActive"
-        class="rounded-borders q-mb-lg overflow-hidden"
-      >
-        <q-card-section class="row items-center justify-between q-pa-md wrap gap-sm">
-          <div class="row items-center">
-            <q-avatar
-              size="34px"
-              rounded
-              :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
-              :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
-              icon="account_tree"
-              class="q-mr-sm"
-            />
-            <div>
-              <div
-                class="text-subtitle1 text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                Task Dependencies & Impact Flow
-              </div>
-              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                Explore both incoming prerequisites and outgoing dependent tasks connected to this deliverable.
-              </div>
-            </div>
-          </div>
-
-          <!-- Filter Tabs for Upstream / Downstream / All -->
-          <div class="row items-center gap-xs">
-            <q-tabs
-              v-model="specDependencyFilterTab"
-              dense
-              no-caps
-              class="text-grey-7"
-              active-color="primary"
-              indicator-color="primary"
-            >
-              <q-tab name="all">
-                <div class="row items-center gap-xs no-wrap">
-                  <span>All</span>
-                  <q-badge color="grey-7" rounded size="xs">
-                    {{ currentTaskUpstreamDependencies.length + currentTaskDownstreamDependencies.length }}
-                  </q-badge>
-                </div>
-              </q-tab>
-              <q-tab name="upstream">
-                <div class="row items-center gap-xs no-wrap">
-                  <q-icon name="arrow_upward" size="14px" color="teal" />
-                  <span>Upstream (Prerequisites)</span>
-                  <q-badge
-                    v-if="currentTaskUpstreamDependencies.length > 0"
-                    color="teal"
-                    rounded
-                    size="xs"
+        <q-tab-panels
+          v-model="taskDetailTab"
+          animated
+          :dark="$q.dark.isActive"
+          class="bg-transparent"
+        >
+          <!-- TAB 1: TASK PROGRESS & EFFORT -->
+          <q-tab-panel name="progress" class="q-pa-none">
+            <q-card-section class="row items-center justify-between q-pa-md">
+              <div class="row items-center">
+                <q-avatar
+                  size="34px"
+                  rounded
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="insights"
+                  class="q-mr-sm"
+                />
+                <div>
+                  <div
+                    class="text-subtitle1 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
-                    {{ currentTaskUpstreamDependencies.length }}
-                  </q-badge>
-                </div>
-              </q-tab>
-              <q-tab name="downstream">
-                <div class="row items-center gap-xs no-wrap">
-                  <q-icon name="arrow_downward" size="14px" color="indigo" />
-                  <span>Downstream (Dependents)</span>
-                  <q-badge
-                    v-if="currentTaskDownstreamDependencies.length > 0"
-                    color="indigo"
-                    rounded
-                    size="xs"
+                    Task Progress & Effort
+                  </div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
                   >
-                    {{ currentTaskDownstreamDependencies.length }}
-                  </q-badge>
+                    Track completion percentage, hours logged, and effort metrics.
+                  </div>
                 </div>
-              </q-tab>
-            </q-tabs>
-          </div>
-        </q-card-section>
+              </div>
+              <q-chip
+                dense
+                square
+                size="sm"
+                :color="statusBgColor(task.status)"
+                :text-color="statusTextColor(task.status)"
+                :label="`${Number(task.progress)}% Completed`"
+                class="text-weight-bold"
+              />
+            </q-card-section>
 
-        <q-separator />
+            <q-separator />
 
-        <q-card-section class="q-pa-md">
-          <div
-            v-if="currentTaskFilteredDependencies.length > 0"
-            class="row q-col-gutter-md"
-          >
-            <div
-              v-for="dep in currentTaskFilteredDependencies"
-              :key="dep.task_id"
-              class="col-12 col-md-6"
-            >
+            <q-card-section class="q-pa-lg">
+              <!-- Main Progress Bar -->
+              <div class="q-mb-lg">
+                <div class="row items-center justify-between q-mb-xs">
+                  <span
+                    class="text-subtitle2 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    Overall Completion Progress
+                  </span>
+                  <span class="text-h6 text-primary text-weight-bolder">
+                    {{ Number(task.progress) }}%
+                  </span>
+                </div>
+                <q-linear-progress
+                  :value="Number(task.progress) / 100"
+                  rounded
+                  size="12px"
+                  color="primary"
+                  :track-color="$q.dark.isActive ? 'grey-9' : 'purple-1'"
+                />
+              </div>
+
+              <!-- Effort Breakdown KPI Grid (Estimated, Actual, Remaining) -->
+              <div class="row q-col-gutter-md">
+                <!-- Estimated Effort -->
+                <div class="col-12 col-sm-4">
+                  <q-card flat bordered :dark="$q.dark.isActive">
+                    <q-card-section class="row items-center no-wrap q-pa-md">
+                      <q-avatar
+                        size="36px"
+                        rounded
+                        :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                        icon="schedule"
+                      />
+                      <div class="q-ml-md">
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                        >
+                          ESTIMATED EFFORT
+                        </div>
+                        <div
+                          class="text-h6 text-weight-bolder"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ formatNumber(task.expected_effort) }}
+                          <span class="text-caption text-weight-bold">hrs</span>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+
+                <!-- Actual Effort Logged -->
+                <div class="col-12 col-sm-4">
+                  <q-card flat bordered :dark="$q.dark.isActive">
+                    <q-card-section class="row items-center no-wrap q-pa-md">
+                      <q-avatar
+                        size="36px"
+                        rounded
+                        :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
+                        :text-color="$q.dark.isActive ? 'blue-2' : 'blue-8'"
+                        icon="timer"
+                      />
+                      <div class="q-ml-md">
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                        >
+                          ACTUAL EFFORT LOGGED
+                        </div>
+                        <div
+                          class="text-h6 text-weight-bolder"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ formatNumber(task.actual_effort) }}
+                          <span class="text-caption text-weight-bold">hrs</span>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+
+                <!-- Remaining Effort -->
+                <div class="col-12 col-sm-4">
+                  <q-card flat bordered :dark="$q.dark.isActive">
+                    <q-card-section class="row items-center no-wrap q-pa-md">
+                      <q-avatar
+                        size="36px"
+                        rounded
+                        :color="$q.dark.isActive ? 'green-10' : 'green-1'"
+                        :text-color="$q.dark.isActive ? 'green-2' : 'green-8'"
+                        icon="hourglass_empty"
+                      />
+                      <div class="q-ml-md">
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                        >
+                          REMAINING EFFORT
+                        </div>
+                        <div
+                          class="text-h6 text-weight-bolder"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ formatNumber(remainingHours) }}
+                          <span class="text-caption text-weight-bold">hrs</span>
+                        </div>
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                </div>
+              </div>
+            </q-card-section>
+          </q-tab-panel>
+
+          <!-- TAB 2: TASK DEPENDENCIES & IMPACT FLOW -->
+          <q-tab-panel name="dependencies" class="q-pa-none">
+            <q-card-section class="row items-center justify-between q-pa-md wrap gap-sm">
+              <div class="row items-center">
+                <q-avatar
+                  size="34px"
+                  rounded
+                  :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+                  :text-color="$q.dark.isActive ? 'teal-2' : 'teal-9'"
+                  icon="account_tree"
+                  class="q-mr-sm"
+                />
+                <div>
+                  <div
+                    class="text-subtitle1 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    Task Dependencies & Impact Flow
+                  </div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Explore both incoming prerequisites and outgoing dependent tasks connected to
+                    this deliverable.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filter Tabs for Upstream / Downstream / All -->
+              <div class="row items-center gap-xs">
+                <q-tabs
+                  v-model="specDependencyFilterTab"
+                  dense
+                  no-caps
+                  class="text-grey-7"
+                  active-color="primary"
+                  indicator-color="primary"
+                >
+                  <q-tab name="all">
+                    <div class="row items-center gap-xs no-wrap">
+                      <span>All</span>
+                      <q-badge color="grey-7" rounded size="xs">
+                        {{
+                          currentTaskUpstreamDependencies.length +
+                          currentTaskDownstreamDependencies.length
+                        }}
+                      </q-badge>
+                    </div>
+                  </q-tab>
+                  <q-tab name="upstream">
+                    <div class="row items-center gap-xs no-wrap">
+                      <q-icon name="arrow_upward" size="14px" color="teal" />
+                      <span>Upstream (Prerequisites)</span>
+                      <q-badge
+                        v-if="currentTaskUpstreamDependencies.length > 0"
+                        color="teal"
+                        rounded
+                        size="xs"
+                      >
+                        {{ currentTaskUpstreamDependencies.length }}
+                      </q-badge>
+                    </div>
+                  </q-tab>
+                  <q-tab name="downstream">
+                    <div class="row items-center gap-xs no-wrap">
+                      <q-icon name="arrow_downward" size="14px" color="indigo" />
+                      <span>Downstream (Dependents)</span>
+                      <q-badge
+                        v-if="currentTaskDownstreamDependencies.length > 0"
+                        color="indigo"
+                        rounded
+                        size="xs"
+                      >
+                        {{ currentTaskDownstreamDependencies.length }}
+                      </q-badge>
+                    </div>
+                  </q-tab>
+                </q-tabs>
+              </div>
+            </q-card-section>
+
+            <q-separator />
+
+            <q-card-section class="q-pa-md">
+              <div v-if="currentTaskFilteredDependencies.length > 0" class="row q-col-gutter-md">
+                <div
+                  v-for="dep in currentTaskFilteredDependencies"
+                  :key="dep.task_id"
+                  class="col-12"
+                >
+                  <q-card
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="rounded-borders q-pa-sm full-height column justify-between"
+                    :style="
+                      dep.direction === 'UPSTREAM'
+                        ? 'border-left: 3px solid #00897b;'
+                        : 'border-left: 3px solid #7c4dff;'
+                    "
+                  >
+                    <div>
+                      <div class="row items-center justify-between no-wrap q-mb-xs">
+                        <div class="row items-center gap-xs ellipsis" style="max-width: 65%">
+                          <q-icon
+                            :name="dep.direction === 'UPSTREAM' ? 'link' : 'call_split'"
+                            size="16px"
+                            :color="dep.direction === 'UPSTREAM' ? 'teal' : 'indigo'"
+                          />
+                          <span class="text-subtitle2 text-weight-bold ellipsis" :title="dep.title">
+                            {{ dep.title }}
+                          </span>
+                        </div>
+                        <div class="row items-center gap-xs">
+                          <q-chip
+                            dense
+                            square
+                            size="xs"
+                            :color="
+                              dep.direction === 'UPSTREAM'
+                                ? $q.dark.isActive
+                                  ? 'teal-10'
+                                  : 'teal-1'
+                                : $q.dark.isActive
+                                  ? 'indigo-10'
+                                  : 'indigo-1'
+                            "
+                            :text-color="
+                              dep.direction === 'UPSTREAM'
+                                ? $q.dark.isActive
+                                  ? 'teal-2'
+                                  : 'teal-9'
+                                : $q.dark.isActive
+                                  ? 'indigo-2'
+                                  : 'indigo-9'
+                            "
+                            class="text-weight-bold"
+                          >
+                            {{ dep.direction === 'UPSTREAM' ? 'Blocked By' : 'Blocks' }}
+                          </q-chip>
+                          <q-chip
+                            dense
+                            square
+                            size="xs"
+                            :color="statusBgColor(dep.status)"
+                            :text-color="statusTextColor(dep.status)"
+                            class="text-weight-bold"
+                          >
+                            {{ formatStatusLabel(dep.status) }}
+                          </q-chip>
+                        </div>
+                      </div>
+
+                      <div class="text-caption text-grey-7 q-mb-xs" style="font-size: 11px">
+                        {{ dep.relationshipNote }}
+                      </div>
+
+                      <div
+                        class="row items-center q-gutter-xs wrap q-my-xs text-caption text-grey-6"
+                        style="font-size: 11px"
+                      >
+                        <span
+                          v-if="
+                            dep.assigned_resource_names && dep.assigned_resource_names.length > 0
+                          "
+                        >
+                          <q-icon name="people" size="13px" />
+                          {{ dep.assigned_resource_names.join(', ') }}
+                        </span>
+                        <span v-if="dep.deadline">
+                          · <q-icon name="event" size="13px" /> Due: {{ formatDate(dep.deadline) }}
+                        </span>
+                        <span v-if="dep.expected_effort">
+                          · {{ dep.expected_effort }}h effort
+                        </span>
+                      </div>
+
+                      <!-- Progress Bar -->
+                      <div class="q-mt-sm">
+                        <div class="row items-center justify-between text-caption q-mb-xs">
+                          <span
+                            class="text-weight-bold"
+                            :class="Number(dep.progress) === 100 ? 'text-positive' : 'text-primary'"
+                          >
+                            {{ Number(dep.progress) || 0 }}% Complete
+                          </span>
+                          <q-badge
+                            v-if="dep.status === 'COMPLETED'"
+                            color="positive"
+                            class="text-caption text-weight-bold"
+                          >
+                            {{ dep.direction === 'UPSTREAM' ? 'Unblocked & Done' : 'Finished' }}
+                          </q-badge>
+                          <q-badge
+                            v-else-if="dep.is_schedule_at_risk || dep.is_deadline_at_risk"
+                            color="negative"
+                            class="text-caption text-weight-bold"
+                          >
+                            Possible Delay Risk
+                          </q-badge>
+                        </div>
+                        <q-linear-progress
+                          rounded
+                          size="7px"
+                          :value="(Number(dep.progress) || 0) / 100"
+                          :color="
+                            dep.status === 'COMPLETED'
+                              ? 'positive'
+                              : dep.is_schedule_at_risk || dep.is_deadline_at_risk
+                                ? 'warning'
+                                : dep.direction === 'UPSTREAM'
+                                  ? 'teal'
+                                  : 'primary'
+                          "
+                          :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="row justify-end q-mt-sm">
+                      <q-btn
+                        flat
+                        no-caps
+                        dense
+                        size="sm"
+                        color="primary"
+                        icon="visibility"
+                        :label="
+                          dep.direction === 'UPSTREAM'
+                            ? 'View Prerequisite Spec'
+                            : 'View Dependent Spec'
+                        "
+                        @click="openTask(dep.task_id)"
+                      />
+                    </div>
+                  </q-card>
+                </div>
+              </div>
+
+              <div v-else class="text-center text-grey-5 q-pa-lg column items-center">
+                <q-avatar
+                  size="44px"
+                  :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+                  :text-color="$q.dark.isActive ? 'teal-2' : 'teal-8'"
+                  icon="account_tree"
+                  class="q-mb-xs"
+                />
+                <div
+                  class="text-body2 text-weight-medium"
+                  :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
+                >
+                  {{
+                    specDependencyFilterTab === 'upstream'
+                      ? 'No upstream prerequisites linked to this task.'
+                      : specDependencyFilterTab === 'downstream'
+                        ? 'No downstream tasks depend on this deliverable.'
+                        : 'No dependencies linked to this task.'
+                  }}
+                </div>
+                <div class="text-caption text-grey-5 q-mt-xs">
+                  {{
+                    specDependencyFilterTab === 'upstream'
+                      ? 'This deliverable can start independently without blocking prerequisites.'
+                      : specDependencyFilterTab === 'downstream'
+                        ? 'Other tasks can proceed independently without waiting on this deliverable.'
+                        : 'This deliverable operates independently without upstream blockers or downstream dependents.'
+                  }}
+                </div>
+              </div>
+            </q-card-section>
+          </q-tab-panel>
+
+          <!-- TAB 3: DAILY UPDATES & SESSION HISTORY -->
+          <q-tab-panel v-if="canViewTaskHistory" name="history" class="q-pa-none">
+            <q-card-section class="row items-center justify-between q-pa-md">
+              <div class="row items-center">
+                <q-avatar
+                  size="34px"
+                  rounded
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="history"
+                  class="q-mr-sm"
+                />
+                <div>
+                  <div
+                    class="text-subtitle1 text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    Daily Updates & Session History
+                  </div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Collaborative timeline of start/stop sessions, work notes, and progress logged
+                    by all assigned resources.
+                  </div>
+                </div>
+              </div>
+              <!-- Total updates count chip -->
+              <q-chip
+                v-if="workLogs.length > 0"
+                dense
+                square
+                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
+                class="text-caption text-weight-bold"
+              >
+                {{ workLogs.length }} update{{ workLogs.length === 1 ? '' : 's' }}
+              </q-chip>
+            </q-card-section>
+
+            <q-separator />
+
+            <q-card-section class="q-pa-md">
+              <!-- Live Active Session Banner for co-assigned resources currently working on this task -->
+              <q-banner
+                v-if="otherActiveSessions.length > 0"
+                class="bg-blue-1 text-primary q-mb-md rounded-borders"
+                rounded
+              >
+                <template #avatar>
+                  <q-spinner-dots color="primary" size="24px" />
+                </template>
+                <div class="text-weight-medium text-caption">
+                  <!-- Render notice for each co-assignee with an active timer -->
+                  <span v-for="s in otherActiveSessions" :key="s.session_id" class="q-mr-md">
+                    🟢 <b>{{ s.user_name || resolveMemberName(s.user_id) }}</b> is currently working
+                    on this task (started {{ formatHistoryTime(s.start_time) }}).
+                  </span>
+                </div>
+              </q-banner>
+
+              <div v-if="historyLoading" class="column items-center q-pa-xl">
+                <q-spinner color="primary" size="32px" />
+                <div
+                  class="text-caption q-mt-sm"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                >
+                  Loading updates...
+                </div>
+              </div>
+
+              <q-banner v-else-if="historyError" class="bg-negative text-white" rounded>
+                {{ historyError }}
+                <template #action>
+                  <q-btn flat no-caps label="Retry" @click="loadHistory(task.task_id)" />
+                </template>
+              </q-banner>
+
               <q-card
+                v-else-if="workLogs.length === 0"
                 flat
                 bordered
                 :dark="$q.dark.isActive"
-                class="rounded-borders q-pa-sm full-height column justify-between"
-                :style="
-                  dep.direction === 'UPSTREAM'
-                    ? 'border-left: 3px solid #00897b;'
-                    : 'border-left: 3px solid #7c4dff;'
-                "
+                class="rounded-borders"
               >
-                <div>
-                  <div class="row items-center justify-between no-wrap q-mb-xs">
-                    <div class="row items-center gap-xs ellipsis" style="max-width: 65%">
-                      <q-icon
-                        :name="dep.direction === 'UPSTREAM' ? 'link' : 'call_split'"
-                        size="16px"
-                        :color="dep.direction === 'UPSTREAM' ? 'teal' : 'indigo'"
-                      />
-                      <span class="text-subtitle2 text-weight-bold ellipsis" :title="dep.title">
-                        {{ dep.title }}
-                      </span>
-                    </div>
-                    <div class="row items-center gap-xs">
-                      <q-chip
-                        dense
-                        square
-                        size="xs"
-                        :color="
-                          dep.direction === 'UPSTREAM'
-                            ? $q.dark.isActive
-                              ? 'teal-10'
-                              : 'teal-1'
-                            : $q.dark.isActive
-                              ? 'indigo-10'
-                              : 'indigo-1'
-                        "
-                        :text-color="
-                          dep.direction === 'UPSTREAM'
-                            ? $q.dark.isActive
-                              ? 'teal-2'
-                              : 'teal-9'
-                            : $q.dark.isActive
-                              ? 'indigo-2'
-                              : 'indigo-9'
-                        "
-                        class="text-weight-bold"
-                      >
-                        {{ dep.direction === 'UPSTREAM' ? 'Blocked By' : 'Blocks' }}
-                      </q-chip>
-                      <q-chip
-                        dense
-                        square
-                        size="xs"
-                        :color="statusBgColor(dep.status)"
-                        :text-color="statusTextColor(dep.status)"
-                        class="text-weight-bold"
-                      >
-                        {{ formatStatusLabel(dep.status) }}
-                      </q-chip>
-                    </div>
-                  </div>
-
+                <q-card-section class="column items-center q-pa-xl">
+                  <q-avatar
+                    size="52px"
+                    :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                    :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
+                    icon="event_note"
+                  />
                   <div
-                    class="text-caption text-grey-7 q-mb-xs"
-                    style="font-size: 11px"
+                    class="text-body2 q-mt-md"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
                   >
-                    {{ dep.relationshipNote }}
+                    No daily updates recorded for this task yet.
                   </div>
-
-                  <div
-                    class="row items-center q-gutter-xs wrap q-my-xs text-caption text-grey-6"
-                    style="font-size: 11px"
-                  >
-                    <span
-                      v-if="dep.assigned_resource_names && dep.assigned_resource_names.length > 0"
-                    >
-                      <q-icon name="people" size="13px" />
-                      {{ dep.assigned_resource_names.join(', ') }}
-                    </span>
-                    <span v-if="dep.deadline">
-                      · <q-icon name="event" size="13px" /> Due: {{ formatDate(dep.deadline) }}
-                    </span>
-                    <span v-if="dep.expected_effort"> · {{ dep.expected_effort }}h effort </span>
-                  </div>
-
-                  <!-- Progress Bar -->
-                  <div class="q-mt-sm">
-                    <div class="row items-center justify-between text-caption q-mb-xs">
-                      <span
-                        class="text-weight-bold"
-                        :class="Number(dep.progress) === 100 ? 'text-positive' : 'text-primary'"
-                      >
-                        {{ Number(dep.progress) || 0 }}% Complete
-                      </span>
-                      <q-badge
-                        v-if="dep.status === 'COMPLETED'"
-                        color="positive"
-                        class="text-caption text-weight-bold"
-                      >
-                        {{ dep.direction === 'UPSTREAM' ? 'Unblocked & Done' : 'Finished' }}
-                      </q-badge>
-                      <q-badge
-                        v-else-if="dep.is_schedule_at_risk || dep.is_deadline_at_risk"
-                        color="negative"
-                        class="text-caption text-weight-bold"
-                      >
-                        Possible Delay Risk
-                      </q-badge>
-                    </div>
-                    <q-linear-progress
-                      rounded
-                      size="7px"
-                      :value="(Number(dep.progress) || 0) / 100"
-                      :color="
-                        dep.status === 'COMPLETED'
-                          ? 'positive'
-                          : dep.is_schedule_at_risk || dep.is_deadline_at_risk
-                            ? 'warning'
-                            : dep.direction === 'UPSTREAM'
-                              ? 'teal'
-                              : 'primary'
-                      "
-                      :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                    />
-                  </div>
-                </div>
-
-                <div class="row justify-end q-mt-sm">
                   <q-btn
-                    flat
+                    v-if="isAssignedToMe(task)"
+                    outline
                     no-caps
-                    dense
-                    size="sm"
                     color="primary"
-                    icon="visibility"
-                    :label="dep.direction === 'UPSTREAM' ? 'View Prerequisite Spec' : 'View Dependent Spec'"
-                    @click="openTask(dep.task_id)"
+                    label="Log First Update"
+                    icon="edit_note"
+                    class="q-mt-md"
+                    @click="updateDialog = true"
                   />
-                </div>
+                </q-card-section>
               </q-card>
-            </div>
-          </div>
 
-          <div v-else class="text-center text-grey-5 q-pa-lg column items-center">
-            <q-avatar
-              size="44px"
-              :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
-              :text-color="$q.dark.isActive ? 'teal-2' : 'teal-8'"
-              icon="account_tree"
-              class="q-mb-xs"
-            />
-            <div
-              class="text-body2 text-weight-medium"
-              :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
-            >
-              {{
-                specDependencyFilterTab === 'upstream'
-                  ? 'No upstream prerequisites linked to this task.'
-                  : specDependencyFilterTab === 'downstream'
-                    ? 'No downstream tasks depend on this deliverable.'
-                    : 'No dependencies linked to this task.'
-              }}
-            </div>
-            <div class="text-caption text-grey-5 q-mt-xs">
-              {{
-                specDependencyFilterTab === 'upstream'
-                  ? 'This deliverable can start independently without blocking prerequisites.'
-                  : specDependencyFilterTab === 'downstream'
-                    ? 'Other tasks can proceed independently without waiting on this deliverable.'
-                    : 'This deliverable operates independently without upstream blockers or downstream dependents.'
-              }}
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-
-      <!-- 3. DAILY UPDATES & START/STOP SESSION LOG SECTION (Only visible to assigned resources or supervisor) -->
-      <q-card
-        v-if="canViewTaskHistory"
-        flat
-        bordered
-        :dark="$q.dark.isActive"
-        class="rounded-borders overflow-hidden"
-      >
-        <q-card-section class="row items-center justify-between q-pa-md">
-          <div class="row items-center">
-            <q-avatar
-              size="34px"
-              rounded
-              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-              icon="history"
-              class="q-mr-sm"
-            />
-            <div>
-              <div
-                class="text-subtitle1 text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                Daily Updates & Session History
-              </div>
-              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                Collaborative timeline of start/stop sessions, work notes, and progress logged by
-                all assigned resources.
-              </div>
-            </div>
-          </div>
-          <!-- Total updates count chip -->
-          <q-chip
-            v-if="workLogs.length > 0"
-            dense
-            square
-            :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-            :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
-            class="text-caption text-weight-bold"
-          >
-            {{ workLogs.length }} update{{ workLogs.length === 1 ? '' : 's' }}
-          </q-chip>
-        </q-card-section>
-
-        <q-separator />
-
-        <q-card-section class="q-pa-md">
-          <!-- Live Active Session Banner for co-assigned resources currently working on this task -->
-          <q-banner
-            v-if="otherActiveSessions.length > 0"
-            class="bg-blue-1 text-primary q-mb-md rounded-borders"
-            rounded
-          >
-            <template #avatar>
-              <q-spinner-dots color="primary" size="24px" />
-            </template>
-            <div class="text-weight-medium text-caption">
-              <!-- Render notice for each co-assignee with an active timer -->
-              <span v-for="s in otherActiveSessions" :key="s.session_id" class="q-mr-md">
-                🟢 <b>{{ s.user_name || resolveMemberName(s.user_id) }}</b> is currently working on
-                this task (started {{ formatHistoryTime(s.start_time) }}).
-              </span>
-            </div>
-          </q-banner>
-
-          <div v-if="historyLoading" class="column items-center q-pa-xl">
-            <q-spinner color="primary" size="32px" />
-            <div
-              class="text-caption q-mt-sm"
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
-            >
-              Loading updates...
-            </div>
-          </div>
-
-          <q-banner v-else-if="historyError" class="bg-negative text-white" rounded>
-            {{ historyError }}
-            <template #action>
-              <q-btn flat no-caps label="Retry" @click="loadHistory(task.task_id)" />
-            </template>
-          </q-banner>
-
-          <q-card
-            v-else-if="workLogs.length === 0"
-            flat
-            bordered
-            :dark="$q.dark.isActive"
-            class="rounded-borders"
-          >
-            <q-card-section class="column items-center q-pa-xl">
-              <q-avatar
-                size="52px"
-                :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                :text-color="$q.dark.isActive ? 'grey-4' : 'grey-6'"
-                icon="event_note"
-              />
-              <div
-                class="text-body2 q-mt-md"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
-              >
-                No daily updates recorded for this task yet.
-              </div>
-              <q-btn
-                v-if="isAssignedToMe(task)"
-                outline
-                no-caps
-                color="primary"
-                label="Log First Update"
-                icon="edit_note"
-                class="q-mt-md"
-                @click="updateDialog = true"
-              />
-            </q-card-section>
-          </q-card>
-
-          <!-- List of work logs & session updates from all assigned co-resources -->
-          <q-list v-else bordered separator :dark="$q.dark.isActive" class="rounded-borders">
-            <q-item v-for="log in workLogs" :key="log.log_id" class="q-py-md">
-              <!-- Author Avatar with Initials -->
-              <q-item-section avatar top style="min-width: 40px">
-                <q-avatar
-                  size="36px"
-                  :color="
-                    Number(log.user_id) === getCurrentUserId()
-                      ? $q.dark.isActive
-                        ? 'purple-10'
-                        : 'purple-1'
-                      : $q.dark.isActive
-                        ? 'teal-10'
-                        : 'teal-1'
-                  "
-                  :text-color="
-                    Number(log.user_id) === getCurrentUserId()
-                      ? $q.dark.isActive
-                        ? 'purple-2'
-                        : 'primary'
-                      : $q.dark.isActive
-                        ? 'teal-2'
-                        : 'teal-9'
-                  "
-                  class="text-weight-bold"
-                >
-                  {{ getInitials(log.author_name || resolveMemberName(log.user_id), 'U') }}
-                </q-avatar>
-              </q-item-section>
-
-              <q-item-section>
-                <!-- Header row: Author name, You badge, timestamp, status -->
-                <div class="row items-center justify-between no-wrap">
-                  <div class="row items-center q-gutter-xs wrap">
-                    <!-- Author Resource Name -->
-                    <span
+              <!-- List of work logs & session updates from all assigned co-resources -->
+              <q-list v-else bordered separator :dark="$q.dark.isActive" class="rounded-borders">
+                <q-item v-for="log in workLogs" :key="log.log_id" class="q-py-md">
+                  <!-- Author Avatar with Initials -->
+                  <q-item-section avatar top style="min-width: 40px">
+                    <q-avatar
+                      size="36px"
+                      :color="
+                        Number(log.user_id) === getCurrentUserId()
+                          ? $q.dark.isActive
+                            ? 'purple-10'
+                            : 'purple-1'
+                          : $q.dark.isActive
+                            ? 'teal-10'
+                            : 'teal-1'
+                      "
+                      :text-color="
+                        Number(log.user_id) === getCurrentUserId()
+                          ? $q.dark.isActive
+                            ? 'purple-2'
+                            : 'primary'
+                          : $q.dark.isActive
+                            ? 'teal-2'
+                            : 'teal-9'
+                      "
                       class="text-weight-bold"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                      {{ log.author_name || resolveMemberName(log.user_id) }}
-                    </span>
+                      {{ getInitials(log.author_name || resolveMemberName(log.user_id), 'U') }}
+                    </q-avatar>
+                  </q-item-section>
 
-                    <!-- (You) Badge for current user's logs -->
-                    <q-badge
-                      v-if="Number(log.user_id) === getCurrentUserId()"
-                      color="primary"
-                      label="You"
-                      class="text-weight-bold q-ml-xs"
-                    />
+                  <q-item-section>
+                    <!-- Header row: Author name, You badge, timestamp, status -->
+                    <div class="row items-center justify-between no-wrap">
+                      <div class="row items-center q-gutter-xs wrap">
+                        <!-- Author Resource Name -->
+                        <span
+                          class="text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ log.author_name || resolveMemberName(log.user_id) }}
+                        </span>
 
-                    <span class="text-caption text-grey-5">·</span>
+                        <!-- (You) Badge for current user's logs -->
+                        <q-badge
+                          v-if="Number(log.user_id) === getCurrentUserId()"
+                          color="primary"
+                          label="You"
+                          class="text-weight-bold q-ml-xs"
+                        />
 
-                    <!-- Date & time of the update -->
-                    <span class="text-caption text-grey-6 text-weight-medium">
-                      {{ formatHistoryDate(log.log_date || log.created_at) }}
-                    </span>
-                  </div>
+                        <span class="text-caption text-grey-5">·</span>
 
-                  <!-- Task status associated with this update -->
-                  <q-chip
-                    dense
-                    square
-                    size="sm"
-                    :color="statusBgColor(log.status)"
-                    :text-color="statusTextColor(log.status)"
-                    :label="statusLabel(log.status)"
-                    class="text-weight-bold"
-                  />
-                </div>
+                        <!-- Date & time of the update -->
+                        <span class="text-caption text-grey-6 text-weight-medium">
+                          {{ formatHistoryDate(log.log_date || log.created_at) }}
+                        </span>
+                      </div>
 
-                <!-- Hours logged & progress metrics -->
-                <div class="row items-center gap-xs q-mt-xs text-caption text-grey-7">
-                  <q-icon name="timer" size="14px" color="primary" class="q-mr-xs" />
-                  <span
-                    class="text-weight-medium"
-                    :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
-                  >
-                    {{ formatHours(log.hours_logged) }} logged
-                  </span>
-                  <span class="q-mx-xs">·</span>
-                  <span class="text-weight-medium text-primary"
-                    >{{ Number(log.progress_logged) }}% progress</span
-                  >
-                </div>
+                      <!-- Task status associated with this update -->
+                      <q-chip
+                        dense
+                        square
+                        size="sm"
+                        :color="statusBgColor(log.status)"
+                        :text-color="statusTextColor(log.status)"
+                        :label="statusLabel(log.status)"
+                        class="text-weight-bold"
+                      />
+                    </div>
 
-                <!-- Session summary / update notes -->
-                <div
-                  v-if="log.notes"
-                  class="q-mt-sm text-body2"
-                  :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
-                  style="white-space: pre-wrap; word-break: break-word"
-                >
-                  {{ log.notes }}
-                </div>
+                    <!-- Hours logged & progress metrics -->
+                    <div class="row items-center gap-xs q-mt-xs text-caption text-grey-7">
+                      <q-icon name="timer" size="14px" color="primary" class="q-mr-xs" />
+                      <span
+                        class="text-weight-medium"
+                        :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                      >
+                        {{ formatHours(log.hours_logged) }} logged
+                      </span>
+                      <span class="q-mx-xs">·</span>
+                      <span class="text-weight-medium text-primary"
+                        >{{ Number(log.progress_logged) }}% progress</span
+                      >
+                    </div>
 
-                <!-- Blocker details if reported -->
-                <div
-                  v-if="log.blockers"
-                  class="row items-center text-negative q-mt-xs text-weight-medium text-caption"
-                >
-                  <q-icon name="warning_amber" size="15px" class="q-mr-xs" />
-                  <span>Blocker: {{ log.blockers }}</span>
-                </div>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
+                    <!-- Session summary / update notes -->
+                    <div
+                      v-if="log.notes"
+                      class="q-mt-sm text-body2"
+                      :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
+                      style="white-space: pre-wrap; word-break: break-word"
+                    >
+                      {{ log.notes }}
+                    </div>
+
+                    <!-- Blocker details if reported -->
+                    <div
+                      v-if="log.blockers"
+                      class="row items-center text-negative q-mt-xs text-weight-medium text-caption"
+                    >
+                      <q-icon name="warning_amber" size="15px" class="q-mr-xs" />
+                      <span>Blocker: {{ log.blockers }}</span>
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-card-section>
+          </q-tab-panel>
+        </q-tab-panels>
       </q-card>
     </div>
 
@@ -2785,7 +2830,9 @@ const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> 
   { label: 'Verification (No Priority)', value: 'NONE' },
 ];
 
-const scopeFilter = ref<'all' | 'assigned' | 'supervised' | 'upstream' | 'downstream' | 'verifications'>('all');
+const scopeFilter = ref<
+  'all' | 'assigned' | 'supervised' | 'upstream' | 'downstream' | 'verifications'
+>('all');
 const currentUserId = computed(() => getCurrentUserId());
 
 const showAssignVerificationDialog = ref(false);
@@ -2870,7 +2917,10 @@ const allKnownTasksMap = computed<Map<number, PredecessorTaskInfo | Task>>(() =>
 });
 
 // Helper to convert any task reference or ID to a PredecessorTaskInfo representation
-function resolveTaskInfo(taskId: number, fallbackObj?: Partial<PredecessorTaskInfo | Task>): PredecessorTaskInfo {
+function resolveTaskInfo(
+  taskId: number,
+  fallbackObj?: Partial<PredecessorTaskInfo | Task>,
+): PredecessorTaskInfo {
   const existing = allKnownTasksMap.value.get(Number(taskId));
   return {
     task_id: Number(taskId),
@@ -2897,7 +2947,11 @@ function resolveTaskInfo(taskId: number, fallbackObj?: Partial<PredecessorTaskIn
 const taskPredecessorsMap = computed<Map<number, PredecessorTaskInfo[]>>(() => {
   const map = new Map<number, Map<number, PredecessorTaskInfo>>();
 
-  function addPred(childTaskId: number, predId: number, predFallback?: Partial<PredecessorTaskInfo | Task>) {
+  function addPred(
+    childTaskId: number,
+    predId: number,
+    predFallback?: Partial<PredecessorTaskInfo | Task>,
+  ) {
     if (!childTaskId || !predId || childTaskId === predId) return;
     if (!map.has(childTaskId)) map.set(childTaskId, new Map());
     const childMap = map.get(childTaskId)!;
@@ -2944,7 +2998,11 @@ const taskPredecessorsMap = computed<Map<number, PredecessorTaskInfo[]>>(() => {
 const taskSuccessorsMap = computed<Map<number, PredecessorTaskInfo[]>>(() => {
   const map = new Map<number, Map<number, PredecessorTaskInfo>>();
 
-  function addSucc(parentTaskId: number, succId: number, succFallback?: Partial<PredecessorTaskInfo | Task>) {
+  function addSucc(
+    parentTaskId: number,
+    succId: number,
+    succFallback?: Partial<PredecessorTaskInfo | Task>,
+  ) {
     if (!parentTaskId || !succId || parentTaskId === succId) return;
     if (!map.has(parentTaskId)) map.set(parentTaskId, new Map());
     const parentMap = map.get(parentTaskId)!;
@@ -3034,6 +3092,7 @@ function getResourceTaskBlocksSummary(taskItem: Task | ResourceTask | Predecesso
 }
 
 const specDependencyFilterTab = ref<'all' | 'upstream' | 'downstream'>('all');
+const taskDetailTab = ref<'progress' | 'dependencies' | 'history'>('progress');
 
 interface DependencyCardItem {
   task_id: number;
@@ -3120,14 +3179,13 @@ watch(
   () => route.query,
   (query) => {
     if (query.scope && typeof query.scope === 'string') {
-      if (['all', 'assigned', 'supervised', 'upstream', 'downstream', 'verifications'].includes(query.scope)) {
+      if (
+        ['all', 'assigned', 'supervised', 'upstream', 'downstream', 'verifications'].includes(
+          query.scope,
+        )
+      ) {
         scopeFilter.value = query.scope as
-          | 'all'
-          | 'assigned'
-          | 'supervised'
-          | 'upstream'
-          | 'downstream'
-          | 'verifications';
+          'all' | 'assigned' | 'supervised' | 'upstream' | 'downstream' | 'verifications';
       }
     }
     if (query.status && typeof query.status === 'string') {
@@ -3266,7 +3324,9 @@ const filteredTasks = computed(() => {
         if (succs.length > 0 && !downstreamMap.has(Number(kId))) {
           const isRelatedToMe =
             isAssignedToMe(kTask as Task) ||
-            succs.some((s) => myAssignedTasks.value.some((m) => Number(m.task_id) === Number(s.task_id)));
+            succs.some((s) =>
+              myAssignedTasks.value.some((m) => Number(m.task_id) === Number(s.task_id)),
+            );
           if (isRelatedToMe) {
             const full = allKnownTasksMap.value.get(Number(kId)) as Task;
             downstreamMap.set(Number(kId), {
@@ -3453,6 +3513,12 @@ const sessionStore = useSessionStore();
 const canViewTaskHistory = computed(() => {
   if (!task.value) return false;
   return isAssignedToMe(task.value) || Number(task.value.supervisor_id) === currentUserId.value;
+});
+
+watch(canViewTaskHistory, (canView) => {
+  if (!canView && taskDetailTab.value === 'history') {
+    taskDetailTab.value = 'progress';
+  }
 });
 
 const isCurrentTaskSessionActive = computed(() => {
@@ -3656,6 +3722,7 @@ function stopLiveSync() {
 }
 
 watch(taskId, async (id) => {
+  taskDetailTab.value = 'progress';
   if (!id) {
     individualTask.value = null;
     workLogs.value = [];
@@ -3928,6 +3995,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.task-detail-tabs {
+  background: var(--wo-bg-page, #fafbfc);
+  border-bottom: 1px solid var(--wo-border, #e9ebef);
+}
+
+.task-detail-tab {
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 46px;
+}
+
 .task-board-card {
   height: 215px;
   transition:
