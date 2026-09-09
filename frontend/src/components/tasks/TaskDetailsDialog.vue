@@ -705,6 +705,23 @@ interface DialogDependencyItem {
   relationshipNote: string;
 }
 
+function parseDialogDependencyIds(val: unknown): number[] {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val.map((x) => Number(x)).filter((n) => !isNaN(n) && n > 0);
+  }
+  if (typeof val === 'number') {
+    return val > 0 ? [val] : [];
+  }
+  if (typeof val === 'string') {
+    return val
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => !isNaN(n) && n > 0);
+  }
+  return [];
+}
+
 const upstreamDependencies = computed<DialogDependencyItem[]>(() => {
   if (!props.task) return [];
   if (Array.isArray(props.task.predecessors) && props.task.predecessors.length > 0) {
@@ -728,8 +745,9 @@ const upstreamDependencies = computed<DialogDependencyItem[]>(() => {
       relationshipNote: 'Prerequisite deliverable that must finish before this task can proceed.',
     }));
   }
-  if (Array.isArray(props.task.predecessor_task_ids) && props.task.predecessor_task_ids.length > 0) {
-    return props.task.predecessor_task_ids.map((id) => ({
+  const predIds = parseDialogDependencyIds(props.task.predecessor_task_ids);
+  if (predIds.length > 0) {
+    return predIds.map((id) => ({
       task_id: Number(id),
       title: resolvePredecessorTitle(Number(id)),
       status: 'UNASSIGNED',
@@ -764,8 +782,9 @@ const downstreamDependencies = computed<DialogDependencyItem[]>(() => {
       relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
     }));
   }
-  if (Array.isArray(props.task.successor_task_ids) && props.task.successor_task_ids.length > 0) {
-    return props.task.successor_task_ids.map((id) => ({
+  const succIds = parseDialogDependencyIds(props.task.successor_task_ids);
+  if (succIds.length > 0) {
+    return succIds.map((id) => ({
       task_id: Number(id),
       title: resolvePredecessorTitle(Number(id)),
       status: 'UNASSIGNED',

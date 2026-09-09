@@ -93,20 +93,20 @@ export interface AssignedResource {
 export interface PredecessorTaskInfo {
   task_id: number;
   project_id: number;
-  project_name?: string;
+  project_name?: string | undefined;
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
   deadline: string | null;
-  planned_start?: string | null;
-  planned_end?: string | null;
+  planned_start?: string | null | undefined;
+  planned_end?: string | null | undefined;
   expected_effort: number | string;
   actual_effort: number | string;
   progress: number | string;
-  is_schedule_at_risk?: boolean;
-  is_deadline_at_risk?: boolean;
-  assigned_resource_names?: string[];
-  supervisor_name?: string | null;
+  is_schedule_at_risk?: boolean | undefined;
+  is_deadline_at_risk?: boolean | undefined;
+  assigned_resource_names?: string[] | undefined;
+  supervisor_name?: string | null | undefined;
 }
 
 export interface Task {

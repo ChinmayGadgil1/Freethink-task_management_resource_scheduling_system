@@ -2800,138 +2800,213 @@ function onVerificationSaved() {
   void loadTasks();
 }
 
-// Compute tasks directly assigned to current user
-const myAssignedTasks = computed(() => {
-  return tasks.value.filter((t) => isAssignedToMe(t));
-});
-
-// Map of predecessor task_id -> array of user's task titles that depend on it
-const blockedTasksByPredecessorId = computed(() => {
-  const map: Record<number, string[]> = {};
-  myAssignedTasks.value.forEach((myTask) => {
-    // Check predecessor_task_ids (can be array or comma-separated string)
-    if (myTask.predecessor_task_ids) {
-      const ids = Array.isArray(myTask.predecessor_task_ids)
-        ? myTask.predecessor_task_ids
-        : String(myTask.predecessor_task_ids).split(',').map(Number);
-      ids.forEach((pId) => {
-        const numId = Number(pId);
-        if (numId && !isNaN(numId)) {
-          if (!map[numId]) map[numId] = [];
-          if (!map[numId].includes(myTask.title)) {
-            map[numId].push(myTask.title);
-          }
-        }
-      });
-    }
-    // Check predecessors array
-    if (Array.isArray(myTask.predecessors)) {
-      myTask.predecessors.forEach((p) => {
-        const numId = Number(p.task_id);
-        if (numId && !isNaN(numId)) {
-          if (!map[numId]) map[numId] = [];
-          if (!map[numId].includes(myTask.title)) {
-            map[numId].push(myTask.title);
-          }
-        }
-      });
-    }
-  });
-  return map;
-});
-
-// Map of predecessor task_id -> PredecessorTaskInfo extracted from predecessors array of all myAssignedTasks
-const predecessorObjectsMap = computed(() => {
-  const map: Record<number, PredecessorTaskInfo> = {};
-  myAssignedTasks.value.forEach((myTask) => {
-    if (Array.isArray(myTask.predecessors)) {
-      myTask.predecessors.forEach((p) => {
-        if (p.task_id) {
-          map[Number(p.task_id)] = p;
-        }
-      });
-    }
-  });
-  return map;
-});
-
-// Set of all predecessor task IDs for tasks assigned to the current user
-const myUpstreamPredecessorIds = computed(() => {
-  return new Set(Object.keys(blockedTasksByPredecessorId.value).map(Number));
-});
-
-// Map of successor task_id -> PredecessorTaskInfo extracted from successors array of all myAssignedTasks
-const successorObjectsMap = computed(() => {
-  const map: Record<number, PredecessorTaskInfo> = {};
-  myAssignedTasks.value.forEach((myTask) => {
-    if (Array.isArray(myTask.successors)) {
-      myTask.successors.forEach((s) => {
-        if (s.task_id) {
-          map[Number(s.task_id)] = s;
-        }
-      });
-    }
-  });
-  return map;
-});
-
-// Set of all downstream successor task IDs waiting on tasks assigned to the current user
-const myDownstreamSuccessorIds = computed(() => {
-  const ids = new Set<number>();
-  myAssignedTasks.value.forEach((myTask) => {
-    const myTaskId = Number(myTask.task_id);
-    if (Array.isArray(myTask.successor_task_ids)) {
-      myTask.successor_task_ids.forEach((id) => ids.add(Number(id)));
-    }
-    if (Array.isArray(myTask.successors)) {
-      myTask.successors.forEach((s) => ids.add(Number(s.task_id)));
-    }
-    tasks.value.forEach((other) => {
-      const predIds = other.predecessor_task_ids
-        ? Array.isArray(other.predecessor_task_ids)
-          ? other.predecessor_task_ids.map(Number)
-          : String(other.predecessor_task_ids).split(',').map(Number)
-        : [];
-      if (predIds.includes(myTaskId)) {
-        ids.add(Number(other.task_id));
-      }
-    });
-  });
-  return ids;
-});
-
-// Helper to get blocked task names for an upstream task
-function getBlockedMyTaskNames(predTaskId: number): string[] {
-  return blockedTasksByPredecessorId.value[Number(predTaskId)] || [];
+// Parser helper for IDs that may be numbers, arrays, or comma-separated strings
+function parseDependencyIds(val: unknown): number[] {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val.map((x) => Number(x)).filter((n) => !isNaN(n) && n > 0);
+  }
+  if (typeof val === 'number') {
+    return val > 0 ? [val] : [];
+  }
+  if (typeof val === 'string') {
+    return val
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => !isNaN(n) && n > 0);
+  }
+  return [];
 }
 
-function getResourceTaskBlockedBySummary(taskItem: Task): {
+// Compute tasks directly assigned to or created/supervised by current user
+const myAssignedTasks = computed(() => {
+  const myId = currentUserId.value;
+  return tasks.value.filter((t) => isAssignedToMe(t) || Number(t.supervisor_id) === myId);
+});
+
+// Unified repository of all known task metadata across the session
+const allKnownTasksMap = computed<Map<number, PredecessorTaskInfo | Task>>(() => {
+  const map = new Map<number, PredecessorTaskInfo | Task>();
+
+  // Extract from loaded task list
+  tasks.value.forEach((t) => {
+    if (t.task_id) map.set(Number(t.task_id), t);
+    if (Array.isArray(t.predecessors)) {
+      t.predecessors.forEach((p) => {
+        if (p.task_id && !map.has(Number(p.task_id))) {
+          map.set(Number(p.task_id), p);
+        }
+      });
+    }
+    if (Array.isArray(t.successors)) {
+      t.successors.forEach((s) => {
+        if (s.task_id && !map.has(Number(s.task_id))) {
+          map.set(Number(s.task_id), s);
+        }
+      });
+    }
+  });
+
+  // Extract from individual viewed task
+  if (individualTask.value?.task_id) {
+    map.set(Number(individualTask.value.task_id), individualTask.value);
+    if (Array.isArray(individualTask.value.predecessors)) {
+      individualTask.value.predecessors.forEach((p) => {
+        if (p.task_id && !map.has(Number(p.task_id))) {
+          map.set(Number(p.task_id), p);
+        }
+      });
+    }
+    if (Array.isArray(individualTask.value.successors)) {
+      individualTask.value.successors.forEach((s) => {
+        if (s.task_id && !map.has(Number(s.task_id))) {
+          map.set(Number(s.task_id), s);
+        }
+      });
+    }
+  }
+
+  return map;
+});
+
+// Helper to convert any task reference or ID to a PredecessorTaskInfo representation
+function resolveTaskInfo(taskId: number, fallbackObj?: Partial<PredecessorTaskInfo | Task>): PredecessorTaskInfo {
+  const existing = allKnownTasksMap.value.get(Number(taskId));
+  return {
+    task_id: Number(taskId),
+    project_id: Number(existing?.project_id || fallbackObj?.project_id || 0),
+    project_name: existing?.project_name || fallbackObj?.project_name || undefined,
+    title: existing?.title || fallbackObj?.title || `Task #${taskId}`,
+    status: existing?.status || fallbackObj?.status || 'SCHEDULED',
+    priority: existing?.priority || fallbackObj?.priority || 'MEDIUM',
+    deadline: existing?.deadline || fallbackObj?.deadline || null,
+    planned_start: existing?.planned_start || fallbackObj?.planned_start || null,
+    planned_end: existing?.planned_end || fallbackObj?.planned_end || null,
+    expected_effort: existing?.expected_effort ?? fallbackObj?.expected_effort ?? 0,
+    actual_effort: existing?.actual_effort ?? fallbackObj?.actual_effort ?? 0,
+    progress: existing?.progress ?? fallbackObj?.progress ?? 0,
+    is_schedule_at_risk: Boolean(existing?.is_schedule_at_risk || fallbackObj?.is_schedule_at_risk),
+    is_deadline_at_risk: Boolean(existing?.is_deadline_at_risk || fallbackObj?.is_deadline_at_risk),
+    assigned_resource_names:
+      existing?.assigned_resource_names || fallbackObj?.assigned_resource_names || [],
+    supervisor_name: existing?.supervisor_name || fallbackObj?.supervisor_name || null,
+  };
+}
+
+// Map of task_id -> all tasks that must finish before this task (Upstream / Blocked By)
+const taskPredecessorsMap = computed<Map<number, PredecessorTaskInfo[]>>(() => {
+  const map = new Map<number, Map<number, PredecessorTaskInfo>>();
+
+  function addPred(childTaskId: number, predId: number, predFallback?: Partial<PredecessorTaskInfo | Task>) {
+    if (!childTaskId || !predId || childTaskId === predId) return;
+    if (!map.has(childTaskId)) map.set(childTaskId, new Map());
+    const childMap = map.get(childTaskId)!;
+    if (!childMap.has(predId)) {
+      childMap.set(predId, resolveTaskInfo(predId, predFallback));
+    }
+  }
+
+  // Scan all tasks in tasks.value
+  tasks.value.forEach((t) => {
+    const tId = Number(t.task_id);
+    if (Array.isArray(t.predecessors)) {
+      t.predecessors.forEach((p) => addPred(tId, Number(p.task_id), p));
+    }
+    parseDependencyIds(t.predecessor_task_ids).forEach((pId) => addPred(tId, pId));
+    if (Array.isArray(t.successors)) {
+      t.successors.forEach((s) => addPred(Number(s.task_id), tId, t));
+    }
+    parseDependencyIds(t.successor_task_ids).forEach((sId) => addPred(sId, tId, t));
+  });
+
+  // Scan individual viewed task if any
+  if (individualTask.value?.task_id) {
+    const t = individualTask.value;
+    const tId = Number(t.task_id);
+    if (Array.isArray(t.predecessors)) {
+      t.predecessors.forEach((p) => addPred(tId, Number(p.task_id), p));
+    }
+    parseDependencyIds(t.predecessor_task_ids).forEach((pId) => addPred(tId, pId));
+    if (Array.isArray(t.successors)) {
+      t.successors.forEach((s) => addPred(Number(s.task_id), tId, t));
+    }
+    parseDependencyIds(t.successor_task_ids).forEach((sId) => addPred(sId, tId, t));
+  }
+
+  const result = new Map<number, PredecessorTaskInfo[]>();
+  map.forEach((innerMap, tId) => {
+    result.set(tId, Array.from(innerMap.values()));
+  });
+  return result;
+});
+
+// Map of task_id -> all tasks that are waiting on this task (Downstream / Blocks)
+const taskSuccessorsMap = computed<Map<number, PredecessorTaskInfo[]>>(() => {
+  const map = new Map<number, Map<number, PredecessorTaskInfo>>();
+
+  function addSucc(parentTaskId: number, succId: number, succFallback?: Partial<PredecessorTaskInfo | Task>) {
+    if (!parentTaskId || !succId || parentTaskId === succId) return;
+    if (!map.has(parentTaskId)) map.set(parentTaskId, new Map());
+    const parentMap = map.get(parentTaskId)!;
+    if (!parentMap.has(succId)) {
+      parentMap.set(succId, resolveTaskInfo(succId, succFallback));
+    }
+  }
+
+  // Scan all tasks in tasks.value
+  tasks.value.forEach((t) => {
+    const tId = Number(t.task_id);
+    if (Array.isArray(t.successors)) {
+      t.successors.forEach((s) => addSucc(tId, Number(s.task_id), s));
+    }
+    parseDependencyIds(t.successor_task_ids).forEach((sId) => addSucc(tId, sId));
+    if (Array.isArray(t.predecessors)) {
+      t.predecessors.forEach((p) => addSucc(Number(p.task_id), tId, t));
+    }
+    parseDependencyIds(t.predecessor_task_ids).forEach((pId) => addSucc(pId, tId, t));
+  });
+
+  // Scan individual viewed task if any
+  if (individualTask.value?.task_id) {
+    const t = individualTask.value;
+    const tId = Number(t.task_id);
+    if (Array.isArray(t.successors)) {
+      t.successors.forEach((s) => addSucc(tId, Number(s.task_id), s));
+    }
+    parseDependencyIds(t.successor_task_ids).forEach((sId) => addSucc(tId, sId));
+    if (Array.isArray(t.predecessors)) {
+      t.predecessors.forEach((p) => addSucc(Number(p.task_id), tId, t));
+    }
+    parseDependencyIds(t.predecessor_task_ids).forEach((pId) => addSucc(pId, tId, t));
+  }
+
+  const result = new Map<number, PredecessorTaskInfo[]>();
+  map.forEach((innerMap, tId) => {
+    result.set(tId, Array.from(innerMap.values()));
+  });
+  return result;
+});
+
+function getResourceTaskBlockedBySummary(taskItem: Task | ResourceTask | PredecessorTaskInfo): {
   label: string;
   isAllCompleted: boolean;
   hasRisk: boolean;
   list: { title: string; status?: string | undefined }[];
 } {
-  const list: { title: string; status?: string | undefined }[] = [];
-  let isAllCompleted = false;
-  let hasRisk = false;
-
-  if (Array.isArray(taskItem.predecessors) && taskItem.predecessors.length > 0) {
-    isAllCompleted = taskItem.predecessors.every((p) => p.status === 'COMPLETED');
-    hasRisk = taskItem.predecessors.some((p) => p.is_schedule_at_risk || p.is_deadline_at_risk);
-    taskItem.predecessors.forEach((p) => {
-      list.push({ title: p.title || `Task #${p.task_id}`, status: p.status });
-    });
-  } else if (
-    Array.isArray(taskItem.predecessor_task_ids) &&
-    taskItem.predecessor_task_ids.length > 0
-  ) {
-    taskItem.predecessor_task_ids.forEach((id) => {
-      const match = tasks.value.find((t) => Number(t.task_id) === Number(id));
-      list.push({ title: match?.title || `Task #${id}`, status: match?.status });
-    });
+  const itemAny = taskItem as unknown as Record<string, unknown>;
+  const tId = Number(itemAny.task_id || itemAny.id || itemAny.taskId);
+  const preds = taskPredecessorsMap.value.get(tId) || [];
+  if (preds.length === 0) {
+    return { label: '', isAllCompleted: false, hasRisk: false, list: [] };
   }
 
-  if (list.length === 0) return { label: '', isAllCompleted: false, hasRisk: false, list: [] };
+  const isAllCompleted = preds.every((p) => p.status === 'COMPLETED');
+  const hasRisk = preds.some((p) => p.is_schedule_at_risk || p.is_deadline_at_risk);
+  const list = preds.map((p) => ({
+    title: p.title || `Task #${p.task_id}`,
+    status: p.status,
+  }));
+
   const first = list[0]!.title;
   const extra = list.length - 1;
   const shortFirst = first.length > 18 ? first.slice(0, 18) + '...' : first;
@@ -2939,23 +3014,23 @@ function getResourceTaskBlockedBySummary(taskItem: Task): {
   return { label, isAllCompleted, hasRisk, list };
 }
 
-function getResourceTaskBlocksSummary(taskItem: Task): { label: string; list: string[] } {
-  const myBlocked = getBlockedMyTaskNames(taskItem.task_id);
-  const titles = [...myBlocked];
-
-  if (Array.isArray(taskItem.successors) && taskItem.successors.length > 0) {
-    taskItem.successors.forEach((s) => {
-      const title = s.title || `Task #${s.task_id}`;
-      if (!titles.includes(title)) titles.push(title);
-    });
+function getResourceTaskBlocksSummary(taskItem: Task | ResourceTask | PredecessorTaskInfo): {
+  label: string;
+  list: string[];
+} {
+  const itemAny = taskItem as unknown as Record<string, unknown>;
+  const tId = Number(itemAny.task_id || itemAny.id || itemAny.taskId);
+  const succs = taskSuccessorsMap.value.get(tId) || [];
+  if (succs.length === 0) {
+    return { label: '', list: [] };
   }
 
-  if (titles.length === 0) return { label: '', list: [] };
-  const first = titles[0]!;
-  const extra = titles.length - 1;
+  const list = succs.map((s) => s.title || `Task #${s.task_id}`);
+  const first = list[0]!;
+  const extra = list.length - 1;
   const shortFirst = first.length > 18 ? first.slice(0, 18) + '...' : first;
   const label = `Blocks: ${shortFirst}${extra > 0 ? ` (+${extra})` : ''}`;
-  return { label, list: titles };
+  return { label, list };
 }
 
 const specDependencyFilterTab = ref<'all' | 'upstream' | 'downstream'>('all');
@@ -2983,7 +3058,7 @@ interface DependencyCardItem {
 
 const currentTaskUpstreamDependencies = computed<DependencyCardItem[]>(() => {
   if (!task.value) return [];
-  const preds = task.value.predecessors || [];
+  const preds = taskPredecessorsMap.value.get(Number(task.value.task_id)) || [];
   return preds.map((p) => ({
     ...p,
     direction: 'UPSTREAM' as const,
@@ -2993,52 +3068,12 @@ const currentTaskUpstreamDependencies = computed<DependencyCardItem[]>(() => {
 
 const currentTaskDownstreamDependencies = computed<DependencyCardItem[]>(() => {
   if (!task.value) return [];
-  const currentId = Number(task.value.task_id);
-  const result: DependencyCardItem[] = [];
-
-  // 1. If backend already populated successors on task.value
-  if (Array.isArray(task.value.successors) && task.value.successors.length > 0) {
-    return task.value.successors.map((s) => ({
-      ...s,
-      direction: 'DOWNSTREAM' as const,
-      relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
-    }));
-  }
-
-  // 2. Find from all tasks in tasks.value whose predecessor_task_ids contains currentId
-  const seenIds = new Set<number>();
-  tasks.value.forEach((t) => {
-    const tId = Number(t.task_id);
-    if (tId === currentId) return;
-    const pIds = t.predecessor_task_ids
-      ? Array.isArray(t.predecessor_task_ids)
-        ? t.predecessor_task_ids.map(Number)
-        : String(t.predecessor_task_ids).split(',').map(Number)
-      : [];
-    if (pIds.includes(currentId) && !seenIds.has(tId)) {
-      seenIds.add(tId);
-      result.push({
-        task_id: tId,
-        project_id: Number(t.project_id),
-        project_name: t.project_name,
-        title: t.title,
-        status: t.status,
-        priority: t.priority,
-        deadline: t.deadline,
-        expected_effort: Number(t.expected_effort || 0),
-        actual_effort: Number(t.actual_effort || 0),
-        progress: Number(t.progress || 0),
-        is_schedule_at_risk: Boolean(t.is_schedule_at_risk),
-        is_deadline_at_risk: Boolean(t.is_deadline_at_risk),
-        assigned_resource_names:
-          t.assigned_resource_names || (t.assigned_resources || []).map((r) => r.name),
-        direction: 'DOWNSTREAM' as const,
-        relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
-      });
-    }
-  });
-
-  return result;
+  const succs = taskSuccessorsMap.value.get(Number(task.value.task_id)) || [];
+  return succs.map((s) => ({
+    ...s,
+    direction: 'DOWNSTREAM' as const,
+    relationshipNote: 'Dependent deliverable waiting for this task to be completed.',
+  }));
 });
 
 const currentTaskFilteredDependencies = computed<DependencyCardItem[]>(() => {
@@ -3085,8 +3120,14 @@ watch(
   () => route.query,
   (query) => {
     if (query.scope && typeof query.scope === 'string') {
-      if (['all', 'assigned', 'supervised', 'upstream'].includes(query.scope)) {
-        scopeFilter.value = query.scope as 'all' | 'assigned' | 'supervised' | 'upstream';
+      if (['all', 'assigned', 'supervised', 'upstream', 'downstream', 'verifications'].includes(query.scope)) {
+        scopeFilter.value = query.scope as
+          | 'all'
+          | 'assigned'
+          | 'supervised'
+          | 'upstream'
+          | 'downstream'
+          | 'verifications';
       }
     }
     if (query.status && typeof query.status === 'string') {
@@ -3195,75 +3236,59 @@ const filteredTasks = computed(() => {
   // Determine base source list of tasks depending on scope
   const sourceTasks: Task[] = (() => {
     if (scopeFilter.value === 'upstream') {
-      // When in upstream scope, gather all predecessor tasks directly from myAssignedTasks.predecessors
-      // and match them with tasks from the global tasks list (or format from predecessorObjectsMap)
+      // Upstream Scope: strictly tasks that are BLOCKED BY prerequisite tasks
       const upstreamMap = new Map<number, Task>();
 
-      // 1. Check full task objects that exist in tasks.value whose task_id is a predecessor
       tasks.value.forEach((t) => {
-        if (myUpstreamPredecessorIds.value.has(t.task_id)) {
-          upstreamMap.set(t.task_id, t);
-        }
-      });
-
-      // 2. Also check predecessor objects directly present on myAssignedTasks
-      Object.values(predecessorObjectsMap.value).forEach((pObj) => {
-        if (pObj && pObj.task_id && !upstreamMap.has(pObj.task_id)) {
-          upstreamMap.set(pObj.task_id, {
-            task_id: pObj.task_id,
-            project_id: pObj.project_id,
-            project_name: pObj.project_name,
-            title: pObj.title,
-            description: null,
-            priority: pObj.priority,
-            status: pObj.status,
-            deadline: pObj.deadline,
-            planned_start: pObj.planned_start,
-            planned_end: pObj.planned_end,
-            expected_effort: pObj.expected_effort,
-            actual_effort: pObj.actual_effort,
-            progress: pObj.progress,
-            is_schedule_at_risk: pObj.is_schedule_at_risk,
-            is_deadline_at_risk: pObj.is_deadline_at_risk,
-            assigned_resource_names: pObj.assigned_resource_names,
-            supervisor_name: pObj.supervisor_name,
-          } as Task);
+        const preds = taskPredecessorsMap.value.get(Number(t.task_id)) || [];
+        if (preds.length > 0) {
+          upstreamMap.set(Number(t.task_id), t);
         }
       });
 
       return Array.from(upstreamMap.values());
     }
     if (scopeFilter.value === 'downstream') {
-      // When in downstream scope, gather all successor tasks waiting on myAssignedTasks
+      // Downstream Scope: strictly tasks that BLOCK downstream deliverables
       const downstreamMap = new Map<number, Task>();
 
+      // 1. Check loaded tasks that block other tasks
       tasks.value.forEach((t) => {
-        if (myDownstreamSuccessorIds.value.has(t.task_id)) {
-          downstreamMap.set(t.task_id, t);
+        const succs = taskSuccessorsMap.value.get(Number(t.task_id)) || [];
+        if (succs.length > 0) {
+          downstreamMap.set(Number(t.task_id), t);
         }
       });
 
-      Object.values(successorObjectsMap.value).forEach((sObj) => {
-        if (sObj && sObj.task_id && !downstreamMap.has(sObj.task_id)) {
-          downstreamMap.set(sObj.task_id, {
-            task_id: sObj.task_id,
-            project_id: sObj.project_id,
-            project_name: sObj.project_name,
-            title: sObj.title,
-            description: null,
-            priority: sObj.priority,
-            status: sObj.status,
-            deadline: sObj.deadline,
-            planned_start: sObj.planned_start,
-            planned_end: sObj.planned_end,
-            expected_effort: sObj.expected_effort,
-            actual_effort: sObj.actual_effort,
-            progress: sObj.progress,
-            is_schedule_at_risk: sObj.is_schedule_at_risk,
-            is_deadline_at_risk: sObj.is_deadline_at_risk,
-            assigned_resource_names: sObj.assigned_resource_names,
-            supervisor_name: sObj.supervisor_name,
-          } as Task);
+      // 2. Also check if any task in allKnownTasksMap blocks one of my tasks
+      allKnownTasksMap.value.forEach((kTask, kId) => {
+        const succs = taskSuccessorsMap.value.get(Number(kId)) || [];
+        if (succs.length > 0 && !downstreamMap.has(Number(kId))) {
+          const isRelatedToMe =
+            isAssignedToMe(kTask as Task) ||
+            succs.some((s) => myAssignedTasks.value.some((m) => Number(m.task_id) === Number(s.task_id)));
+          if (isRelatedToMe) {
+            const full = allKnownTasksMap.value.get(Number(kId)) as Task;
+            downstreamMap.set(Number(kId), {
+              task_id: Number(kId),
+              project_id: kTask.project_id,
+              project_name: kTask.project_name,
+              title: kTask.title,
+              description: full?.description || null,
+              priority: kTask.priority,
+              status: kTask.status,
+              deadline: kTask.deadline,
+              planned_start: kTask.planned_start,
+              planned_end: kTask.planned_end,
+              expected_effort: kTask.expected_effort,
+              actual_effort: kTask.actual_effort,
+              progress: kTask.progress,
+              is_schedule_at_risk: kTask.is_schedule_at_risk,
+              is_deadline_at_risk: kTask.is_deadline_at_risk,
+              assigned_resource_names: kTask.assigned_resource_names,
+              supervisor_name: kTask.supervisor_name,
+            } as Task);
+          }
         }
       });
 
