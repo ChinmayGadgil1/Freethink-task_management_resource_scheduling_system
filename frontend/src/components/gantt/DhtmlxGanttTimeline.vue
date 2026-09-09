@@ -286,6 +286,7 @@ import type {
   DailyAvailabilityDTO,
 } from '@/services/api';
 import { useThemeStore } from '@/stores/theme';
+import { isVerificationTask } from '@/utils/taskHelpers';
 
 export interface GanttTimelineProps {
   tasks: Task[];
@@ -416,7 +417,8 @@ const projectMap = computed(() => {
   return map;
 });
 
-const totalCount = computed(() => props.tasks.length);
+const validGanttTasks = computed(() => (props.tasks || []).filter((t) => !isVerificationTask(t)));
+const totalCount = computed(() => validGanttTasks.value.length);
 const visibleCount = ref(0);
 const showExtraColumns = ref(false); // Collapsed/compact by default (only TASK & PROJECT visible)
 const projectOpenStates = ref<Record<string, boolean>>({});
@@ -1539,7 +1541,7 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
 function buildGanttDataset() {
   const query = internalSearchQuery.value.trim().toLowerCase();
 
-  const filteredTasks = props.tasks.filter((t) => {
+  const filteredTasks = validGanttTasks.value.filter((t) => {
     if (query) {
       const matchTitle = t.title.toLowerCase().includes(query);
       const pName = projectMap.value.get(t.project_id)?.name.toLowerCase() || '';

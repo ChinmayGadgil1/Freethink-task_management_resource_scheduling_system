@@ -540,7 +540,7 @@ import type {
   AvailabilityStatus,
   HolidayItem,
 } from '@/services/api';
-import { isOverdue } from '@/utils/taskHelpers';
+import { isOverdue, isVerificationTask } from '@/utils/taskHelpers';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 
 const $q = useQuasar();
@@ -1187,7 +1187,7 @@ async function loadData() {
       getHolidaysApi().catch(() => []),
       fetchAvailabilityForVisibleRange(),
     ]);
-    tasks.value = tasksRes || [];
+    tasks.value = (tasksRes || []).filter((t) => !isVerificationTask(t));
     projects.value = projectsRes || [];
     holidays.value = holidaysRes || [];
   } catch {

@@ -1080,6 +1080,7 @@ import { getInitials, formatHours, formatNumber, formatDate } from '@/utils/form
 import ResourceAvailabilityCalendar from '@/components/resource/ResourceAvailabilityCalendar.vue';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
+import { isVerificationTask } from '@/utils/taskHelpers';
 import {
   createTaskApi,
   updateTaskApi,
@@ -1253,7 +1254,9 @@ const allProjects = ref<Project[]>([]);
 const directMemberProjects = ref<Project[]>([]);
 const backendWorkload = ref<ResourceWorkload | null>(null);
 const resourceScheduleData = ref<ResourceScheduleResponse | null>(null);
-const resourceGanttTasks = computed(() => resourceScheduleData.value?.tasks || []);
+const resourceGanttTasks = computed(() =>
+  (resourceScheduleData.value?.tasks || []).filter((t) => !isVerificationTask(t)),
+);
 const holidaysList = ref<HolidayItem[]>([]);
 const resourceAvailability = ref<DailyAvailabilityDTO[]>([]);
 

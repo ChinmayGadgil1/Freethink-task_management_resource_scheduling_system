@@ -314,6 +314,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
           AND t.deleted_at IS NULL
           AND p.deleted_at IS NULL
           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
         GROUP BY t.task_id
         `,
         [projectId]
@@ -366,7 +367,9 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
           AND t.deleted_at IS NULL
           AND pred.deleted_at IS NULL
           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
           AND (pred.task_type IS NULL OR pred.task_type != 'VERIFICATION')
+          AND pred.verified_task_id IS NULL
         `,
         [projectId]
     );
@@ -441,6 +444,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 ON ta.task_id = t.task_id
             WHERE t.project_id = ?
               AND t.deleted_at IS NULL
+              AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+              AND t.verified_task_id IS NULL
         ) project_resources
             ON ul.user_id = project_resources.user_id
         WHERE ul.status IN ('APPROVED', 'PENDING')
@@ -463,6 +468,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 ON ta.task_id = t.task_id
             WHERE t.project_id = ?
               AND t.deleted_at IS NULL
+              AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+              AND t.verified_task_id IS NULL
             UNION
             SELECT DISTINCT pm.user_id
             FROM project_members pm
@@ -531,6 +538,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
               AND t.project_id != ?
               AND t.deleted_at IS NULL
               AND p.deleted_at IS NULL
+              AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+              AND t.verified_task_id IS NULL
               AND ts.schedule_date >= CURDATE()
             GROUP BY ts.user_id, DATE_FORMAT(ts.schedule_date, '%Y-%m-%d')
             `,
@@ -854,6 +863,9 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             WHERE ta.user_id IN (?)
               AND t.project_id != ?
               AND p.status IN ('ACTIVE', 'PUBLISHED')
+              AND t.deleted_at IS NULL
+              AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+              AND t.verified_task_id IS NULL
             `,
             [resourceUserIds, projectId]
         );

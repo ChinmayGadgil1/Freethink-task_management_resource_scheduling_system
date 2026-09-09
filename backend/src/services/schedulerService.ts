@@ -74,6 +74,7 @@ export async function getProjectSchedule(projectId: number) {
          WHERE t.project_id = ?
            AND t.deleted_at IS NULL
            AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+           AND t.verified_task_id IS NULL
          GROUP BY t.task_id
          ORDER BY t.created_at ASC`,
         [projectId]
@@ -88,6 +89,7 @@ export async function getProjectSchedule(projectId: number) {
          WHERE t.project_id = ?
            AND t.deleted_at IS NULL
            AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+           AND t.verified_task_id IS NULL
          ORDER BY ts.schedule_date ASC`,
         [projectId]
     );
@@ -236,6 +238,8 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
          WHERE ta.user_id = ?
            AND t.deleted_at IS NULL
            AND p.deleted_at IS NULL
+           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+           AND t.verified_task_id IS NULL
          GROUP BY t.task_id
          ORDER BY t.planned_start ASC, t.created_at ASC`,
         [resourceId]
@@ -258,6 +262,8 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
          WHERE ts.user_id = ?
            AND t.deleted_at IS NULL
            AND p.deleted_at IS NULL
+           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+           AND t.verified_task_id IS NULL
          ORDER BY ts.schedule_date ASC`,
         [resourceId]
     );
@@ -394,6 +400,10 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         JOIN projects p ON t.project_id = p.project_id
         JOIN task_assignments ta ON t.task_id = ta.task_id
         WHERE ta.user_id = ? AND t.status IN ('SCHEDULED', 'IN_PROGRESS')
+          AND t.deleted_at IS NULL
+          AND p.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
         ORDER BY t.deadline ASC
         `,
         [resourceId]
@@ -410,7 +420,11 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         `
         SELECT ts.schedule_date, ts.task_id, ts.allocated_hours
         FROM task_schedules ts
+        JOIN tasks t ON ts.task_id = t.task_id
         WHERE ts.user_id = ? AND ts.schedule_date >= CURDATE()
+          AND t.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
         ORDER BY ts.schedule_date ASC
         `,
         [resourceId]
@@ -537,11 +551,15 @@ export async function checkSchedulingImpact(
     const [allocRows] = await pool.query<RowDataPacket[]>(
         `
         SELECT
-            DATE_FORMAT(schedule_date, '%Y-%m-%d') AS schedule_date,
-            SUM(allocated_hours) AS allocated_hours
-        FROM task_schedules
-        WHERE user_id = ? AND schedule_date >= CURDATE()
-        GROUP BY DATE_FORMAT(schedule_date, '%Y-%m-%d')
+            DATE_FORMAT(ts.schedule_date, '%Y-%m-%d') AS schedule_date,
+            SUM(ts.allocated_hours) AS allocated_hours
+        FROM task_schedules ts
+        JOIN tasks t ON ts.task_id = t.task_id
+        WHERE ts.user_id = ? AND ts.schedule_date >= CURDATE()
+          AND t.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
+        GROUP BY DATE_FORMAT(ts.schedule_date, '%Y-%m-%d')
         `,
         [resourceId]
     );
@@ -712,10 +730,14 @@ export async function getResourceAvailability(
     // 6. Fetch task allocations in range
     const [allocRows] = await pool.query<RowDataPacket[]>(
         `
-        SELECT DATE_FORMAT(schedule_date, '%Y-%m-%d') as schedule_date, SUM(allocated_hours) as allocated_hours
-        FROM task_schedules
-        WHERE user_id = ? AND schedule_date BETWEEN ? AND ?
-        GROUP BY DATE_FORMAT(schedule_date, '%Y-%m-%d')
+        SELECT DATE_FORMAT(ts.schedule_date, '%Y-%m-%d') as schedule_date, SUM(ts.allocated_hours) as allocated_hours
+        FROM task_schedules ts
+        JOIN tasks t ON ts.task_id = t.task_id
+        WHERE ts.user_id = ? AND ts.schedule_date BETWEEN ? AND ?
+          AND t.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
+        GROUP BY DATE_FORMAT(ts.schedule_date, '%Y-%m-%d')
         `,
         [userId, cleanStartStr, cleanEndStr]
     );

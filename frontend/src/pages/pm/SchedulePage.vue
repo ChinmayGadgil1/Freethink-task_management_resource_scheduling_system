@@ -753,6 +753,7 @@ import {
   getTaskStatusClass,
   getPriorityClass,
   getStatusFromProgress,
+  isVerificationTask,
 } from '@/utils/taskHelpers';
 import {
   getProjectsApi,
@@ -1237,7 +1238,7 @@ async function loadData() {
       getResourcesApi(),
       getHolidaysApi().catch(() => []),
     ]);
-    tasks.value = tList;
+    tasks.value = (tList || []).filter((t) => !isVerificationTask(t));
     projects.value = pList;
     resources.value = rList;
     holidays.value = hList;
@@ -1259,7 +1260,7 @@ watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
         getResourceAvailabilityApi(Number(newAssignee)).catch(() => null),
       ]);
       if (resSchedule && resSchedule.tasks) {
-        tasks.value = resSchedule.tasks;
+        tasks.value = (resSchedule.tasks || []).filter((t) => !isVerificationTask(t));
       }
       if (availRes && availRes.days) {
         pmAvailabilityList.value = availRes.days;
@@ -1278,13 +1279,15 @@ watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
     try {
       const scheduleRes = await getProjectScheduleDataApi(Number(newProj));
       if (scheduleRes && scheduleRes.tasks) {
-        tasks.value = scheduleRes.tasks;
+        tasks.value = (scheduleRes.tasks || []).filter((t) => !isVerificationTask(t));
       }
     } catch {
-      tasks.value = await getTasksApi(Number(newProj)).catch(() => tasks.value);
+      const fallbackTasks = await getTasksApi(Number(newProj)).catch(() => tasks.value);
+      tasks.value = (fallbackTasks || []).filter((t) => !isVerificationTask(t));
     }
   } else {
-    tasks.value = await getTasksApi().catch(() => tasks.value);
+    const allT = await getTasksApi().catch(() => tasks.value);
+    tasks.value = (allT || []).filter((t) => !isVerificationTask(t));
   }
 });
 
