@@ -884,8 +884,8 @@ export async function assignVerificationController(req: AuthRequest<{ id: string
         if (error instanceof z.ZodError) {
             return res.status(400).json({ message: "Validation error", errors: error.issues });
         }
-        if (error.message && error.message.includes("INVALID_VERIFIER")) {
-            return res.status(400).json({ message: error.message });
+        if (error.message && (error.message.includes("INVALID_VERIFIER") || error.message.includes("CANNOT_VERIFY_OWN_TASK"))) {
+            return res.status(400).json({ message: error.message.replace(/^[A-Z_]+:\s*/, "") });
         }
         return res.status(500).json({ message: error.message || "Internal server error" });
     }

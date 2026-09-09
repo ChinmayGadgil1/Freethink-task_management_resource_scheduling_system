@@ -64,6 +64,19 @@ export async function createTask(
         const creatorRole = creatorFirst?.role ? String(creatorFirst.role) : null;
 
         if (assignedResourceIds && assignedResourceIds.length > 0) {
+            // If this is a verification task, ensure none of the verifiers were assignees of the original verified task
+            if (taskType === "VERIFICATION" && verifiedTaskId) {
+                const [origAssigneeRows] = await connection.query<RowDataPacket[]>(
+                    "SELECT user_id FROM task_assignments WHERE task_id = ?",
+                    [verifiedTaskId]
+                );
+                const origAssigneeIds = origAssigneeRows.map(r => Number(r.user_id));
+                const conflict = assignedResourceIds.some(id => origAssigneeIds.includes(Number(id)));
+                if (conflict) {
+                    throw new Error("CANNOT_VERIFY_OWN_TASK: The resource(s) originally assigned to this task cannot be assigned to verify it.");
+                }
+            }
+
             // Verify roles and fetch profile details
             const [users] = await connection.query<RowDataPacket[]>(
                 "SELECT user_id, name, email, role FROM users WHERE user_id IN (?)",
@@ -605,6 +618,16 @@ export async function assignVerificationTask(
 
         const verifier = userRows[0]!;
 
+        // 2b. Prevent original assignees of the completed task from verifying their own task
+        const [originalAssignees] = await connection.query<RowDataPacket[]>(
+            "SELECT user_id FROM task_assignments WHERE task_id = ?",
+            [completedTaskId]
+        );
+        const originalAssigneeIds = originalAssignees.map(r => Number(r.user_id));
+        if (originalAssigneeIds.includes(Number(verifierId))) {
+            throw new Error("CANNOT_VERIFY_OWN_TASK: The resource(s) originally assigned to this task cannot verify it.");
+        }
+
         // 3. Create new verification task
         const verificationTitle = `Verification: ${originalTask.title}`;
         const verificationDesc = notes && notes.trim()
@@ -698,7 +721,7 @@ export async function assignResourceToTask(
 
         const [tasks] = await connection.query<RowDataPacket[]>(
             `
-            SELECT t.task_id, t.project_id, t.status
+            SELECT t.task_id, t.project_id, t.status, t.task_type, t.verified_task_id
             FROM tasks t
             JOIN projects p
                 ON t.project_id = p.project_id
@@ -713,6 +736,18 @@ export async function assignResourceToTask(
             throw new Error("TASK_NOT_FOUND");
 
         const task = tasks[0]!;
+
+        // If this is a verification task, ensure resource was not an assignee of the original verified task
+        if (task.task_type === "VERIFICATION" && task.verified_task_id) {
+            const [origAssignees] = await connection.query<RowDataPacket[]>(
+                "SELECT user_id FROM task_assignments WHERE task_id = ?",
+                [task.verified_task_id]
+            );
+            const origAssigneeIds = origAssignees.map(r => Number(r.user_id));
+            if (origAssigneeIds.includes(Number(resourceId))) {
+                throw new Error("CANNOT_VERIFY_OWN_TASK: The resource(s) originally assigned to this task cannot be assigned to verify it.");
+            }
+        }
 
         const [users] = await connection.query<RowDataPacket[]>(
             `

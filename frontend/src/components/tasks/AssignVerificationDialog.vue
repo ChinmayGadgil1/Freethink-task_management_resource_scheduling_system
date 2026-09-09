@@ -30,8 +30,8 @@
           <template #avatar>
             <q-icon name="fact_check" color="primary" />
           </template>
-          Assign a peer resource to review and verify deliverables for this completed task. A new
-          verification task will be created without affecting the Gantt schedule.
+          Assign an independent peer resource to review and verify deliverables for this completed task.
+          Original task assignees cannot verify their own work.
         </q-banner>
 
         <!-- Select Verifier -->
@@ -46,9 +46,9 @@
             option-value="value"
             option-label="label"
             :options="memberOptions"
-            placeholder="Select a resource to verify deliverables"
+            placeholder="Select an independent resource to verify deliverables"
             :loading="loadingMembers"
-            no-options-label="No resources available"
+            no-options-label="No eligible peer resources available"
             :rules="[(val) => !!val || 'Please select a resource for verification']"
           >
             <template #option="{ itemProps, opt }">
@@ -65,6 +65,12 @@
               </q-item>
             </template>
           </q-select>
+          <div
+            v-if="!loadingMembers && memberOptions.length === 0"
+            class="text-caption text-negative q-mt-xs"
+          >
+            No other peer resources are available for verification (original task assignees cannot verify their own work).
+          </div>
         </div>
 
         <!-- Estimated Effort -->
@@ -184,6 +190,21 @@ async function loadResources() {
   }
 }
 
+const originalAssigneeIds = computed<number[]>(() => {
+  if (!props.task) return [];
+  const ids = new Set<number>();
+  if (props.task.assigned_resource_ids && Array.isArray(props.task.assigned_resource_ids)) {
+    props.task.assigned_resource_ids.forEach((id) => ids.add(Number(id)));
+  }
+  if (props.task.assigned_resources && Array.isArray(props.task.assigned_resources)) {
+    props.task.assigned_resources.forEach((r) => ids.add(Number(r.user_id)));
+  }
+  if ((props.task as unknown as { assigned_to?: number }).assigned_to) {
+    ids.add(Number((props.task as unknown as { assigned_to?: number }).assigned_to));
+  }
+  return Array.from(ids);
+});
+
 const memberOptions = computed(() => {
   const list =
     props.projectMembers && props.projectMembers.length > 0
@@ -192,6 +213,7 @@ const memberOptions = computed(() => {
 
   return list
     .filter((m) => !m.role || m.role.toUpperCase() === 'RESOURCE')
+    .filter((m) => !originalAssigneeIds.value.includes(Number(m.user_id)))
     .map((m) => ({
       label: m.name,
       value: Number(m.user_id),
