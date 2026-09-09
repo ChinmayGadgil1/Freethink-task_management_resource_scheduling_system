@@ -3,7 +3,7 @@
     <q-card class="dialog-card" :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw">
       <q-card-section class="row items-center justify-between q-pb-none">
         <div class="row items-center gap-xs">
-          <q-avatar size="32px" color="purple-1" text-color="purple-8" icon="verified"> </q-avatar>
+          <q-avatar size="32px" color="primary" text-color="white" icon="verified"> </q-avatar>
           <div>
             <div
               class="text-subtitle1 text-weight-bold"
@@ -22,9 +22,13 @@
       <q-separator class="q-my-sm" />
 
       <q-card-section class="column q-gutter-y-md q-pt-sm">
-        <q-banner dense rounded class="bg-purple-1 text-purple-10">
+        <q-banner
+          dense
+          rounded
+          :class="$q.dark.isActive ? 'bg-grey-9 text-grey-3' : 'bg-purple-1 text-primary'"
+        >
           <template #avatar>
-            <q-icon name="fact_check" color="purple-8" />
+            <q-icon name="fact_check" color="primary" />
           </template>
           Assign a peer resource to review and verify deliverables for this completed task. A new
           verification task will be created without affecting the Gantt schedule.
@@ -39,15 +43,18 @@
             dense
             emit-value
             map-options
+            option-value="value"
+            option-label="label"
             :options="memberOptions"
             placeholder="Select a resource to verify deliverables"
             :loading="loadingMembers"
+            no-options-label="No resources available"
             :rules="[(val) => !!val || 'Please select a resource for verification']"
           >
             <template #option="{ itemProps, opt }">
               <q-item v-bind="itemProps">
                 <q-item-section avatar>
-                  <q-avatar size="24px" color="purple" text-color="white">
+                  <q-avatar size="24px" color="primary" text-color="white">
                     {{ opt.label?.charAt(0).toUpperCase() }}
                   </q-avatar>
                 </q-item-section>
@@ -104,9 +111,10 @@
         <q-btn
           unelevated
           no-caps
-          color="purple-8"
+          color="primary"
           icon="verified"
           label="Assign Verifier"
+          class="action-btn-primary"
           :loading="submitting"
           :disable="!form.verifier_id || Number(form.expected_effort) <= 0"
           @click="submit"
@@ -157,7 +165,9 @@ const fetchedResources = ref<
 >([]);
 
 async function loadResources() {
-  if (props.projectMembers && props.projectMembers.length > 0) return;
+  if (props.projectMembers && props.projectMembers.length > 0) {
+    return;
+  }
   loadingMembers.value = true;
   try {
     const all = await getResourcesApi();
@@ -181,7 +191,7 @@ const memberOptions = computed(() => {
       : fetchedResources.value;
 
   return list
-    .filter((m) => !m.role || m.role === 'RESOURCE')
+    .filter((m) => !m.role || m.role.toUpperCase() === 'RESOURCE')
     .map((m) => ({
       label: m.name,
       value: Number(m.user_id),
@@ -190,9 +200,9 @@ const memberOptions = computed(() => {
 });
 
 watch(
-  () => props.modelValue,
-  (val) => {
-    if (val) {
+  () => [props.modelValue, props.task] as const,
+  ([isOpen]) => {
+    if (isOpen) {
       form.verifier_id = null;
       form.expected_effort = 2.0;
       form.notes = '';

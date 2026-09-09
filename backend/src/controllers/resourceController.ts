@@ -7,12 +7,6 @@ export async function listResources(
     res: Response
 ) {
     try {
-        if (req.user?.role !== "PROJECT_MANAGER") {
-            return res.status(403).json({
-                message: "Only project managers can view resources"
-            });
-        }
-
         const projectIdParam = req.query.project_id;
         const managerIdParam = req.query.manager_id;
 
@@ -37,9 +31,6 @@ export async function listResources(
                     message: "Invalid manager ID"
                 });
             }
-        } else if (req.user?.role === "PROJECT_MANAGER") {
-            // Default to the requesting project manager's ID so PM only retrieves members of projects they manage
-            managerId = req.user.user_id;
         }
 
         const resources = await getResources(projectId, managerId);

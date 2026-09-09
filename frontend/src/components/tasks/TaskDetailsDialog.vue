@@ -102,14 +102,13 @@
             <div class="detail-label">Peer Verification Review</div>
             <q-btn
               v-if="!task.verification_task"
-              unelevated
+              flat
               dense
               no-caps
               size="sm"
-              color="purple-8"
+              color="primary"
               icon="verified"
-              label="Assign for Verification"
-              class="q-px-sm"
+              label="Assign Verifier"
               @click="emit('assignVerification', task)"
             />
           </div>
