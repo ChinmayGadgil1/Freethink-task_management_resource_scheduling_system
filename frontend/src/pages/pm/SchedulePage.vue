@@ -768,6 +768,7 @@ import {
 import type {
   Project,
   Task,
+  TaskPriority,
   ResourceUser,
   HolidayItem,
   DailyAvailabilityDTO,
@@ -1379,7 +1380,7 @@ const createForm = reactive<{
 const editForm = reactive<{
   title: string;
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  priority: TaskPriority;
   progress: number;
   expected_effort: number;
   deadline: string;

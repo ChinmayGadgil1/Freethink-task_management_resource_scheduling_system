@@ -1,6 +1,8 @@
 export type TaskStatus = 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
 
-export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | 'NONE';
+
+export type TaskType = 'STANDARD' | 'VERIFICATION';
 
 export interface PredecessorTaskInfo {
     task_id: number;
@@ -21,6 +23,17 @@ export interface PredecessorTaskInfo {
     supervisor_name?: string | null;
 }
 
+export interface TaskVerificationInfo {
+    verification_task_id: number;
+    verifier_id: number;
+    verifier_name: string;
+    status: TaskStatus;
+    progress: number;
+    expected_effort: number;
+    actual_effort: number;
+    created_at: Date | string;
+}
+
 export interface Task {
     task_id: number;
     project_id: number;
@@ -30,6 +43,13 @@ export interface Task {
     supervisor_id?: number | null;
     supervisor_name?: string | null;
     supervisor_email?: string | null;
+    task_type?: TaskType;
+    verified_task_id?: number | null;
+    verified_task_title?: string | null;
+    verified_task_status?: TaskStatus | null;
+    verified_task_assignee_names?: string[];
+    verification_task?: TaskVerificationInfo | null;
+    verifications?: TaskVerificationInfo[];
     title: string;
     description: string | null;
     priority: TaskPriority;

@@ -237,7 +237,15 @@
                       >
                         {{ getProjectName(task.project_id) }}
                       </q-chip>
-                      <q-badge color="black" text-color="white" style="font-size: 10px">
+                      <q-badge
+                        v-if="task.task_type === 'VERIFICATION' || task.priority === 'NONE'"
+                        color="indigo-7"
+                        text-color="white"
+                        style="font-size: 10px"
+                      >
+                        Verification
+                      </q-badge>
+                      <q-badge v-else color="black" text-color="white" style="font-size: 10px">
                         {{ task.priority }}
                       </q-badge>
                     </div>
@@ -264,6 +272,16 @@
                             /></q-item-section>
                             <q-item-section>Add Dependency</q-item-section>
                           </q-item>
+                          <q-item
+                            v-if="task.status === 'COMPLETED' || Number(task.progress) === 100"
+                            clickable
+                            @click="openAssignVerification(task)"
+                          >
+                            <q-item-section avatar
+                              ><q-icon name="verified_user" size="16px" color="indigo"
+                            /></q-item-section>
+                            <q-item-section>Assign Verification</q-item-section>
+                          </q-item>
                           <q-separator />
                           <q-item clickable class="text-negative" @click="confirmDeleteTask(task)">
                             <q-item-section avatar
@@ -274,6 +292,39 @@
                         </q-list>
                       </q-menu>
                     </q-btn>
+                  </div>
+
+                  <!-- Verification Task Indicator -->
+                  <div v-if="task.verified_task_id" class="q-mb-xs">
+                    <q-chip
+                      dense
+                      square
+                      size="xs"
+                      color="indigo-1"
+                      text-color="indigo-9"
+                      icon="verified"
+                      class="text-weight-bold"
+                    >
+                      Verify #{{ task.verified_task_id }}:
+                      {{ task.verified_task_title || 'Deliverable' }}
+                    </q-chip>
+                  </div>
+
+                  <!-- Parent Task Verification Review State -->
+                  <div v-if="task.verification_task" class="q-mb-xs">
+                    <q-chip
+                      dense
+                      square
+                      size="xs"
+                      color="blue-grey-1"
+                      text-color="blue-grey-9"
+                      icon="fact_check"
+                      class="text-weight-bold"
+                    >
+                      Verifier: {{ task.verification_task.verifier_name || 'Assigned' }} ({{
+                        task.verification_task.status
+                      }})
+                    </q-chip>
                   </div>
 
                   <!-- Self-Assigned by Resource Indicator -->
@@ -519,7 +570,16 @@
 
           <template #body-cell-priority="props">
             <q-td :props="props">
-              <q-chip dense square color="black" text-color="white">
+              <q-chip
+                v-if="props.row.task_type === 'VERIFICATION' || props.row.priority === 'NONE'"
+                dense
+                square
+                color="indigo-7"
+                text-color="white"
+              >
+                Verification
+              </q-chip>
+              <q-chip v-else dense square color="black" text-color="white">
                 {{ props.row.priority }}
               </q-chip>
             </q-td>
@@ -552,6 +612,17 @@
           <template #body-cell-actions="props">
             <q-td :props="props" auto-width @click.stop>
               <div class="row items-center justify-center q-gutter-xs no-wrap">
+                <q-btn
+                  v-if="props.row.status === 'COMPLETED' || Number(props.row.progress) === 100"
+                  flat
+                  round
+                  dense
+                  icon="verified_user"
+                  color="indigo"
+                  @click="openAssignVerification(props.row)"
+                >
+                  <q-tooltip>Assign for Verification</q-tooltip>
+                </q-btn>
                 <q-btn
                   flat
                   round
@@ -612,6 +683,7 @@
         @edit="openEditFromDetails"
         @assign-member="openAssignFromDetails"
         @add-dependency="openDependencyFromDetails"
+        @assign-verification="openAssignVerificationFromDetails"
         @unassign-member="({ resourceId }) => unassignFromDetails(resourceId)"
         @remove-dependency="
           ({ taskId, predecessorId, predecessorTitle }) =>
@@ -983,6 +1055,13 @@
         Are you sure you want to remove the dependency on
         <strong>"{{ dependencyToRemove?.title }}"</strong>?
       </ConfirmActionDialog>
+
+      <!-- ASSIGN VERIFICATION DIALOG -->
+      <AssignVerificationDialog
+        v-model="showAssignVerificationDialog"
+        :task="verificationTargetTask"
+        @saved="loadData"
+      />
     </div>
   </q-page>
 </template>
@@ -994,6 +1073,7 @@ import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
+import AssignVerificationDialog from '@/components/tasks/AssignVerificationDialog.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus, formatHours } from '@/utils/formatters';
 import { getStatusFromProgress } from '@/utils/taskHelpers';
@@ -1009,7 +1089,7 @@ import {
   unassignTaskResourceApi,
   updateTaskApi,
 } from '@/services/api';
-import type { Project, ResourceUser, Task } from '@/services/api';
+import type { Project, ResourceUser, Task, TaskPriority } from '@/services/api';
 
 const $q = useQuasar();
 
@@ -1167,6 +1247,19 @@ function unassignFromDetails(rId: number) {
   if (selectedTaskDetails.value) {
     confirmUnassignResource(selectedTaskDetails.value, rId);
   }
+}
+
+const showAssignVerificationDialog = ref(false);
+const verificationTargetTask = ref<Task | null>(null);
+
+function openAssignVerification(task: Task) {
+  verificationTargetTask.value = task;
+  showAssignVerificationDialog.value = true;
+}
+
+function openAssignVerificationFromDetails(task: Task) {
+  showTaskDetailsDialog.value = false;
+  openAssignVerification(task);
 }
 
 const taskTitlesMap = computed<Record<number, string>>(() => {
@@ -1389,7 +1482,7 @@ const editingTaskTitle = computed(() => {
 const editForm = reactive<{
   title: string;
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  priority: TaskPriority;
   progress: number;
   expected_effort: number;
   deadline: string;

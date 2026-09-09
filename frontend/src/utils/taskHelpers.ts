@@ -37,7 +37,18 @@ export function getPriorityClass(priority: string | null | undefined): string {
   if (p === 'CRITICAL') return 'chip-soft-red';
   if (p === 'HIGH') return 'chip-soft-orange';
   if (p === 'MEDIUM') return 'chip-soft-blue';
+  if (p === 'NONE') return 'chip-soft-teal';
   return 'chip-soft-grey';
+}
+
+/**
+ * Check whether a task is a verification task
+ */
+export function isVerificationTask(
+  task: { task_type?: string | null; verified_task_id?: number | null } | null | undefined,
+): boolean {
+  if (!task) return false;
+  return task.task_type === 'VERIFICATION' || Boolean(task.verified_task_id);
 }
 
 /**

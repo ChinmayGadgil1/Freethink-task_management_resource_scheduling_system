@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, moveToBinTask, unassignResource, removeTaskDependency } from "../services/taskService.js";
+import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, moveToBinTask, unassignResource, removeTaskDependency, assignVerificationTask } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, checkSchedulingImpact } from "../services/schedulingService.js";
 // Work log and task session services for progress tracking and co-assignee updates
@@ -823,6 +823,70 @@ export async function getTaskActiveSessionsController(req: AuthRequest<{ id: str
         const sessions = await getActiveSessionsForTask(taskId);
         return res.status(200).json({ sessions });
     } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+const assignVerificationSchema = z.object({
+    verifier_id: z.number().int().positive("Verifier ID is required"),
+    notes: z.string().optional(),
+    expected_effort: z.number().positive().optional()
+});
+
+export async function assignVerificationController(req: AuthRequest<{ id: string }>, res: Response) {
+    try {
+        const taskId = Number(req.params.id);
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const task = await getTaskById(taskId) as any;
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        const project = await getProjectById(task.project_id);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Authorization check: User must be PM of the project or a resource on the project / assigned to the task
+        if (userRole === "PROJECT_MANAGER") {
+            if (project.project_manager_id !== userId) {
+                return res.status(403).json({ message: "You are not authorized to assign verification for this task" });
+            }
+        } else if (userRole === "RESOURCE") {
+            const isMember = await isProjectMember(task.project_id, userId);
+            const isAssigned = (task.assigned_resource_ids || []).includes(userId);
+            if (!isMember && !isAssigned) {
+                return res.status(403).json({ message: "You are not authorized to assign verification for this task" });
+            }
+        }
+
+        const parsed = assignVerificationSchema.parse(req.body);
+
+        const result = await assignVerificationTask(
+            taskId,
+            parsed.verifier_id,
+            userId,
+            parsed.notes,
+            parsed.expected_effort
+        );
+
+        return res.status(201).json({
+            message: "Verification task assigned successfully",
+            verification_task: result
+        });
+    } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ message: "Validation error", errors: error.issues });
+        }
+        if (error.message && error.message.includes("INVALID_VERIFIER")) {
+            return res.status(400).json({ message: error.message });
+        }
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }

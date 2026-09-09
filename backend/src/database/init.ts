@@ -90,9 +90,11 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             project_id BIGINT NOT NULL,
             created_by BIGINT NOT NULL,
             supervisor_id BIGINT NULL,
+            verified_task_id BIGINT NULL,
+            task_type ENUM('STANDARD', 'VERIFICATION') NOT NULL DEFAULT 'STANDARD',
             title VARCHAR(150) NOT NULL,
             description TEXT,
-            priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+            priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'NONE') NOT NULL DEFAULT 'MEDIUM',
             status ENUM('UNASSIGNED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'UNASSIGNED',
             deadline DATE,
             planned_start DATETIME,
@@ -108,9 +110,11 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_tasks_deleted (deleted_at),
+            INDEX idx_tasks_type_verified (task_type, verified_task_id),
             FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
             FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE,
-            FOREIGN KEY (supervisor_id) REFERENCES users(user_id) ON DELETE SET NULL
+            FOREIGN KEY (supervisor_id) REFERENCES users(user_id) ON DELETE SET NULL,
+            FOREIGN KEY (verified_task_id) REFERENCES tasks(task_id) ON DELETE SET NULL
         )
     `);
     console.log("Tasks table is ready.");
@@ -509,6 +513,48 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             }
         } catch (taskDelErr: any) {
             console.log("Tasks deleted_at migration check warning:", taskDelErr.message);
+        }
+
+        // Migration check: ensure task_type and verified_task_id exist in tasks table
+        try {
+            const [taskTypeCols] = await pool.query<RowDataPacket[]>(
+                `SHOW COLUMNS FROM tasks LIKE 'task_type'`
+            );
+            if (taskTypeCols.length === 0) {
+                await pool.query(`
+                    ALTER TABLE tasks 
+                    ADD COLUMN task_type ENUM('STANDARD', 'VERIFICATION') NOT NULL DEFAULT 'STANDARD' AFTER supervisor_id
+                `);
+                console.log("Migrated: added task_type column to tasks table.");
+            }
+        } catch (ttErr: any) {
+            console.log("Tasks task_type migration check warning:", ttErr.message);
+        }
+
+        try {
+            const [verifiedTaskCols] = await pool.query<RowDataPacket[]>(
+                `SHOW COLUMNS FROM tasks LIKE 'verified_task_id'`
+            );
+            if (verifiedTaskCols.length === 0) {
+                await pool.query(`
+                    ALTER TABLE tasks 
+                    ADD COLUMN verified_task_id BIGINT NULL AFTER task_type,
+                    ADD CONSTRAINT fk_tasks_verified_task FOREIGN KEY (verified_task_id) REFERENCES tasks(task_id) ON DELETE SET NULL,
+                    ADD INDEX idx_tasks_type_verified (task_type, verified_task_id)
+                `);
+                console.log("Migrated: added verified_task_id column to tasks table.");
+            }
+        } catch (vtErr: any) {
+            console.log("Tasks verified_task_id migration check warning:", vtErr.message);
+        }
+
+        try {
+            await pool.query(`
+                ALTER TABLE tasks MODIFY priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'NONE') NOT NULL DEFAULT 'MEDIUM'
+            `);
+            console.log("Migrated: tasks priority ENUM updated to support NONE.");
+        } catch (priErr: any) {
+            console.log("Tasks priority ENUM migration check warning:", priErr.message);
         }
     } catch (migErr) {
         console.error("Warning: Migration check in initializeDatabase encountered an error:", migErr);

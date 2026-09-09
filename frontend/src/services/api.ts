@@ -33,7 +33,19 @@ export interface Project {
 }
 
 export type TaskStatus = 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
-export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | 'NONE';
+export type TaskType = 'STANDARD' | 'VERIFICATION';
+
+export interface TaskVerificationInfo {
+  verification_task_id: number;
+  verifier_id: number;
+  verifier_name: string;
+  status: TaskStatus;
+  progress: number;
+  expected_effort: number;
+  actual_effort: number;
+  created_at: string;
+}
 
 export interface TaskPacing {
   is_overrun: boolean;
@@ -107,6 +119,12 @@ export interface Task {
   supervisor_id?: number | null;
   supervisor_name?: string | null;
   supervisor_email?: string | null;
+  task_type?: TaskType;
+  verified_task_id?: number | null;
+  verified_task_title?: string | null;
+  verified_task_status?: TaskStatus | null;
+  verification_task?: TaskVerificationInfo | null;
+  verifications?: TaskVerificationInfo[];
   title: string;
   description: string | null;
   priority: TaskPriority;
@@ -536,6 +554,28 @@ export async function updateTaskApi(taskId: number, payload: UpdateTaskPayload):
   }
 
   return data.task;
+}
+
+export async function assignTaskVerificationApi(
+  taskId: number,
+  payload: {
+    verifier_id: number;
+    notes?: string;
+    expected_effort?: number;
+  },
+): Promise<{ message: string; verification_task: Task }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/assign-verification`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to assign verification task');
+  }
+
+  return data;
 }
 
 /**

@@ -8,7 +8,18 @@
     >
       <q-card-section class="row items-center justify-between q-pb-none">
         <div class="row items-center gap-xs">
-          <q-chip dense square :class="['priority-chip', getPriorityClass(task.priority)]">
+          <q-chip
+            v-if="task.task_type === 'VERIFICATION' || task.priority === 'NONE'"
+            dense
+            square
+            color="purple-1"
+            text-color="purple-9"
+            icon="verified"
+            style="font-size: 11px; font-weight: 600"
+          >
+            Verification
+          </q-chip>
+          <q-chip v-else dense square :class="['priority-chip', getPriorityClass(task.priority)]">
             {{ task.priority }}
           </q-chip>
           <q-chip dense square :class="['status-chip', getTaskStatusClass(task.status)]">
@@ -57,6 +68,22 @@
           </span>
         </div>
 
+        <!-- Deliverable link for Verification Tasks -->
+        <div
+          v-if="
+            task.task_type === 'VERIFICATION' && (task.verified_task_title || task.verified_task_id)
+          "
+          class="q-banner bg-purple-1 text-purple-10 rounded-borders q-mt-sm row items-center gap-xs q-pa-sm"
+        >
+          <q-icon name="fact_check" color="purple-8" size="20px" class="q-mr-xs" />
+          <div class="column">
+            <span class="text-caption text-weight-bold">Verifying completed deliverable:</span>
+            <span class="text-body2 text-weight-medium">
+              #{{ task.verified_task_id }} {{ task.verified_task_title }}
+            </span>
+          </div>
+        </div>
+
         <div
           class="popup-description q-mt-sm text-body2"
           :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'"
@@ -65,6 +92,91 @@
         </div>
 
         <q-separator class="q-my-md" />
+
+        <!-- Verification Section for Completed Standard Tasks -->
+        <div
+          v-if="task.status === 'COMPLETED' && task.task_type !== 'VERIFICATION'"
+          class="popup-verification-block q-mb-md"
+        >
+          <div class="row items-center justify-between q-mb-xs">
+            <div class="detail-label">Peer Verification Review</div>
+            <q-btn
+              v-if="!task.verification_task"
+              unelevated
+              dense
+              no-caps
+              size="sm"
+              color="purple-8"
+              icon="verified"
+              label="Assign for Verification"
+              class="q-px-sm"
+              @click="emit('assignVerification', task)"
+            />
+          </div>
+
+          <q-card
+            v-if="task.verification_task"
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="q-pa-sm rounded-borders bg-purple-1 text-purple-10"
+          >
+            <div class="row items-center justify-between no-wrap">
+              <div class="row items-center gap-xs">
+                <q-icon name="verified" size="20px" color="purple-8" />
+                <div>
+                  <div class="text-weight-bold text-caption">
+                    Verifier: {{ task.verification_task.verifier_name }}
+                  </div>
+                  <div class="text-caption text-grey-7" style="font-size: 11px">
+                    Progress: {{ Number(task.verification_task.progress) || 0 }}% · Status:
+                    {{ formatStatus(task.verification_task.status) }}
+                  </div>
+                </div>
+              </div>
+              <div class="row items-center gap-xs">
+                <q-chip
+                  dense
+                  square
+                  size="xs"
+                  :color="task.verification_task.status === 'COMPLETED' ? 'green-1' : 'purple-2'"
+                  :text-color="
+                    task.verification_task.status === 'COMPLETED' ? 'green-9' : 'purple-9'
+                  "
+                  class="text-weight-bold"
+                >
+                  {{
+                    task.verification_task.status === 'COMPLETED'
+                      ? 'VERIFIED & APPROVED'
+                      : 'UNDER REVIEW'
+                  }}
+                </q-chip>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  size="xs"
+                  color="purple-8"
+                  icon="person_add"
+                  title="Assign another verifier"
+                  @click="emit('assignVerification', task)"
+                />
+              </div>
+            </div>
+            <q-linear-progress
+              rounded
+              size="4px"
+              :value="(Number(task.verification_task.progress) || 0) / 100"
+              :color="task.verification_task.status === 'COMPLETED' ? 'positive' : 'purple-8'"
+              track-color="purple-2"
+              class="q-mt-xs"
+            />
+          </q-card>
+          <div v-else class="text-caption text-grey-5 q-py-xs">
+            No verification assigned yet. Assign a team member to review and verify this completed
+            deliverable.
+          </div>
+        </div>
 
         <!-- Details Grid -->
         <div class="popup-details-grid">
@@ -416,6 +528,7 @@ const props = withDefaults(defineProps<TaskDetailsDialogProps>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void;
   (e: 'edit', task: Task): void;
+  (e: 'assignVerification', task: Task): void;
   (
     e: 'unassignMember',
     payload: { taskId: number; resourceId: number; resourceName: string },

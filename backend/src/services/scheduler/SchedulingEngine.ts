@@ -313,6 +313,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
           AND t.status != 'COMPLETED'
           AND t.deleted_at IS NULL
           AND p.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
         GROUP BY t.task_id
         `,
         [projectId]
@@ -364,6 +365,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         WHERE t.project_id = ?
           AND t.deleted_at IS NULL
           AND pred.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND (pred.task_type IS NULL OR pred.task_type != 'VERIFICATION')
         `,
         [projectId]
     );

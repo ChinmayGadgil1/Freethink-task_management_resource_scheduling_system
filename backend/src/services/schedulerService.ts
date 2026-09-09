@@ -63,7 +63,7 @@ export async function getProjectSchedule(projectId: number) {
     }
     const project = projectRows[0]!;
 
-    // 2. Fetch project tasks with assignees, dependencies, and calculated risks
+    // 2. Fetch project tasks with assignees, dependencies, and calculated risks (excluding special verification tasks from Gantt)
     const [tasks] = await pool.query<RowDataPacket[]>(
         `SELECT t.*,
                 GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
@@ -73,6 +73,7 @@ export async function getProjectSchedule(projectId: number) {
          LEFT JOIN task_dependencies td ON t.task_id = td.task_id
          WHERE t.project_id = ?
            AND t.deleted_at IS NULL
+           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
          GROUP BY t.task_id
          ORDER BY t.created_at ASC`,
         [projectId]
@@ -86,6 +87,7 @@ export async function getProjectSchedule(projectId: number) {
          LEFT JOIN users u ON ts.user_id = u.user_id
          WHERE t.project_id = ?
            AND t.deleted_at IS NULL
+           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
          ORDER BY ts.schedule_date ASC`,
         [projectId]
     );

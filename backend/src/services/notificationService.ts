@@ -6,7 +6,8 @@ export type NotificationType =
     | "POSSIBLE_DELAY"
     | "LEAVE_REQUESTED"
     | "LEAVE_APPROVED"
-    | "LEAVE_REJECTED";
+    | "LEAVE_REJECTED"
+    | "TASK_VERIFICATION";
 
 export interface NotificationRecord {
     notification_id: number;
@@ -54,14 +55,15 @@ export async function createNotification(payload: CreateNotificationPayload): Pr
 export async function syncTaskRiskNotifications(userId: number, userRole: string): Promise<void> {
     const pool = getPool();
 
-    // 1. Purge any random/generic notifications (preserve supported task risk & leave alert types)
+    // 1. Purge any random/generic notifications (preserve supported task risk, verification & leave alert types)
     await pool.query(
         `DELETE FROM notifications WHERE type NOT IN (
             'EARLY_COMPLETION',
             'POSSIBLE_DELAY',
             'LEAVE_REQUESTED',
             'LEAVE_APPROVED',
-            'LEAVE_REJECTED'
+            'LEAVE_REJECTED',
+            'TASK_VERIFICATION'
         )`
     );
 
@@ -323,7 +325,8 @@ export async function getUserNotifications(
             'POSSIBLE_DELAY',
             'LEAVE_REQUESTED',
             'LEAVE_APPROVED',
-            'LEAVE_REJECTED'
+            'LEAVE_REJECTED',
+            'TASK_VERIFICATION'
           )
     `;
     const params: any[] = [userId];
@@ -347,7 +350,8 @@ export async function getUserNotifications(
              'POSSIBLE_DELAY',
              'LEAVE_REQUESTED',
              'LEAVE_APPROVED',
-             'LEAVE_REJECTED'
+             'LEAVE_REJECTED',
+             'TASK_VERIFICATION'
            )`,
         [userId]
     );
@@ -388,13 +392,14 @@ export async function markAllNotificationsAsRead(userId: number): Promise<number
         `UPDATE notifications 
          SET is_read = TRUE 
          WHERE user_id = ? 
-           AND is_read = FALSE
+           AND is_read = FALSE 
            AND type IN (
              'EARLY_COMPLETION',
              'POSSIBLE_DELAY',
              'LEAVE_REQUESTED',
              'LEAVE_APPROVED',
-             'LEAVE_REJECTED'
+             'LEAVE_REJECTED',
+             'TASK_VERIFICATION'
            )`,
         [userId]
     );

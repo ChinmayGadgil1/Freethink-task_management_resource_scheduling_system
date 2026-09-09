@@ -13,7 +13,9 @@ export async function createTask(
     deadline: string | null,
     expectedEffort: number,
     assignedResourceIds?: number[],
-    supervisorId?: number | null
+    supervisorId?: number | null,
+    taskType?: "STANDARD" | "VERIFICATION",
+    verifiedTaskId?: number | null
 ) {
     const pool = getPool();
     const connection = await pool.getConnection();
@@ -32,11 +34,23 @@ export async function createTask(
         const [result] = await connection.query<ResultSetHeader>(
             `
         INSERT INTO tasks
-            (project_id, created_by, supervisor_id, title, description, priority, status, deadline, expected_effort, progress)
+            (project_id, created_by, supervisor_id, task_type, verified_task_id, title, description, priority, status, deadline, expected_effort, progress)
         VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             `,
-            [projectId, createdBy, supervisorId ?? null, title, description, priority, initialStatus, deadline, expectedEffort]
+            [
+                projectId,
+                createdBy,
+                supervisorId ?? null,
+                taskType || "STANDARD",
+                verifiedTaskId ?? null,
+                title,
+                description,
+                priority,
+                initialStatus,
+                deadline,
+                expectedEffort
+            ]
         );
 
         const taskId = result.insertId;
@@ -186,6 +200,8 @@ export async function getTasksList(filters: {
             u_sup.email as supervisor_email,
             u_creator.name as created_by_name,
             u_creator.role as created_by_role,
+            verified_t.title as verified_task_title,
+            verified_t.status as verified_task_status,
             GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
             GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names,
             GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
@@ -193,6 +209,7 @@ export async function getTasksList(filters: {
         LEFT JOIN projects p ON t.project_id = p.project_id
         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
         LEFT JOIN users u_creator ON t.created_by = u_creator.user_id
+        LEFT JOIN tasks verified_t ON t.verified_task_id = verified_t.task_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
@@ -254,6 +271,35 @@ export async function getTasksList(filters: {
         [taskIds]
     );
 
+    const [verifications] = await pool.query<RowDataPacket[]>(
+        `SELECT vt.task_id as verification_task_id, vt.verified_task_id, vt.status, vt.progress, vt.expected_effort, vt.actual_effort, vt.created_at,
+                ta.user_id as verifier_id, u.name as verifier_name
+         FROM tasks vt
+         LEFT JOIN task_assignments ta ON vt.task_id = ta.task_id
+         LEFT JOIN users u ON ta.user_id = u.user_id
+         WHERE vt.verified_task_id IN (?) AND vt.task_type = 'VERIFICATION' AND vt.deleted_at IS NULL
+         ORDER BY vt.created_at DESC`,
+        [taskIds]
+    );
+
+    const verificationMap = new Map<number, any[]>();
+    for (const v of verifications) {
+        const vParentId = Number(v.verified_task_id);
+        if (!verificationMap.has(vParentId)) {
+            verificationMap.set(vParentId, []);
+        }
+        verificationMap.get(vParentId)!.push({
+            verification_task_id: Number(v.verification_task_id),
+            verifier_id: Number(v.verifier_id),
+            verifier_name: String(v.verifier_name || 'Assigned Verifier'),
+            status: v.status,
+            progress: Number(v.progress || 0),
+            expected_effort: Number(v.expected_effort || 0),
+            actual_effort: Number(v.actual_effort || 0),
+            created_at: v.created_at
+        });
+    }
+
     const assignmentMap = new Map<number, { user_id: number; name: string; email: string }[]>();
     for (const a of assignments) {
         const tId = Number(a.task_id);
@@ -304,6 +350,9 @@ export async function getTasksList(filters: {
             .map(id => predDetailsMap.get(id))
             .filter(Boolean);
 
+        const taskVerifs = verificationMap.get(Number(t.task_id)) || [];
+        const latestVerif = taskVerifs.length > 0 ? taskVerifs[0] : null;
+
         return {
             ...t,
             created_by: t.created_by ? Number(t.created_by) : undefined,
@@ -312,6 +361,12 @@ export async function getTasksList(filters: {
             supervisor_id: t.supervisor_id ? Number(t.supervisor_id) : null,
             supervisor_name: t.supervisor_name || null,
             supervisor_email: t.supervisor_email || null,
+            task_type: t.task_type || 'STANDARD',
+            verified_task_id: t.verified_task_id ? Number(t.verified_task_id) : null,
+            verified_task_title: t.verified_task_title || null,
+            verified_task_status: t.verified_task_status || null,
+            verification_task: latestVerif,
+            verifications: taskVerifs,
             assigned_resource_ids: t.assigned_resource_ids
                 ? String(t.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
                 : [],
@@ -336,6 +391,8 @@ export async function getTaskById(taskId: number) {
                u_sup.email as supervisor_email,
                u_creator.name as created_by_name,
                u_creator.role as created_by_role,
+               verified_t.title as verified_task_title,
+               verified_t.status as verified_task_status,
                GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
                GROUP_CONCAT(DISTINCT u_res.name SEPARATOR ', ') as assigned_resource_names,
                GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
@@ -343,6 +400,7 @@ export async function getTaskById(taskId: number) {
         LEFT JOIN projects p ON t.project_id = p.project_id
         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
         LEFT JOIN users u_creator ON t.created_by = u_creator.user_id
+        LEFT JOIN tasks verified_t ON t.verified_task_id = verified_t.task_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
         LEFT JOIN task_dependencies td ON t.task_id = td.task_id
@@ -378,6 +436,28 @@ export async function getTaskById(taskId: number) {
         [taskId]
     );
 
+    const [verifications] = await pool.query<RowDataPacket[]>(
+        `SELECT vt.task_id as verification_task_id, vt.verified_task_id, vt.status, vt.progress, vt.expected_effort, vt.actual_effort, vt.created_at,
+                ta.user_id as verifier_id, u.name as verifier_name
+         FROM tasks vt
+         LEFT JOIN task_assignments ta ON vt.task_id = ta.task_id
+         LEFT JOIN users u ON ta.user_id = u.user_id
+         WHERE vt.verified_task_id = ? AND vt.task_type = 'VERIFICATION' AND vt.deleted_at IS NULL
+         ORDER BY vt.created_at DESC`,
+        [taskId]
+    );
+
+    const formattedVerifications = verifications.map(v => ({
+        verification_task_id: Number(v.verification_task_id),
+        verifier_id: Number(v.verifier_id),
+        verifier_name: String(v.verifier_name || 'Assigned Verifier'),
+        status: v.status,
+        progress: Number(v.progress || 0),
+        expected_effort: Number(v.expected_effort || 0),
+        actual_effort: Number(v.actual_effort || 0),
+        created_at: v.created_at
+    }));
+
     const assignedResources = assignments.map(a => ({
         user_id: Number(a.user_id),
         name: String(a.resource_name),
@@ -408,6 +488,12 @@ export async function getTaskById(taskId: number) {
         supervisor_id: task.supervisor_id ? Number(task.supervisor_id) : null,
         supervisor_name: task.supervisor_name || null,
         supervisor_email: task.supervisor_email || null,
+        task_type: task.task_type || 'STANDARD',
+        verified_task_id: task.verified_task_id ? Number(task.verified_task_id) : null,
+        verified_task_title: task.verified_task_title || null,
+        verified_task_status: task.verified_task_status || null,
+        verification_task: formattedVerifications.length > 0 ? formattedVerifications[0] : null,
+        verifications: formattedVerifications,
         assigned_resource_ids: task.assigned_resource_ids
             ? String(task.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
             : [],
@@ -419,6 +505,126 @@ export async function getTaskById(taskId: number) {
         predecessors,
         schedules: formattedSchedules
     } as any;
+}
+
+export async function assignVerificationTask(
+    completedTaskId: number,
+    verifierId: number,
+    createdBy: number,
+    notes?: string,
+    expectedEffort?: number
+) {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // 1. Fetch original completed task
+        const [taskRows] = await connection.query<RowDataPacket[]>(
+            `SELECT t.*, p.name as project_name, p.project_manager_id
+             FROM tasks t
+             JOIN projects p ON t.project_id = p.project_id
+             WHERE t.task_id = ? AND t.deleted_at IS NULL`,
+            [completedTaskId]
+        );
+
+        if (taskRows.length === 0) {
+            throw new Error("TASK_NOT_FOUND");
+        }
+
+        const originalTask = taskRows[0]!;
+
+        // 2. Validate verifier user
+        const [userRows] = await connection.query<RowDataPacket[]>(
+            `SELECT user_id, name, email, role FROM users WHERE user_id = ? AND is_active = TRUE`,
+            [verifierId]
+        );
+
+        if (userRows.length === 0 || userRows[0]!.role !== "RESOURCE") {
+            throw new Error("INVALID_VERIFIER: Verifier must be an active resource.");
+        }
+
+        const verifier = userRows[0]!;
+
+        // 3. Create new verification task
+        const verificationTitle = `Verification: ${originalTask.title}`;
+        const verificationDesc = notes && notes.trim()
+            ? `Verification for completed task "${originalTask.title}".\n\nInstructions / Notes:\n${notes.trim()}`
+            : `Verification for completed task "${originalTask.title}". Please review deliverables and confirm completion.`;
+        const effort = (expectedEffort && Number(expectedEffort) > 0) ? Number(expectedEffort) : 2.0;
+
+        const [result] = await connection.query<ResultSetHeader>(
+            `INSERT INTO tasks (
+                project_id, created_by, task_type, verified_task_id,
+                title, description, priority, status, deadline,
+                expected_effort, actual_effort, progress
+            ) VALUES (?, ?, 'VERIFICATION', ?, ?, ?, 'NONE', 'SCHEDULED', ?, ?, 0, 0)`,
+            [
+                originalTask.project_id,
+                createdBy,
+                completedTaskId,
+                verificationTitle,
+                verificationDesc,
+                originalTask.deadline || null,
+                effort
+            ]
+        );
+
+        const verificationTaskId = result.insertId;
+
+        // 4. Assign verifier to verification task
+        await connection.query(
+            `INSERT INTO task_assignments (task_id, user_id) VALUES (?, ?)`,
+            [verificationTaskId, verifierId]
+        );
+
+        // 5. Ensure verifier is in project_members
+        await connection.query(
+            `INSERT IGNORE INTO project_members (project_id, user_id) VALUES (?, ?)`,
+            [originalTask.project_id, verifierId]
+        );
+
+        // 6. Create notification for the verifier
+        const [creatorRows] = await connection.query<RowDataPacket[]>(
+            `SELECT name FROM users WHERE user_id = ?`,
+            [createdBy]
+        );
+        const assignerName = creatorRows[0]?.name || "Team Member";
+
+        await connection.query(
+            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+             VALUES (?, 'TASK_VERIFICATION', ?, ?, ?, FALSE, NOW())`,
+            [
+                verifierId,
+                `Verification Request: ${originalTask.title}`,
+                `${assignerName} assigned you to verify completed task "${originalTask.title}".`,
+                `/app/resource-dashboard/task-details/${verificationTaskId}`
+            ]
+        );
+
+        await connection.commit();
+
+        return {
+            task_id: verificationTaskId,
+            project_id: originalTask.project_id,
+            title: verificationTitle,
+            task_type: "VERIFICATION" as const,
+            verified_task_id: completedTaskId,
+            verified_task_title: originalTask.title,
+            priority: "NONE" as const,
+            status: "SCHEDULED" as const,
+            expected_effort: effort,
+            progress: 0,
+            assigned_resource_ids: [verifierId],
+            assigned_resources: [{ user_id: verifierId, name: verifier.name, email: verifier.email }]
+        };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
 }
 
 export async function assignResourceToTask(
