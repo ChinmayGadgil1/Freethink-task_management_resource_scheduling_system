@@ -98,25 +98,6 @@
         </div>
       </div>
 
-      <!-- 2. SUB-NAVIGATION CATEGORY TABS -->
-      <div class="category-tabs-row q-mb-md">
-        <q-tabs
-          v-model="activeCategoryTab"
-          dense
-          no-caps
-          align="left"
-          active-color="primary"
-          indicator-color="primary"
-          :dark="$q.dark.isActive"
-          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-        >
-          <q-tab name="all" label="Overview" />
-          <q-tab name="resources" label="Resources" />
-          <q-tab name="projects" label="Projects" />
-          <q-tab name="tasks" label="Tasks" />
-          <q-tab name="scheduling" label="Scheduling" />
-        </q-tabs>
-      </div>
 
       <!-- 3. LOADING SKELETON -->
       <div v-if="loading && isInitialLoad" class="q-my-lg">
@@ -272,10 +253,7 @@
         <!-- ======================================================= -->
         <!-- ROW 1: Resource Workload & 4-Week Trajectory Trend     -->
         <!-- ======================================================= -->
-        <div
-          v-show="activeCategoryTab === 'all' || activeCategoryTab === 'resources'"
-          class="row q-col-gutter-md q-mb-md"
-        >
+        <div class="row q-col-gutter-md q-mb-md">
           <!-- 1A: Resource Workload & Utilization -->
           <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
@@ -350,19 +328,9 @@
         <!-- ======================================================= -->
         <!-- ROW 2: Availability Heatmap & Task Status Doughnut      -->
         <!-- ======================================================= -->
-        <div
-          v-show="
-            activeCategoryTab === 'all' ||
-            activeCategoryTab === 'resources' ||
-            activeCategoryTab === 'tasks'
-          "
-          class="row q-col-gutter-md q-mb-md"
-        >
+        <div class="row q-col-gutter-md q-mb-md">
           <!-- 2A: Resource Availability Heatmap -->
-          <div
-            v-show="activeCategoryTab === 'all' || activeCategoryTab === 'resources'"
-            class="col-12 col-lg-6"
-          >
+          <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
@@ -404,12 +372,7 @@
           </div>
 
           <!-- 2B: Task Status Distribution -->
-          <div
-            v-show="activeCategoryTab === 'all' || activeCategoryTab === 'tasks'"
-            :class="
-              activeCategoryTab === 'tasks' ? 'col-12 col-lg-8 offset-lg-2' : 'col-12 col-lg-6'
-            "
-          >
+          <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
@@ -438,19 +401,9 @@
         <!-- ======================================================= -->
         <!-- ROW 3: Project Schedule Health & Planned vs Actual      -->
         <!-- ======================================================= -->
-        <div
-          v-show="
-            activeCategoryTab === 'all' ||
-            activeCategoryTab === 'projects' ||
-            activeCategoryTab === 'tasks'
-          "
-          class="row q-col-gutter-md q-mb-md"
-        >
+        <div class="row q-col-gutter-md q-mb-md">
           <!-- 3A: Project Schedule Health -->
-          <div
-            v-show="activeCategoryTab === 'all' || activeCategoryTab === 'projects'"
-            :class="activeCategoryTab === 'projects' ? 'col-12' : 'col-12 col-lg-6'"
-          >
+          <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
@@ -492,10 +445,7 @@
           </div>
 
           <!-- 3B: Planned vs Actual Effort -->
-          <div
-            v-show="activeCategoryTab === 'all' || activeCategoryTab === 'tasks'"
-            :class="activeCategoryTab === 'tasks' ? 'col-12' : 'col-12 col-lg-6'"
-          >
+          <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
               <div class="chart-card-header row items-center justify-between">
                 <div>
@@ -532,14 +482,7 @@
         <!-- ======================================================= -->
         <!-- ROW 4: Capacity vs Assigned Effort (Full Width)        -->
         <!-- ======================================================= -->
-        <div
-          v-show="
-            activeCategoryTab === 'all' ||
-            activeCategoryTab === 'resources' ||
-            activeCategoryTab === 'scheduling'
-          "
-          class="row q-col-gutter-md q-mb-md"
-        >
+        <div class="row q-col-gutter-md q-mb-md">
           <!-- 4A: Capacity vs Assigned Effort (Full Width) -->
           <div class="col-12">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
@@ -612,7 +555,6 @@ const loading = ref(true);
 const isInitialLoad = ref(true);
 const errorMessage = ref<string | null>(null);
 
-const activeCategoryTab = ref<'all' | 'resources' | 'projects' | 'tasks' | 'scheduling'>('all');
 const selectedProjectId = ref<number | 'ALL'>('ALL');
 
 // Raw live datasets fetched from backend
@@ -1694,11 +1636,7 @@ onMounted(() => {
   window.addEventListener('resize', resizeAll);
 });
 
-watch(activeCategoryTab, () => {
-  void nextTick(() => {
-    renderAllCharts();
-  });
-});
+
 
 watch(selectedProjectId, () => {
   void nextTick(() => {
@@ -1801,29 +1739,35 @@ onBeforeUnmount(() => {
   }
 }
 
-.category-tabs-row {
-  border-bottom: 1px solid #e6e8ed;
-}
+
 
 /* KPI Cards */
 .kpi-card {
-  border-radius: 8px;
-  border: 1px solid #e6e8ed;
-  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--wo-border, #e6e8ed);
+  background: var(--wo-bg-card, #ffffff);
   padding: 14px 16px;
+  cursor: pointer;
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(29, 36, 51, 0.05);
+    border-color: var(--wo-primary, #8b6fd8) !important;
+    box-shadow: 0 8px 20px rgba(139, 111, 216, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
   }
 
   &.kpi-card-alert {
     border-color: #f5c2c7;
     background: #fffafa;
+
+    &:hover {
+      border-color: #e05260 !important;
+      box-shadow: 0 8px 20px rgba(224, 82, 96, 0.15);
+      transform: translateY(-2px);
+    }
   }
 }
 
@@ -1881,21 +1825,23 @@ onBeforeUnmount(() => {
 
 /* Chart Cards */
 .chart-card {
-  border-radius: 8px;
-  border: 1px solid #e6e8ed;
-  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--wo-border, #e6e8ed);
+  background: var(--wo-bg-card, #ffffff);
   padding: 16px;
   min-height: 380px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition:
-    box-shadow 0.2s ease,
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    box-shadow: 0 4px 14px rgba(29, 36, 51, 0.04);
+    border-color: var(--wo-primary, #8b6fd8) !important;
+    box-shadow: 0 8px 22px rgba(139, 111, 216, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
   }
 }
 
@@ -2008,21 +1954,27 @@ body.body--dark {
     color: #f3f4f6;
   }
 
-  .category-tabs-row {
-    border-bottom-color: #283042;
-  }
+
 
   .kpi-card {
-    border-color: #283042;
-    background: #181d28;
+    border-color: var(--wo-border, #283042);
+    background: var(--wo-bg-card, #181d28);
 
     &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      border-color: var(--wo-primary, #8b6fd8) !important;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
+      transform: translateY(-2px);
     }
 
     &.kpi-card-alert {
       border-color: rgba(239, 68, 68, 0.4);
       background: rgba(239, 68, 68, 0.1);
+
+      &:hover {
+        border-color: #f87171 !important;
+        box-shadow: 0 8px 22px rgba(239, 68, 68, 0.25);
+        transform: translateY(-2px);
+      }
     }
   }
 
@@ -2055,11 +2007,13 @@ body.body--dark {
   }
 
   .chart-card {
-    border-color: #283042;
-    background: #181d28;
+    border-color: var(--wo-border, #283042);
+    background: var(--wo-bg-card, #181d28);
 
     &:hover {
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      border-color: var(--wo-primary, #8b6fd8) !important;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
+      transform: translateY(-2px);
     }
   }
 

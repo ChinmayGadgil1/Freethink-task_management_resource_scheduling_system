@@ -39,52 +39,51 @@
 
     <!-- 2. SUMMARY METRICS CARDS -->
     <div class="row q-col-gutter-md q-mb-lg">
-      <div class="col-12 col-sm-3">
-        <q-card flat bordered class="metric-card bg-purple-soft text-purple q-pa-md">
-          <div class="row items-center justify-between no-wrap">
-            <div>
-              <div class="text-caption text-grey-7">Total Applied Leaves</div>
-              <div class="text-h5 text-weight-bold">{{ leavesList.length }}</div>
-            </div>
-            <q-avatar color="white" text-color="primary" icon="assignment_turned_in" size="44px" />
-          </div>
-        </q-card>
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="Total Applied Leaves"
+          :value="leavesList.length"
+          subtitle="All leave records"
+          icon="assignment_turned_in"
+          color="purple"
+          @click="resetFilters"
+        />
       </div>
 
-      <div class="col-12 col-sm-3">
-        <q-card flat bordered class="metric-card bg-amber-soft text-amber-9 q-pa-md">
-          <div class="row items-center justify-between no-wrap">
-            <div>
-              <div class="text-caption text-grey-7">Pending Approval</div>
-              <div class="text-h5 text-weight-bold">{{ pendingLeavesCount }}</div>
-            </div>
-            <q-avatar color="white" text-color="amber-9" icon="pending_actions" size="44px" />
-          </div>
-        </q-card>
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="Pending Approval"
+          :value="pendingLeavesCount"
+          subtitle="Awaiting review"
+          badge="PENDING"
+          icon="pending_actions"
+          color="amber"
+          :negative="pendingLeavesCount > 0"
+          @click="filterByPending"
+        />
       </div>
 
-      <div class="col-12 col-sm-3">
-        <q-card flat bordered class="metric-card bg-blue-soft text-blue q-pa-md">
-          <div class="row items-center justify-between no-wrap">
-            <div>
-              <div class="text-caption text-grey-7">Future Leaves</div>
-              <div class="text-h5 text-weight-bold">{{ futureLeavesCount }}</div>
-            </div>
-            <q-avatar color="white" text-color="blue" icon="upcoming" size="44px" />
-          </div>
-        </q-card>
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="Future Leaves"
+          :value="futureLeavesCount"
+          subtitle="Upcoming scheduled"
+          badge="UPCOMING"
+          icon="upcoming"
+          color="blue"
+          @click="filterByFuture"
+        />
       </div>
 
-      <div class="col-12 col-sm-3">
-        <q-card flat bordered class="metric-card bg-orange-soft text-orange q-pa-md">
-          <div class="row items-center justify-between no-wrap">
-            <div>
-              <div class="text-caption text-grey-7">Leaves This Month</div>
-              <div class="text-h5 text-weight-bold">{{ currentMonthLeavesCount }}</div>
-            </div>
-            <q-avatar color="white" text-color="orange" icon="calendar_today" size="44px" />
-          </div>
-        </q-card>
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="Leaves This Month"
+          :value="currentMonthLeavesCount"
+          subtitle="Current calendar month"
+          icon="calendar_today"
+          color="teal"
+          @click="filterByThisMonth"
+        />
       </div>
     </div>
 
@@ -609,6 +608,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import { formatDate, formatHours } from '@/utils/formatters';
 import { useAuthStore } from '@/stores/auth';
 import {
@@ -1122,6 +1122,29 @@ function resetFilters() {
   filters.endDate = '';
 }
 
+function filterByPending() {
+  filters.status = 'PENDING';
+  filters.startDate = '';
+  filters.endDate = '';
+}
+
+function filterByFuture() {
+  const today = new Date().toISOString().split('T')[0]!;
+  filters.startDate = today;
+  filters.endDate = '';
+  filters.status = undefined;
+}
+
+function filterByThisMonth() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+  filters.startDate = `${year}-${month}-01`;
+  filters.endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+  filters.status = undefined;
+}
+
 async function openLeaveDialog() {
   leaveForm.user_id = isProjectManager.value ? null : currentUserId.value;
   leaveForm.start_date = '';
@@ -1283,3 +1306,38 @@ onMounted(() => {
   void loadData();
 });
 </script>
+
+<style scoped lang="scss">
+.filter-card,
+.table-card {
+  border-radius: 12px;
+  border: 1px solid var(--wo-border, #e5e7ec);
+  background: var(--wo-bg-card, #ffffff);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    border-color: var(--wo-primary, #8b6fd8) !important;
+    box-shadow: 0 8px 22px rgba(139, 111, 216, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
+  }
+}
+
+/* Dark mode adjustments */
+body.body--dark {
+  .filter-card,
+  .table-card {
+    border-color: var(--wo-border, #283042);
+    background: var(--wo-bg-card, #181d28);
+
+    &:hover {
+      border-color: var(--wo-primary, #8b6fd8) !important;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
+      transform: translateY(-2px);
+    }
+  }
+}
+</style>
