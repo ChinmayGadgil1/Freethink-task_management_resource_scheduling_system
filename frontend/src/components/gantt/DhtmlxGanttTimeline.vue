@@ -142,7 +142,7 @@
           :class="{ 'links-active': showDependencies }"
           @click="toggleDependencies"
         >
-          <q-icon name="link" size="15px" class="q-mr-xs text-purple-7" />
+          <q-icon name="link" size="15px" class="q-mr-xs text-indigo-7" />
           <span>{{ showDependencies ? 'Links On' : 'Links Off' }}</span>
         </button>
       </div>
@@ -160,33 +160,33 @@
           title="Current calendar date (Purple solid vertical line)"
         >
           <span class="legend-line-sample sample-today q-mr-xs"></span>
-          <span>Today</span>
+          <span class="text-purple-9 text-weight-medium">Today</span>
         </div>
 
         <!-- Holiday Indicator (Both PM and Resource) -->
         <div
           class="legend-item row items-center no-wrap"
-          title="Company Holiday (Orange dashed vertical line & highlight in Day view)"
+          title="Company Holiday (Amber-Gold dashed vertical line & highlight in Day view)"
         >
           <span class="legend-line-sample sample-holiday q-mr-xs"></span>
-          <span class="text-deep-orange-9 text-weight-medium">Company Holiday</span>
+          <span class="text-amber-9 text-weight-bold">Holiday</span>
         </div>
 
         <!-- Leave Indicator -->
         <div
           v-if="isResourceView || (availability && availability.length > 0)"
           class="legend-item row items-center no-wrap"
-          title="Approved Leave (Purple dashed vertical line & highlight in Day view)"
+          title="Approved Leave (Teal dashed vertical line & highlight in Day view)"
         >
           <span class="legend-line-sample sample-leave q-mr-xs"></span>
-          <span class="text-purple-8 text-weight-medium">Approved Leave</span>
+          <span class="text-cyan-9 text-weight-bold">Leave</span>
         </div>
 
         <!-- Non-Working / Weekend -->
         <div
           v-if="isResourceView || (availability && availability.length > 0)"
           class="legend-item row items-center no-wrap"
-          title="Non-working day / Weekend off (Muted shading in Day view)"
+          title="Non-working day / Weekend off (Muted slate shading in Day view)"
         >
           <span class="legend-box-sample sample-nwd q-mr-xs"></span>
           <span class="text-grey-7">Off-Day</span>
@@ -196,34 +196,43 @@
           v-if="activeScale !== 'day' && activeScale !== 'hour'"
           class="text-caption text-grey-5 q-ml-xs"
         >
-          (Switch to Day view to see vertical holiday &amp; leave line markers)
+          (Switch to Day view to see vertical holiday &amp; leave markers)
         </span>
       </div>
 
-      <!-- Right: Priority Dots & Dependency -->
+      <!-- Right: Priority Dots, Status & Dependency -->
       <div class="legend-priority-list row items-center q-gutter-x-md text-caption wrap">
-        <span class="legend-label text-weight-bold">Priority:</span>
-        <div class="legend-item row items-center no-wrap">
+        <span class="legend-label text-weight-bold">Tasks:</span>
+        <div class="legend-item row items-center no-wrap" title="Low Priority">
           <span class="p-dot dot-low q-mr-xs"></span>
           <span>Low</span>
         </div>
-        <div class="legend-item row items-center no-wrap">
+        <div class="legend-item row items-center no-wrap" title="Medium Priority">
           <span class="p-dot dot-medium q-mr-xs"></span>
           <span>Med</span>
         </div>
-        <div class="legend-item row items-center no-wrap">
+        <div class="legend-item row items-center no-wrap" title="High Priority">
           <span class="p-dot dot-high q-mr-xs"></span>
           <span>High</span>
         </div>
-        <div class="legend-item row items-center no-wrap">
+        <div class="legend-item row items-center no-wrap" title="Critical Priority">
           <span class="p-dot dot-critical q-mr-xs"></span>
-          <span>Critical</span>
+          <span class="text-red-9 text-weight-bold">Critical</span>
+        </div>
+
+        <!-- Status: Completed -->
+        <div class="legend-item row items-center no-wrap" title="Completed Task (100% Progress)">
+          <span class="p-dot dot-completed q-mr-xs"></span>
+          <span class="text-positive text-weight-bold">Completed</span>
         </div>
 
         <!-- Predecessor Dependency Line Indicator -->
-        <div class="legend-dependency-indicator row items-center no-wrap">
-          <q-icon name="trending_flat" size="16px" class="q-mr-xs text-purple-7" />
-          <span class="text-purple-8 text-weight-medium">Dependency</span>
+        <div
+          class="legend-dependency-indicator row items-center no-wrap"
+          title="Task dependency link"
+        >
+          <q-icon name="trending_flat" size="16px" class="q-mr-xs text-indigo-7" />
+          <span class="text-indigo-8 text-weight-medium">Dependency</span>
         </div>
       </div>
     </div>
@@ -2164,13 +2173,13 @@ defineExpose({
         vertical-align: middle;
 
         &.sample-today {
-          border-top: 2px solid #8b5cf6;
+          border-top: 2px solid #7c3aed;
         }
         &.sample-holiday {
-          border-top: 2px dashed #ea580c;
+          border-top: 2px dashed #d97706;
         }
         &.sample-leave {
-          border-top: 2px dashed #9333ea;
+          border-top: 2px dashed #0891b2;
         }
       }
 
@@ -2183,13 +2192,13 @@ defineExpose({
         vertical-align: middle;
 
         &.sample-nwd {
-          background: rgba(100, 116, 139, 0.2);
+          background: rgba(148, 163, 184, 0.25);
         }
       }
 
       .p-dot {
-        width: 7px;
-        height: 7px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         display: inline-block;
 
@@ -2197,13 +2206,16 @@ defineExpose({
           background: #64748b;
         }
         &.dot-medium {
-          background: #0284c7;
+          background: #2563eb;
         }
         &.dot-high {
           background: #ea580c;
         }
         &.dot-critical {
-          background: #db2777;
+          background: #dc2626;
+        }
+        &.dot-completed {
+          background: #10b981;
         }
       }
     }
@@ -2509,21 +2521,21 @@ defineExpose({
     }
     &.s-in-progress {
       background: #eff6ff;
-      color: #0284c7;
+      color: #1d4ed8;
       .status-dot {
-        background: #0284c7;
+        background: #2563eb;
       }
     }
     &.s-scheduled {
       background: #f5f3ff;
-      color: #7c3aed;
+      color: #6d28d9;
       .status-dot {
-        background: #8b5cf6;
+        background: #7c3aed;
       }
     }
     &.s-unassigned {
       background: #f1f5f9;
-      color: #64748b;
+      color: #475569;
       .status-dot {
         background: #94a3b8;
       }
@@ -2544,8 +2556,8 @@ defineExpose({
     text-overflow: ellipsis;
 
     &.p-critical {
-      background: #fdf2f8;
-      color: #db2777;
+      background: #fef2f2;
+      color: #dc2626;
     }
     &.p-high {
       background: #fff7ed;
@@ -2553,7 +2565,7 @@ defineExpose({
     }
     &.p-medium {
       background: #eff6ff;
-      color: #0284c7;
+      color: #2563eb;
     }
     &.p-low {
       background: #f1f5f9;
@@ -2731,35 +2743,35 @@ defineExpose({
       margin-left: auto;
     }
 
-    /* 1. Pink (Critical Priority) */
+    /* 1. Crimson Red (Critical Priority) */
     &.bar-p-critical {
-      background: linear-gradient(90deg, #db2777 0%, #f43f5e 100%) !important;
-      border: 1px solid #be185d !important;
-      box-shadow: 0 2px 8px rgba(219, 39, 119, 0.35) !important;
+      background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%) !important;
+      border: 1px solid #b91c1c !important;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35) !important;
     }
 
-    /* 2. Orange (High Priority) */
+    /* 2. Vibrant Orange (High Priority) */
     &.bar-p-high {
       background: linear-gradient(90deg, #ea580c 0%, #f97316 100%) !important;
       border: 1px solid #c2410c !important;
       box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35) !important;
     }
 
-    /* 3. Blue (Medium Priority) */
+    /* 3. Royal Blue (Medium Priority) */
     &.bar-p-medium {
-      background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%) !important;
-      border: 1px solid #0284c7 !important;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
+      background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%) !important;
+      border: 1px solid #1d4ed8 !important;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
     }
 
-    /* 4. Slate (Low Priority) */
+    /* 4. Slate Grey (Low Priority) */
     &.bar-p-low {
       background: linear-gradient(90deg, #64748b 0%, #94a3b8 100%) !important;
       border: 1px solid #475569 !important;
       box-shadow: 0 2px 8px rgba(100, 116, 139, 0.35) !important;
     }
 
-    /* 5. Green (Completed Status) */
+    /* 5. Emerald Green (Completed Status) */
     &.bar-s-completed {
       background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
       border: 1px solid #047857 !important;
@@ -2769,78 +2781,78 @@ defineExpose({
 
   /* Dependency Link Lines */
   .gantt_line_wrapper div {
-    background-color: #8b5cf6 !important;
+    background-color: #6366f1 !important;
     height: 2px !important;
   }
 
   .gantt_link_arrow {
-    border-left-color: #8b5cf6 !important;
+    border-left-color: #6366f1 !important;
   }
 
   .gantt_link_point {
-    background: #8b5cf6 !important;
+    background: #6366f1 !important;
     border: 2px solid #ffffff !important;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   /* Today Marker */
   .dhtmlx-today-marker {
-    background: #8b5cf6 !important;
+    background: #7c3aed !important;
     width: 2px !important;
     z-index: 5;
 
     .gantt_marker_content {
-      background: #8b5cf6;
+      background: #7c3aed;
       color: #ffffff;
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.05em;
       padding: 2px 6px;
       border-radius: 4px;
-      box-shadow: 0 2px 5px rgba(139, 92, 246, 0.4);
+      box-shadow: 0 2px 5px rgba(124, 58, 237, 0.4);
       white-space: nowrap;
       text-transform: uppercase;
       top: 2px;
     }
   }
 
-  /* Holiday Vertical Line Marker (Orange / Coral) - Shown on BOTH sides */
+  /* Holiday Vertical Line Marker (Amber Gold) - Distinct from Orange High Priority */
   .dhtmlx-holiday-marker {
     background: transparent !important;
     width: 0px !important;
-    border-left: 2px dashed #ea580c !important;
+    border-left: 2px dashed #d97706 !important;
     z-index: 6;
 
     .gantt_marker_content {
-      background: #ea580c;
+      background: #d97706;
       color: #ffffff;
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.04em;
       padding: 2px 6px;
       border-radius: 4px;
-      box-shadow: 0 2px 6px rgba(234, 88, 12, 0.45);
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.45);
       white-space: nowrap;
       top: 2px;
     }
   }
 
-  /* Leave Vertical Line Marker (Purple / Indigo) - Shown on Resource side ONLY */
+  /* Leave Vertical Line Marker (Teal / Cyan) - Distinct from Purple Today Marker */
   .dhtmlx-leave-marker {
     background: transparent !important;
     width: 0px !important;
-    border-left: 2px dashed #9333ea !important;
+    border-left: 2px dashed #0891b2 !important;
     z-index: 6;
 
     .gantt_marker_content {
-      background: #9333ea;
+      background: #0891b2;
       color: #ffffff;
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.04em;
       padding: 2px 6px;
       border-radius: 4px;
-      box-shadow: 0 2px 6px rgba(147, 51, 234, 0.45);
+      box-shadow: 0 2px 6px rgba(8, 145, 178, 0.45);
       white-space: nowrap;
       top: 2px;
     }
@@ -2867,31 +2879,31 @@ defineExpose({
 
   /* Column cell highlighting */
   .gantt-col-holiday {
-    background-color: rgba(234, 88, 12, 0.08) !important;
-    border-left: 1px dashed rgba(234, 88, 12, 0.3) !important;
-    border-right: 1px dashed rgba(234, 88, 12, 0.3) !important;
+    background-color: rgba(245, 158, 11, 0.09) !important;
+    border-left: 1px dashed rgba(217, 119, 6, 0.35) !important;
+    border-right: 1px dashed rgba(217, 119, 6, 0.35) !important;
   }
   .gantt-col-leave {
-    background-color: rgba(147, 51, 234, 0.07) !important;
-    border-left: 1px dashed rgba(147, 51, 234, 0.3) !important;
-    border-right: 1px dashed rgba(147, 51, 234, 0.3) !important;
+    background-color: rgba(6, 182, 212, 0.09) !important;
+    border-left: 1px dashed rgba(8, 145, 178, 0.35) !important;
+    border-right: 1px dashed rgba(8, 145, 178, 0.35) !important;
   }
   .gantt-col-nwd {
-    background-color: rgba(100, 116, 139, 0.04) !important;
+    background-color: rgba(148, 163, 184, 0.08) !important;
   }
 
   .gantt-scale-holiday {
-    background-color: rgba(234, 88, 12, 0.12) !important;
-    color: #c2410c !important;
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #b45309 !important;
     font-weight: 700 !important;
   }
   .gantt-scale-leave {
-    background-color: rgba(147, 51, 234, 0.12) !important;
-    color: #7e22ce !important;
+    background-color: rgba(6, 182, 212, 0.15) !important;
+    color: #0e7490 !important;
     font-weight: 700 !important;
   }
   .gantt-scale-nwd {
-    background-color: rgba(100, 116, 139, 0.08) !important;
+    background-color: rgba(148, 163, 184, 0.12) !important;
     color: #64748b !important;
   }
 }
@@ -3182,26 +3194,45 @@ body.body--dark {
 
     .priority-badge {
       &.p-critical {
-        background: rgba(244, 63, 94, 0.15);
-        color: #f43f5e;
+        background: rgba(239, 68, 68, 0.18);
+        color: #f87171;
       }
       &.p-high {
-        background: rgba(249, 115, 22, 0.15);
-        color: #f97316;
+        background: rgba(249, 115, 22, 0.18);
+        color: #fb923c;
       }
       &.p-medium {
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
+        background: rgba(37, 99, 235, 0.18);
+        color: #60a5fa;
       }
       &.p-low {
-        background: rgba(148, 163, 184, 0.15);
+        background: rgba(148, 163, 184, 0.18);
+        color: #94a3b8;
+      }
+    }
+
+    .status-badge {
+      &.s-completed {
+        background: rgba(16, 185, 129, 0.18);
+        color: #34d399;
+      }
+      &.s-in-progress {
+        background: rgba(37, 99, 235, 0.18);
+        color: #60a5fa;
+      }
+      &.s-scheduled {
+        background: rgba(124, 58, 237, 0.18);
+        color: #c084fc;
+      }
+      &.s-unassigned {
+        background: rgba(148, 163, 184, 0.18);
         color: #94a3b8;
       }
     }
 
     .duration-badge {
-      background: rgba(59, 130, 246, 0.15);
-      color: #3b82f6;
+      background: rgba(37, 99, 235, 0.18);
+      color: #60a5fa;
 
       &.project-dur-badge {
         background: rgba(148, 163, 184, 0.15);
@@ -3215,29 +3246,29 @@ body.body--dark {
     }
 
     .gantt-col-holiday {
-      background-color: rgba(234, 88, 12, 0.15) !important;
-      border-left: 1px dashed rgba(234, 88, 12, 0.4) !important;
-      border-right: 1px dashed rgba(234, 88, 12, 0.4) !important;
+      background-color: rgba(245, 158, 11, 0.15) !important;
+      border-left: 1px dashed rgba(245, 158, 11, 0.45) !important;
+      border-right: 1px dashed rgba(245, 158, 11, 0.45) !important;
     }
     .gantt-col-leave {
-      background-color: rgba(147, 51, 234, 0.15) !important;
-      border-left: 1px dashed rgba(147, 51, 234, 0.4) !important;
-      border-right: 1px dashed rgba(147, 51, 234, 0.4) !important;
+      background-color: rgba(6, 182, 212, 0.15) !important;
+      border-left: 1px dashed rgba(6, 182, 212, 0.45) !important;
+      border-right: 1px dashed rgba(6, 182, 212, 0.45) !important;
     }
     .gantt-col-nwd {
-      background-color: rgba(100, 116, 139, 0.1) !important;
+      background-color: rgba(148, 163, 184, 0.1) !important;
     }
 
     .gantt-scale-holiday {
-      background-color: rgba(234, 88, 12, 0.25) !important;
-      color: #fb923c !important;
+      background-color: rgba(245, 158, 11, 0.25) !important;
+      color: #fcd34d !important;
     }
     .gantt-scale-leave {
-      background-color: rgba(147, 51, 234, 0.25) !important;
-      color: #c084fc !important;
+      background-color: rgba(6, 182, 212, 0.25) !important;
+      color: #67e8f9 !important;
     }
     .gantt-scale-nwd {
-      background-color: rgba(100, 116, 139, 0.15) !important;
+      background-color: rgba(148, 163, 184, 0.15) !important;
       color: #94a3b8 !important;
     }
   }

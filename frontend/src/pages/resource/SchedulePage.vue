@@ -1486,10 +1486,10 @@ onMounted(() => {
       background: #f97316;
     }
     &.prio-dot-medium {
-      background: #8b6fd8;
+      background: #2563eb;
     }
     &.prio-dot-low {
-      background: #10b981;
+      background: #64748b;
     }
   }
 
@@ -1712,23 +1712,23 @@ onMounted(() => {
 }
 
 .prio-critical {
-  background: rgba(237, 91, 103, 0.12);
-  color: #ed5b67;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
 }
 
 .prio-high {
-  background: rgba(242, 138, 23, 0.12);
-  color: #f28a17;
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
 }
 
 .prio-medium {
-  background: rgba(139, 111, 216, 0.12);
-  color: #8b6fd8;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
 }
 
 .prio-low {
-  background: rgba(19, 174, 118, 0.12);
-  color: #13ae76;
+  background: rgba(100, 116, 139, 0.12);
+  color: #64748b;
 }
 
 .progress-cell-wrapper {

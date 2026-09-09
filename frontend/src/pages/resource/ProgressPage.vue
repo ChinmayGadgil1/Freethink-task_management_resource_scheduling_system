@@ -125,12 +125,17 @@
                   <div class="chart-title" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
                     My Task Status
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div
+                    class="chart-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
                     Current breakdown of your assigned tasks
                   </div>
                 </div>
               </div>
-              <div class="badge-tag" :class="$q.dark.isActive ? 'badge-dark' : ''">Distribution</div>
+              <div class="badge-tag" :class="$q.dark.isActive ? 'badge-dark' : ''">
+                Distribution
+              </div>
             </div>
             <q-card-section class="q-pa-sm relative-position">
               <div ref="statusChartRef" class="echarts-box"></div>
@@ -153,32 +158,68 @@
                   <div class="chart-title" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
                     My Effort Analysis
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div
+                    class="chart-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
                     Planned, actual and remaining effort across your tasks
                   </div>
                 </div>
               </div>
-              <div class="badge-tag" :class="$q.dark.isActive ? 'badge-dark' : ''">Effort Hours</div>
+              <div class="badge-tag" :class="$q.dark.isActive ? 'badge-dark' : ''">
+                Effort Hours
+              </div>
             </div>
             <q-card-section class="q-pa-sm relative-position">
               <div ref="effortChartRef" class="echarts-box"></div>
               <!-- Summary effort stat row -->
               <div class="row q-col-gutter-sm q-mt-xs q-px-sm">
                 <div class="col-6 col-sm-3 text-center">
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Total Planned</div>
-                  <div class="text-weight-bold" style="color:#7654D6;">{{ formatHours(expectedEffort) }}</div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Total Planned
+                  </div>
+                  <div class="text-weight-bold" style="color: #7654d6">
+                    {{ formatHours(expectedEffort) }}
+                  </div>
                 </div>
                 <div class="col-6 col-sm-3 text-center">
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Total Logged</div>
-                  <div class="text-weight-bold" style="color:#3F7FD5;">{{ formatHours(actualEffort) }}</div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Total Logged
+                  </div>
+                  <div class="text-weight-bold" style="color: #3f7fd5">
+                    {{ formatHours(actualEffort) }}
+                  </div>
                 </div>
                 <div class="col-6 col-sm-3 text-center">
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Hours Left</div>
-                  <div class="text-weight-bold" style="color:#16A6A1;">{{ formatHours(actualHoursRemaining) }}</div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Hours Left
+                  </div>
+                  <div class="text-weight-bold" style="color: #16a6a1">
+                    {{ formatHours(actualHoursRemaining) }}
+                  </div>
                 </div>
                 <div class="col-6 col-sm-3 text-center">
-                  <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">Consumed</div>
-                  <div class="text-weight-bold" :class="effortPercentage > 90 ? 'text-warning' : 'text-primary'">{{ effortPercentage }}%</div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    Consumed
+                  </div>
+                  <div
+                    class="text-weight-bold"
+                    :class="effortPercentage > 90 ? 'text-warning' : 'text-primary'"
+                  >
+                    {{ effortPercentage }}%
+                  </div>
                 </div>
               </div>
             </q-card-section>
@@ -203,12 +244,17 @@
                   <div class="chart-title" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
                     My Task Progress
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div
+                    class="chart-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
                     Progress across your assigned tasks
                   </div>
                 </div>
               </div>
-              <div class="badge-tag" :class="$q.dark.isActive ? 'badge-dark' : ''">Completion %</div>
+              <div class="badge-tag" :class="$q.dark.isActive ? 'badge-dark' : ''">
+                Completion %
+              </div>
             </div>
             <q-card-section class="q-pa-sm relative-position">
               <div ref="taskProgressChartRef" class="echarts-box"></div>
@@ -231,7 +277,10 @@
                   <div class="chart-title" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
                     Deadline Performance
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  <div
+                    class="chart-caption"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
                     Overview of your upcoming and overdue deadlines
                   </div>
                 </div>
@@ -251,8 +300,18 @@
                     @click="handleDeadlineCardClick(d.label)"
                   >
                     <q-card-section class="q-pa-xs text-center">
-                      <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">{{ d.label }}</div>
-                      <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">{{ d.value }}</div>
+                      <div
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                      >
+                        {{ d.label }}
+                      </div>
+                      <div
+                        class="text-h6 text-weight-bold"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ d.value }}
+                      </div>
                     </q-card-section>
                   </q-card>
                 </div>
@@ -716,10 +775,13 @@ const effortPercentage = computed(() =>
     : 0,
 );
 
-
 const deadlinePerformance = computed(() => {
-  const noDeadline = assignedTasks.value.filter((t) => !t.deadline && t.status !== 'COMPLETED').length;
-  const overdue = assignedTasks.value.filter((t) => t.status !== 'COMPLETED' && isOverdue(t)).length;
+  const noDeadline = assignedTasks.value.filter(
+    (t) => !t.deadline && t.status !== 'COMPLETED',
+  ).length;
+  const overdue = assignedTasks.value.filter(
+    (t) => t.status !== 'COMPLETED' && isOverdue(t),
+  ).length;
   const completed = assignedTasks.value.filter((t) => t.status === 'COMPLETED').length;
 
   const dueSoon = assignedTasks.value.filter((t) => {
@@ -924,8 +986,18 @@ function initStatusChart() {
   );
 
   const rawData = [
-    { name: 'Completed', value: completedTasksList.length, color: '#32A56B', tasks: completedTasksList },
-    { name: 'In Progress', value: inProgressTasks.length, color: '#7654D6', tasks: inProgressTasks },
+    {
+      name: 'Completed',
+      value: completedTasksList.length,
+      color: '#32A56B',
+      tasks: completedTasksList,
+    },
+    {
+      name: 'In Progress',
+      value: inProgressTasks.length,
+      color: '#7654D6',
+      tasks: inProgressTasks,
+    },
     { name: 'Scheduled', value: scheduledTasks.length, color: '#3F7FD5', tasks: scheduledTasks },
     { name: 'Overdue', value: overdueTasks.length, color: '#E05260', tasks: overdueTasks },
     ...(otherTasks.length > 0
@@ -1002,7 +1074,13 @@ function initStatusChart() {
                 value: d.value,
                 itemStyle: { color: d.color },
               }))
-            : [{ name: 'No tasks', value: 1, itemStyle: { color: isDark ? '#334155' : '#E2E8F0' } }],
+            : [
+                {
+                  name: 'No tasks',
+                  value: 1,
+                  itemStyle: { color: isDark ? '#334155' : '#E2E8F0' },
+                },
+              ],
       },
     ],
     graphic:
@@ -1384,8 +1462,18 @@ function initDeadlineChart() {
     { label: 'Overdue', count: overdueTasks.length, color: '#E05260', tasks: overdueTasks },
     { label: 'Due ≤ 7 Days', count: dueSoonTasks.length, color: '#F08A24', tasks: dueSoonTasks },
     { label: 'Upcoming', count: upcomingTasks.length, color: '#3F7FD5', tasks: upcomingTasks },
-    { label: 'Completed', count: completedTasksList.length, color: '#32A56B', tasks: completedTasksList },
-    { label: 'No Deadline', count: noDeadlineTasks.length, color: '#98A2B3', tasks: noDeadlineTasks },
+    {
+      label: 'Completed',
+      count: completedTasksList.length,
+      color: '#32A56B',
+      tasks: completedTasksList,
+    },
+    {
+      label: 'No Deadline',
+      count: noDeadlineTasks.length,
+      color: '#98A2B3',
+      tasks: noDeadlineTasks,
+    },
   ];
 
   const catNames = categories.map((c) => c.label);

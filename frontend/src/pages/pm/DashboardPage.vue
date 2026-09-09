@@ -242,7 +242,9 @@
                       <div>{{ row.title }}</div>
                       <div>{{ row.projectName }}</div>
                       <div>{{ row.startLabel }} → {{ row.endLabel }}</div>
-                      <div>{{ row.statusLabel }} · {{ row.progress }}% complete (Click to view)</div>
+                      <div>
+                        {{ row.statusLabel }} · {{ row.progress }}% complete (Click to view)
+                      </div>
                     </q-tooltip>
                   </div>
                 </div>

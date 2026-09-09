@@ -37,7 +37,7 @@ export function getPriorityClass(priority: string | null | undefined): string {
   if (p === 'CRITICAL') return 'chip-soft-red';
   if (p === 'HIGH') return 'chip-soft-orange';
   if (p === 'MEDIUM') return 'chip-soft-blue';
-  return 'chip-soft-purple';
+  return 'chip-soft-grey';
 }
 
 /**

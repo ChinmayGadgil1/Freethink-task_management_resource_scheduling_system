@@ -1152,7 +1152,12 @@ const projectFilterOptions = computed(() => {
 
 const projectSelectOptions = computed(() => {
   const seen = new Set<number>();
-  const opts: Array<{ label: string; value: number; start_date?: string | null; deadline?: string | null }> = [];
+  const opts: Array<{
+    label: string;
+    value: number;
+    start_date?: string | null;
+    deadline?: string | null;
+  }> = [];
   for (const p of projects.value) {
     const id = Number(p.project_id);
     if (id && !isNaN(id) && !seen.has(id)) {
@@ -1761,10 +1766,10 @@ async function handleUpdateTask() {
       background: #f97316;
     }
     &.prio-dot-medium {
-      background: #8b6fd8;
+      background: #2563eb;
     }
     &.prio-dot-low {
-      background: #10b981;
+      background: #64748b;
     }
   }
 

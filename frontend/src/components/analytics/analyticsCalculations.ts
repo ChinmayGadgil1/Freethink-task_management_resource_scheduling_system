@@ -216,10 +216,34 @@ export function computeTaskDistribution(tasks: Task[]): {
   if (totalTasks === 0) {
     return {
       items: [
-        { status: 'COMPLETED', label: 'Completed', count: 0, percentage: 0, color: ANALYTICS_PALETTE.green },
-        { status: 'IN_PROGRESS', label: 'In Progress', count: 0, percentage: 0, color: ANALYTICS_PALETTE.primary },
-        { status: 'SCHEDULED', label: 'Scheduled', count: 0, percentage: 0, color: ANALYTICS_PALETTE.blue },
-        { status: 'UNASSIGNED', label: 'On Hold / Queued', count: 0, percentage: 0, color: ANALYTICS_PALETTE.warning },
+        {
+          status: 'COMPLETED',
+          label: 'Completed',
+          count: 0,
+          percentage: 0,
+          color: ANALYTICS_PALETTE.green,
+        },
+        {
+          status: 'IN_PROGRESS',
+          label: 'In Progress',
+          count: 0,
+          percentage: 0,
+          color: ANALYTICS_PALETTE.primary,
+        },
+        {
+          status: 'SCHEDULED',
+          label: 'Scheduled',
+          count: 0,
+          percentage: 0,
+          color: ANALYTICS_PALETTE.blue,
+        },
+        {
+          status: 'UNASSIGNED',
+          label: 'On Hold / Queued',
+          count: 0,
+          percentage: 0,
+          color: ANALYTICS_PALETTE.warning,
+        },
       ],
       totalTasks: 0,
       completedTasks: 0,
@@ -441,10 +465,7 @@ export function computeAvailabilityHeatmap(
 /**
  * Derives upcoming milestones and risks from tasks approaching deadline.
  */
-export function computeUpcomingMilestones(
-  tasks: Task[],
-  projects: Project[],
-): MilestoneItem[] {
+export function computeUpcomingMilestones(tasks: Task[], projects: Project[]): MilestoneItem[] {
   const projectMap = new Map<number, string>();
   projects.forEach((p) => projectMap.set(p.project_id, p.name));
 

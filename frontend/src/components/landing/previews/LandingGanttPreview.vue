@@ -21,6 +21,10 @@
           <span class="legend-dot dot-medium" />
           <span class="legend-label">Medium</span>
         </div>
+        <div class="legend-item row items-center no-wrap gap-xs">
+          <span class="legend-dot dot-low" />
+          <span class="legend-label">Low</span>
+        </div>
       </div>
     </div>
 
@@ -228,13 +232,16 @@ const previewTasks: PreviewGanttTask[] = [
   border-radius: 50%;
 
   &.dot-critical {
-    background: #f04438;
+    background: #ef4444;
   }
   &.dot-high {
-    background: #f79009;
+    background: #f97316;
   }
   &.dot-medium {
-    background: #8b6fd8;
+    background: #2563eb;
+  }
+  &.dot-low {
+    background: #64748b;
   }
 }
 
@@ -352,29 +359,38 @@ const previewTasks: PreviewGanttTask[] = [
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 
   &.bar-critical {
-    background: rgba(240, 68, 56, 0.2);
-    border: 1px solid #f04438;
+    background: rgba(239, 68, 68, 0.18);
+    border: 1px solid #ef4444;
 
     .bar-progress-fill {
-      background: #f04438;
+      background: #ef4444;
     }
   }
 
   &.bar-high {
-    background: rgba(247, 144, 9, 0.2);
-    border: 1px solid #f79009;
+    background: rgba(249, 115, 22, 0.18);
+    border: 1px solid #f97316;
 
     .bar-progress-fill {
-      background: #f79009;
+      background: #f97316;
     }
   }
 
   &.bar-medium {
-    background: rgba(139, 111, 216, 0.2);
-    border: 1px solid #8b6fd8;
+    background: rgba(37, 99, 235, 0.18);
+    border: 1px solid #2563eb;
 
     .bar-progress-fill {
-      background: #8b6fd8;
+      background: #2563eb;
+    }
+  }
+
+  &.bar-low {
+    background: rgba(100, 116, 139, 0.18);
+    border: 1px solid #64748b;
+
+    .bar-progress-fill {
+      background: #64748b;
     }
   }
 }

@@ -380,8 +380,13 @@
                           class="text-weight-bold"
                         >
                           <q-tooltip v-if="getBlockedMyTaskNames(item.task_id).length > 0">
-                            Prerequisite for your task{{ getBlockedMyTaskNames(item.task_id).length > 1 ? 's' : '' }}:
-                            <div v-for="tTitle in getBlockedMyTaskNames(item.task_id)" :key="tTitle">
+                            Prerequisite for your task{{
+                              getBlockedMyTaskNames(item.task_id).length > 1 ? 's' : ''
+                            }}:
+                            <div
+                              v-for="tTitle in getBlockedMyTaskNames(item.task_id)"
+                              :key="tTitle"
+                            >
                               • {{ tTitle }}
                             </div>
                           </q-tooltip>
@@ -676,7 +681,9 @@
                   class="text-weight-bold"
                 >
                   <q-tooltip v-if="getBlockedMyTaskNames(props.row.task_id).length > 0">
-                    Prerequisite for your task{{ getBlockedMyTaskNames(props.row.task_id).length > 1 ? 's' : '' }}:
+                    Prerequisite for your task{{
+                      getBlockedMyTaskNames(props.row.task_id).length > 1 ? 's' : ''
+                    }}:
                     <div v-for="tTitle in getBlockedMyTaskNames(props.row.task_id)" :key="tTitle">
                       • {{ tTitle }}
                     </div>
