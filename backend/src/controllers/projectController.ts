@@ -345,7 +345,7 @@ export async function deleteProjectController(req: AuthRequest, res: Response) {
             return res.status(404).json({ message: "Project not found or unauthorized" });
         }
         
-        const result = await moveToBinProject(projectId);
+        const result = await moveToBinProject(projectId, req.user.user_id);
         if (!result.success) {
             return res.status(400).json({ message: result.message || "Failed to move project to bin" });
         }

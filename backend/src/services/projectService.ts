@@ -295,12 +295,26 @@ export async function updateProject(
  * Move Project to Recycle Bin (Fake Delete / Soft Delete)
  * Safeguard: Blocks deletion if any task is IN_PROGRESS or has an active timer session.
  */
-export async function moveToBinProject(projectId: number): Promise<{ success: boolean; message?: string }> {
+export async function moveToBinProject(projectId: number, projectManagerId?: number): Promise<{ success: boolean; message?: string }> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
+
+        // Check project existence and PM ownership if projectManagerId is supplied
+        let projCheckQuery = "SELECT project_id FROM projects WHERE project_id = ? AND deleted_at IS NULL";
+        const projCheckParams: any[] = [projectId];
+        if (projectManagerId !== undefined) {
+            projCheckQuery += " AND project_manager_id = ?";
+            projCheckParams.push(projectManagerId);
+        }
+
+        const [projRows] = await connection.query<RowDataPacket[]>(projCheckQuery, projCheckParams);
+        if (projRows.length === 0) {
+            await connection.rollback();
+            return { success: false, message: "Project not found or unauthorized." };
+        }
 
         // 1. Check for IN_PROGRESS tasks or active timer sessions
         const [activeTasks] = await connection.query<RowDataPacket[]>(
@@ -328,10 +342,14 @@ export async function moveToBinProject(projectId: number): Promise<{ success: bo
         }
 
         // 2. Soft delete project
-        const [projResult] = await connection.query<ResultSetHeader>(
-            "UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = ? AND deleted_at IS NULL",
-            [projectId]
-        );
+        let softDeleteQuery = "UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = ? AND deleted_at IS NULL";
+        const softDeleteParams: any[] = [projectId];
+        if (projectManagerId !== undefined) {
+            softDeleteQuery += " AND project_manager_id = ?";
+            softDeleteParams.push(projectManagerId);
+        }
+
+        const [projResult] = await connection.query<ResultSetHeader>(softDeleteQuery, softDeleteParams);
 
         if (projResult.affectedRows === 0) {
             await connection.rollback();
@@ -400,17 +418,21 @@ export async function getBinnedProjects(projectManagerId: number) {
 /**
  * Restore a Project and its child tasks from the Bin
  */
-export async function restoreProjectFromBin(projectId: number): Promise<boolean> {
+export async function restoreProjectFromBin(projectId: number, projectManagerId?: number): Promise<boolean> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
 
-        const [projResult] = await connection.query<ResultSetHeader>(
-            "UPDATE projects SET deleted_at = NULL WHERE project_id = ? AND deleted_at IS NOT NULL",
-            [projectId]
-        );
+        let updateQuery = "UPDATE projects SET deleted_at = NULL WHERE project_id = ? AND deleted_at IS NOT NULL";
+        const updateParams: any[] = [projectId];
+        if (projectManagerId !== undefined) {
+            updateQuery += " AND project_manager_id = ?";
+            updateParams.push(projectManagerId);
+        }
+
+        const [projResult] = await connection.query<ResultSetHeader>(updateQuery, updateParams);
 
         if (projResult.affectedRows === 0) {
             await connection.rollback();
@@ -436,12 +458,26 @@ export async function restoreProjectFromBin(projectId: number): Promise<boolean>
 /**
  * Hard delete (permanent delete from database)
  */
-export async function deleteProject(projectId: number): Promise<boolean> {
+export async function deleteProject(projectId: number, projectManagerId?: number): Promise<boolean> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
+
+        // Check project existence and PM ownership if projectManagerId is supplied
+        let projQuery = "SELECT project_id FROM projects WHERE project_id = ?";
+        const projParams: any[] = [projectId];
+        if (projectManagerId !== undefined) {
+            projQuery += " AND project_manager_id = ?";
+            projParams.push(projectManagerId);
+        }
+
+        const [projRows] = await connection.query<RowDataPacket[]>(projQuery, projParams);
+        if (projRows.length === 0) {
+            await connection.rollback();
+            return false;
+        }
 
         const [tasks] = await connection.query<RowDataPacket[]>(
             "SELECT task_id FROM tasks WHERE project_id = ?",

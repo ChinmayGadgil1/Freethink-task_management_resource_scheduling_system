@@ -959,31 +959,36 @@ export async function getBottleneckTasks(projectManagerId: number) {
  * Move Task to Recycle Bin (Fake Delete / Soft Delete)
  * Safeguard: Blocks deletion if task is IN_PROGRESS or has an active timer session.
  */
-export async function moveToBinTask(taskId: number): Promise<{ success: boolean; projectId?: number; message?: string }> {
+export async function moveToBinTask(taskId: number, projectManagerId?: number): Promise<{ success: boolean; projectId?: number; message?: string }> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
 
-        // 1. Check for IN_PROGRESS status or active timer session
-        const [taskRows] = await connection.query<RowDataPacket[]>(
-            `
+        // 1. Check for IN_PROGRESS status or active timer session & PM ownership
+        let checkQuery = `
             SELECT t.task_id, t.project_id, t.title, t.status,
                    EXISTS (
                        SELECT 1 FROM task_sessions ts
                        WHERE ts.task_id = t.task_id AND ts.is_active = TRUE
                    ) as has_active_session
             FROM tasks t
+            JOIN projects p ON t.project_id = p.project_id
             WHERE t.task_id = ? AND t.deleted_at IS NULL
-            FOR UPDATE
-            `,
-            [taskId]
-        );
+        `;
+        const checkParams: any[] = [taskId];
+        if (projectManagerId !== undefined) {
+            checkQuery += " AND p.project_manager_id = ?";
+            checkParams.push(projectManagerId);
+        }
+        checkQuery += " FOR UPDATE";
+
+        const [taskRows] = await connection.query<RowDataPacket[]>(checkQuery, checkParams);
 
         if (taskRows.length === 0) {
             await connection.rollback();
-            return { success: false, message: "Task not found or already in bin." };
+            return { success: false, message: "Task not found, already in bin, or unauthorized." };
         }
 
         const task = taskRows[0]!;
@@ -1057,27 +1062,31 @@ export async function getBinnedTasks(projectManagerId: number) {
 /**
  * Restore a task from the bin
  */
-export async function restoreTaskFromBin(taskId: number): Promise<{ success: boolean; projectId?: number; error?: string }> {
+export async function restoreTaskFromBin(taskId: number, projectManagerId?: number): Promise<{ success: boolean; projectId?: number; error?: string }> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
 
-        const [taskRows] = await connection.query<RowDataPacket[]>(
-            `
+        let query = `
             SELECT t.task_id, t.project_id, t.title, p.deleted_at as project_deleted_at
             FROM tasks t
             JOIN projects p ON t.project_id = p.project_id
             WHERE t.task_id = ? AND t.deleted_at IS NOT NULL
-            FOR UPDATE
-            `,
-            [taskId]
-        );
+        `;
+        const params: any[] = [taskId];
+        if (projectManagerId !== undefined) {
+            query += " AND p.project_manager_id = ?";
+            params.push(projectManagerId);
+        }
+        query += " FOR UPDATE";
+
+        const [taskRows] = await connection.query<RowDataPacket[]>(query, params);
 
         if (taskRows.length === 0) {
             await connection.rollback();
-            return { success: false, error: "Task not found in bin." };
+            return { success: false, error: "Task not found in bin or unauthorized." };
         }
 
         const task = taskRows[0]!;
@@ -1100,12 +1109,30 @@ export async function restoreTaskFromBin(taskId: number): Promise<{ success: boo
     }
 }
 
-export async function deleteTask(taskId: number): Promise<boolean> {
+export async function deleteTask(taskId: number, projectManagerId?: number): Promise<boolean> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
+
+        let checkQuery = `
+            SELECT t.task_id 
+            FROM tasks t 
+            JOIN projects p ON t.project_id = p.project_id 
+            WHERE t.task_id = ?
+        `;
+        const checkParams: any[] = [taskId];
+        if (projectManagerId !== undefined) {
+            checkQuery += " AND p.project_manager_id = ?";
+            checkParams.push(projectManagerId);
+        }
+
+        const [rows] = await connection.query<RowDataPacket[]>(checkQuery, checkParams);
+        if (rows.length === 0) {
+            await connection.rollback();
+            return false;
+        }
 
         await connection.query("DELETE FROM task_schedules WHERE task_id = ?", [taskId]);
         await connection.query(

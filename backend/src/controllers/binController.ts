@@ -48,7 +48,8 @@ export async function restoreProjectController(req: AuthRequest<{ id: string }>,
         }
 
         const projectId = Number(req.params.id);
-        const success = await restoreProjectFromBin(projectId);
+        const projectManagerId = req.user.user_id;
+        const success = await restoreProjectFromBin(projectId, projectManagerId);
 
         if (!success) {
             return res.status(404).json({ message: "Project not found in Recycle Bin" });
@@ -78,7 +79,8 @@ export async function restoreTaskController(req: AuthRequest<{ id: string }>, re
         }
 
         const taskId = Number(req.params.id);
-        const result = await restoreTaskFromBin(taskId);
+        const projectManagerId = req.user.user_id;
+        const result = await restoreTaskFromBin(taskId, projectManagerId);
 
         if (!result.success) {
             return res.status(404).json({ message: result.error || "Task not found in Recycle Bin" });
@@ -110,7 +112,8 @@ export async function permanentDeleteProjectController(req: AuthRequest<{ id: st
         }
 
         const projectId = Number(req.params.id);
-        const success = await deleteProject(projectId);
+        const projectManagerId = req.user.user_id;
+        const success = await deleteProject(projectId, projectManagerId);
 
         if (!success) {
             return res.status(404).json({ message: "Project not found" });
@@ -133,7 +136,8 @@ export async function permanentDeleteTaskController(req: AuthRequest<{ id: strin
         }
 
         const taskId = Number(req.params.id);
-        const success = await deleteTask(taskId);
+        const projectManagerId = req.user.user_id;
+        const success = await deleteTask(taskId, projectManagerId);
 
         if (!success) {
             return res.status(404).json({ message: "Task not found" });
@@ -162,11 +166,11 @@ export async function emptyBinController(req: AuthRequest, res: Response) {
         ]);
 
         for (const p of projects) {
-            await deleteProject(Number(p.project_id));
+            await deleteProject(Number(p.project_id), projectManagerId);
         }
 
         for (const t of tasks) {
-            await deleteTask(Number(t.task_id));
+            await deleteTask(Number(t.task_id), projectManagerId);
         }
 
         return res.status(200).json({

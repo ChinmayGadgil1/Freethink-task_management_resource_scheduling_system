@@ -647,7 +647,7 @@ export async function deleteTaskController(req: AuthRequest, res: Response) {
             return res.status(403).json({ message: "Not authorized to delete this task" });
         }
         
-        const result = await moveToBinTask(taskId);
+        const result = await moveToBinTask(taskId, req.user.user_id);
         if (!result.success) {
             return res.status(400).json({ message: result.message || "Failed to move task to bin" });
         }
