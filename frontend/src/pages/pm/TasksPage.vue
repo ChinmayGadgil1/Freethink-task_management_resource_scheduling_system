@@ -221,12 +221,13 @@
                   flat
                   bordered
                   :dark="$q.dark.isActive"
-                  class="rounded-borders cursor-pointer q-pa-sm"
+                  class="rounded-borders cursor-pointer q-pa-sm column no-wrap"
+                  style="height: 210px; overflow: hidden"
                   :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
                   @click="openTaskDetails(task)"
                 >
                   <!-- Card Header -->
-                  <div class="row items-center justify-between no-wrap q-mb-xs">
+                  <div class="row items-center justify-between no-wrap q-mb-xs" style="flex-shrink: 0">
                     <div class="row items-center q-gutter-xs ellipsis">
                       <q-chip
                         dense
@@ -294,70 +295,73 @@
                     </q-btn>
                   </div>
 
-                  <!-- Verification Task Indicator -->
-                  <div v-if="task.verified_task_id" class="q-mb-xs">
-                    <q-chip
-                      dense
-                      square
-                      size="xs"
-                      color="indigo-1"
-                      text-color="indigo-9"
-                      icon="verified"
-                      class="text-weight-bold"
+                  <!-- Middle content area: chips + title + description — clips at fixed height -->
+                  <div class="col-grow" style="overflow: hidden; min-height: 0">
+                    <!-- Verification Task Indicator -->
+                    <div v-if="task.verified_task_id" class="q-mb-xs">
+                      <q-chip
+                        dense
+                        square
+                        size="xs"
+                        color="indigo-1"
+                        text-color="indigo-9"
+                        icon="verified"
+                        class="text-weight-bold"
+                      >
+                        Verify #{{ task.verified_task_id }}:
+                        {{ task.verified_task_title || 'Deliverable' }}
+                      </q-chip>
+                    </div>
+
+                    <!-- Parent Task Verification Review State -->
+                    <div v-if="task.verification_task" class="q-mb-xs">
+                      <q-chip
+                        dense
+                        square
+                        size="xs"
+                        color="blue-grey-1"
+                        text-color="blue-grey-9"
+                        icon="fact_check"
+                        class="text-weight-bold"
+                      >
+                        Verifier: {{ task.verification_task.verifier_name || 'Assigned' }} ({{
+                          task.verification_task.status
+                        }})
+                      </q-chip>
+                    </div>
+
+                    <!-- Self-Assigned by Resource Indicator -->
+                    <div v-if="getSelfAssignedCreatorName(task)" class="q-mb-xs">
+                      <q-chip
+                        dense
+                        square
+                        size="xs"
+                        :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                        icon="person"
+                        class="text-weight-bold"
+                      >
+                        Resource {{ getSelfAssignedCreatorName(task) }} created task
+                      </q-chip>
+                    </div>
+
+                    <!-- Task Title & Description -->
+                    <div
+                      class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs"
+                      :title="task.title"
                     >
-                      Verify #{{ task.verified_task_id }}:
-                      {{ task.verified_task_title || 'Deliverable' }}
-                    </q-chip>
-                  </div>
-
-                  <!-- Parent Task Verification Review State -->
-                  <div v-if="task.verification_task" class="q-mb-xs">
-                    <q-chip
-                      dense
-                      square
-                      size="xs"
-                      color="blue-grey-1"
-                      text-color="blue-grey-9"
-                      icon="fact_check"
-                      class="text-weight-bold"
+                      {{ task.title }}
+                    </div>
+                    <div
+                      v-if="task.description"
+                      class="text-caption text-grey-6 ellipsis-2-lines"
                     >
-                      Verifier: {{ task.verification_task.verifier_name || 'Assigned' }} ({{
-                        task.verification_task.status
-                      }})
-                    </q-chip>
+                      {{ task.description }}
+                    </div>
                   </div>
 
-                  <!-- Self-Assigned by Resource Indicator -->
-                  <div v-if="getSelfAssignedCreatorName(task)" class="q-mb-xs">
-                    <q-chip
-                      dense
-                      square
-                      size="xs"
-                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                      icon="person"
-                      class="text-weight-bold"
-                    >
-                      Resource {{ getSelfAssignedCreatorName(task) }} created task
-                    </q-chip>
-                  </div>
-
-                  <!-- Task Title & Description -->
-                  <div
-                    class="text-subtitle2 text-weight-bold ellipsis-2-lines q-mb-xs"
-                    :title="task.title"
-                  >
-                    {{ task.title }}
-                  </div>
-                  <div
-                    v-if="task.description"
-                    class="text-caption text-grey-6 ellipsis-2-lines q-mb-xs"
-                  >
-                    {{ task.description }}
-                  </div>
-
-                  <!-- Progress Bar -->
-                  <div class="q-mt-xs">
+                  <!-- Progress Bar — always pinned at bottom -->
+                  <div class="q-mt-xs" style="flex-shrink: 0">
                     <div class="row items-center justify-between text-caption q-mb-xs">
                       <span class="text-weight-bold">{{ Number(task.progress) || 0 }}%</span>
                       <span class="text-grey-6"
@@ -373,8 +377,8 @@
                     />
                   </div>
 
-                  <!-- Card Footer -->
-                  <div class="row items-center justify-between q-mt-sm text-caption">
+                  <!-- Card Footer — always pinned at bottom -->
+                  <div class="row items-center justify-between q-mt-sm text-caption" style="flex-shrink: 0">
                     <div class="row items-center q-gutter-xs">
                       <template
                         v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
