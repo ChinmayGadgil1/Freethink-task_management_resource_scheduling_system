@@ -5,16 +5,16 @@
   >
     <div class="analytics-page-wrapper">
       <!-- 1. PAGE HEADER -->
-      <div class="row items-center justify-between q-mb-md wrap gap-sm">
+      <div class="row items-center justify-between q-mb-md wrap q-col-gutter-sm">
         <div>
           <h1
-            class="page-title text-h5 text-weight-bold q-ma-none"
+            class="text-h5 text-weight-bold q-ma-none"
             :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
           >
             Project & Resource Analytics
           </h1>
           <p
-            class="page-subtitle text-caption q-mt-xs q-mb-none"
+            class="text-caption q-mt-xs q-mb-none"
             :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
           >
             Real-time insights for better project planning and resource allocation
@@ -22,7 +22,7 @@
         </div>
 
         <!-- Header Actions: Project Filter, Date Range, Refresh -->
-        <div class="row items-center gap-sm">
+        <div class="row items-center q-gutter-sm">
           <!-- Project Filter Dropdown -->
           <q-select
             v-model="selectedProjectId"
@@ -43,21 +43,17 @@
           </q-select>
 
           <!-- Interactive Date Range Picker Filter -->
-          <div
-            class="date-range-badge row items-center gap-xs gt-xs cursor-pointer"
-            :class="{ 'date-range-badge-dark': $q.dark.isActive }"
+          <q-btn
+            outline
+            rounded
+            dense
+            no-caps
+            :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
+            class="gt-xs q-px-sm text-caption text-weight-medium"
+            icon="calendar_today"
+            :label="formattedWeekRange"
+            icon-right="arrow_drop_down"
           >
-            <q-icon
-              name="calendar_today"
-              size="14px"
-              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-            />
-            <span>{{ formattedWeekRange }}</span>
-            <q-icon
-              name="arrow_drop_down"
-              size="14px"
-              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-            />
             <q-popup-proxy cover transition-show="scale" transition-hide="scale">
               <q-date
                 v-model="customDateRange"
@@ -80,18 +76,18 @@
                 </div>
               </q-date>
             </q-popup-proxy>
-          </div>
+          </q-btn>
 
           <!-- Refresh Action Button -->
           <q-btn
             outline
             dense
+            rounded
             color="primary"
             icon="refresh"
             label="Refresh"
             no-caps
-            class="q-px-sm refresh-btn"
-            :class="{ 'refresh-btn-dark': $q.dark.isActive }"
+            class="q-px-sm"
             :loading="loading"
             @click="loadAllAnalyticsData"
           />
@@ -130,18 +126,25 @@
         <div class="row q-col-gutter-md q-mb-lg">
           <!-- KPI 1: Team Utilization -->
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card q-pa-md">
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
-                    >Team Utilization</span
+                  <span
+                    class="text-caption text-weight-bold text-uppercase"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    style="letter-spacing: 0.03em"
                   >
-                  <div class="row items-baseline gap-xs q-mt-xs">
-                    <span class="kpi-value" :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      >{{ resourceStats.averageUtilization }}%</span
-                    >
+                    Team Utilization
+                  </span>
+                  <div class="row items-baseline q-gutter-x-xs q-mt-xs">
                     <span
-                      class="kpi-delta text-weight-medium"
+                      class="text-h5 text-weight-bolder"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
+                      {{ resourceStats.averageUtilization }}%
+                    </span>
+                    <span
+                      class="text-caption text-weight-medium"
                       :class="
                         resourceStats.averageUtilization > 85 ? 'text-negative' : 'text-positive'
                       "
@@ -149,59 +152,90 @@
                       {{ resourceStats.averageUtilization > 85 ? '▲ Overloaded' : '● Optimal' }}
                     </span>
                   </div>
-                  <span class="kpi-subtitle">Target: 60% – 85%</span>
+                  <span class="text-caption text-grey-6 q-mt-xs">Target: 60% – 85%</span>
                 </div>
-                <div class="kpi-icon-box bg-purple-soft text-purple">
-                  <q-icon name="group" size="20px" />
-                </div>
+                <q-avatar
+                  rounded
+                  size="40px"
+                  font-size="20px"
+                  :color="$q.dark.isActive ? 'deep-purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-3' : 'purple'"
+                  icon="group"
+                />
               </div>
             </q-card>
           </div>
 
           <!-- KPI 2: Available Headroom -->
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card q-pa-md">
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
-                    >Available Headroom</span
+                  <span
+                    class="text-caption text-weight-bold text-uppercase"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    style="letter-spacing: 0.03em"
                   >
-                  <div class="row items-baseline gap-xs q-mt-xs">
-                    <span class="kpi-value" :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      >{{ resourceStats.totalAvailableHeadroom }}h</span
+                    Available Headroom
+                  </span>
+                  <div class="row items-baseline q-gutter-x-xs q-mt-xs">
+                    <span
+                      class="text-h5 text-weight-bolder"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                    <span class="kpi-delta text-teal text-weight-medium">Ready</span>
+                      {{ resourceStats.totalAvailableHeadroom }}h
+                    </span>
+                    <span class="text-caption text-teal text-weight-medium">Ready</span>
                   </div>
-                  <span class="kpi-subtitle">Across {{ resourceList.length }} resources</span>
+                  <span class="text-caption text-grey-6 q-mt-xs">
+                    Across {{ resourceList.length }} resources
+                  </span>
                 </div>
-                <div class="kpi-icon-box bg-blue-soft text-blue">
-                  <q-icon name="layers" size="20px" />
-                </div>
+                <q-avatar
+                  rounded
+                  size="40px"
+                  font-size="20px"
+                  :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
+                  :text-color="$q.dark.isActive ? 'blue-3' : 'blue'"
+                  icon="layers"
+                />
               </div>
             </q-card>
           </div>
 
           <!-- KPI 3: Task Completion -->
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card">
+            <q-card flat bordered :dark="$q.dark.isActive" class="kpi-card q-pa-md">
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
-                    >Task Completion</span
+                  <span
+                    class="text-caption text-weight-bold text-uppercase"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    style="letter-spacing: 0.03em"
                   >
-                  <div class="row items-baseline gap-xs q-mt-xs">
-                    <span class="kpi-value" :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      >{{ taskStats.completionPercent }}%</span
+                    Task Completion
+                  </span>
+                  <div class="row items-baseline q-gutter-x-xs q-mt-xs">
+                    <span
+                      class="text-h5 text-weight-bolder"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                    <span class="kpi-delta text-positive text-weight-medium">Active</span>
+                      {{ taskStats.completionPercent }}%
+                    </span>
+                    <span class="text-caption text-positive text-weight-medium">Active</span>
                   </div>
-                  <span class="kpi-subtitle">
+                  <span class="text-caption text-grey-6 q-mt-xs">
                     {{ taskStats.completedTasks }} / {{ taskStats.totalTasks }} tasks done
                   </span>
                 </div>
-                <div class="kpi-icon-box bg-green-soft text-positive">
-                  <q-icon name="check_circle" size="20px" />
-                </div>
+                <q-avatar
+                  rounded
+                  size="40px"
+                  font-size="20px"
+                  :color="$q.dark.isActive ? 'green-10' : 'green-1'"
+                  :text-color="$q.dark.isActive ? 'green-3' : 'positive'"
+                  icon="check_circle"
+                />
               </div>
             </q-card>
           </div>
@@ -212,17 +246,21 @@
               flat
               bordered
               :dark="$q.dark.isActive"
-              class="kpi-card"
+              class="kpi-card q-pa-md"
               :class="{ 'kpi-card-alert': resourceStats.overloadedCount > 0 }"
             >
               <div class="row items-center justify-between no-wrap">
                 <div class="column">
-                  <span class="kpi-title" :class="$q.dark.isActive ? 'text-grey-4' : ''"
-                    >Overloaded Resources</span
+                  <span
+                    class="text-caption text-weight-bold text-uppercase"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                    style="letter-spacing: 0.03em"
                   >
-                  <div class="row items-baseline gap-xs q-mt-xs">
+                    Overloaded Resources
+                  </span>
+                  <div class="row items-baseline q-gutter-x-xs q-mt-xs">
                     <span
-                      class="kpi-value"
+                      class="text-h5 text-weight-bolder"
                       :class="
                         resourceStats.overloadedCount > 0
                           ? 'text-negative'
@@ -235,16 +273,21 @@
                     </span>
                     <span
                       v-if="resourceStats.overloadedCount > 0"
-                      class="kpi-delta text-negative text-weight-medium"
+                      class="text-caption text-negative text-weight-medium"
                     >
                       ▲ Attention
                     </span>
                   </div>
-                  <span class="kpi-subtitle">&gt; 85% workload threshold</span>
+                  <span class="text-caption text-grey-6 q-mt-xs">&gt; 85% workload threshold</span>
                 </div>
-                <div class="kpi-icon-box bg-red-soft text-negative">
-                  <q-icon name="warning_amber" size="20px" />
-                </div>
+                <q-avatar
+                  rounded
+                  size="40px"
+                  font-size="20px"
+                  :color="$q.dark.isActive ? 'red-10' : 'red-1'"
+                  :text-color="$q.dark.isActive ? 'red-3' : 'negative'"
+                  icon="warning_amber"
+                />
               </div>
             </q-card>
           </div>
@@ -256,11 +299,11 @@
         <div class="row q-col-gutter-md q-mb-md">
           <!-- 1A: Resource Workload & Utilization -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Resource Workload & Utilization</span>
@@ -270,11 +313,17 @@
                       >
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Current allocation against 85% operational limit
                   </div>
                 </div>
-                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">Weekly</div>
+                <q-badge
+                  outline
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
+                  class="q-px-sm q-py-xs text-weight-medium"
+                >
+                  Weekly
+                </q-badge>
               </div>
               <div ref="utilizationChartRef" class="echarts-box"></div>
             </q-card>
@@ -282,11 +331,11 @@
 
           <!-- 1B: Resource Task Trend -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Resource Task Trend</span>
@@ -296,31 +345,36 @@
                       >
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Number of active tasks assigned to each resource over time
                   </div>
                 </div>
-                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">
+                <q-badge
+                  outline
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
+                  class="q-px-sm q-py-xs text-weight-medium"
+                >
                   Last 4 Weeks
-                </div>
+                </q-badge>
               </div>
               <div ref="taskTrendChartRef" class="echarts-box task-trend-chart-box"></div>
-              <div
-                class="trend-insight-banner row items-center q-px-md q-py-xs q-mt-sm"
-                :class="{ 'trend-insight-banner-dark': $q.dark.isActive }"
+              <q-banner
+                dense
+                rounded
+                :class="$q.dark.isActive ? 'bg-blue-10 text-blue-2' : 'bg-blue-1 text-blue-9'"
+                class="q-mt-sm"
               >
-                <q-icon
-                  name="lightbulb_outline"
-                  size="16px"
-                  :color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  class="q-mr-xs"
-                />
-                <span
-                  class="trend-insight-text"
-                  :class="{ 'trend-insight-text-dark': $q.dark.isActive }"
-                  >Shows how your active task count has changed over the last 4 weeks.</span
-                >
-              </div>
+                <template #avatar>
+                  <q-icon
+                    name="lightbulb_outline"
+                    size="18px"
+                    :color="$q.dark.isActive ? 'blue-2' : 'primary'"
+                  />
+                </template>
+                <span class="text-caption text-weight-medium">
+                  Shows how your active task count has changed over the last 4 weeks.
+                </span>
+              </q-banner>
             </q-card>
           </div>
         </div>
@@ -331,11 +385,11 @@
         <div class="row q-col-gutter-md q-mb-md">
           <!-- 2A: Resource Availability Heatmap -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Resource Availability Heatmap</span>
@@ -345,25 +399,29 @@
                       >
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Daily schedule status for automated task dispatch
                   </div>
                 </div>
                 <div
-                  class="row items-center gap-sm text-caption gt-xs"
+                  class="row items-center q-gutter-x-sm text-caption gt-xs"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                 >
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot bg-teal"></span> Available
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot bg-teal"></span>
+                    <span>Available</span>
                   </span>
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot bg-positive"></span> Moderate
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot bg-positive"></span>
+                    <span>Moderate</span>
                   </span>
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot bg-warning"></span> High Load
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot bg-warning"></span>
+                    <span>High Load</span>
                   </span>
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot bg-negative"></span> Fully Booked
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot bg-negative"></span>
+                    <span>Fully Booked</span>
                   </span>
                 </div>
               </div>
@@ -373,11 +431,11 @@
 
           <!-- 2B: Task Status Distribution -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Task Status Distribution</span>
@@ -385,13 +443,17 @@
                       <q-tooltip>Pipeline volume aggregated by task status</q-tooltip>
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Execution pipeline state across active tasks
                   </div>
                 </div>
-                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">
+                <q-badge
+                  outline
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
+                  class="q-px-sm q-py-xs text-weight-medium"
+                >
                   {{ selectedProjectName }}
-                </div>
+                </q-badge>
               </div>
               <div ref="taskStatusChartRef" class="echarts-box"></div>
             </q-card>
@@ -404,11 +466,11 @@
         <div class="row q-col-gutter-md q-mb-md">
           <!-- 3A: Project Schedule Health -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Project Schedule Health</span>
@@ -419,24 +481,24 @@
                       >
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Actual milestone completion vs. planned pace
                   </div>
                 </div>
                 <div
-                  class="row items-center gap-md text-caption gt-xs"
+                  class="row items-center q-gutter-x-md text-caption gt-xs"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                 >
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot" style="background-color: #7654d6"></span> Actual
-                    Progress
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot" style="background-color: #7654d6"></span>
+                    <span>Actual Progress</span>
                   </span>
-                  <span class="row items-center gap-xs">
+                  <span class="row items-center q-gutter-x-xs">
                     <span
                       class="legend-dot"
                       :style="{ backgroundColor: $q.dark.isActive ? '#334155' : '#e2e5eb' }"
                     ></span>
-                    Planned Pace
+                    <span>Planned Pace</span>
                   </span>
                 </div>
               </div>
@@ -446,11 +508,11 @@
 
           <!-- 3B: Planned vs Actual Effort -->
           <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Planned vs. Actual Effort</span>
@@ -458,19 +520,21 @@
                       <q-tooltip>Hours variance on key project deliverables</q-tooltip>
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Hours variance on critical project deliverables
                   </div>
                 </div>
                 <div
-                  class="row items-center gap-md text-caption gt-xs"
+                  class="row items-center q-gutter-x-md text-caption gt-xs"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                 >
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot" style="background-color: #7654d6"></span> Planned (hrs)
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot" style="background-color: #7654d6"></span>
+                    <span>Planned (hrs)</span>
                   </span>
-                  <span class="row items-center gap-xs">
-                    <span class="legend-dot" style="background-color: #16a6a1"></span> Actual (hrs)
+                  <span class="row items-center q-gutter-x-xs">
+                    <span class="legend-dot" style="background-color: #16a6a1"></span>
+                    <span>Actual (hrs)</span>
                   </span>
                 </div>
               </div>
@@ -485,11 +549,11 @@
         <div class="row q-col-gutter-md q-mb-md">
           <!-- 4A: Capacity vs Assigned Effort (Full Width) -->
           <div class="col-12">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card">
-              <div class="chart-card-header row items-center justify-between">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <div class="row items-center justify-between q-mb-sm">
                 <div>
                   <div
-                    class="chart-title row items-center gap-xs"
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                   >
                     <span>Capacity vs. Assigned Effort</span>
@@ -500,13 +564,17 @@
                       >
                     </q-icon>
                   </div>
-                  <div class="chart-caption" :class="$q.dark.isActive ? 'text-grey-4' : ''">
+                  <div class="text-caption text-grey-6">
                     Remaining headroom available for automatic scheduling engine dispatch
                   </div>
                 </div>
-                <div class="badge-tag" :class="{ 'badge-tag-dark': $q.dark.isActive }">
+                <q-badge
+                  outline
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
+                  class="q-px-sm q-py-xs text-weight-medium"
+                >
                   Auto-Scheduler
-                </div>
+                </q-badge>
               </div>
               <div ref="capacityChartRef" class="echarts-box"></div>
             </q-card>
@@ -1685,27 +1753,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
-.analytics-page {
-  background-color: #f7f7fa;
-  min-height: 100%;
-  transition: background-color 0.2s ease;
-}
-
 .analytics-page-wrapper {
   max-width: 1400px;
   margin: 0 auto;
-  font-family:
-    'Manrope',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  color: #1d2433;
-}
-
-.page-title {
-  letter-spacing: -0.01em;
 }
 
 .project-filter-select {
@@ -1713,40 +1763,9 @@ onBeforeUnmount(() => {
   max-width: 260px;
 }
 
-.date-range-badge {
-  background: #ffffff;
-  border: 1px solid #e6e8ed;
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 11px;
-  color: #555f71;
-  font-weight: 500;
-  transition: all 0.2s ease;
-
-  &.date-range-badge-dark {
-    background: #181d28;
-    border-color: #283042;
-    color: #f3f4f6;
-  }
-}
-
-.refresh-btn {
-  border-radius: 8px;
-
-  &.refresh-btn-dark {
-    border-color: rgba(158, 132, 236, 0.4);
-    color: #c4b5fd !important;
-  }
-}
-
-
-
 /* KPI Cards */
 .kpi-card {
   border-radius: 12px;
-  border: 1px solid var(--wo-border, #e6e8ed);
-  background: var(--wo-bg-card, #ffffff);
-  padding: 14px 16px;
   cursor: pointer;
   transition:
     transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1771,64 +1790,9 @@ onBeforeUnmount(() => {
   }
 }
 
-.kpi-title {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #697386;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.kpi-value {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: #1d2433;
-}
-
-.kpi-delta {
-  font-size: 11px;
-}
-
-.kpi-subtitle {
-  font-size: 11px;
-  color: #8c97a8;
-  margin-top: 4px;
-}
-
-.kpi-icon-box {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* Soft Color Boxes */
-.bg-purple-soft {
-  background-color: #f0ecfa;
-}
-
-.bg-blue-soft {
-  background-color: #edf3fb;
-}
-
-.bg-green-soft {
-  background-color: #edf7f1;
-}
-
-.bg-red-soft {
-  background-color: #fdf0f1;
-}
-
 /* Chart Cards */
 .chart-card {
   border-radius: 12px;
-  border: 1px solid var(--wo-border, #e6e8ed);
-  background: var(--wo-bg-card, #ffffff);
-  padding: 16px;
   min-height: 380px;
   display: flex;
   flex-direction: column;
@@ -1845,37 +1809,6 @@ onBeforeUnmount(() => {
   }
 }
 
-.chart-card-header {
-  margin-bottom: 8px;
-}
-
-.chart-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #1d2433;
-}
-
-.chart-caption {
-  font-size: 11px;
-  color: #7a869a;
-  margin-top: 2px;
-}
-
-.badge-tag {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #697386;
-  background: #f2f4f7;
-  padding: 3px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-
-  &.badge-tag-dark {
-    background: #222938;
-    color: #94a3b8;
-  }
-}
-
 .echarts-box {
   width: 100%;
   height: 290px;
@@ -1885,29 +1818,6 @@ onBeforeUnmount(() => {
   height: 265px;
 }
 
-.trend-insight-banner {
-  background: #f0f7ff;
-  border: 1px solid #dbeafe;
-  border-radius: 6px;
-  min-height: 34px;
-  transition: all 0.2s ease;
-
-  &.trend-insight-banner-dark {
-    background: rgba(37, 99, 235, 0.12);
-    border-color: rgba(59, 130, 246, 0.25);
-  }
-}
-
-.trend-insight-text {
-  font-size: 11.5px;
-  color: #1e40af;
-  font-weight: 500;
-
-  &.trend-insight-text-dark {
-    color: #bfdbfe;
-  }
-}
-
 .legend-dot {
   display: inline-block;
   width: 8px;
@@ -1915,145 +1825,22 @@ onBeforeUnmount(() => {
   border-radius: 2px;
 }
 
-/* Milestones Table */
-.milestones-table-box {
-  border: 1px solid #edf0f4;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.milestones-table :deep(thead tr th) {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #697386;
-  background-color: #fafbfc;
-  padding: 10px 12px;
-}
-
-.milestones-table :deep(tbody tr td) {
-  font-size: 12px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #f2f4f7;
-}
-
 /* Dark Mode Scoped Overrides */
 body.body--dark {
-  .analytics-page {
-    background-color: var(--wo-bg-page, #0f1219);
+  .kpi-card:hover,
+  .chart-card:hover {
+    border-color: var(--wo-primary, #8b6fd8) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
   }
 
-  .analytics-page-wrapper {
-    color: var(--wo-text-main, #f3f4f6);
-  }
-
-  .date-range-badge {
-    background: #181d28;
-    border-color: #283042;
-    color: #f3f4f6;
-  }
-
-
-
-  .kpi-card {
-    border-color: var(--wo-border, #283042);
-    background: var(--wo-bg-card, #181d28);
+  .kpi-card.kpi-card-alert {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.1);
 
     &:hover {
-      border-color: var(--wo-primary, #8b6fd8) !important;
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
-      transform: translateY(-2px);
-    }
-
-    &.kpi-card-alert {
-      border-color: rgba(239, 68, 68, 0.4);
-      background: rgba(239, 68, 68, 0.1);
-
-      &:hover {
-        border-color: #f87171 !important;
-        box-shadow: 0 8px 22px rgba(239, 68, 68, 0.25);
-        transform: translateY(-2px);
-      }
+      border-color: #f87171 !important;
+      box-shadow: 0 8px 22px rgba(239, 68, 68, 0.25);
     }
   }
-
-  .kpi-title {
-    color: #94a3b8;
-  }
-
-  .kpi-value {
-    color: #f3f4f6;
-  }
-
-  .kpi-subtitle {
-    color: #64748b;
-  }
-
-  .bg-purple-soft {
-    background-color: rgba(118, 84, 214, 0.2);
-  }
-
-  .bg-blue-soft {
-    background-color: rgba(63, 127, 213, 0.2);
-  }
-
-  .bg-green-soft {
-    background-color: rgba(50, 165, 107, 0.2);
-  }
-
-  .bg-red-soft {
-    background-color: rgba(224, 82, 96, 0.2);
-  }
-
-  .chart-card {
-    border-color: var(--wo-border, #283042);
-    background: var(--wo-bg-card, #181d28);
-
-    &:hover {
-      border-color: var(--wo-primary, #8b6fd8) !important;
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
-      transform: translateY(-2px);
-    }
-  }
-
-  .chart-title {
-    color: #f3f4f6;
-  }
-
-  .chart-caption {
-    color: #94a3b8;
-  }
-
-  .badge-tag {
-    background: #222938;
-    color: #94a3b8;
-  }
-
-  .milestones-table-box {
-    border-color: #283042;
-  }
-
-  .milestones-table :deep(thead tr th) {
-    color: #94a3b8;
-    background-color: #1e2433;
-  }
-
-  .milestones-table :deep(tbody tr td) {
-    color: #f3f4f6;
-    border-bottom: 1px solid #283042;
-  }
-}
-
-.gap-xs {
-  gap: 6px;
-}
-
-.gap-sm {
-  gap: 12px;
-}
-
-.gap-md {
-  gap: 16px;
 }
 </style>
