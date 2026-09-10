@@ -506,9 +506,9 @@ export async function checkSchedulingImpact(
         resourceConfigs.set(config.userId, config);
     }
 
-    // Fetch user leaves
+    // Fetch user leaves (APPROVED only)
     const [leaveRows] = await pool.query<RowDataPacket[]>(
-        `SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours FROM user_leaves WHERE user_id = ? AND status IN ('APPROVED', 'PENDING')`,
+        `SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours FROM user_leaves WHERE user_id = ? AND status = 'APPROVED'`,
         [resourceId]
     );
     const leavesMap = new Map<number, Map<string, number>>();
@@ -696,12 +696,12 @@ export async function getResourceAvailability(
         holidays.add(String(row.holiday_date));
     }
 
-    // 5. Fetch user leaves in range (APPROVED and PENDING leaves)
+    // 5. Fetch user leaves in range (APPROVED leaves only)
     const [leaveRows] = await pool.query<RowDataPacket[]>(
         `
         SELECT DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date, leave_hours, leave_type
         FROM user_leaves
-        WHERE user_id = ? AND status IN ('APPROVED', 'PENDING') AND leave_date BETWEEN ? AND ?
+        WHERE user_id = ? AND status = 'APPROVED' AND leave_date BETWEEN ? AND ?
         `,
         [userId, cleanStartStr, cleanEndStr]
     );

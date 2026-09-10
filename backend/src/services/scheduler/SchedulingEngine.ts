@@ -449,7 +449,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
               AND t.verified_task_id IS NULL
         ) project_resources
             ON ul.user_id = project_resources.user_id
-        WHERE ul.status IN ('APPROVED', 'PENDING')
+        WHERE ul.status = 'APPROVED'
         `,
         [projectId]
     );
