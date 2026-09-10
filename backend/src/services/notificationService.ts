@@ -63,6 +63,144 @@ export async function createNotification(payload: CreateNotificationPayload): Pr
     return result.insertId;
 }
 
+function evaluateEarlyCompletion(t: {
+    status: string;
+    deadline: string | null;
+    actual_end: any;
+    expected_effort: number;
+    actual_effort: number;
+}): { isEarly: boolean; reason: string } {
+    if (t.status !== "COMPLETED") {
+        return { isEarly: false, reason: "" };
+    }
+
+    const expectedEffort = Number(t.expected_effort) || 0;
+    const actualEffort = Number(t.actual_effort) || 0;
+    const diffHours = expectedEffort - actualEffort;
+    const hasEffortSavings = expectedEffort > 0 && actualEffort > 0 && diffHours >= 1.0;
+
+    // Check if task completed late past deadline
+    let isPastDeadline = false;
+    if (t.deadline && t.actual_end) {
+        const deadlineTime = new Date(t.deadline.includes("T") ? t.deadline : `${t.deadline}T23:59:59`).getTime();
+        const endTime = new Date(t.actual_end).getTime();
+        if (!isNaN(deadlineTime) && !isNaN(endTime) && endTime > deadlineTime) {
+            isPastDeadline = true;
+        }
+    }
+
+    if (isPastDeadline) {
+        return { isEarly: false, reason: "" };
+    }
+
+    if (hasEffortSavings) {
+        return {
+            isEarly: true,
+            reason: `Task completed efficiently with ${actualEffort}h logged (saving ${Number(diffHours.toFixed(1))}h of planned effort).`
+        };
+    }
+
+    if (t.deadline && t.actual_end) {
+        const deadlineTime = new Date(t.deadline.includes("T") ? t.deadline : `${t.deadline}T23:59:59`).getTime();
+        const endTime = new Date(t.actual_end).getTime();
+        if (!isNaN(deadlineTime) && !isNaN(endTime) && endTime < deadlineTime) {
+            const cleanDeadline = t.deadline.includes("T") ? t.deadline.split("T")[0] : t.deadline;
+            return {
+                isEarly: true,
+                reason: `Task completed successfully ahead of the ${cleanDeadline} deadline milestone.`
+            };
+        }
+    }
+
+    return { isEarly: false, reason: "" };
+}
+
+function evaluatePossibleDelay(t: {
+    status: string;
+    deadline: string | null;
+    planned_start: any;
+    planned_end: any;
+    expected_effort: number;
+    actual_effort: number;
+    progress: number;
+    is_deadline_at_risk: boolean;
+    is_schedule_at_risk: boolean;
+}): { isDelay: boolean; reason: string } {
+    if (t.status !== "IN_PROGRESS" && t.status !== "SCHEDULED") {
+        return { isDelay: false, reason: "" };
+    }
+
+    const progress = Number(t.progress) || 0;
+    const actualEffort = Number(t.actual_effort) || 0;
+    const expectedEffort = Number(t.expected_effort) || 0;
+    const isAtRisk = Boolean(t.is_deadline_at_risk || t.is_schedule_at_risk);
+    const cleanDeadline = t.deadline ? (t.deadline.includes("T") ? t.deadline.split("T")[0]! : t.deadline) : null;
+
+    // 1. Critical path / scheduling engine risk
+    if (isAtRisk) {
+        if (t.is_deadline_at_risk && cleanDeadline) {
+            return {
+                isDelay: true,
+                reason: `Scheduling engine detected deadline capacity risk for ${cleanDeadline}. Current progress: ${progress}%.`
+            };
+        }
+        return {
+            isDelay: true,
+            reason: `Scheduling engine flagged timeline delay based on resource capacity allocations. Current progress: ${progress}%.`
+        };
+    }
+
+    // 2. Overdue task (past target deadline)
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    if (cleanDeadline && cleanDeadline < todayStr && progress < 100) {
+        return {
+            isDelay: true,
+            reason: `Task is overdue past its target deadline of ${cleanDeadline}. Current progress: ${progress}%.`
+        };
+    }
+
+    // 3. Effort overrun / budget risk
+    if (expectedEffort > 0) {
+        const effortRatio = actualEffort / expectedEffort;
+        if (actualEffort > expectedEffort && progress < 100) {
+            const overrun = Number((actualEffort - expectedEffort).toFixed(1));
+            return {
+                isDelay: true,
+                reason: `Effort budget exceeded by ${overrun}h (${actualEffort}h logged of ${expectedEffort}h) with ${progress}% completion.`
+            };
+        }
+        if (effortRatio >= 0.85 && progress < 50) {
+            return {
+                isDelay: true,
+                reason: `Task consumed ${Math.round(effortRatio * 100)}% of effort budget (${actualEffort}h / ${expectedEffort}h) with only ${progress}% completion.`
+            };
+        }
+    }
+
+    // 4. Timeline pacing lag (significantly into scheduled timeline with minimal progress)
+    if (t.planned_start && (t.planned_end || cleanDeadline)) {
+        const startDate = new Date(t.planned_start).getTime();
+        const endDate = new Date(t.planned_end || cleanDeadline).getTime();
+        const now = Date.now();
+
+        if (!isNaN(startDate) && !isNaN(endDate) && endDate > startDate && now > startDate) {
+            const totalDuration = endDate - startDate;
+            const elapsed = now - startDate;
+            const elapsedRatio = elapsed / totalDuration;
+
+            if (elapsedRatio >= 0.75 && progress < 30) {
+                return {
+                    isDelay: true,
+                    reason: `75% of scheduled timeline has elapsed with only ${progress}% completion. Potential delay risk.`
+                };
+            }
+        }
+    }
+
+    return { isDelay: false, reason: "" };
+}
+
 /**
  * Syncs and populates real early completions, possible delays,
  * and relevant leave requests / approvals / rejections.
@@ -76,11 +214,12 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
     if (userRole === "RESOURCE") {
         // Fetch non-deleted tasks assigned to this resource
         const [tasks] = await pool.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.title, t.status, t.deadline, t.actual_end, t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
+            `SELECT t.task_id, t.title, t.status, t.deadline, t.planned_start, t.planned_end, t.actual_start, t.actual_end,
+                    t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
              FROM tasks t
              JOIN task_assignments ta ON t.task_id = ta.task_id
              LEFT JOIN projects p ON t.project_id = p.project_id
-             WHERE ta.user_id = ? AND t.deleted_at IS NULL
+             WHERE ta.user_id = ? AND t.deleted_at IS NULL AND (p.deleted_at IS NULL OR t.project_id IS NULL)
              ORDER BY t.created_at DESC
              LIMIT 50`,
             [userId]
@@ -89,86 +228,55 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
         for (const t of tasks) {
             const taskId = Number(t.task_id);
             const title = String(t.title);
-            const status = String(t.status);
-            const deadline = t.deadline ? String(t.deadline).split("T")[0] : null;
-            const progress = Number(t.progress) || 0;
-            const actualEffort = Number(t.actual_effort) || 0;
-            const expectedEffort = Number(t.expected_effort) || 0;
             const link = `/app/resource-dashboard/task-details/${taskId}`;
 
-            // Case A: Early Completion (ONLY for truly early tasks)
-            if (status === "COMPLETED") {
-                const diffHours = expectedEffort - actualEffort;
-                const hasEffortSavings = expectedEffort > 0 && actualEffort > 0 && diffHours > 0;
-                let isEarly = false;
-                let reason = "";
+            // Case A: Early Completion
+            const earlyCheck = evaluateEarlyCompletion(t as any);
+            if (earlyCheck.isEarly) {
+                const notifTitle = `Early Completion: ${title}`;
+                const [exists] = await pool.query<RowDataPacket[]>(
+                    `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EARLY_COMPLETION' AND (link = ? OR title = ?)`,
+                    [userId, link, notifTitle]
+                );
 
-                if (hasEffortSavings) {
-                    isEarly = true;
-                    reason = `Task finished with ${actualEffort}h logged (${diffHours}h less than the ${expectedEffort}h planned allocation).`;
-                } else if (deadline && t.actual_end) {
-                    const deadlineDate = new Date(deadline).getTime();
-                    const endDate = new Date(t.actual_end).getTime();
-                    if (endDate < deadlineDate) {
-                        isEarly = true;
-                        reason = `Task completed successfully ahead of the ${deadline} deadline.`;
-                    }
-                }
-
-                if (isEarly) {
-                    const notifTitle = `Early Completion: ${title}`;
-                    // Check if ANY notification (active or dismissed) already exists for this task
-                    const [exists] = await pool.query<RowDataPacket[]>(
-                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EARLY_COMPLETION' AND (link = ? OR title = ?)`,
-                        [userId, link, notifTitle]
+                if (exists.length === 0) {
+                    await pool.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW())`,
+                        [userId, notifTitle, earlyCheck.reason, link]
                     );
-
-                    if (exists.length === 0) {
-                        await pool.query(
-                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                             VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW())`,
-                            [userId, notifTitle, reason, link]
-                        );
-                    }
                 }
             }
 
             // Case B: Possible Delay
-            if (status === "IN_PROGRESS" || status === "SCHEDULED") {
-                const isAtRisk = Boolean(t.is_deadline_at_risk || t.is_schedule_at_risk);
-                const effortRatio = expectedEffort > 0 ? (actualEffort / expectedEffort) : 0;
-                const isEffortWarning = effortRatio >= 0.7 && progress < 70;
+            const delayCheck = evaluatePossibleDelay(t as any);
+            if (delayCheck.isDelay) {
+                const notifTitle = `Possible Delay: ${title}`;
+                const [exists] = await pool.query<RowDataPacket[]>(
+                    `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND (link = ? OR title = ?)`,
+                    [userId, link, notifTitle]
+                );
 
-                let delayReason = "";
-                if (isAtRisk) {
-                    delayReason = `Task schedule engine flagged potential deadline risk (${deadline || 'upcoming'}). Current progress is ${progress}%.`;
-                } else if (isEffortWarning) {
-                    delayReason = `Effort consumption reached ${Math.round(effortRatio * 100)}% (${actualEffort}h of ${expectedEffort}h) with ${progress}% completion. Potential delay risk.`;
-                } else if (deadline && progress < 60) {
-                    delayReason = `Target deadline is ${deadline}. Progress is currently at ${progress}%. Possible delay if pace is not maintained.`;
-                }
-
-                if (delayReason) {
-                    const notifTitle = `Possible Delay: ${title}`;
-                    const [exists] = await pool.query<RowDataPacket[]>(
-                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND (link = ? OR title = ?)`,
-                        [userId, link, notifTitle]
+                if (exists.length === 0) {
+                    await pool.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW())`,
+                        [userId, notifTitle, delayCheck.reason, link]
                     );
-
-                    if (exists.length === 0) {
-                        await pool.query(
-                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                             VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW())`,
-                            [userId, notifTitle, delayReason, link]
-                        );
-                    }
                 }
+            } else {
+                // If task is no longer at risk, remove any stale unread POSSIBLE_DELAY alert for this task
+                await pool.query(
+                    `DELETE FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ? AND is_read = FALSE`,
+                    [userId, link]
+                );
             }
         }
     } else {
         // Project Manager: inspect non-deleted project tasks
         const [tasks] = await pool.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.title, t.status, t.deadline, t.actual_end, t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
+            `SELECT t.task_id, t.title, t.status, t.deadline, t.planned_start, t.planned_end, t.actual_start, t.actual_end,
+                    t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
              FROM tasks t
              JOIN projects p ON t.project_id = p.project_id
              WHERE p.project_manager_id = ? AND t.deleted_at IS NULL AND p.deleted_at IS NULL
@@ -180,78 +288,48 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
         for (const t of tasks) {
             const taskId = Number(t.task_id);
             const title = String(t.title);
-            const status = String(t.status);
-            const deadline = t.deadline ? String(t.deadline).split("T")[0] : null;
-            const progress = Number(t.progress) || 0;
-            const actualEffort = Number(t.actual_effort) || 0;
-            const expectedEffort = Number(t.expected_effort) || 0;
             const link = `/pm/tasks?taskId=${taskId}`;
 
-            // Case A: Early Completion (limit to notable completed tasks with real savings)
-            if (status === "COMPLETED") {
-                const diffHours = expectedEffort - actualEffort;
-                let isEarly = false;
-                let reason = "";
+            // Case A: Early Completion
+            const earlyCheck = evaluateEarlyCompletion(t as any);
+            if (earlyCheck.isEarly) {
+                const notifTitle = `Early Completion: ${title}`;
+                const [exists] = await pool.query<RowDataPacket[]>(
+                    `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EARLY_COMPLETION' AND (link = ? OR title = ?)`,
+                    [userId, link, notifTitle]
+                );
 
-                if (expectedEffort > 0 && actualEffort > 0 && diffHours > 0) {
-                    isEarly = true;
-                    reason = `Task completed early saving ${diffHours} hours of planned project effort.`;
-                } else if (deadline && t.actual_end) {
-                    const deadlineDate = new Date(deadline).getTime();
-                    const endDate = new Date(t.actual_end).getTime();
-                    if (endDate < deadlineDate) {
-                        isEarly = true;
-                        reason = `Task completed and reviewed ahead of ${deadline} milestone.`;
-                    }
-                }
-
-                if (isEarly) {
-                    const notifTitle = `Early Completion: ${title}`;
-                    const [exists] = await pool.query<RowDataPacket[]>(
-                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EARLY_COMPLETION' AND (link = ? OR title = ?)`,
-                        [userId, link, notifTitle]
+                if (exists.length === 0) {
+                    await pool.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW())`,
+                        [userId, notifTitle, earlyCheck.reason, link]
                     );
-
-                    if (exists.length === 0) {
-                        await pool.query(
-                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                             VALUES (?, 'EARLY_COMPLETION', ?, ?, ?, FALSE, NOW())`,
-                            [userId, notifTitle, reason, link]
-                        );
-                    }
                 }
             }
 
             // Case B: Possible Delay
-            if (status === "IN_PROGRESS" || status === "SCHEDULED") {
-                const isAtRisk = Boolean(t.is_deadline_at_risk || t.is_schedule_at_risk);
-                const effortRatio = expectedEffort > 0 ? (actualEffort / expectedEffort) : 0;
-                const isEffortWarning = effortRatio >= 0.7 && progress < 70;
+            const delayCheck = evaluatePossibleDelay(t as any);
+            if (delayCheck.isDelay) {
+                const notifTitle = `Possible Delay: ${title}`;
+                const [exists] = await pool.query<RowDataPacket[]>(
+                    `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND (link = ? OR title = ?)`,
+                    [userId, link, notifTitle]
+                );
 
-                let delayReason = "";
-                if (isAtRisk) {
-                    delayReason = `Critical path schedule detects possible deadline slippage for ${deadline || 'target'}. Progress: ${progress}%.`;
-                } else if (isEffortWarning) {
-                    delayReason = `Task consumed ${Math.round(effortRatio * 100)}% of effort budget (${actualEffort}h / ${expectedEffort}h) while progress is ${progress}%. Possible delay expected.`;
-                } else if (deadline && progress < 70) {
-                    delayReason = `Approaching milestone (${deadline}). Deliverable is at ${progress}%. Review pacing with assigned team members.`;
-                }
-
-                if (delayReason) {
-                    const notifTitle = `Possible Delay: ${title}`;
-                    const [exists] = await pool.query<RowDataPacket[]>(
-                        `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND (link = ? OR title = ?)`,
-                        [userId, link, notifTitle]
+                if (exists.length === 0) {
+                    await pool.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW())`,
+                        [userId, notifTitle, delayCheck.reason, link]
                     );
-
-                    if (exists.length === 0) {
-                        await pool.query(
-                            `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
-                             VALUES (?, 'POSSIBLE_DELAY', ?, ?, ?, FALSE, NOW())`,
-                            [userId, notifTitle, delayReason, link]
-                        );
-                    }
                 }
+            } else {
+                // If task is no longer at risk, remove any stale unread POSSIBLE_DELAY alert for this task
+                await pool.query(
+                    `DELETE FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ? AND is_read = FALSE`,
+                    [userId, link]
+                );
             }
         }
     }
