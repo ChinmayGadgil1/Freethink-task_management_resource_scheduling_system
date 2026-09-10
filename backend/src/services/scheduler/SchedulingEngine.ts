@@ -539,6 +539,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
               AND t.project_id != ?
               AND t.deleted_at IS NULL
               AND p.deleted_at IS NULL
+              AND p.status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
               AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
               AND t.verified_task_id IS NULL
               AND ts.schedule_date >= CURDATE()
@@ -863,7 +864,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             INNER JOIN projects p ON t.project_id = p.project_id
             WHERE ta.user_id IN (?)
               AND t.project_id != ?
-              AND p.status IN ('ACTIVE', 'PUBLISHED')
+              AND p.status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
+              AND p.deleted_at IS NULL
               AND t.deleted_at IS NULL
               AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
               AND t.verified_task_id IS NULL

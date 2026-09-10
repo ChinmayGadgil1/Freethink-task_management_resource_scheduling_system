@@ -45,10 +45,11 @@ export async function getCurrentUserProfileController(req: AuthRequest, res: Res
             const [projRows] = await pool.query<RowDataPacket[]>(
                 `SELECT 
                     COUNT(*) AS total_projects,
-                    SUM(CASE WHEN status = 'ACTIVE' OR status = 'PUBLISHED' THEN 1 ELSE 0 END) AS active_projects,
+                    SUM(CASE WHEN status IN ('NOT_STARTED', 'IN_PROGRESS', 'ON_HOLD') THEN 1 ELSE 0 END) AS active_projects,
                     SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_projects
                  FROM projects
-                 WHERE project_manager_id = ?`,
+                 WHERE project_manager_id = ?
+                   AND deleted_at IS NULL`,
                 [userId]
             );
 
@@ -56,7 +57,10 @@ export async function getCurrentUserProfileController(req: AuthRequest, res: Res
                 `SELECT COUNT(*) AS active_tasks
                  FROM tasks t
                  JOIN projects p ON t.project_id = p.project_id
-                 WHERE p.project_manager_id = ? AND t.status IN ('SCHEDULED', 'IN_PROGRESS')`,
+                 WHERE p.project_manager_id = ?
+                   AND t.status IN ('SCHEDULED', 'IN_PROGRESS')
+                   AND t.deleted_at IS NULL
+                   AND p.deleted_at IS NULL`,
                 [userId]
             );
 
@@ -75,7 +79,10 @@ export async function getCurrentUserProfileController(req: AuthRequest, res: Res
                     SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_tasks
                  FROM task_assignments ta
                  JOIN tasks t ON ta.task_id = t.task_id
-                 WHERE ta.user_id = ?`,
+                 JOIN projects p ON t.project_id = p.project_id
+                 WHERE ta.user_id = ?
+                   AND t.deleted_at IS NULL
+                   AND p.deleted_at IS NULL`,
                 [userId]
             );
 
