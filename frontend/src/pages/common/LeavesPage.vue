@@ -436,6 +436,15 @@
               @update:model-value="onResourceSelectChange"
             />
 
+            <!-- Informational tip for resources -->
+            <div
+              v-if="!isProjectManager"
+              class="row items-center text-caption text-grey-7 q-mb-sm q-px-xs"
+            >
+              <q-icon name="info" size="14px" class="q-mr-xs text-primary" />
+              <span>Leaves must be requested at least 1 day in advance (tomorrow or later).</span>
+            </div>
+
             <!-- Date Pickers (Start Date & End Date) -->
             <div class="row q-col-gutter-sm">
               <div class="col-12 col-sm-6">
@@ -444,7 +453,13 @@
                   outlined
                   dense
                   label="Start Date (YYYY-MM-DD) *"
-                  :rules="[(val) => !!val || 'Start date is required']"
+                  :rules="[
+                    (val) => !!val || 'Start date is required',
+                    (val) =>
+                      !val ||
+                      (isProjectManager ? String(val) >= getTodayIso() : String(val) > getTodayIso()) ||
+                      (isProjectManager ? 'Start date cannot be in the past' : 'Leaves must be applied at least 1 day in advance (tomorrow or later)'),
+                  ]"
                   @update:model-value="
                     (val) => {
                       if (val && (!leaveForm.end_date || leaveForm.end_date < String(val)))
@@ -482,6 +497,10 @@
                       !leaveForm.start_date ||
                       val >= leaveForm.start_date ||
                       'End date must be on or after start date',
+                    (val) =>
+                      !val ||
+                      (isProjectManager ? String(val) >= getTodayIso() : String(val) > getTodayIso()) ||
+                      (isProjectManager ? 'End date cannot be in the past' : 'End date must be tomorrow or later'),
                   ]"
                 >
                   <template #append>
@@ -761,6 +780,11 @@ const userLeaveMap = computed(() => {
   return map;
 });
 
+function getTodayIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function isDateFullyBooked(dateStr: string): boolean {
   const entry = userLeaveMap.value.get(dateStr);
   if (!entry) return false;
@@ -769,11 +793,21 @@ function isDateFullyBooked(dateStr: string): boolean {
 
 function isStartDateAllowed(date: string): boolean {
   const dateStr = date.replaceAll('/', '-');
+  const todayStr = getTodayIso();
+  // Resources cannot pick today or past dates (must apply at least 1 day in advance)
+  if (!isProjectManager.value && dateStr <= todayStr) return false;
+  // PMs cannot pick past dates
+  if (isProjectManager.value && dateStr < todayStr) return false;
   return !isDateFullyBooked(dateStr);
 }
 
 function isEndDateAllowed(date: string): boolean {
   const dateStr = date.replaceAll('/', '-');
+  const todayStr = getTodayIso();
+  // Resources cannot pick today or past dates
+  if (!isProjectManager.value && dateStr <= todayStr) return false;
+  // PMs cannot pick past dates
+  if (isProjectManager.value && dateStr < todayStr) return false;
   if (leaveForm.start_date && dateStr < leaveForm.start_date) return false;
   return !isDateFullyBooked(dateStr);
 }
@@ -1179,6 +1213,23 @@ async function handleApplyLeave() {
     $q.notify({
       type: 'warning',
       message: 'Start date cannot be after end date.',
+    });
+    return;
+  }
+
+  const todayStr = getTodayIso();
+  if (!isProjectManager.value && leaveForm.start_date <= todayStr) {
+    $q.notify({
+      type: 'warning',
+      message: 'Leaves must be requested at least 1 day in advance (start date must be tomorrow or later).',
+    });
+    return;
+  }
+
+  if (isProjectManager.value && leaveForm.start_date < todayStr) {
+    $q.notify({
+      type: 'warning',
+      message: 'Leave start date cannot be in the past.',
     });
     return;
   }

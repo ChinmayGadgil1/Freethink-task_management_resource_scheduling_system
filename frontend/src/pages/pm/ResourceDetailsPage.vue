@@ -687,7 +687,10 @@
                     outlined
                     dense
                     label="Start Date (YYYY-MM-DD) *"
-                    :rules="[(val) => !!val || 'Start date is required']"
+                    :rules="[
+                      (val) => !!val || 'Start date is required',
+                      (val) => !val || String(val) >= getTodayIso() || 'Start date cannot be in the past',
+                    ]"
                     @update:model-value="
                       (val) => {
                         if (val && (!leaveForm.end_date || leaveForm.end_date < String(val)))
@@ -725,6 +728,7 @@
                         !leaveForm.start_date ||
                         val >= leaveForm.start_date ||
                         'End date must be on or after start date',
+                      (val) => !val || String(val) >= getTodayIso() || 'End date cannot be in the past',
                     ]"
                   >
                     <template #append>
@@ -1483,6 +1487,11 @@ const userLeaveMap = computed(() => {
   return map;
 });
 
+function getTodayIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function isDateFullyBooked(dateStr: string): boolean {
   const entry = userLeaveMap.value.get(dateStr);
   if (!entry) return false;
@@ -1491,11 +1500,15 @@ function isDateFullyBooked(dateStr: string): boolean {
 
 function isStartDateAllowed(date: string): boolean {
   const dateStr = date.replaceAll('/', '-');
+  const todayStr = getTodayIso();
+  if (dateStr < todayStr) return false;
   return !isDateFullyBooked(dateStr);
 }
 
 function isEndDateAllowed(date: string): boolean {
   const dateStr = date.replaceAll('/', '-');
+  const todayStr = getTodayIso();
+  if (dateStr < todayStr) return false;
   if (leaveForm.start_date && dateStr < leaveForm.start_date) return false;
   return !isDateFullyBooked(dateStr);
 }
@@ -1901,6 +1914,15 @@ async function handleApplyLeave() {
     $q.notify({
       type: 'warning',
       message: 'Start date cannot be after end date.',
+    });
+    return;
+  }
+
+  const todayStr = getTodayIso();
+  if (leaveForm.start_date < todayStr) {
+    $q.notify({
+      type: 'warning',
+      message: 'Leave start date cannot be in the past.',
     });
     return;
   }

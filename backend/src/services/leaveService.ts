@@ -64,6 +64,21 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         throw error;
     }
 
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    if (userRole === "RESOURCE" && startDateStr <= todayStr) {
+        const error = new Error(`Leaves must be requested at least 1 day in advance. The start date (${startDateStr}) cannot be today or in the past.`);
+        (error as any).status = 400;
+        throw error;
+    }
+
+    if (userRole === "PROJECT_MANAGER" && startDateStr < todayStr) {
+        const error = new Error(`Cannot apply leave for a past date (${startDateStr}).`);
+        (error as any).status = 400;
+        throw error;
+    }
+
     // 1. Validate resource exists, is active, and has the role RESOURCE
     const [userRows] = await pool.query<RowDataPacket[]>(
         `SELECT user_id, name, email, is_active, role, daily_working_hours, non_working_days FROM users WHERE user_id = ?`,
