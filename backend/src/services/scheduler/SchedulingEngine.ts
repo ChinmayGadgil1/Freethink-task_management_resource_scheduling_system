@@ -309,6 +309,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             GROUP_CONCAT(DISTINCT ta.user_id) AS assigned_resource_ids
         FROM tasks t
         JOIN projects p ON t.project_id = p.project_id
+        LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         WHERE t.project_id = ?
           AND t.status != 'COMPLETED'
           AND t.deleted_at IS NULL
