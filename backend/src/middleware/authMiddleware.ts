@@ -37,3 +37,15 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
         });
     }
 };
+
+export const requireRole = (...allowedRoles: ('PROJECT_MANAGER' | 'RESOURCE')[]) => {
+    return (req: AuthRequest, res: Response, next: NextFunction): void => {
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            res.status(403).json({
+                message: `Forbidden: Only ${allowedRoles.map(r => r.toLowerCase().replace('_', ' ')).join('/')}s are authorized to perform this action.`
+            });
+            return;
+        }
+        next();
+    };
+};

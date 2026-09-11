@@ -274,10 +274,15 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
                 return res.status(403).json({ message: "You are not authorized to update tasks for this project" });
             }
         } else if (userRole === "RESOURCE") {
-            const isAssigned = (task.assigned_resource_ids || []).includes(userId);
-            if (!isAssigned) {
-                return res.status(403).json({ message: "You are not authorized to alter progress or update this task. Only assigned resources can make updates." });
+            const isCreator = Number(task.created_by) === userId;
+            if (!isCreator) {
+                return res.status(403).json({ message: "Only project managers can edit task details for assigned tasks" });
             }
+            if (parsed.supervisor_id !== undefined && parsed.supervisor_id !== null) {
+                return res.status(403).json({ message: "Resources cannot assign supervisors to tasks" });
+            }
+        } else {
+            return res.status(403).json({ message: "Unauthorized role" });
         }
 
         if (parsed.deadline !== undefined && parsed.deadline !== null) {
@@ -348,6 +353,10 @@ export async function addDependency(req: AuthRequest<{ id: string }>, res: Respo
         const taskId = Number(req.params.id);
         const parsed = dependencySchema.parse(req.body);
 
+        if (userRole !== "PROJECT_MANAGER") {
+            return res.status(403).json({ message: "Only project managers can manage dependencies" });
+        }
+
         if (taskId === parsed.predecessor_task_id) {
             return res.status(400).json({ message: "A task cannot depend on itself" });
         }
@@ -366,11 +375,9 @@ export async function addDependency(req: AuthRequest<{ id: string }>, res: Respo
             return res.status(400).json({ message: "Dependencies cannot be added between tasks in different projects" });
         }
 
-        if (userRole === "PROJECT_MANAGER") {
-            const project = await getProjectById(task.project_id);
-            if (!project || project.project_manager_id !== userId) {
-                return res.status(403).json({ message: "You are not authorized to manage dependencies for this project" });
-            }
+        const project = await getProjectById(task.project_id);
+        if (!project || project.project_manager_id !== userId) {
+            return res.status(403).json({ message: "You are not authorized to manage dependencies for this project" });
         }
 
         await addTaskDependency(taskId, parsed.predecessor_task_id);
