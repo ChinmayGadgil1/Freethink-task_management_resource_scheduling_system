@@ -351,9 +351,9 @@
             <div class="row items-center justify-center q-gutter-xs no-wrap">
               <!-- PM Approve Button -->
               <template v-if="isProjectManager && props.row.status === 'PENDING'">
-                <!-- Can only approve if earliest date is in the future -->
+                <!-- Can only approve if leave dates have not already passed -->
                 <q-btn
-                  v-if="canApproveLeave(props.row.start_date || props.row.leave_date)"
+                  v-if="canApproveLeave(props.row.end_date || props.row.leave_date)"
                   dense
                   flat
                   round
@@ -367,7 +367,7 @@
                 <div v-else>
                   <q-btn dense flat round disable color="grey-5" icon="check">
                     <q-tooltip
-                      >Cannot approve: Leave start date has already arrived or passed</q-tooltip
+                      >Cannot approve: Leave dates have already passed</q-tooltip
                     >
                   </q-btn>
                 </div>
@@ -994,11 +994,12 @@ function getStatusTextColor(status: LeaveStatus): string {
   }
 }
 
-// Rule check: Leave can only be approved before the date the resource applied for
-function canApproveLeave(leaveDateStr: string): boolean {
+// Rule check: Leave can only be approved before or during the leave period (not after it has ended)
+function canApproveLeave(endDateStr: string): boolean {
+  if (!endDateStr) return false;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return todayStr < leaveDateStr;
+  return todayStr <= endDateStr;
 }
 
 // Dropdown options for resources selection (guaranteed unique by user_id and disambiguated)

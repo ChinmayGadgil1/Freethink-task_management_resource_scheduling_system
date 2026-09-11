@@ -414,7 +414,7 @@ async function getLeaveGroupRows(identifier: string | number): Promise<RowDataPa
 
 /**
  * Approve a pending user leave request (approves all days in the request group).
- * Enforces business rule: The leave can only be approved BEFORE the earliest applied leave date.
+ * Enforces business rule: The leave can only be approved before or during the leave period (cannot be approved once the leave dates have passed).
  * Automatically recalculates schedules for all projects associated with the resource upon approval.
  */
 export async function approveLeave(identifier: number | string, pmUserId: number): Promise<UserLeave> {
@@ -455,13 +455,14 @@ export async function approveLeave(identifier: number | string, pmUserId: number
         throw error;
     }
 
-    // Date Validation: earliest leave date must be in the future (today < startDate)
+    // Date Validation: leave dates must not have already passed (today <= latestDate)
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const earliestDate = String(rows[0]!.leave_date);
+    const latestDate = String(rows[rows.length - 1]!.leave_date);
 
-    if (todayStr >= earliestDate) {
-        const error = new Error(`Leaves can only be approved before the start date (${earliestDate}). That date has arrived or passed.`);
+    if (todayStr > latestDate) {
+        const error = new Error(`Cannot approve a leave request whose dates have already passed (${latestDate}).`);
         (error as any).status = 400;
         throw error;
     }
