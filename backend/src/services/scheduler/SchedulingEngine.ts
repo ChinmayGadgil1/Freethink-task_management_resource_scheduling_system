@@ -447,11 +447,17 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
               AND t.deleted_at IS NULL
               AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
               AND t.verified_task_id IS NULL
+            UNION
+            SELECT DISTINCT pm.user_id
+            FROM project_members pm
+            JOIN projects p ON pm.project_id = p.project_id
+            WHERE pm.project_id = ?
+              AND p.deleted_at IS NULL
         ) project_resources
             ON ul.user_id = project_resources.user_id
         WHERE ul.status = 'APPROVED'
         `,
-        [projectId]
+        [projectId, projectId]
     );
 
     // Fetch non_working_days and daily_working_hours for resources involved in this project
