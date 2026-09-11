@@ -52,6 +52,82 @@ export async function createProject(
     };
 }
 
+/**
+ * Automatically calculate and synchronize effort-weighted project progress:
+ * Project Progress = SUM(Task Progress * Expected Effort) / SUM(Expected Effort)
+ * Fallback to unweighted average if total expected effort is 0.
+ * Excludes soft-deleted tasks and verification tasks.
+ * Also synchronizes project status transitions (e.g. IN_PROGRESS -> COMPLETED at 100%).
+ */
+export async function syncProjectProgress(projectId: number): Promise<number> {
+    const pool = getPool();
+
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT
+            COUNT(*) AS total_tasks,
+            COALESCE(SUM(expected_effort), 0) AS total_effort,
+            COALESCE(SUM(progress * expected_effort), 0) AS weighted_progress_sum,
+            COALESCE(SUM(progress), 0) AS simple_progress_sum
+        FROM tasks
+        WHERE project_id = ?
+          AND deleted_at IS NULL
+          AND (task_type IS NULL OR task_type != 'VERIFICATION')
+          AND verified_task_id IS NULL
+        `,
+        [projectId]
+    );
+
+    const stats = rows[0];
+    const totalTasks = Number(stats?.total_tasks || 0);
+    const totalEffort = Number(stats?.total_effort || 0);
+    const weightedProgressSum = Number(stats?.weighted_progress_sum || 0);
+    const simpleProgressSum = Number(stats?.simple_progress_sum || 0);
+
+    let calculatedProgress = 0;
+    if (totalTasks > 0) {
+        if (totalEffort > 0) {
+            calculatedProgress = Math.round(weightedProgressSum / totalEffort);
+        } else {
+            calculatedProgress = Math.round(simpleProgressSum / totalTasks);
+        }
+        calculatedProgress = Math.max(0, Math.min(100, calculatedProgress));
+    }
+
+    // Fetch current project status to handle smart state transitions
+    const [projRows] = await pool.query<RowDataPacket[]>(
+        `SELECT status FROM projects WHERE project_id = ? AND deleted_at IS NULL`,
+        [projectId]
+    );
+
+    if (projRows.length === 0) return calculatedProgress;
+
+    const currentStatus = projRows[0]?.status;
+    let nextStatus = currentStatus;
+
+    if (currentStatus === "NOT_STARTED" && calculatedProgress > 0) {
+        nextStatus = "IN_PROGRESS";
+    } else if (currentStatus === "IN_PROGRESS" && calculatedProgress >= 100) {
+        nextStatus = "COMPLETED";
+    } else if (currentStatus === "COMPLETED" && calculatedProgress < 100) {
+        nextStatus = "IN_PROGRESS";
+    }
+
+    if (nextStatus !== currentStatus) {
+        await pool.query(
+            `UPDATE projects SET progress = ?, status = ?, updated_at = NOW() WHERE project_id = ?`,
+            [calculatedProgress, nextStatus, projectId]
+        );
+    } else {
+        await pool.query(
+            `UPDATE projects SET progress = ?, updated_at = NOW() WHERE project_id = ?`,
+            [calculatedProgress, projectId]
+        );
+    }
+
+    return calculatedProgress;
+}
+
 export async function getProjectsByManager(projectManagerId: number) {
     const pool = getPool();
 

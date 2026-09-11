@@ -2,6 +2,7 @@ import { getPool } from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { TaskPriority, TaskStatus } from "../models/taskModel.js";
 import { wouldCreateCycle } from "./scheduler/DependencyEngine.js";
+import { syncProjectProgress } from "./projectService.js";
 
 export async function createTask(
     projectId: number,
@@ -122,6 +123,12 @@ export async function createTask(
 
             await connection.commit();
 
+            try {
+                await syncProjectProgress(projectId);
+            } catch (syncErr) {
+                console.error("Failed to sync project progress in createTask:", syncErr);
+            }
+
             const assignedResources = users.map(u => ({
                 user_id: Number(u.user_id),
                 name: String(u.name),
@@ -148,6 +155,12 @@ export async function createTask(
         }
 
         await connection.commit();
+
+        try {
+            await syncProjectProgress(projectId);
+        } catch (syncErr) {
+            console.error("Failed to sync project progress in createTask:", syncErr);
+        }
 
         return {
             task_id: taskId,
@@ -930,6 +943,19 @@ export async function updateTask(taskId: number, updates: Record<string, any>) {
     const params = [...Object.values(updates), taskId];
 
     await pool.query(`UPDATE tasks SET ${setClause} WHERE task_id = ?`, params);
+
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT project_id FROM tasks WHERE task_id = ?`,
+            [taskId]
+        );
+        const projectId = rows[0]?.project_id;
+        if (projectId) {
+            await syncProjectProgress(Number(projectId));
+        }
+    } catch (e) {
+        console.error("Failed to sync project progress in updateTask:", e);
+    }
 }
 
 export async function getBottleneckTasks(projectManagerId: number) {
@@ -1012,6 +1038,13 @@ export async function moveToBinTask(taskId: number, projectManagerId?: number): 
         await connection.query("DELETE FROM task_schedules WHERE task_id = ?", [taskId]);
 
         await connection.commit();
+
+        try {
+            await syncProjectProgress(projectId);
+        } catch (syncErr) {
+            console.error("Failed to sync project progress in moveToBinTask:", syncErr);
+        }
+
         return { success: true, projectId };
     } catch (error) {
         await connection.rollback();
@@ -1100,6 +1133,13 @@ export async function restoreTaskFromBin(taskId: number, projectManagerId?: numb
         await connection.query("UPDATE tasks SET deleted_at = NULL WHERE task_id = ?", [taskId]);
 
         await connection.commit();
+
+        try {
+            await syncProjectProgress(projectId);
+        } catch (syncErr) {
+            console.error("Failed to sync project progress in restoreTaskFromBin:", syncErr);
+        }
+
         return { success: true, projectId };
     } catch (error) {
         await connection.rollback();
@@ -1117,7 +1157,7 @@ export async function deleteTask(taskId: number, projectManagerId?: number): Pro
         await connection.beginTransaction();
 
         let checkQuery = `
-            SELECT t.task_id 
+            SELECT t.task_id, t.project_id 
             FROM tasks t 
             JOIN projects p ON t.project_id = p.project_id 
             WHERE t.task_id = ?
@@ -1133,6 +1173,8 @@ export async function deleteTask(taskId: number, projectManagerId?: number): Pro
             await connection.rollback();
             return false;
         }
+
+        const projectId = Number(rows[0]!.project_id);
 
         await connection.query("DELETE FROM task_schedules WHERE task_id = ?", [taskId]);
         await connection.query(
@@ -1150,6 +1192,15 @@ export async function deleteTask(taskId: number, projectManagerId?: number): Pro
         );
 
         await connection.commit();
+
+        try {
+            if (projectId) {
+                await syncProjectProgress(projectId);
+            }
+        } catch (syncErr) {
+            console.error("Failed to sync project progress in deleteTask:", syncErr);
+        }
+
         return result.affectedRows > 0;
     } catch (error) {
         await connection.rollback();

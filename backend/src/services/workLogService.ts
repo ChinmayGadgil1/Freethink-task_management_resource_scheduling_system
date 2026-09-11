@@ -1,6 +1,7 @@
 import { getPool } from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { recalculate as recalculateSchedule } from "./scheduler/SchedulingEngine.js";
+import { syncProjectProgress } from "./projectService.js";
 
 export async function createWorkLog(
     taskId: number,
@@ -108,8 +109,13 @@ export async function createWorkLog(
 
         await connection.commit();
 
-        // 4. Hook SchedulingEngine.recalculate(projectId) whenever work is logged
-        // This ensures downstream dependent tasks and other shared projects adapt dynamically
+        // 4. Hook project progress auto-rollup and SchedulingEngine.recalculate whenever work is logged
+        try {
+            await syncProjectProgress(task.project_id);
+        } catch (syncErr) {
+            console.error("Error synchronizing project progress in workLogService:", syncErr);
+        }
+
         try {
             await recalculateSchedule(task.project_id);
         } catch (scheduleErr) {

@@ -1658,7 +1658,7 @@ import StatCard from '@/components/dashboard/StatCard.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import ConfirmActionDialog from '@/components/common/ConfirmActionDialog.vue';
 import { formatDate, formatStatus, formatHours } from '@/utils/formatters';
-import { isTaskOverdue, getStatusFromProgress } from '@/utils/taskHelpers';
+import { isTaskOverdue, getStatusFromProgress, isVerificationTask } from '@/utils/taskHelpers';
 
 import {
   getProjectByIdApi,
@@ -2085,9 +2085,21 @@ const taskCompletionRate = computed(() => {
 });
 
 const overallProgress = computed(() => {
-  if (!tasks.value.length) return Number(project.progress) || 0;
-  const total = tasks.value.reduce((sum, t) => sum + getTaskProgressNumber(t.progress), 0);
-  return Math.round(total / tasks.value.length);
+  const deliverableTasks = tasks.value.filter((t) => !isVerificationTask(t));
+  if (!deliverableTasks.length) return Number(project.progress) || 0;
+  const totalEffort = deliverableTasks.reduce(
+    (sum, t) => sum + (Number(t.expected_effort) || 0),
+    0,
+  );
+  if (totalEffort > 0) {
+    const weightedSum = deliverableTasks.reduce(
+      (sum, t) => sum + getTaskProgressNumber(t.progress) * (Number(t.expected_effort) || 0),
+      0,
+    );
+    return Math.round(weightedSum / totalEffort);
+  }
+  const total = deliverableTasks.reduce((sum, t) => sum + getTaskProgressNumber(t.progress), 0);
+  return Math.round(total / deliverableTasks.length);
 });
 
 const totalEffortExpected = computed(() =>
