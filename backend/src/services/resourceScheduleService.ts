@@ -164,7 +164,8 @@ export async function updateResourceWorkSchedule(
             `
             SELECT DISTINCT p.project_id
             FROM projects p
-            WHERE p.status NOT IN ('COMPLETED', 'CANCELLED')
+            WHERE p.status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
+              AND p.deleted_at IS NULL
               AND (
                 p.project_id IN (SELECT project_id FROM project_members WHERE user_id = ?)
                 OR p.project_id IN (
@@ -172,6 +173,7 @@ export async function updateResourceWorkSchedule(
                     FROM tasks t
                     INNER JOIN task_assignments ta ON t.task_id = ta.task_id
                     WHERE ta.user_id = ?
+                      AND t.deleted_at IS NULL
                 )
               )
             `,

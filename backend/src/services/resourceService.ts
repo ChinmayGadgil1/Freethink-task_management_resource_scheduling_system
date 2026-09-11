@@ -82,6 +82,7 @@ export async function getResources(projectId?: number, managerId?: number) {
         query += `
           AND pm.project_id = ?
           AND p.project_manager_id = ?
+          AND p.deleted_at IS NULL
         `;
         params.push(projectId, managerId);
     } else if (projectId !== undefined) {
@@ -92,6 +93,7 @@ export async function getResources(projectId?: number, managerId?: number) {
     } else if (managerId !== undefined) {
         query += `
           AND p.project_manager_id = ?
+          AND p.deleted_at IS NULL
         `;
         params.push(managerId);
     }
@@ -160,6 +162,8 @@ export async function getResourceProjects(resourceId: number) {
         INNER JOIN project_members pm
             ON p.project_id = pm.project_id
         WHERE pm.user_id = ?
+          AND p.deleted_at IS NULL
+          AND p.status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
         ORDER BY p.name ASC
         `,
         [resourceId]

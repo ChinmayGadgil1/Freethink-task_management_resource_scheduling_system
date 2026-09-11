@@ -10,7 +10,7 @@ async function recalculateActiveProjects(): Promise<void> {
     const pool = getPool();
     try {
         const [projectRows] = await pool.query<RowDataPacket[]>(
-            `SELECT project_id FROM projects WHERE status NOT IN ('COMPLETED', 'CANCELLED')`
+            `SELECT project_id FROM projects WHERE status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED') AND deleted_at IS NULL`
         );
         for (const project of projectRows) {
             try {
