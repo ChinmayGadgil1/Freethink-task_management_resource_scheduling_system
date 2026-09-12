@@ -6,8 +6,6 @@
       v-model:is-mini="isMini"
       home-route="/app/resource-dashboard"
       help-route="/app/resource-dashboard/help"
-      quick-action-route="/app/resource-dashboard/task-details"
-      quick-action-title="Quick Action"
       :nav-items="resourceNavItems"
     />
 
@@ -260,6 +258,8 @@ function logout() {
 
 /* Top App Header */
 .app-header {
+  height: 64px;
+  box-sizing: border-box;
   background: var(--wo-bg-card, #ffffff);
   color: var(--wo-text-main, #121620);
   border-bottom: 1px solid var(--wo-border, #edf0f5);
@@ -273,12 +273,13 @@ body.body--dark .app-header {
 }
 
 .app-toolbar {
-  min-height: 64px;
-  height: 64px;
+  min-height: 63px;
+  height: 63px;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-sizing: border-box;
 }
 
 .header-workspace-tag {

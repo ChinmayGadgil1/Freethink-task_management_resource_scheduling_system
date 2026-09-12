@@ -11,10 +11,9 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <!-- 1. SLIM LEFT ICON RAIL (ONLY in Mini Mode) -->
-    <div v-if="isMini" class="slim-icon-rail column items-center justify-between full-height">
-      <!-- Top Section: Expand & Quick Icons -->
-      <div class="column items-center gap-sm full-width q-pt-sm">
-        <!-- Toggle / Expand Button (») -->
+    <div v-if="isMini" class="slim-icon-rail column items-center full-height">
+      <!-- Top Section: Expand Toggle (Aligned with Top Toolbar at 64px) -->
+      <div class="rail-header-row flex flex-center">
         <button
           class="rail-icon-btn menu-toggle-btn flex flex-center"
           title="Expand Sidebar (»)"
@@ -22,19 +21,10 @@
         >
           <q-icon name="keyboard_double_arrow_right" size="18px" />
         </button>
+      </div>
 
-        <!-- Quick Action Button (+) -->
-        <button
-          class="rail-quick-add-btn flex flex-center"
-          :title="quickActionTitle || 'Quick Action'"
-          @click="handleQuickAction"
-        >
-          <q-icon name="add" size="18px" />
-        </button>
-
-        <div class="rail-divider" />
-
-        <!-- Core App Icons -->
+      <!-- Core App Icons -->
+      <div class="column items-center gap-xs full-width q-pt-sm col">
         <router-link
           v-for="item in navItems"
           :key="`rail-${item.to}`"
@@ -69,32 +59,30 @@
     </div>
 
     <!-- 2. EXPANDED FULL SIDEBAR MENU (ONLY in Expanded Mode) -->
-    <div v-else class="expandable-sidebar-body column justify-between full-height">
-      <!-- Upper Panel: Brand, Navigation Lists -->
-      <div class="scroll-content q-pa-sm">
-        <!-- Brand Header + Shrink Button -->
-        <div class="sidebar-brand-row row items-center justify-between no-wrap q-py-xs q-px-xs">
-          <div class="row items-center gap-xs cursor-pointer" @click="goToHome">
-            <div class="brand-badge-icon flex flex-center">
-              <span class="brand-sparkle">✦</span>
-            </div>
-            <div class="brand-title-wrap">
-              <span class="brand-title-text">TaskFlow</span>
-            </div>
+    <div v-else class="expandable-sidebar-body column full-height">
+      <!-- Brand Header + Shrink Button (Aligned with Top Toolbar at 64px) -->
+      <div class="sidebar-brand-row row items-center justify-between no-wrap">
+        <div class="row items-center gap-xs cursor-pointer" @click="goToHome">
+          <div class="brand-badge-icon flex flex-center">
+            <span class="brand-sparkle">✦</span>
           </div>
-
-          <!-- Shrink Button («) -->
-          <button
-            class="sidebar-shrink-btn flex flex-center"
-            title="Collapse Sidebar"
-            @click="$emit('update:isMini', true)"
-          >
-            <q-icon name="keyboard_double_arrow_left" size="16px" />
-          </button>
+          <div class="brand-title-wrap">
+            <span class="brand-title-text">TaskFlow</span>
+          </div>
         </div>
 
-        <q-separator class="q-my-sm" />
+        <!-- Shrink Button («) -->
+        <button
+          class="sidebar-shrink-btn flex flex-center"
+          title="Collapse Sidebar"
+          @click="$emit('update:isMini', true)"
+        >
+          <q-icon name="keyboard_double_arrow_left" size="16px" />
+        </button>
+      </div>
 
+      <!-- Upper Panel: Navigation Lists -->
+      <div class="scroll-content q-pa-sm col">
         <!-- Main Menu Section -->
         <div class="menu-category-block q-mt-xs">
           <div class="category-header-label">MAIN MENU</div>
@@ -164,8 +152,6 @@ export interface AppSidebarProps {
   helpRoute?: string;
   navItems: SidebarNavItem[];
   workspaces?: WorkspaceItem[];
-  quickActionTitle?: string;
-  quickActionRoute?: string;
 }
 
 const props = withDefaults(defineProps<AppSidebarProps>(), {
@@ -174,14 +160,11 @@ const props = withDefaults(defineProps<AppSidebarProps>(), {
   homeRoute: '/pm/projects',
   helpRoute: '',
   workspaces: () => [],
-  quickActionTitle: 'Quick Action',
-  quickActionRoute: '',
 });
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
   (e: 'update:isMini', value: boolean): void;
-  (e: 'quickAction'): void;
 }>();
 
 const router = useRouter();
@@ -212,14 +195,6 @@ function isLinkActive(path: string): boolean {
 function goToHome() {
   void router.push(props.homeRoute || '/');
 }
-
-function handleQuickAction() {
-  if (props.quickActionRoute) {
-    void router.push(props.quickActionRoute);
-  } else {
-    emit('quickAction');
-  }
-}
 </script>
 
 <style scoped lang="scss">
@@ -228,7 +203,7 @@ function handleQuickAction() {
    ---------------------------------------------------- */
 .app-sidebar-drawer {
   background: var(--wo-bg-card, #ffffff);
-  border-right: 1px solid var(--wo-border, #eaecef);
+  border-right: 1px solid var(--wo-border, #edf0f5);
   position: fixed !important;
   top: 0;
   bottom: 0;
@@ -245,8 +220,18 @@ function handleQuickAction() {
   width: 72px;
   flex: 0 0 72px;
   background: var(--wo-bg-subtle, #fcfcfd);
-  padding: 8px 0;
+  padding: 0;
   height: 100%;
+}
+
+.rail-header-row {
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  border-bottom: 1px solid var(--wo-border, #edf0f5);
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .rail-icon-btn {
@@ -263,30 +248,6 @@ function handleQuickAction() {
     background: var(--wo-bg-hover, #f2f4f7);
     color: var(--wo-text-main, #1d2433);
   }
-}
-
-.rail-quick-add-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: none;
-  background: var(--wo-primary, #8b6fd8);
-  color: #ffffff;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(139, 111, 216, 0.35);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    transform: scale(1.05);
-    background: #7a5ec7;
-  }
-}
-
-.rail-divider {
-  width: 32px;
-  height: 1px;
-  background: var(--wo-border, #eaecef);
-  margin: 6px 0;
 }
 
 .rail-icon-item {
@@ -356,11 +317,28 @@ function handleQuickAction() {
   width: 100%;
   height: 100%;
   background: var(--wo-bg-card, #ffffff);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-brand-row {
-  margin-bottom: 4px;
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--wo-border, #edf0f5);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.scroll-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .brand-badge-icon {
@@ -518,16 +496,17 @@ body.body--dark {
   .app-sidebar-drawer,
   .expandable-sidebar-body {
     background: var(--wo-bg-card, #181d28);
-    border-color: var(--wo-border, #1e2433);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   .slim-icon-rail {
     background: #131720;
-    border-color: var(--wo-border, #1e2433);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
-  .rail-divider {
-    background: var(--wo-border, #1e2433);
+  .sidebar-brand-row,
+  .rail-header-row {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
   .rail-icon-btn:hover,
