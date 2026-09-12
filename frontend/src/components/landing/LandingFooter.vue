@@ -81,52 +81,6 @@
         <div class="col-12 col-sm-auto text-center-lt-sm">
           <p class="copyright-text">© 2026 TaskFlow. All rights reserved.</p>
         </div>
-
-        <!-- Social Pills Strip matching reference design -->
-        <div class="col-12 col-sm-auto">
-          <div class="social-pills-row row wrap items-center justify-center gap-xs">
-            <a
-              href="javascript:void(0)"
-              class="social-pill-btn row inline items-center gap-xs"
-              aria-label="Instagram"
-            >
-              <span class="pill-dot teal-dot" />
-              <span>Instagram</span>
-            </a>
-            <a
-              href="javascript:void(0)"
-              class="social-pill-btn row inline items-center gap-xs"
-              aria-label="Facebook"
-            >
-              <span class="pill-dot blue-dot" />
-              <span>Facebook</span>
-            </a>
-            <a
-              href="javascript:void(0)"
-              class="social-pill-btn active-brand-pill row inline items-center gap-xs"
-              aria-label="TaskFlow"
-            >
-              <span class="pill-dot purple-dot" />
-              <span>TaskFlow</span>
-            </a>
-            <a
-              href="javascript:void(0)"
-              class="social-pill-btn row inline items-center gap-xs"
-              aria-label="Twitter"
-            >
-              <span class="pill-dot amber-dot" />
-              <span>Twitter</span>
-            </a>
-            <a
-              href="javascript:void(0)"
-              class="social-pill-btn row inline items-center gap-xs"
-              aria-label="YouTube"
-            >
-              <span class="pill-dot pink-dot" />
-              <span>YouTube</span>
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   </footer>

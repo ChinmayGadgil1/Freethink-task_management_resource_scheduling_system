@@ -105,7 +105,7 @@
     <!-- Showcase 2: Real Workload & Task Status Left | Text Right (ALTERNATING LAYOUT) -->
     <section id="how-it-works" class="showcase-section showcase-two">
       <div class="container">
-        <div class="row q-col-gutter-lg items-start">
+        <div class="row q-col-gutter-lg items-center">
           <!-- Product Visual Column (Left): Real WorkloadCard & TaskStatusCard -->
           <div class="col-12 col-lg-7 showcase-visual-col order-lg-first">
             <div class="visual-card-frame">
@@ -124,52 +124,56 @@
               Prevent Team Burnout.
             </h2>
 
-            <p class="showcase-description">
+            <p class="showcase-description q-mb-none">
               Get transparent visibility into team capacity with 40-hour standard bandwidth
               baselines. Rebalance workloads to prevent over-allocation and burnout.
             </p>
+          </div>
+        </div>
 
-            <div class="section-divider-line" />
-
-            <!-- Highlights List -->
-            <div class="highlights-stack column q-gutter-y-sm">
-              <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box flex flex-center no-shrink blue-box">
-                  <q-icon name="pie_chart" size="18px" />
-                </div>
-                <div class="highlight-text-wrap">
-                  <h3 class="highlight-title">40h Standard Bandwidth</h3>
-                  <p class="highlight-desc">
-                    Track allocated effort vs standard 40h weekly capacity. Detect overallocated
-                    resources before delivery bottlenecks emerge.
-                  </p>
-                </div>
+        <!-- Horizontal Highlight Cards Row -->
+        <div class="row q-col-gutter-md showcase-highlights-horizontal q-mt-lg">
+          <div class="col-12 col-md-4">
+            <div class="showcase-feature-card row items-start no-wrap q-gutter-x-sm">
+              <div class="highlight-icon-box flex flex-center no-shrink blue-box">
+                <q-icon name="pie_chart" size="18px" />
               </div>
-
-              <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box flex flex-center no-shrink green-box">
-                  <q-icon name="donut_large" size="18px" />
-                </div>
-                <div class="highlight-text-wrap">
-                  <h3 class="highlight-title">Effort Consumption Metrics</h3>
-                  <p class="highlight-desc">
-                    Live comparison of actual logged hours vs planned effort hours with color-coded
-                    utilization indicators.
-                  </p>
-                </div>
+              <div class="highlight-text-wrap">
+                <h3 class="highlight-title">40h Standard Bandwidth</h3>
+                <p class="highlight-desc">
+                  Track allocated effort vs standard 40h weekly capacity. Detect overallocated
+                  resources before delivery bottlenecks emerge.
+                </p>
               </div>
+            </div>
+          </div>
 
-              <div class="highlight-item row items-start no-wrap q-gutter-x-sm">
-                <div class="highlight-icon-box flex flex-center no-shrink orange-box">
-                  <q-icon name="assignment_turned_in" size="18px" />
-                </div>
-                <div class="highlight-text-wrap">
-                  <h3 class="highlight-title">Segmented Status Distribution</h3>
-                  <p class="highlight-desc">
-                    At-a-glance distribution bar showing proportion of work In Progress, Scheduled,
-                    and Completed.
-                  </p>
-                </div>
+          <div class="col-12 col-md-4">
+            <div class="showcase-feature-card row items-start no-wrap q-gutter-x-sm">
+              <div class="highlight-icon-box flex flex-center no-shrink green-box">
+                <q-icon name="donut_large" size="18px" />
+              </div>
+              <div class="highlight-text-wrap">
+                <h3 class="highlight-title">Effort Consumption Metrics</h3>
+                <p class="highlight-desc">
+                  Live comparison of actual logged hours vs planned effort hours with color-coded
+                  utilization indicators.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="showcase-feature-card row items-start no-wrap q-gutter-x-sm">
+              <div class="highlight-icon-box flex flex-center no-shrink orange-box">
+                <q-icon name="assignment_turned_in" size="18px" />
+              </div>
+              <div class="highlight-text-wrap">
+                <h3 class="highlight-title">Segmented Status Distribution</h3>
+                <p class="highlight-desc">
+                  At-a-glance distribution bar showing proportion of work In Progress, Scheduled,
+                  and Completed.
+                </p>
               </div>
             </div>
           </div>
@@ -271,6 +275,11 @@ import LandingStatCard from '@/components/landing/previews/LandingStatCard.vue';
     color: #059669;
   }
 
+  &.green-box {
+    background: #ecfdf5;
+    color: #10b981;
+  }
+
   &.blue-box {
     background: #eff6ff;
     color: #3b82f6;
@@ -295,6 +304,26 @@ import LandingStatCard from '@/components/landing/previews/LandingStatCard.vue';
   line-height: 1.45;
   color: #64748b;
   margin: 0;
+}
+
+.showcase-highlights-horizontal {
+  margin-top: 28px;
+}
+
+.showcase-feature-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  height: 100%;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.03);
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 24px -4px rgba(16, 24, 40, 0.07);
+  }
 }
 
 /* Component Showcase Card Wrapper */
@@ -429,9 +458,25 @@ body.body--dark {
       color: #34d399;
     }
 
+    &.green-box {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+    }
+
     &.blue-box {
       background: rgba(59, 130, 246, 0.16);
       color: #60a5fa;
+    }
+  }
+
+  .showcase-feature-card {
+    background: #131722;
+    border-color: #283042;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+
+    &:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
   }
 
