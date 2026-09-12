@@ -27,16 +27,8 @@
             <q-btn
               unelevated
               no-caps
-              label="Get Started"
-              icon-right="arrow_forward"
-              class="primary-cta-btn"
-              @click="goToSignup"
-            />
-            <q-btn
-              flat
-              no-caps
               label="Explore Features"
-              class="secondary-cta-btn"
+              class="primary-cta-btn"
               @click="scrollToFeatures"
             />
           </div>
@@ -136,20 +128,15 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
 import LandingGanttPreview from '@/components/landing/previews/LandingGanttPreview.vue';
 import LandingStatCard from '@/components/landing/previews/LandingStatCard.vue';
-
-const router = useRouter();
-
-function goToSignup() {
-  void router.push('/signup');
-}
 
 function scrollToFeatures() {
   const el = document.getElementById('features');
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth' });
+    const navbarHeight = 72;
+    const targetY = el.getBoundingClientRect().top + window.scrollY - navbarHeight - 16;
+    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
   }
 }
 </script>

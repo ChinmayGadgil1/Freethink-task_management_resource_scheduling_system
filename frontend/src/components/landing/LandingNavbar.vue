@@ -160,6 +160,8 @@
       </q-card>
     </q-dialog>
   </header>
+  <!-- Spacer to reserve space for fixed navbar in document flow -->
+  <div class="landing-navbar-spacer" aria-hidden="true" />
 </template>
 
 <script setup lang="ts">
@@ -186,7 +188,9 @@ function goToSignup() {
 function scrollTo(sectionId: string) {
   const el = document.getElementById(sectionId);
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth' });
+    const navbarHeight = 72;
+    const targetY = el.getBoundingClientRect().top + window.scrollY - navbarHeight - 16;
+    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
   }
 }
 
@@ -198,14 +202,23 @@ function scrollToAndClose(sectionId: string) {
 
 <style scoped lang="scss">
 .landing-navbar-wrapper {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(230, 232, 237, 0.8);
+  box-shadow: 0 1px 8px rgba(16, 24, 40, 0.04);
   transition: all 0.2s ease;
+}
+
+.landing-navbar-spacer {
+  height: 72px;
+  width: 100%;
 }
 
 .container {
@@ -296,6 +309,7 @@ body.body--dark {
   .landing-navbar-wrapper {
     background: rgba(11, 15, 25, 0.88);
     border-bottom: 1px solid rgba(40, 48, 66, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
   }
 
   .brand-name {
