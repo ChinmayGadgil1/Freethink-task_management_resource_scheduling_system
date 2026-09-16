@@ -380,7 +380,7 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
              INNER JOIN project_members pm ON ul.user_id = pm.user_id
              INNER JOIN projects p ON pm.project_id = p.project_id
              INNER JOIN users u ON ul.user_id = u.user_id
-             WHERE p.project_manager_id = ? AND ul.status = 'PENDING'
+             WHERE p.project_manager_id = ? AND ul.status = 'PENDING' AND p.deleted_at IS NULL
              GROUP BY ul.leave_id
              ORDER BY ul.created_at DESC
              LIMIT 15`,

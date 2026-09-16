@@ -727,28 +727,14 @@ export async function getLeaves(filters: {
             ul.leave_hours,
             ul.leave_type,
             ul.status,
-            COALESCE(ul.approver_id, pm_user.pm_id, fallback_pm.fallback_pm_id) as approver_id,
-            COALESCE(
-                approver.name,
-                pm_user.pm_name,
-                fallback_pm.fallback_name
-            ) as approver_name,
+            ul.approver_id,
+            approver.name as approver_name,
             ul.rejection_reason,
             ul.approved_at,
             ul.created_at
         FROM user_leaves ul
         INNER JOIN users u ON ul.user_id = u.user_id
         LEFT JOIN users approver ON ul.approver_id = approver.user_id
-        LEFT JOIN (
-            SELECT pm.user_id as resource_user_id, MIN(p_mgr.user_id) as pm_id, MIN(p_mgr.name) as pm_name
-            FROM project_members pm
-            INNER JOIN projects p ON pm.project_id = p.project_id
-            INNER JOIN users p_mgr ON p.project_manager_id = p_mgr.user_id
-            GROUP BY pm.user_id
-        ) pm_user ON ul.user_id = pm_user.resource_user_id
-        LEFT JOIN (
-            SELECT user_id as fallback_pm_id, name as fallback_name FROM users WHERE role = 'PROJECT_MANAGER' LIMIT 1
-        ) fallback_pm ON 1=1
     `;
     const params: any[] = [];
     const conditions: string[] = [];
@@ -841,10 +827,14 @@ export async function getLeaves(filters: {
         }));
 
         const approverRow = groupRows.find(r => r.approver_name) || groupRows.find(r => r.approver_id) || first;
-        const approverId = approverRow.approver_id ? Number(approverRow.approver_id) : null;
-        const approverName = approverRow.approver_name || null;
-        const rejectionReason = groupRows.find(r => r.rejection_reason)?.rejection_reason || first.rejection_reason || null;
-        const approvedAtVal = groupRows.find(r => r.approved_at)?.approved_at || first.approved_at;
+        const approverId = (aggregatedStatus === "PENDING") ? null : (approverRow.approver_id ? Number(approverRow.approver_id) : null);
+        const approverName = (aggregatedStatus === "PENDING") ? null : (approverRow.approver_name || null);
+        const rejectionReason = (aggregatedStatus === "REJECTED")
+            ? (groupRows.find(r => r.rejection_reason)?.rejection_reason || first.rejection_reason || null)
+            : null;
+        const approvedAtVal = (aggregatedStatus === "APPROVED")
+            ? (groupRows.find(r => r.approved_at)?.approved_at || first.approved_at)
+            : null;
 
         const uniqueDates = Array.from(new Set(groupRows.map(r => String(r.leave_date))));
         const isMultiDay = uniqueDates.length > 1 && String(first.leave_date) !== String(last.leave_date);
