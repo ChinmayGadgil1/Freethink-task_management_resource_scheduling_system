@@ -1380,10 +1380,7 @@ function getSelfAssignedCreatorName(task: Task | null | undefined): string | nul
 }
 
 const resourceMemberSelectOptions = computed(() => {
-  const source =
-    assignTaskMemberForm.task_id && taskProjectMembers.value.length > 0
-      ? taskProjectMembers.value
-      : resources.value;
+  const source = resources.value;
   const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
   const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
   const chosenSupId = assignTaskMemberForm.supervisor_id;
@@ -1415,10 +1412,7 @@ const resourceMemberSelectOptions = computed(() => {
 });
 
 const assignSupervisorSelectOptions = computed(() => {
-  const source =
-    assignTaskMemberForm.task_id && taskProjectMembers.value.length > 0
-      ? taskProjectMembers.value
-      : resources.value;
+  const source = resources.value;
   const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
   const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
   const selectedUserIds = assignTaskMemberForm.user_ids || [];
@@ -1485,8 +1479,7 @@ watch(
 );
 
 const createMemberOptions = computed(() => {
-  const source =
-    createProjectMembers.value.length > 0 ? createProjectMembers.value : resources.value;
+  const source = resources.value;
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
   for (const r of source) {
@@ -1539,19 +1532,12 @@ const editSupervisorOptions = computed(() => {
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
 
-  const getSource = () => {
-    if (!editingTaskId.value) return resources.value;
-    const t = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
-    if (!t?.project_id) return resources.value;
-    return taskProjectMembers.value.length > 0 ? taskProjectMembers.value : resources.value;
-  };
-
   const editingTask = tasks.value.find(
     (task) => Number(task.task_id) === Number(editingTaskId.value),
   );
   const assignedIds = editingTask?.assigned_resource_ids || [];
 
-  for (const r of getSource()) {
+  for (const r of resources.value) {
     const id = Number(r.user_id);
     if (id && !isNaN(id) && !seen.has(id)) {
       seen.add(id);

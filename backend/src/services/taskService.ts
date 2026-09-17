@@ -105,10 +105,15 @@ export async function createTask(
 
             // Ensure assigned resources are also members of the project
             const memberValues = assignedResourceIds.map(userId => [projectId, userId]);
-            await connection.query(
-                "INSERT IGNORE INTO project_members (project_id, user_id) VALUES ?",
-                [memberValues]
-            );
+            if (supervisorId && !assignedResourceIds.includes(Number(supervisorId))) {
+                memberValues.push([projectId, Number(supervisorId)]);
+            }
+            if (memberValues.length > 0) {
+                await connection.query(
+                    "INSERT IGNORE INTO project_members (project_id, user_id) VALUES ?",
+                    [memberValues]
+                );
+            }
 
             // Generate notification for assigned resources (self-assigned vs manager-assigned)
             for (const rId of assignedResourceIds) {
@@ -809,19 +814,16 @@ export async function assignResourceToTask(
         if (users.length === 0)
             throw new Error("RESOURCE_NOT_FOUND");
 
-        const [members] = await connection.query<RowDataPacket[]>(
+        // Ensure assigned resource is also a member of the project
+        await connection.query(
             `
-            SELECT user_id
-            FROM project_members
-            WHERE project_id = ?
-              AND user_id = ?
-            LIMIT 1
+            INSERT IGNORE INTO project_members
+                (project_id, user_id)
+            VALUES
+                (?, ?)
             `,
             [task.project_id, resourceId]
         );
-
-        if (members.length === 0)
-            throw new Error("RESOURCE_NOT_PROJECT_MEMBER");
 
         const [existingAssignments] = await connection.query<RowDataPacket[]>(
             `
@@ -983,6 +985,12 @@ export async function updateTask(taskId: number, updates: Record<string, any>) {
         );
         const projectId = rows[0]?.project_id;
         if (projectId) {
+            if (updates.supervisor_id) {
+                await pool.query(
+                    `INSERT IGNORE INTO project_members (project_id, user_id) VALUES (?, ?)`,
+                    [Number(projectId), Number(updates.supervisor_id)]
+                );
+            }
             await syncProjectProgress(Number(projectId));
         }
     } catch (e) {
