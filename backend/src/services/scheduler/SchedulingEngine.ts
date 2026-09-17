@@ -235,7 +235,8 @@ export function calculateRisks(
     leaves: Map<number, Map<string, number>>,
     resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
     initialAllocations?: Map<number, Map<string, number>>,
-    earliestStart?: Date
+    earliestStart?: Date,
+    projectDeadline?: string | null
 ): {
     is_schedule_at_risk: boolean;
     is_deadline_at_risk: boolean;
@@ -253,18 +254,31 @@ export function calculateRisks(
             earliestStart
         );
 
-    const isDeadlineAtRisk =
-        task.deadline !== null &&
-        !canCompleteBy(
-            task,
-            task.deadline,
-            taskResources,
-            holidays,
-            leaves,
-            resourceConfigs,
-            initialAllocations,
-            earliestStart
-        );
+    // Effective deadline is the task-specific deadline if present, otherwise project-level deadline
+    const effectiveDeadline = task.deadline || projectDeadline || null;
+
+    let isDeadlineAtRisk = false;
+    if (effectiveDeadline !== null) {
+        if (plannedEnd !== null) {
+            const cleanPlannedEnd = plannedEnd.includes("T") ? plannedEnd.split("T")[0]! : plannedEnd.split(" ")[0]!;
+            const cleanDeadline = effectiveDeadline.includes("T") ? effectiveDeadline.split("T")[0]! : effectiveDeadline.split(" ")[0]!;
+            if (cleanPlannedEnd > cleanDeadline) {
+                isDeadlineAtRisk = true;
+            }
+        }
+        if (!isDeadlineAtRisk) {
+            isDeadlineAtRisk = !canCompleteBy(
+                task,
+                effectiveDeadline,
+                taskResources,
+                holidays,
+                leaves,
+                resourceConfigs,
+                initialAllocations,
+                earliestStart
+            );
+        }
+    }
 
     return {
         is_schedule_at_risk: isScheduleAtRisk,
@@ -306,6 +320,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         `
         SELECT
             t.*,
+            p.deadline AS project_deadline,
             GROUP_CONCAT(DISTINCT ta.user_id) AS assigned_resource_ids
         FROM tasks t
         JOIN projects p ON t.project_id = p.project_id
@@ -320,6 +335,19 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         `,
         [projectId]
     );
+
+    let projectDeadline: string | null = null;
+    if (taskRows.length > 0 && taskRows[0]?.project_deadline) {
+        projectDeadline = String(taskRows[0].project_deadline).split("T")[0]!;
+    } else {
+        const [pRows] = await pool.query<RowDataPacket[]>(
+            `SELECT deadline FROM projects WHERE project_id = ? LIMIT 1`,
+            [projectId]
+        );
+        if (pRows.length > 0 && pRows[0]?.deadline) {
+            projectDeadline = String(pRows[0].deadline).split("T")[0]!;
+        }
+    }
 
     const taskResources = new Map<number, number[]>();
 
@@ -722,7 +750,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 leaves,
                 resourceConfigs,
                 initialAllocationsForRisk,
-                taskEarliestStart
+                taskEarliestStart,
+                projectDeadline
             );
 
             taskUpdates.set(task.task_id, {
@@ -746,7 +775,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 leaves,
                 resourceConfigs,
                 initialAllocationsForRisk,
-                taskEarliestStart
+                taskEarliestStart,
+                projectDeadline
             );
             
             taskUpdates.set(task.task_id, {
@@ -821,7 +851,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 leaves,
                 resourceConfigs,
                 resourceSchedule,
-                today
+                today,
+                projectDeadline
             );
 
             await pool.query(
