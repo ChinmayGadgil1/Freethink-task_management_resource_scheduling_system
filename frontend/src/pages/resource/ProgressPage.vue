@@ -59,7 +59,7 @@
           <StatCard
             title="Completed"
             :value="completedTasks"
-            :subtitle="`${completedTasks} of ${tasks.length} tasks completed`"
+            :subtitle="`${completedTasks} of ${assignedTasks.length} tasks completed`"
             icon="check_circle"
             color="positive"
             note-class="stat-green"
@@ -289,9 +289,9 @@
             </div>
             <q-card-section class="q-pa-sm relative-position">
               <div ref="deadlineChartRef" class="echarts-box"></div>
-              <!-- Preserved quick action cards -->
+              <!-- Quick action filter cards (All 5 deadline categories matching the chart) -->
               <div class="row q-col-gutter-xs q-mt-xs">
-                <div v-for="d in deadlinePerformance" :key="d.label" class="col-6 col-sm-3">
+                <div v-for="d in deadlinePerformance" :key="d.label" class="col-6 col-sm">
                   <q-card
                     flat
                     bordered
@@ -301,14 +301,14 @@
                   >
                     <q-card-section class="q-pa-xs text-center">
                       <div
-                        class="text-caption"
+                        class="text-caption ellipsis"
                         :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
                       >
                         {{ d.label }}
                       </div>
                       <div
                         class="text-h6 text-weight-bold"
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :class="`text-${d.color}`"
                       >
                         {{ d.value }}
                       </div>
@@ -521,14 +521,14 @@
             text-color="white"
             class="text-caption text-weight-bold"
           >
-            {{ tasks.length }} tasks
+            {{ assignedTasks.length }} tasks
           </q-chip>
         </q-card-section>
 
         <q-separator />
 
         <q-table
-          v-if="tasks.length"
+          v-if="assignedTasks.length"
           flat
           :dark="$q.dark.isActive"
           :rows="taskRows"
@@ -641,8 +641,8 @@ import { formatDate, formatHours } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 import { useAuthStore } from '@/stores/auth';
 
-import { getTasksApi, getResourceWorkloadApi } from '@/services/api';
-import type { Task, ResourceWorkload } from '@/services/api';
+import { getTasksApi } from '@/services/api';
+import type { Task } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -651,7 +651,6 @@ const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.user?.user_id);
 
 const tasks = ref<Task[]>([]);
-const workloadData = ref<ResourceWorkload | null>(null);
 
 const loading = ref(true);
 const error = ref('');
@@ -696,13 +695,8 @@ async function loadTasks() {
   error.value = '';
 
   try {
-    const [fetchedTasks, fetchedWorkload] = await Promise.all([
-      getTasksApi(),
-      getResourceWorkloadApi().catch(() => null),
-    ]);
-
+    const fetchedTasks = await getTasksApi();
     tasks.value = fetchedTasks;
-    workloadData.value = fetchedWorkload;
   } catch (err) {
     console.error('Failed to load progress:', err);
     error.value = err instanceof Error ? err.message : 'Failed to load your progress.';
@@ -718,7 +712,8 @@ function daysUntil(deadline: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const d = new Date(deadline);
+  const cleanDate = deadline.includes('T') ? deadline : `${deadline}T00:00:00`;
+  const d = new Date(cleanDate);
   d.setHours(0, 0, 0, 0);
 
   return Math.round((d.getTime() - today.getTime()) / 86400000);
@@ -751,22 +746,21 @@ const overallProgress = computed(() => {
   );
 });
 
-const expectedEffort = computed(() => {
-  if (workloadData.value) {
-    return Number(workloadData.value.total_expected_effort) || 0;
-  }
-  return assignedTasks.value.reduce((s, t) => s + (Number(t.expected_effort) || 0), 0);
-});
+const expectedEffort = computed(() =>
+  assignedTasks.value.reduce((s, t) => s + (Number(t.expected_effort) || 0), 0),
+);
 
-const actualEffort = computed(() => {
-  if (workloadData.value) {
-    return Number(workloadData.value.total_actual_effort) || 0;
-  }
-  return assignedTasks.value.reduce((s, t) => s + (Number(t.actual_effort) || 0), 0);
-});
+const actualEffort = computed(() =>
+  assignedTasks.value.reduce((s, t) => s + (Number(t.actual_effort) || 0), 0),
+);
 
 const actualHoursRemaining = computed(() =>
-  Math.max(Number((expectedEffort.value - actualEffort.value).toFixed(2)), 0),
+  assignedTasks.value
+    .filter((t) => t.status !== 'COMPLETED')
+    .reduce(
+      (s, t) => s + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+      0,
+    ),
 );
 
 const effortPercentage = computed(() =>
@@ -776,13 +770,9 @@ const effortPercentage = computed(() =>
 );
 
 const deadlinePerformance = computed(() => {
-  const noDeadline = assignedTasks.value.filter(
-    (t) => !t.deadline && t.status !== 'COMPLETED',
-  ).length;
   const overdue = assignedTasks.value.filter(
     (t) => t.status !== 'COMPLETED' && isOverdue(t),
   ).length;
-  const completed = assignedTasks.value.filter((t) => t.status === 'COMPLETED').length;
 
   const dueSoon = assignedTasks.value.filter((t) => {
     if (!t.deadline || t.status === 'COMPLETED' || isOverdue(t)) return false;
@@ -790,19 +780,18 @@ const deadlinePerformance = computed(() => {
     return days >= 0 && days <= 7;
   }).length;
 
+  const upcoming = assignedTasks.value.filter((t) => {
+    if (!t.deadline || t.status === 'COMPLETED' || isOverdue(t)) return false;
+    return daysUntil(t.deadline) > 7;
+  }).length;
+
+  const completed = assignedTasks.value.filter((t) => t.status === 'COMPLETED').length;
+
+  const noDeadline = assignedTasks.value.filter(
+    (t) => !t.deadline && t.status !== 'COMPLETED',
+  ).length;
+
   return [
-    {
-      label: 'Completed',
-      value: completed,
-      icon: 'check_circle',
-      color: 'positive',
-    },
-    {
-      label: 'Due within 7 days',
-      value: dueSoon,
-      icon: 'schedule',
-      color: 'warning',
-    },
     {
       label: 'Overdue',
       value: overdue,
@@ -810,7 +799,25 @@ const deadlinePerformance = computed(() => {
       color: 'negative',
     },
     {
-      label: 'No deadline',
+      label: 'Due ≤ 7 Days',
+      value: dueSoon,
+      icon: 'schedule',
+      color: 'warning',
+    },
+    {
+      label: 'Upcoming',
+      value: upcoming,
+      icon: 'event',
+      color: 'primary',
+    },
+    {
+      label: 'Completed',
+      value: completed,
+      icon: 'check_circle',
+      color: 'positive',
+    },
+    {
+      label: 'No Deadline',
       value: noDeadline,
       icon: 'event_busy',
       color: 'grey-6',
@@ -1001,7 +1008,7 @@ function initStatusChart() {
     { name: 'Scheduled', value: scheduledTasks.length, color: '#3F7FD5', tasks: scheduledTasks },
     { name: 'Overdue', value: overdueTasks.length, color: '#E05260', tasks: overdueTasks },
     ...(otherTasks.length > 0
-      ? [{ name: 'On Hold', value: otherTasks.length, color: '#F08A24', tasks: otherTasks }]
+      ? [{ name: 'Unassigned', value: otherTasks.length, color: '#98A2B3', tasks: otherTasks }]
       : []),
   ];
 
@@ -1038,6 +1045,7 @@ function initStatusChart() {
       },
     },
     legend: {
+      show: chartData.length > 0,
       orient: 'horizontal',
       bottom: '0%',
       left: 'center',
@@ -1193,6 +1201,7 @@ function initEffortChart() {
       },
     },
     legend: {
+      show: sortedTasks.length > 0,
       top: '0%',
       right: '2%',
       itemWidth: 10,
@@ -1203,11 +1212,12 @@ function initEffortChart() {
     grid: {
       top: '14%',
       left: '3%',
-      right: '8%',
+      right: 50,
       bottom: '6%',
       containLabel: true,
     },
     xAxis: {
+      show: sortedTasks.length > 0,
       type: 'value',
       name: 'Hours',
       nameLocation: 'end',
@@ -1217,6 +1227,7 @@ function initEffortChart() {
       splitLine: { lineStyle: { color: gridLine, type: 'dashed' } },
     },
     yAxis: {
+      show: sortedTasks.length > 0,
       type: 'category',
       inverse: true,
       data: taskTitles,
@@ -1342,11 +1353,12 @@ function initTaskProgressChart() {
     grid: {
       top: '8%',
       left: '3%',
-      right: '12%',
+      right: 55,
       bottom: '6%',
       containLabel: true,
     },
     xAxis: {
+      show: progressList.length > 0,
       type: 'value',
       min: 0,
       max: 100,
@@ -1358,6 +1370,7 @@ function initTaskProgressChart() {
       splitLine: { lineStyle: { color: gridLine, type: 'dashed' } },
     },
     yAxis: {
+      show: progressList.length > 0,
       type: 'category',
       inverse: true,
       data: taskTitles,
@@ -1511,11 +1524,12 @@ function initDeadlineChart() {
     grid: {
       top: '8%',
       left: '3%',
-      right: '12%',
+      right: 65,
       bottom: '6%',
       containLabel: true,
     },
     xAxis: {
+      show: myTasks.length > 0,
       type: 'value',
       minInterval: 1,
       name: 'Tasks',
@@ -1525,6 +1539,7 @@ function initDeadlineChart() {
       splitLine: { lineStyle: { color: gridLine, type: 'dashed' } },
     },
     yAxis: {
+      show: myTasks.length > 0,
       type: 'category',
       inverse: true,
       data: catNames,
@@ -1562,6 +1577,21 @@ function initDeadlineChart() {
         },
       },
     ],
+    graphic:
+      myTasks.length === 0
+        ? [
+            {
+              type: 'text',
+              left: 'center',
+              top: '45%',
+              style: {
+                text: 'No assigned tasks with deadlines',
+                font: 'bold 13px Manrope, sans-serif',
+                fill: mutedText,
+              },
+            },
+          ]
+        : [],
   };
 
   deadlineChart.setOption(option, true);
@@ -1794,6 +1824,11 @@ function handleDeadlineCardClick(label: string) {
     void router.push({
       path: '/app/resource-dashboard/task-details',
       query: { dueSoon: 'true' },
+    });
+  } else if (label === 'Upcoming') {
+    void router.push({
+      path: '/app/resource-dashboard/task-details',
+      query: { status: 'SCHEDULED' },
     });
   } else {
     void router.push('/app/resource-dashboard/task-details');
