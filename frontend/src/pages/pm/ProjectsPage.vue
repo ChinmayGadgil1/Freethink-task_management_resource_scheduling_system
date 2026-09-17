@@ -1,1005 +1,990 @@
 <template>
-  <q-page class="q-pa-md" :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'">
-    <div style="max-width: 1400px; margin: 0 auto">
-      <!-- 1. PAGE HEADER & GREETING -->
-      <div class="row items-center justify-between q-mb-lg">
-        <div>
-          <div class="page-title">Hey, {{ currentPmName }}!</div>
-          <div class="page-subtitle">
-            Plan, track, and manage everything your team is working on with complete clarity.
-          </div>
-        </div>
-
-        <div class="row items-center q-gutter-sm">
-          <q-btn
-            unelevated
-            no-caps
-            icon="add"
-            label="New Project"
-            color="primary"
-            class="rounded-borders"
-            @click="showCreateDialog = true"
-          />
+  <q-page class="pm-page projects-page">
+    <!-- 1. PAGE HEADER & GREETING -->
+    <div class="row items-center justify-between q-mb-lg">
+      <div>
+        <div class="page-title">Hey, {{ currentPmName }}!</div>
+        <div class="page-subtitle">
+          Plan, track, and manage everything your team is working on with complete clarity.
         </div>
       </div>
 
-      <!-- 2. SUMMARY / KPI STATS GRID (4 Widgets matching Resource Dashboard) -->
-      <div class="row q-col-gutter-md q-mb-lg">
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="Total Projects"
-            :value="totalProjects"
-            subtitle="Active Workspace"
-            badge="WORKSPACE"
-            icon="folder"
-            color="purple"
-            @click="filterAllProjects"
-          />
-        </div>
+      <div class="row items-center q-gutter-sm">
+        <q-btn
+          unelevated
+          no-caps
+          icon="add"
+          label="New Project"
+          color="primary"
+          class="rounded-borders"
+          @click="showCreateDialog = true"
+        />
+      </div>
+    </div>
 
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="On Track"
-            :value="onTrackProjects"
-            :subtitle="`${totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0}% of total`"
-            badge="ON TRACK"
-            icon="check_circle"
-            color="green"
-            @click="filterOnTrackProjects"
-          />
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="At Risk"
-            :value="atRiskProjects"
-            :subtitle="`${totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0}% of total`"
-            badge="AT RISK"
-            icon="warning_amber"
-            color="orange"
-            @click="filterAtRiskProjects"
-          />
-        </div>
-
-        <div class="col-12 col-sm-6 col-md-3">
-          <StatCard
-            title="Delayed"
-            :value="delayedProjects"
-            :subtitle="`${totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0}% of total`"
-            badge="URGENT"
-            icon="schedule"
-            color="red"
-            :negative="delayedProjects > 0"
-            @click="filterDelayedProjects"
-          />
-        </div>
+    <!-- 2. SUMMARY / KPI STATS GRID (4 Widgets matching Resource Dashboard) -->
+    <div class="row q-col-gutter-md q-mb-lg">
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="Total Projects"
+          :value="totalProjects"
+          subtitle="Active Workspace"
+          badge="WORKSPACE"
+          icon="folder"
+          color="purple"
+          @click="filterAllProjects"
+        />
       </div>
 
-      <!-- 3. TODAY'S FOCUS / FEATURED PROJECT HERO CARD (PRESERVING /projects/todays_focus_hero.jpg IMAGE BACKGROUND) -->
-      <div class="q-mb-lg">
-        <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
-          <div v-if="featuredProject" class="row">
-            <!-- Left Side: Hero Workspace Image Container with Overlaid Text & Actions -->
-            <div
-              class="col-12 col-md-7 q-pa-lg text-white row column justify-between"
-              :style="{
-                backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.3) 100%), url('/projects/todays_focus_hero.jpg')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                minHeight: '280px',
-              }"
-            >
-              <div>
-                <div class="row items-center justify-between q-mb-md">
-                  <q-chip dense color="white" text-color="purple-9" class="text-weight-bold">
-                    ✦ TODAY'S FOCUS
-                  </q-chip>
-                  <q-btn
-                    round
-                    flat
-                    dense
-                    icon="play_arrow"
-                    color="white"
-                    title="View Project"
-                    @click="goToProject(featuredProject.project_id)"
-                  />
-                </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="On Track"
+          :value="onTrackProjects"
+          :subtitle="`${totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0}% of total`"
+          badge="ON TRACK"
+          icon="check_circle"
+          color="green"
+          @click="filterOnTrackProjects"
+        />
+      </div>
 
-                <h2
-                  class="text-h5 text-weight-bold q-ma-none q-mb-xs"
-                  :title="featuredProject.name"
-                >
-                  {{ featuredProject.name }}
-                </h2>
-                <p class="text-body2 text-white-8 q-mb-md">
-                  {{
-                    featuredProject.description ||
-                    'Deliver project milestones on schedule, coordinate with assigned resources, and review open deliverables.'
-                  }}
-                </p>
-              </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="At Risk"
+          :value="atRiskProjects"
+          :subtitle="`${totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0}% of total`"
+          badge="AT RISK"
+          icon="warning_amber"
+          color="orange"
+          @click="filterAtRiskProjects"
+        />
+      </div>
 
-              <div class="row items-center justify-between">
+      <div class="col-12 col-sm-6 col-md-3">
+        <StatCard
+          title="Delayed"
+          :value="delayedProjects"
+          :subtitle="`${totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0}% of total`"
+          badge="URGENT"
+          icon="schedule"
+          color="red"
+          :negative="delayedProjects > 0"
+          @click="filterDelayedProjects"
+        />
+      </div>
+    </div>
+
+    <!-- 3. TODAY'S FOCUS / FEATURED PROJECT HERO CARD (PRESERVING /projects/todays_focus_hero.jpg IMAGE BACKGROUND) -->
+    <div class="q-mb-lg">
+      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
+        <div v-if="featuredProject" class="row">
+          <!-- Left Side: Hero Workspace Image Container with Overlaid Text & Actions -->
+          <div
+            class="col-12 col-md-7 q-pa-lg text-white row column justify-between"
+            :style="{
+              backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.3) 100%), url('/projects/todays_focus_hero.jpg')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              minHeight: '280px',
+            }"
+          >
+            <div>
+              <div class="row items-center justify-between q-mb-md">
+                <q-chip dense color="white" text-color="purple-9" class="text-weight-bold">
+                  ✦ TODAY'S FOCUS
+                </q-chip>
                 <q-btn
-                  unelevated
-                  no-caps
-                  label="View Project"
-                  icon-right="arrow_forward"
+                  round
+                  flat
+                  dense
+                  icon="play_arrow"
                   color="white"
-                  text-color="primary"
-                  class="text-weight-bold"
+                  title="View Project"
                   @click="goToProject(featuredProject.project_id)"
                 />
-                <div class="row items-center q-gutter-xs gt-xs">
-                  <q-chip dense color="black" text-color="amber-4" icon="flag">Core Focus</q-chip>
-                  <q-chip dense color="black" text-color="green-4" icon="trending_up">
-                    {{ Number(featuredProject.progress) || 0 }}% Done
-                  </q-chip>
-                </div>
               </div>
+
+              <h2 class="text-h5 text-weight-bold q-ma-none q-mb-xs" :title="featuredProject.name">
+                {{ featuredProject.name }}
+              </h2>
+              <p class="text-body2 text-white-8 q-mb-md">
+                {{
+                  featuredProject.description ||
+                  'Deliver project milestones on schedule, coordinate with assigned resources, and review open deliverables.'
+                }}
+              </p>
             </div>
 
-            <!-- Right Side: Structured Metadata Panel -->
-            <div
-              class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main"
-            >
-              <div>
-                <div class="row items-center justify-between q-mb-sm">
-                  <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
-                  <q-chip
-                    dense
-                    square
-                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                    class="text-weight-bold"
-                  >
-                    {{ getHealthLabel(featuredProject) }}
-                  </q-chip>
-                </div>
-
-                <!-- 4-Box Metadata Grid -->
-                <div class="row q-col-gutter-xs q-mb-md">
-                  <div class="col-6 q-pa-xs">
-                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                      <div class="text-caption text-grey-6">HEALTH</div>
-                      <div
-                        class="text-weight-bold"
-                        :class="`text-${getProjectHealth(featuredProject).toLowerCase()}`"
-                      >
-                        {{ getHealthLabel(featuredProject) }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-6 q-pa-xs">
-                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                      <div class="text-caption text-grey-6">STATUS</div>
-                      <div class="text-weight-bold text-main">
-                        {{ formatStatus(featuredProject.status) }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-6 q-pa-xs">
-                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                      <div class="text-caption text-grey-6">DEADLINE</div>
-                      <div class="text-weight-bold text-main">
-                        {{ formatDate(featuredProject.deadline) }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-6 q-pa-xs">
-                    <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                      <div class="text-caption text-grey-6">PRIORITY</div>
-                      <div class="text-weight-bold text-main">{{ featuredProject.priority }}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Completion Progress Bar -->
-                <div>
-                  <div
-                    class="row items-center justify-between text-caption text-weight-bold q-mb-xs"
-                  >
-                    <span>Project Completion</span>
-                    <span>{{ Number(featuredProject.progress) || 0 }}%</span>
-                  </div>
-                  <q-linear-progress
-                    rounded
-                    size="8px"
-                    :value="Math.min(100, Math.max(0, Number(featuredProject.progress) || 0)) / 100"
-                    color="primary"
-                    :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                  />
-                </div>
-              </div>
-
-              <!-- Footer Tags -->
-              <div class="row items-center justify-between text-caption text-grey-6 q-mt-sm">
-                <span>Targets: Scheduled Delivery, Quality Review</span>
+            <div class="row items-center justify-between">
+              <q-btn
+                unelevated
+                no-caps
+                label="View Project"
+                icon-right="arrow_forward"
+                color="white"
+                text-color="primary"
+                class="text-weight-bold"
+                @click="goToProject(featuredProject.project_id)"
+              />
+              <div class="row items-center q-gutter-xs gt-xs">
+                <q-chip dense color="black" text-color="amber-4" icon="flag">Core Focus</q-chip>
+                <q-chip dense color="black" text-color="green-4" icon="trending_up">
+                  {{ Number(featuredProject.progress) || 0 }}% Done
+                </q-chip>
               </div>
             </div>
           </div>
 
-          <!-- Empty Focus State -->
-          <div v-else class="q-pa-xl text-center">
-            <q-avatar size="60px" color="purple-1" text-color="primary" class="q-mb-sm">
-              <q-icon name="folder_open" size="30px" />
-            </q-avatar>
-            <div class="text-h6 text-weight-bold">No projects available</div>
-            <p class="text-caption text-grey-6">
-              Create your first project to start planning your team's workflow and focus.
-            </p>
-            <q-btn
-              unelevated
-              no-caps
-              label="Create New Project"
-              icon="add"
-              color="primary"
-              @click="showCreateDialog = true"
-            />
-          </div>
-        </q-card>
-      </div>
-
-      <!-- 4. SECONDARY DASHBOARD WIDGETS (Health Donut, Upcoming Deadlines) -->
-      <div class="row q-col-gutter-md q-mb-lg">
-        <!-- Active Resource Allocations (5 cols) -->
-        <div class="col-12 col-md-5">
-          <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
-            <q-card-section class="row items-center justify-between q-pb-xs">
-              <div>
-                <div class="text-subtitle1 text-weight-bold">Active Resource Allocations</div>
-                <div class="text-caption text-grey-6">
-                  Team engagement across active projects
-                </div>
-              </div>
-              <div class="row items-center q-gutter-xs">
+          <!-- Right Side: Structured Metadata Panel -->
+          <div
+            class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main"
+          >
+            <div>
+              <div class="row items-center justify-between q-mb-sm">
+                <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
                 <q-chip
                   dense
+                  square
                   :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                   :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
                   class="text-weight-bold"
                 >
-                  {{ activeAssignedCount }} / {{ totalResourceCount }} Active
+                  {{ getHealthLabel(featuredProject) }}
                 </q-chip>
-                <q-btn
-                  flat
-                  round
-                  dense
-                  icon="open_in_new"
-                  size="sm"
-                  color="grey-6"
-                  title="View All Resources"
-                  @click="goToResourcesList"
-                />
-              </div>
-            </q-card-section>
-
-            <q-card-section class="q-pt-xs">
-              <div
-                v-if="resourceAllocations.length === 0"
-                class="q-pa-md text-center text-grey-6"
-              >
-                <q-icon name="group_off" size="32px" />
-                <div class="q-mt-xs">No resources found</div>
               </div>
 
-              <q-scroll-area
-                v-else
-                style="height: 220px"
-                :thumb-style="{
-                  right: '2px',
-                  borderRadius: '4px',
-                  background: $q.dark.isActive ? '#a855f7' : '#7c3aed',
-                  width: '5px',
-                  opacity: '0.6',
-                }"
-              >
-                <div class="column q-gutter-xs q-pr-sm">
-                  <div
-                    v-for="item in resourceAllocations"
-                    :key="item.user.user_id"
-                    class="row items-center justify-between q-pa-sm rounded-borders cursor-pointer no-wrap"
-                    :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
-                    @click="goToResource(item.user.user_id)"
-                  >
-                    <!-- Resource Avatar & Info -->
-                    <div class="row items-center q-gutter-sm no-wrap" style="min-width: 0; flex: 1">
-                      <div style="position: relative; display: inline-block">
-                        <q-avatar
-                          size="34px"
-                          :color="item.hasActiveTasks ? 'primary' : 'grey-5'"
-                          text-color="white"
-                          class="text-weight-bold text-caption"
-                        >
-                          {{ item.user.name.charAt(0).toUpperCase() }}
-                        </q-avatar>
-                        <span
-                          style="
-                            position: absolute;
-                            bottom: 0;
-                            right: 0;
-                            width: 10px;
-                            height: 10px;
-                            border-radius: 50%;
-                            border: 2px solid;
-                          "
-                          :style="{
-                            background: item.hasActiveTasks ? '#10b981' : '#94a3b8',
-                            borderColor: $q.dark.isActive ? '#1e293b' : '#ffffff',
-                          }"
-                        />
-                      </div>
-
-                      <div class="column justify-center" style="min-width: 0; flex: 1">
-                        <div class="row items-center q-gutter-xs no-wrap">
-                          <span class="text-weight-bold text-caption ellipsis" style="font-size: 13px">
-                            {{ item.user.name }}
-                          </span>
-                        </div>
-
-                        <!-- Project Assignment Badges -->
-                        <div class="row items-center q-gutter-xs wrap q-mt-xs">
-                          <template v-if="item.projects.length > 0">
-                            <q-chip
-                              v-for="p in item.projects.slice(0, 2)"
-                              :key="p.id"
-                              dense
-                              size="xs"
-                              square
-                              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                              class="q-ma-none text-weight-medium ellipsis"
-                              style="max-width: 120px"
-                            >
-                              {{ p.name }}
-                            </q-chip>
-                            <span
-                              v-if="item.projects.length > 2"
-                              class="text-caption text-grey-6"
-                              style="font-size: 10px"
-                            >
-                              +{{ item.projects.length - 2 }} more
-                            </span>
-                          </template>
-                          <q-chip
-                            v-else
-                            dense
-                            size="xs"
-                            square
-                            :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-                            :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                            class="q-ma-none"
-                          >
-                            Available
-                          </q-chip>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Active Task Badge & Action -->
-                    <div class="row items-center q-gutter-xs no-wrap" style="flex-shrink: 0">
-                      <q-badge
-                        :color="
-                          item.hasActiveTasks
-                            ? $q.dark.isActive
-                              ? 'teal-10'
-                              : 'teal-1'
-                            : $q.dark.isActive
-                              ? 'grey-9'
-                              : 'grey-2'
-                        "
-                        :text-color="
-                          item.hasActiveTasks
-                            ? $q.dark.isActive
-                              ? 'teal-2'
-                              : 'teal-8'
-                            : 'grey-6'
-                        "
-                        class="text-weight-bold"
-                      >
-                        {{ item.activeTasksCount }} {{ item.activeTasksCount === 1 ? 'task' : 'tasks' }}
-                      </q-badge>
-                      <q-icon name="chevron_right" color="grey-6" size="16px" />
+              <!-- 4-Box Metadata Grid -->
+              <div class="row q-col-gutter-xs q-mb-md">
+                <div class="col-6 q-pa-xs">
+                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
+                    <div class="text-caption text-grey-6">HEALTH</div>
+                    <div
+                      class="text-weight-bold"
+                      :class="`text-${getProjectHealth(featuredProject).toLowerCase()}`"
+                    >
+                      {{ getHealthLabel(featuredProject) }}
                     </div>
                   </div>
                 </div>
-              </q-scroll-area>
-            </q-card-section>
-          </q-card>
+                <div class="col-6 q-pa-xs">
+                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
+                    <div class="text-caption text-grey-6">STATUS</div>
+                    <div class="text-weight-bold text-main">
+                      {{ formatStatus(featuredProject.status) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 q-pa-xs">
+                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
+                    <div class="text-caption text-grey-6">DEADLINE</div>
+                    <div class="text-weight-bold text-main">
+                      {{ formatDate(featuredProject.deadline) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 q-pa-xs">
+                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
+                    <div class="text-caption text-grey-6">PRIORITY</div>
+                    <div class="text-weight-bold text-main">{{ featuredProject.priority }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Completion Progress Bar -->
+              <div>
+                <div class="row items-center justify-between text-caption text-weight-bold q-mb-xs">
+                  <span>Project Completion</span>
+                  <span>{{ Number(featuredProject.progress) || 0 }}%</span>
+                </div>
+                <q-linear-progress
+                  rounded
+                  size="8px"
+                  :value="Math.min(100, Math.max(0, Number(featuredProject.progress) || 0)) / 100"
+                  color="primary"
+                  :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                />
+              </div>
+            </div>
+
+            <!-- Footer Tags -->
+            <div class="row items-center justify-between text-caption text-grey-6 q-mt-sm">
+              <span>Targets: Scheduled Delivery, Quality Review</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Upcoming Deadlines (7 cols) -->
-        <div class="col-12 col-md-7">
-          <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
-            <q-card-section class="row items-center justify-between q-pb-xs">
-              <div>
-                <div class="text-subtitle1 text-weight-bold">Upcoming Deadlines</div>
-                <div class="text-caption text-grey-6">Chronological milestone schedule</div>
-              </div>
+        <!-- Empty Focus State -->
+        <div v-else class="q-pa-xl text-center">
+          <q-avatar size="60px" color="purple-1" text-color="primary" class="q-mb-sm">
+            <q-icon name="folder_open" size="30px" />
+          </q-avatar>
+          <div class="text-h6 text-weight-bold">No projects available</div>
+          <p class="text-caption text-grey-6">
+            Create your first project to start planning your team's workflow and focus.
+          </p>
+          <q-btn
+            unelevated
+            no-caps
+            label="Create New Project"
+            icon="add"
+            color="primary"
+            @click="showCreateDialog = true"
+          />
+        </div>
+      </q-card>
+    </div>
+
+    <!-- 4. SECONDARY DASHBOARD WIDGETS (Health Donut, Upcoming Deadlines) -->
+    <div class="row q-col-gutter-md q-mb-lg">
+      <!-- Active Resource Allocations (5 cols) -->
+      <div class="col-12 col-md-5">
+        <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
+          <q-card-section class="row items-center justify-between q-pb-xs">
+            <div>
+              <div class="text-subtitle1 text-weight-bold">Active Resource Allocations</div>
+              <div class="text-caption text-grey-6">Team engagement across active projects</div>
+            </div>
+            <div class="row items-center q-gutter-xs">
               <q-chip
                 dense
                 :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
                 :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
                 class="text-weight-bold"
               >
-                {{ upcomingDeadlinesList.length }} scheduled
+                {{ activeAssignedCount }} / {{ totalResourceCount }} Active
               </q-chip>
-            </q-card-section>
-
-            <q-card-section class="q-pt-xs">
-              <div
-                v-if="upcomingDeadlinesList.length === 0"
-                class="q-pa-md text-center text-grey-6"
-              >
-                <q-icon name="event_available" size="32px" />
-                <div class="q-mt-xs">No upcoming project deadlines</div>
-              </div>
-
-              <q-scroll-area
-                v-else
-                style="height: 220px"
-                :thumb-style="{
-                  right: '2px',
-                  borderRadius: '4px',
-                  background: $q.dark.isActive ? '#a855f7' : '#7c3aed',
-                  width: '5px',
-                  opacity: '0.6',
-                }"
-              >
-                <div class="column q-gutter-xs q-pr-sm">
-                  <div
-                    v-for="item in upcomingDeadlinesList"
-                    :key="item.project.project_id"
-                    class="row items-center justify-between q-pa-sm rounded-borders cursor-pointer no-wrap"
-                    :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
-                    @click="goToProject(item.project.project_id)"
-                  >
-                    <div class="row items-center q-gutter-md no-wrap" style="min-width: 0; flex: 1">
-                      <!-- Date Badge -->
-                      <div
-                        class="column items-center justify-center rounded-borders q-px-xs q-py-xs"
-                        style="min-width: 44px; flex-shrink: 0"
-                        :class="
-                          $q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-purple-1 text-primary'
-                        "
-                      >
-                        <span class="text-caption text-weight-bold" style="font-size: 10px">{{
-                          item.month
-                        }}</span>
-                        <span class="text-subtitle2 text-weight-bolder" style="line-height: 1">{{
-                          item.day
-                        }}</span>
-                      </div>
-
-                      <div style="min-width: 0; flex: 1">
-                        <div class="row items-center q-gutter-xs no-wrap">
-                          <span class="text-weight-bold ellipsis">{{ item.project.name }}</span>
-                          <q-chip
-                            dense
-                            square
-                            size="xs"
-                            :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                            :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                            class="q-ma-none text-weight-medium"
-                            style="flex-shrink: 0"
-                          >
-                            {{ getHealthLabel(item.project) }}
-                          </q-chip>
-                        </div>
-                        <div class="text-caption text-grey-6 ellipsis">
-                          {{ item.relativeText }} • {{ Number(item.project.progress) || 0 }}%
-                          completed
-                        </div>
-                      </div>
-                    </div>
-
-                    <q-icon name="chevron_right" color="grey-6" style="flex-shrink: 0" />
-                  </div>
-                </div>
-              </q-scroll-area>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- 5. ACTIVE PROJECTS EXPLORER -->
-      <div class="q-mb-lg">
-        <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders">
-          <!-- Toolbar Header -->
-          <q-card-section class="row items-center justify-between">
-            <div class="row items-center q-gutter-sm">
-              <span class="text-subtitle1 text-weight-bold">Active Projects</span>
-              <q-badge
-                :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'"
-                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                class="text-weight-bold"
-              >
-                {{ filteredProjects.length }} Projects
-              </q-badge>
-            </div>
-
-            <div class="row items-center q-gutter-sm">
-              <q-select
-                v-model="groupBy"
-                dense
-                outlined
-                options-dense
-                :dark="$q.dark.isActive"
-                :options="['None', 'Status', 'Health']"
-                label="Group by"
-                style="min-width: 120px"
-              />
-
-              <q-btn-toggle
-                v-model="viewMode"
-                unelevated
-                dense
-                toggle-color="primary"
-                toggle-text-color="white"
-                color="transparent"
-                :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                :options="[
-                  { icon: 'grid_view', value: 'cards' },
-                  { icon: 'format_list_bulleted', value: 'table' },
-                ]"
-              />
-            </div>
-          </q-card-section>
-
-          <!-- Filter Toolbar -->
-          <q-card-section class="q-pt-none">
-            <div class="row q-col-gutter-sm items-center">
-              <div class="col-12 col-sm-4 col-md-3">
-                <q-input
-                  v-model="searchQuery"
-                  outlined
-                  dense
-                  clearable
-                  :dark="$q.dark.isActive"
-                  placeholder="Search projects..."
-                >
-                  <template #prepend>
-                    <q-icon name="search" size="18px" />
-                  </template>
-                </q-input>
-              </div>
-
-              <div class="col-6 col-sm-4 col-md-2">
-                <q-select
-                  v-model="statusFilter"
-                  outlined
-                  dense
-                  emit-value
-                  map-options
-                  :dark="$q.dark.isActive"
-                  :options="statusFilterOptions"
-                  label="Status"
-                />
-              </div>
-
-              <div class="col-6 col-sm-4 col-md-2">
-                <q-select
-                  v-model="healthFilter"
-                  outlined
-                  dense
-                  emit-value
-                  map-options
-                  :dark="$q.dark.isActive"
-                  :options="healthFilterOptions"
-                  label="Health"
-                />
-              </div>
-
-              <div class="col-6 col-md-2">
-                <q-input
-                  v-model="startDateFilter"
-                  outlined
-                  dense
-                  type="date"
-                  label="Start Date"
-                  :dark="$q.dark.isActive"
-                  stack-label
-                />
-              </div>
-
-              <div class="col-6 col-md-2">
-                <q-input
-                  v-model="endDateFilter"
-                  outlined
-                  dense
-                  type="date"
-                  label="End Date"
-                  :dark="$q.dark.isActive"
-                  stack-label
-                />
-              </div>
-
-              <div class="col-12 col-md-1 text-right">
-                <q-btn flat dense no-caps color="primary" label="Reset" @click="resetAllFilters" />
-              </div>
-            </div>
-          </q-card-section>
-
-          <q-separator :dark="$q.dark.isActive" />
-
-          <!-- CARDS VIEW -->
-          <div v-if="viewMode === 'cards'" class="q-pa-md">
-            <div v-if="loading" class="q-pa-xl text-center">
-              <q-spinner size="36px" color="primary" />
-              <div class="q-mt-sm text-caption">Loading projects...</div>
-            </div>
-
-            <div v-else-if="filteredProjects.length === 0" class="q-pa-xl text-center">
-              <q-avatar size="60px" color="purple-1" text-color="primary" class="q-mb-sm">
-                <q-icon name="folder_open" size="30px" />
-              </q-avatar>
-              <div class="text-h6 text-weight-bold">No projects found</div>
-              <div class="text-caption text-grey-6">
-                Try adjusting your search terms or active filters.
-              </div>
               <q-btn
                 flat
+                round
                 dense
-                no-caps
-                color="primary"
-                label="Clear Filters"
-                class="q-mt-sm"
-                @click="resetAllFilters"
+                icon="open_in_new"
+                size="sm"
+                color="grey-6"
+                title="View All Resources"
+                @click="goToResourcesList"
               />
             </div>
+          </q-card-section>
 
-            <div v-else>
-              <div v-for="group in groupedProjectCards" :key="group.label || 'all'" class="q-mb-md">
-                <div v-if="group.label" class="row items-center q-gutter-xs q-mb-sm">
-                  <q-icon name="category" size="16px" color="primary" />
-                  <span class="text-subtitle2 text-weight-bold">{{ group.label }}</span>
-                  <q-chip dense size="sm" color="purple-1" text-color="primary">{{
-                    group.projects.length
-                  }}</q-chip>
-                </div>
+          <q-card-section class="q-pt-xs">
+            <div v-if="resourceAllocations.length === 0" class="q-pa-md text-center text-grey-6">
+              <q-icon name="group_off" size="32px" />
+              <div class="q-mt-xs">No resources found</div>
+            </div>
 
-                <div class="projects-cards-grid">
-                  <q-card
-                    v-for="(project, index) in group.projects"
-                    :key="project.project_id"
-                    flat
-                    bordered
-                    :dark="$q.dark.isActive"
-                    class="project-grid-card cursor-pointer full-height column justify-between"
-                    @click="goToProject(project.project_id)"
-                  >
-                    <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
-                    <div
-                      class="text-white q-px-md q-pt-md q-pb-sm relative-position overflow-hidden"
-                      :style="{
-                        background: getProjectTheme(project, index).gradient,
-                      }"
-                    >
-                      <div class="row items-center justify-between no-wrap q-mb-sm">
-                        <q-avatar
-                          size="34px"
-                          color="white"
-                          :style="{ color: getProjectTheme(project, index).accent }"
-                          class="shadow-1"
-                        >
-                          <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
-                        </q-avatar>
-
-                        <div class="row items-center q-gutter-xs no-wrap">
-                          <span class="priority-frosted-pill">
-                            {{ project.priority || 'Medium' }}
-                          </span>
-                          <q-btn
-                            flat
-                            round
-                            dense
-                            icon="more_vert"
-                            color="white"
-                            size="sm"
-                            @click.stop
-                          >
-                            <q-menu auto-close>
-                              <q-list style="min-width: 150px">
-                                <q-item clickable @click="goToProject(project.project_id)">
-                                  <q-item-section avatar
-                                    ><q-icon name="visibility" color="primary"
-                                  /></q-item-section>
-                                  <q-item-section>View Details</q-item-section>
-                                </q-item>
-                                <q-item
-                                  v-if="project.status === 'COMPLETED'"
-                                  clickable
-                                  class="text-primary"
-                                  @click="confirmArchiveProject(project)"
-                                >
-                                  <q-item-section avatar
-                                    ><q-icon name="archive" color="primary"
-                                  /></q-item-section>
-                                  <q-item-section>Archive Project</q-item-section>
-                                </q-item>
-                                <q-item
-                                  v-if="project.status === 'ARCHIVED'"
-                                  clickable
-                                  class="text-primary"
-                                  @click="confirmUnarchiveProject(project)"
-                                >
-                                  <q-item-section avatar
-                                    ><q-icon name="unarchive" color="primary"
-                                  /></q-item-section>
-                                  <q-item-section>Unarchive Project</q-item-section>
-                                </q-item>
-                                <q-separator />
-                                <q-item
-                                  clickable
-                                  class="text-negative"
-                                  @click="confirmDeleteProject(project)"
-                                >
-                                  <q-item-section avatar
-                                    ><q-icon name="delete" color="negative"
-                                  /></q-item-section>
-                                  <q-item-section>Delete Project</q-item-section>
-                                </q-item>
-                              </q-list>
-                            </q-menu>
-                          </q-btn>
-                        </div>
-                      </div>
-
-                      <div
-                        class="text-subtitle1 text-weight-bold text-white q-mb-xs project-card-title"
-                        :title="project.name"
+            <q-scroll-area
+              v-else
+              style="height: 220px"
+              :thumb-style="{
+                right: '2px',
+                borderRadius: '4px',
+                background: $q.dark.isActive ? '#a855f7' : '#7c3aed',
+                width: '5px',
+                opacity: '0.6',
+              }"
+            >
+              <div class="column q-gutter-xs q-pr-sm">
+                <div
+                  v-for="item in resourceAllocations"
+                  :key="item.user.user_id"
+                  class="row items-center justify-between q-pa-sm rounded-borders cursor-pointer no-wrap"
+                  :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
+                  @click="goToResource(item.user.user_id)"
+                >
+                  <!-- Resource Avatar & Info -->
+                  <div class="row items-center q-gutter-sm no-wrap" style="min-width: 0; flex: 1">
+                    <div style="position: relative; display: inline-block">
+                      <q-avatar
+                        size="34px"
+                        :color="item.hasActiveTasks ? 'primary' : 'grey-5'"
+                        text-color="white"
+                        class="text-weight-bold text-caption"
                       >
-                        {{ project.name }}
-                      </div>
-                      <div
-                        class="text-caption text-white-8 project-card-desc"
-                        :title="project.description || ''"
-                      >
-                        {{
-                          project.description ||
-                          'Sprint deliverables, task assignments, and progress tracking.'
-                        }}
-                      </div>
+                        {{ item.user.name.charAt(0).toUpperCase() }}
+                      </q-avatar>
+                      <span
+                        style="
+                          position: absolute;
+                          bottom: 0;
+                          right: 0;
+                          width: 10px;
+                          height: 10px;
+                          border-radius: 50%;
+                          border: 2px solid;
+                        "
+                        :style="{
+                          background: item.hasActiveTasks ? '#10b981' : '#94a3b8',
+                          borderColor: $q.dark.isActive ? '#1e293b' : '#ffffff',
+                        }"
+                      />
                     </div>
 
-                    <!-- Card Body -->
-                    <q-card-section class="q-pa-md column justify-between col">
-                      <!-- Dual Pill Info Badges (like Image 4) -->
-                      <div class="row q-col-gutter-xs q-mb-md">
-                        <div class="col-6">
-                          <div
-                            class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
-                          >
-                            <q-icon name="assignment" size="13px" color="grey-6" />
-                            <div class="ellipsis">
-                              <span class="text-grey-6">Status: </span>
-                              <strong class="text-main">{{ formatStatus(project.status) }}</strong>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="col-6">
-                          <div
-                            class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
-                            :title="`Due: ${formatDate(project.deadline)}`"
-                          >
-                            <q-icon name="event" size="13px" color="grey-6" />
-                            <div class="ellipsis">
-                              <span class="text-grey-6">Due: </span>
-                              <strong class="text-main">{{ formatDate(project.deadline) }}</strong>
-                            </div>
-                          </div>
-                        </div>
+                    <div class="column justify-center" style="min-width: 0; flex: 1">
+                      <div class="row items-center q-gutter-xs no-wrap">
+                        <span
+                          class="text-weight-bold text-caption ellipsis"
+                          style="font-size: 13px"
+                        >
+                          {{ item.user.name }}
+                        </span>
                       </div>
 
-                      <!-- Progress Bar with matching theme color -->
-                      <div class="q-mb-xs">
-                        <div class="row items-center justify-between text-caption q-mb-xs">
-                          <span class="text-grey-6 text-weight-medium">Progress</span>
-                          <span
-                            class="text-weight-bold"
-                            :style="{ color: getProjectTheme(project, index).accent }"
+                      <!-- Project Assignment Badges -->
+                      <div class="row items-center q-gutter-xs wrap q-mt-xs">
+                        <template v-if="item.projects.length > 0">
+                          <q-chip
+                            v-for="p in item.projects.slice(0, 2)"
+                            :key="p.id"
+                            dense
+                            size="xs"
+                            square
+                            :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                            :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                            class="q-ma-none text-weight-medium ellipsis"
+                            style="max-width: 120px"
                           >
-                            {{ Number(project.progress) || 0 }}%
+                            {{ p.name }}
+                          </q-chip>
+                          <span
+                            v-if="item.projects.length > 2"
+                            class="text-caption text-grey-6"
+                            style="font-size: 10px"
+                          >
+                            +{{ item.projects.length - 2 }} more
                           </span>
-                        </div>
-                        <q-linear-progress
-                          rounded
-                          size="6px"
-                          :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
-                          :style="{ color: getProjectTheme(project, index).accent }"
-                          :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                        />
+                        </template>
+                        <q-chip
+                          v-else
+                          dense
+                          size="xs"
+                          square
+                          :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                          :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                          class="q-ma-none"
+                        >
+                          Available
+                        </q-chip>
                       </div>
-                    </q-card-section>
-                  </q-card>
+                    </div>
+                  </div>
+
+                  <!-- Active Task Badge & Action -->
+                  <div class="row items-center q-gutter-xs no-wrap" style="flex-shrink: 0">
+                    <q-badge
+                      :color="
+                        item.hasActiveTasks
+                          ? $q.dark.isActive
+                            ? 'teal-10'
+                            : 'teal-1'
+                          : $q.dark.isActive
+                            ? 'grey-9'
+                            : 'grey-2'
+                      "
+                      :text-color="
+                        item.hasActiveTasks ? ($q.dark.isActive ? 'teal-2' : 'teal-8') : 'grey-6'
+                      "
+                      class="text-weight-bold"
+                    >
+                      {{ item.activeTasksCount }}
+                      {{ item.activeTasksCount === 1 ? 'task' : 'tasks' }}
+                    </q-badge>
+                    <q-icon name="chevron_right" color="grey-6" size="16px" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- TABLE VIEW -->
-          <q-table
-            v-else
-            v-model:selected="selectedProjects"
-            flat
-            :dark="$q.dark.isActive"
-            :rows="filteredProjects"
-            :columns="projectColumns"
-            row-key="project_id"
-            selection="multiple"
-            :loading="loading"
-            :pagination="pagination"
-            :rows-per-page-options="[8, 16, 24]"
-            no-data-label="No projects found"
-          >
-            <template #body-cell-project="props">
-              <q-td :props="props">
-                <div
-                  class="row items-center q-gutter-xs cursor-pointer"
-                  @click="goToProject(props.row.project_id)"
-                >
-                  <q-avatar size="26px" color="purple-1" text-color="primary">
-                    <q-icon name="folder" size="14px" />
-                  </q-avatar>
-                  <span class="text-weight-bold">{{ props.row.name }}</span>
-                </div>
-              </q-td>
-            </template>
-
-            <template #body-cell-owner="props">
-              <q-td :props="props">
-                <div class="row items-center q-gutter-xs">
-                  <q-avatar size="24px" color="primary" text-color="white" class="text-caption">
-                    {{ currentPmName.charAt(0).toUpperCase() }}
-                  </q-avatar>
-                  <span>{{ currentPmName }}</span>
-                </div>
-              </q-td>
-            </template>
-
-            <template #body-cell-status="props">
-              <q-td :props="props">
-                <q-chip
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-                  :text-color="$q.dark.isActive ? 'white' : 'dark'"
-                >
-                  {{ formatStatus(props.row.status) }}
-                </q-chip>
-              </q-td>
-            </template>
-
-            <template #body-cell-health="props">
-              <q-td :props="props">
-                <q-chip
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                >
-                  {{ getHealthLabel(props.row) }}
-                </q-chip>
-              </q-td>
-            </template>
-
-            <template #body-cell-progress="props">
-              <q-td :props="props">
-                <div class="row items-center q-gutter-xs" style="min-width: 120px">
-                  <q-linear-progress
-                    rounded
-                    size="6px"
-                    :value="Math.min(100, Math.max(0, Number(props.row.progress) || 0)) / 100"
-                    color="primary"
-                    class="col"
-                  />
-                  <span class="text-caption text-weight-bold"
-                    >{{ Number(props.row.progress) || 0 }}%</span
-                  >
-                </div>
-              </q-td>
-            </template>
-
-            <template #body-cell-start_date="props">
-              <q-td :props="props">{{ formatDate(props.row.start_date) }}</q-td>
-            </template>
-
-            <template #body-cell-deadline="props">
-              <q-td :props="props">{{ formatDate(props.row.deadline) }}</q-td>
-            </template>
-
-            <template #body-cell-actions="props">
-              <q-td :props="props" auto-width>
-                <q-btn flat round dense icon="more_horiz" color="grey-6">
-                  <q-menu auto-close>
-                    <q-list style="min-width: 150px">
-                      <q-item clickable @click="goToProject(props.row.project_id)">
-                        <q-item-section avatar
-                          ><q-icon name="visibility" color="primary"
-                        /></q-item-section>
-                        <q-item-section>View Details</q-item-section>
-                      </q-item>
-                      <q-item
-                        v-if="props.row.status === 'COMPLETED'"
-                        clickable
-                        class="text-primary"
-                        @click="confirmArchiveProject(props.row)"
-                      >
-                        <q-item-section avatar
-                          ><q-icon name="archive" color="primary"
-                        /></q-item-section>
-                        <q-item-section>Archive Project</q-item-section>
-                      </q-item>
-                      <q-item
-                        v-if="props.row.status === 'ARCHIVED'"
-                        clickable
-                        class="text-primary"
-                        @click="confirmUnarchiveProject(props.row)"
-                      >
-                        <q-item-section avatar
-                          ><q-icon name="unarchive" color="primary"
-                        /></q-item-section>
-                        <q-item-section>Unarchive Project</q-item-section>
-                      </q-item>
-                      <q-separator />
-                      <q-item
-                        clickable
-                        class="text-negative"
-                        @click="confirmDeleteProject(props.row)"
-                      >
-                        <q-item-section avatar
-                          ><q-icon name="delete" color="negative"
-                        /></q-item-section>
-                        <q-item-section>Delete Project</q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn>
-              </q-td>
-            </template>
-          </q-table>
+            </q-scroll-area>
+          </q-card-section>
         </q-card>
       </div>
 
-      <!-- 6. INSIGHTS STRIP -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md">
-        <div class="row q-col-gutter-md items-center justify-around text-center">
-          <div class="row items-center q-gutter-sm">
-            <q-avatar size="36px" color="green-1" text-color="green"
-              ><q-icon name="trending_up"
-            /></q-avatar>
-            <div class="text-left">
-              <div class="text-caption text-grey-6">Highest Progress</div>
-              <div class="text-subtitle1 text-weight-bolder">
-                {{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%
+      <!-- Upcoming Deadlines (7 cols) -->
+      <div class="col-12 col-md-7">
+        <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
+          <q-card-section class="row items-center justify-between q-pb-xs">
+            <div>
+              <div class="text-subtitle1 text-weight-bold">Upcoming Deadlines</div>
+              <div class="text-caption text-grey-6">Chronological milestone schedule</div>
+            </div>
+            <q-chip
+              dense
+              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              class="text-weight-bold"
+            >
+              {{ upcomingDeadlinesList.length }} scheduled
+            </q-chip>
+          </q-card-section>
+
+          <q-card-section class="q-pt-xs">
+            <div v-if="upcomingDeadlinesList.length === 0" class="q-pa-md text-center text-grey-6">
+              <q-icon name="event_available" size="32px" />
+              <div class="q-mt-xs">No upcoming project deadlines</div>
+            </div>
+
+            <q-scroll-area
+              v-else
+              style="height: 220px"
+              :thumb-style="{
+                right: '2px',
+                borderRadius: '4px',
+                background: $q.dark.isActive ? '#a855f7' : '#7c3aed',
+                width: '5px',
+                opacity: '0.6',
+              }"
+            >
+              <div class="column q-gutter-xs q-pr-sm">
+                <div
+                  v-for="item in upcomingDeadlinesList"
+                  :key="item.project.project_id"
+                  class="row items-center justify-between q-pa-sm rounded-borders cursor-pointer no-wrap"
+                  :class="$q.dark.isActive ? 'hover-bg-dark' : 'hover-bg-light'"
+                  @click="goToProject(item.project.project_id)"
+                >
+                  <div class="row items-center q-gutter-md no-wrap" style="min-width: 0; flex: 1">
+                    <!-- Date Badge -->
+                    <div
+                      class="column items-center justify-center rounded-borders q-px-xs q-py-xs"
+                      style="min-width: 44px; flex-shrink: 0"
+                      :class="
+                        $q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-purple-1 text-primary'
+                      "
+                    >
+                      <span class="text-caption text-weight-bold" style="font-size: 10px">{{
+                        item.month
+                      }}</span>
+                      <span class="text-subtitle2 text-weight-bolder" style="line-height: 1">{{
+                        item.day
+                      }}</span>
+                    </div>
+
+                    <div style="min-width: 0; flex: 1">
+                      <div class="row items-center q-gutter-xs no-wrap">
+                        <span class="text-weight-bold ellipsis">{{ item.project.name }}</span>
+                        <q-chip
+                          dense
+                          square
+                          size="xs"
+                          :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                          :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                          class="q-ma-none text-weight-medium"
+                          style="flex-shrink: 0"
+                        >
+                          {{ getHealthLabel(item.project) }}
+                        </q-chip>
+                      </div>
+                      <div class="text-caption text-grey-6 ellipsis">
+                        {{ item.relativeText }} • {{ Number(item.project.progress) || 0 }}%
+                        completed
+                      </div>
+                    </div>
+                  </div>
+
+                  <q-icon name="chevron_right" color="grey-6" style="flex-shrink: 0" />
+                </div>
               </div>
-            </div>
+            </q-scroll-area>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
+
+    <!-- 5. ACTIVE PROJECTS EXPLORER -->
+    <div class="q-mb-lg">
+      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders">
+        <!-- Toolbar Header -->
+        <q-card-section class="row items-center justify-between">
+          <div class="row items-center q-gutter-sm">
+            <span class="text-subtitle1 text-weight-bold">Active Projects</span>
+            <q-badge
+              :color="$q.dark.isActive ? 'purple-10' : 'deep-purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              class="text-weight-bold"
+            >
+              {{ filteredProjects.length }} Projects
+            </q-badge>
           </div>
 
           <div class="row items-center q-gutter-sm">
-            <q-avatar size="36px" color="purple-1" text-color="primary"
-              ><q-icon name="pie_chart"
-            /></q-avatar>
-            <div class="text-left">
-              <div class="text-caption text-grey-6">Average Progress</div>
-              <div class="text-subtitle1 text-weight-bolder">{{ completionAverage }}%</div>
+            <q-select
+              v-model="groupBy"
+              dense
+              outlined
+              options-dense
+              :dark="$q.dark.isActive"
+              :options="['None', 'Status', 'Health']"
+              label="Group by"
+              style="min-width: 120px"
+            />
+
+            <q-btn-toggle
+              v-model="viewMode"
+              unelevated
+              dense
+              toggle-color="primary"
+              toggle-text-color="white"
+              color="transparent"
+              :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+              :options="[
+                { icon: 'grid_view', value: 'cards' },
+                { icon: 'format_list_bulleted', value: 'table' },
+              ]"
+            />
+          </div>
+        </q-card-section>
+
+        <!-- Filter Toolbar -->
+        <q-card-section class="q-pt-none">
+          <div class="row q-col-gutter-sm items-center">
+            <div class="col-12 col-sm-4 col-md-3">
+              <q-input
+                v-model="searchQuery"
+                outlined
+                dense
+                clearable
+                :dark="$q.dark.isActive"
+                placeholder="Search projects..."
+              >
+                <template #prepend>
+                  <q-icon name="search" size="18px" />
+                </template>
+              </q-input>
+            </div>
+
+            <div class="col-6 col-sm-4 col-md-2">
+              <q-select
+                v-model="statusFilter"
+                outlined
+                dense
+                emit-value
+                map-options
+                :dark="$q.dark.isActive"
+                :options="statusFilterOptions"
+                label="Status"
+              />
+            </div>
+
+            <div class="col-6 col-sm-4 col-md-2">
+              <q-select
+                v-model="healthFilter"
+                outlined
+                dense
+                emit-value
+                map-options
+                :dark="$q.dark.isActive"
+                :options="healthFilterOptions"
+                label="Health"
+              />
+            </div>
+
+            <div class="col-6 col-md-2">
+              <q-input
+                v-model="startDateFilter"
+                outlined
+                dense
+                type="date"
+                label="Start Date"
+                :dark="$q.dark.isActive"
+                stack-label
+              />
+            </div>
+
+            <div class="col-6 col-md-2">
+              <q-input
+                v-model="endDateFilter"
+                outlined
+                dense
+                type="date"
+                label="End Date"
+                :dark="$q.dark.isActive"
+                stack-label
+              />
+            </div>
+
+            <div class="col-12 col-md-1 text-right">
+              <q-btn flat dense no-caps color="primary" label="Reset" @click="resetAllFilters" />
             </div>
           </div>
+        </q-card-section>
 
-          <div class="row items-center q-gutter-sm">
-            <q-avatar size="36px" color="orange-1" text-color="orange"
-              ><q-icon name="priority_high"
-            /></q-avatar>
-            <div class="text-left">
-              <div class="text-caption text-grey-6">Projects Needing Attention</div>
-              <div class="text-subtitle1 text-weight-bolder">
-                {{ atRiskProjects + delayedProjects }}
+        <q-separator :dark="$q.dark.isActive" />
+
+        <!-- CARDS VIEW -->
+        <div v-if="viewMode === 'cards'" class="q-pa-md">
+          <div v-if="loading" class="q-pa-xl text-center">
+            <q-spinner size="36px" color="primary" />
+            <div class="q-mt-sm text-caption">Loading projects...</div>
+          </div>
+
+          <div v-else-if="filteredProjects.length === 0" class="q-pa-xl text-center">
+            <q-avatar size="60px" color="purple-1" text-color="primary" class="q-mb-sm">
+              <q-icon name="folder_open" size="30px" />
+            </q-avatar>
+            <div class="text-h6 text-weight-bold">No projects found</div>
+            <div class="text-caption text-grey-6">
+              Try adjusting your search terms or active filters.
+            </div>
+            <q-btn
+              flat
+              dense
+              no-caps
+              color="primary"
+              label="Clear Filters"
+              class="q-mt-sm"
+              @click="resetAllFilters"
+            />
+          </div>
+
+          <div v-else>
+            <div v-for="group in groupedProjectCards" :key="group.label || 'all'" class="q-mb-md">
+              <div v-if="group.label" class="row items-center q-gutter-xs q-mb-sm">
+                <q-icon name="category" size="16px" color="primary" />
+                <span class="text-subtitle2 text-weight-bold">{{ group.label }}</span>
+                <q-chip dense size="sm" color="purple-1" text-color="primary">{{
+                  group.projects.length
+                }}</q-chip>
+              </div>
+
+              <div class="projects-cards-grid">
+                <q-card
+                  v-for="(project, index) in group.projects"
+                  :key="project.project_id"
+                  flat
+                  bordered
+                  :dark="$q.dark.isActive"
+                  class="project-grid-card cursor-pointer full-height column justify-between"
+                  @click="goToProject(project.project_id)"
+                >
+                  <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
+                  <div
+                    class="text-white q-px-md q-pt-md q-pb-sm relative-position overflow-hidden"
+                    :style="{
+                      background: getProjectTheme(project, index).gradient,
+                    }"
+                  >
+                    <div class="row items-center justify-between no-wrap q-mb-sm">
+                      <q-avatar
+                        size="34px"
+                        color="white"
+                        :style="{ color: getProjectTheme(project, index).accent }"
+                        class="shadow-1"
+                      >
+                        <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
+                      </q-avatar>
+
+                      <div class="row items-center q-gutter-xs no-wrap">
+                        <span class="priority-frosted-pill">
+                          {{ project.priority || 'Medium' }}
+                        </span>
+                        <q-btn
+                          flat
+                          round
+                          dense
+                          icon="more_vert"
+                          color="white"
+                          size="sm"
+                          @click.stop
+                        >
+                          <q-menu auto-close>
+                            <q-list style="min-width: 150px">
+                              <q-item clickable @click="goToProject(project.project_id)">
+                                <q-item-section avatar
+                                  ><q-icon name="visibility" color="primary"
+                                /></q-item-section>
+                                <q-item-section>View Details</q-item-section>
+                              </q-item>
+                              <q-item
+                                v-if="project.status === 'COMPLETED'"
+                                clickable
+                                class="text-primary"
+                                @click="confirmArchiveProject(project)"
+                              >
+                                <q-item-section avatar
+                                  ><q-icon name="archive" color="primary"
+                                /></q-item-section>
+                                <q-item-section>Archive Project</q-item-section>
+                              </q-item>
+                              <q-item
+                                v-if="project.status === 'ARCHIVED'"
+                                clickable
+                                class="text-primary"
+                                @click="confirmUnarchiveProject(project)"
+                              >
+                                <q-item-section avatar
+                                  ><q-icon name="unarchive" color="primary"
+                                /></q-item-section>
+                                <q-item-section>Unarchive Project</q-item-section>
+                              </q-item>
+                              <q-separator />
+                              <q-item
+                                clickable
+                                class="text-negative"
+                                @click="confirmDeleteProject(project)"
+                              >
+                                <q-item-section avatar
+                                  ><q-icon name="delete" color="negative"
+                                /></q-item-section>
+                                <q-item-section>Delete Project</q-item-section>
+                              </q-item>
+                            </q-list>
+                          </q-menu>
+                        </q-btn>
+                      </div>
+                    </div>
+
+                    <div
+                      class="text-subtitle1 text-weight-bold text-white q-mb-xs project-card-title"
+                      :title="project.name"
+                    >
+                      {{ project.name }}
+                    </div>
+                    <div
+                      class="text-caption text-white-8 project-card-desc"
+                      :title="project.description || ''"
+                    >
+                      {{
+                        project.description ||
+                        'Sprint deliverables, task assignments, and progress tracking.'
+                      }}
+                    </div>
+                  </div>
+
+                  <!-- Card Body -->
+                  <q-card-section class="q-pa-md column justify-between col">
+                    <!-- Dual Pill Info Badges (like Image 4) -->
+                    <div class="row q-col-gutter-xs q-mb-md">
+                      <div class="col-6">
+                        <div
+                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                        >
+                          <q-icon name="assignment" size="13px" color="grey-6" />
+                          <div class="ellipsis">
+                            <span class="text-grey-6">Status: </span>
+                            <strong class="text-main">{{ formatStatus(project.status) }}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div
+                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                          :title="`Due: ${formatDate(project.deadline)}`"
+                        >
+                          <q-icon name="event" size="13px" color="grey-6" />
+                          <div class="ellipsis">
+                            <span class="text-grey-6">Due: </span>
+                            <strong class="text-main">{{ formatDate(project.deadline) }}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Progress Bar with matching theme color -->
+                    <div class="q-mb-xs">
+                      <div class="row items-center justify-between text-caption q-mb-xs">
+                        <span class="text-grey-6 text-weight-medium">Progress</span>
+                        <span
+                          class="text-weight-bold"
+                          :style="{ color: getProjectTheme(project, index).accent }"
+                        >
+                          {{ Number(project.progress) || 0 }}%
+                        </span>
+                      </div>
+                      <q-linear-progress
+                        rounded
+                        size="6px"
+                        :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
+                        :style="{ color: getProjectTheme(project, index).accent }"
+                        :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                      />
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- TABLE VIEW -->
+        <q-table
+          v-else
+          v-model:selected="selectedProjects"
+          flat
+          :dark="$q.dark.isActive"
+          :rows="filteredProjects"
+          :columns="projectColumns"
+          row-key="project_id"
+          selection="multiple"
+          :loading="loading"
+          :pagination="pagination"
+          :rows-per-page-options="[8, 16, 24]"
+          no-data-label="No projects found"
+        >
+          <template #body-cell-project="props">
+            <q-td :props="props">
+              <div
+                class="row items-center q-gutter-xs cursor-pointer"
+                @click="goToProject(props.row.project_id)"
+              >
+                <q-avatar size="26px" color="purple-1" text-color="primary">
+                  <q-icon name="folder" size="14px" />
+                </q-avatar>
+                <span class="text-weight-bold">{{ props.row.name }}</span>
+              </div>
+            </q-td>
+          </template>
+
+          <template #body-cell-owner="props">
+            <q-td :props="props">
+              <div class="row items-center q-gutter-xs">
+                <q-avatar size="24px" color="primary" text-color="white" class="text-caption">
+                  {{ currentPmName.charAt(0).toUpperCase() }}
+                </q-avatar>
+                <span>{{ currentPmName }}</span>
+              </div>
+            </q-td>
+          </template>
+
+          <template #body-cell-status="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                square
+                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                :text-color="$q.dark.isActive ? 'white' : 'dark'"
+              >
+                {{ formatStatus(props.row.status) }}
+              </q-chip>
+            </q-td>
+          </template>
+
+          <template #body-cell-health="props">
+            <q-td :props="props">
+              <q-chip
+                dense
+                square
+                :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              >
+                {{ getHealthLabel(props.row) }}
+              </q-chip>
+            </q-td>
+          </template>
+
+          <template #body-cell-progress="props">
+            <q-td :props="props">
+              <div class="row items-center q-gutter-xs" style="min-width: 120px">
+                <q-linear-progress
+                  rounded
+                  size="6px"
+                  :value="Math.min(100, Math.max(0, Number(props.row.progress) || 0)) / 100"
+                  color="primary"
+                  class="col"
+                />
+                <span class="text-caption text-weight-bold"
+                  >{{ Number(props.row.progress) || 0 }}%</span
+                >
+              </div>
+            </q-td>
+          </template>
+
+          <template #body-cell-start_date="props">
+            <q-td :props="props">{{ formatDate(props.row.start_date) }}</q-td>
+          </template>
+
+          <template #body-cell-deadline="props">
+            <q-td :props="props">{{ formatDate(props.row.deadline) }}</q-td>
+          </template>
+
+          <template #body-cell-actions="props">
+            <q-td :props="props" auto-width>
+              <q-btn flat round dense icon="more_horiz" color="grey-6">
+                <q-menu auto-close>
+                  <q-list style="min-width: 150px">
+                    <q-item clickable @click="goToProject(props.row.project_id)">
+                      <q-item-section avatar
+                        ><q-icon name="visibility" color="primary"
+                      /></q-item-section>
+                      <q-item-section>View Details</q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="props.row.status === 'COMPLETED'"
+                      clickable
+                      class="text-primary"
+                      @click="confirmArchiveProject(props.row)"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="archive" color="primary"
+                      /></q-item-section>
+                      <q-item-section>Archive Project</q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="props.row.status === 'ARCHIVED'"
+                      clickable
+                      class="text-primary"
+                      @click="confirmUnarchiveProject(props.row)"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="unarchive" color="primary"
+                      /></q-item-section>
+                      <q-item-section>Unarchive Project</q-item-section>
+                    </q-item>
+                    <q-separator />
+                    <q-item
+                      clickable
+                      class="text-negative"
+                      @click="confirmDeleteProject(props.row)"
+                    >
+                      <q-item-section avatar
+                        ><q-icon name="delete" color="negative"
+                      /></q-item-section>
+                      <q-item-section>Delete Project</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
+            </q-td>
+          </template>
+        </q-table>
       </q-card>
     </div>
+
+    <!-- 6. INSIGHTS STRIP -->
+    <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md">
+      <div class="row q-col-gutter-md items-center justify-around text-center">
+        <div class="row items-center q-gutter-sm">
+          <q-avatar size="36px" color="green-1" text-color="green"
+            ><q-icon name="trending_up"
+          /></q-avatar>
+          <div class="text-left">
+            <div class="text-caption text-grey-6">Highest Progress</div>
+            <div class="text-subtitle1 text-weight-bolder">
+              {{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%
+            </div>
+          </div>
+        </div>
+
+        <div class="row items-center q-gutter-sm">
+          <q-avatar size="36px" color="purple-1" text-color="primary"
+            ><q-icon name="pie_chart"
+          /></q-avatar>
+          <div class="text-left">
+            <div class="text-caption text-grey-6">Average Progress</div>
+            <div class="text-subtitle1 text-weight-bolder">{{ completionAverage }}%</div>
+          </div>
+        </div>
+
+        <div class="row items-center q-gutter-sm">
+          <q-avatar size="36px" color="orange-1" text-color="orange"
+            ><q-icon name="priority_high"
+          /></q-avatar>
+          <div class="text-left">
+            <div class="text-caption text-grey-6">Projects Needing Attention</div>
+            <div class="text-subtitle1 text-weight-bolder">
+              {{ atRiskProjects + delayedProjects }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </q-card>
 
     <!-- CREATE PROJECT DIALOG -->
     <q-dialog v-model="showCreateDialog">
@@ -1675,7 +1660,6 @@ const completionAverage = computed(() => {
 
   return Math.round(total / activeWorkspaceProjects.value.length);
 });
-
 
 const featuredProject = computed(() => {
   if (!activeWorkspaceProjects.value.length) return null;

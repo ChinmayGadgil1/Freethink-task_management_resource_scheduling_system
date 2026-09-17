@@ -76,32 +76,66 @@
               <div class="profile-name">{{ user.name }}</div>
               <div class="profile-role">Resource</div>
             </div>
-            <q-icon name="keyboard_arrow_down" size="18px" color="grey-6" />
+            <q-icon name="keyboard_arrow_down" size="18px" color="grey-6" class="gt-xs" />
 
-            <q-menu>
-              <q-list style="min-width: 190px">
-                <q-item>
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold">{{ user.name }}</q-item-label>
-                    <q-item-label caption>{{ user.email }}</q-item-label>
+            <q-menu
+              transition-show="jump-down"
+              transition-hide="jump-up"
+              class="profile-dropdown-menu"
+            >
+              <q-list style="min-width: 250px">
+                <!-- User Info Header Section -->
+                <q-item class="q-py-md q-px-md row items-center no-wrap">
+                  <q-item-section avatar style="min-width: 46px">
+                    <q-avatar size="38px" class="profile-dropdown-avatar">
+                      <span class="profile-initial">
+                        {{ userInitial }}
+                      </span>
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section class="q-pl-xs">
+                    <q-item-label
+                      class="text-weight-bold text-dark text-subtitle2 ellipsis"
+                      style="font-size: 13.5px; line-height: 1.25"
+                    >
+                      {{ user.name }}
+                    </q-item-label>
+                    <q-item-label
+                      caption
+                      class="text-grey-6 ellipsis"
+                      style="font-size: 11px; margin-top: 1px"
+                      :title="user.email"
+                    >
+                      {{ user.email }}
+                    </q-item-label>
+                    <div class="row items-center q-mt-xs">
+                      <span class="role-badge res-badge"> Resource </span>
+                    </div>
                   </q-item-section>
                 </q-item>
+
                 <q-separator />
+
+                <!-- Action Items -->
                 <q-item
                   clickable
                   v-close-popup
                   @click="router.push('/app/resource-dashboard/profile')"
+                  class="q-py-sm q-px-md"
                 >
-                  <q-item-section avatar>
-                    <q-icon name="person" color="primary" />
+                  <q-item-section avatar style="min-width: 32px">
+                    <q-icon name="person" color="primary" size="18px" />
                   </q-item-section>
-                  <q-item-section>My Profile</q-item-section>
+                  <q-item-section style="font-size: 12.5px">My Profile</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup @click="logout">
-                  <q-item-section avatar>
-                    <q-icon name="logout" color="negative" />
+
+                <q-item clickable v-close-popup @click="logout" class="logout-item q-py-sm q-px-md">
+                  <q-item-section avatar style="min-width: 32px">
+                    <q-icon name="logout" color="negative" size="18px" />
                   </q-item-section>
-                  <q-item-section>logout</q-item-section>
+                  <q-item-section class="text-negative text-weight-bold" style="font-size: 12.5px"
+                    >Logout</q-item-section
+                  >
                 </q-item>
               </q-list>
             </q-menu>
@@ -410,5 +444,53 @@ body.body--dark .profile-name {
 
 .resource-page-container {
   min-height: 100vh;
+}
+
+/* Profile Dropdown Custom Styling */
+.profile-dropdown-menu {
+  border-radius: 12px !important;
+  border: 1px solid var(--wo-border, #e5e7ec) !important;
+  box-shadow:
+    0 10px 25px -5px rgba(16, 24, 40, 0.08),
+    0 8px 10px -6px rgba(16, 24, 40, 0.05) !important;
+  overflow: hidden;
+}
+
+.profile-dropdown-avatar {
+  background: rgba(139, 111, 216, 0.12) !important;
+  color: var(--wo-primary, #8b6fd8) !important;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1.5px solid rgba(139, 111, 216, 0.25);
+}
+
+.role-badge {
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+
+  &.pm-badge {
+    background: rgba(139, 111, 216, 0.12);
+    color: #8b6fd8;
+  }
+
+  &.res-badge {
+    background: rgba(19, 174, 118, 0.12);
+    color: #13ae76;
+  }
+}
+
+.logout-item {
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.06) !important;
+  }
 }
 </style>
