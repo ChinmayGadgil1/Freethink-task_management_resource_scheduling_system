@@ -537,6 +537,34 @@ export async function approveLeave(identifier: number | string, pmUserId: number
         console.error("Warning: Failed to create leave approved notification:", notifErr);
     }
 
+    // Notify other PMs (who share this resource) that the leave was approved
+    try {
+        const [otherPmRows] = await pool.query<RowDataPacket[]>(
+            `SELECT DISTINCT p.project_manager_id
+             FROM projects p
+             INNER JOIN project_members pm ON p.project_id = pm.project_id
+             WHERE pm.user_id = ? AND p.project_manager_id IS NOT NULL AND p.project_manager_id != ?`,
+            [userId, pmUserId]
+        );
+
+        const dateRangeText = rows.length > 1
+            ? `${earliestDate} to ${String(rows[rows.length - 1]!.leave_date)} (${totalHours}h)`
+            : `${earliestDate} (${totalHours}h)`;
+
+        for (const r of otherPmRows) {
+            const otherPmId = Number(r.project_manager_id);
+            await createNotification({
+                userId: otherPmId,
+                type: "LEAVE_APPROVED",
+                title: `Leave Approved: ${firstRow.user_name}`,
+                message: `Leave for ${firstRow.user_name} (${dateRangeText}) has been approved by ${pmName || 'Project Manager'}.`,
+                link: "/pm/leaves",
+            });
+        }
+    } catch (notifErr) {
+        console.error("Warning: Failed to create cross-PM leave approved notifications:", notifErr);
+    }
+
     return approvedResult;
 }
 
