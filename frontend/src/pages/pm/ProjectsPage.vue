@@ -74,165 +74,7 @@
       </div>
     </div>
 
-    <!-- 3. TODAY'S FOCUS / FEATURED PROJECT HERO CARD (PRESERVING /projects/todays_focus_hero.jpg IMAGE BACKGROUND) -->
-    <div class="q-mb-lg">
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders overflow-hidden">
-        <div v-if="featuredProject" class="row">
-          <!-- Left Side: Hero Workspace Image Container with Overlaid Text & Actions -->
-          <div
-            class="col-12 col-md-7 q-pa-lg text-white row column justify-between"
-            :style="{
-              backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0.3) 100%), url('/projects/todays_focus_hero.jpg')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              minHeight: '280px',
-            }"
-          >
-            <div>
-              <div class="row items-center justify-between q-mb-md">
-                <q-chip dense color="white" text-color="purple-9" class="text-weight-bold">
-                  ✦ TODAY'S FOCUS
-                </q-chip>
-                <q-btn
-                  round
-                  flat
-                  dense
-                  icon="play_arrow"
-                  color="white"
-                  title="View Project"
-                  @click="goToProject(featuredProject.project_id)"
-                />
-              </div>
 
-              <h2 class="text-h5 text-weight-bold q-ma-none q-mb-xs" :title="featuredProject.name">
-                {{ featuredProject.name }}
-              </h2>
-              <p class="text-body2 text-white-8 q-mb-md">
-                {{
-                  featuredProject.description ||
-                  'Deliver project milestones on schedule, coordinate with assigned resources, and review open deliverables.'
-                }}
-              </p>
-            </div>
-
-            <div class="row items-center justify-between">
-              <q-btn
-                unelevated
-                no-caps
-                label="View Project"
-                icon-right="arrow_forward"
-                color="white"
-                text-color="primary"
-                class="text-weight-bold"
-                @click="goToProject(featuredProject.project_id)"
-              />
-              <div class="row items-center q-gutter-xs gt-xs">
-                <q-chip dense color="black" text-color="amber-4" icon="flag">Core Focus</q-chip>
-                <q-chip dense color="black" text-color="green-4" icon="trending_up">
-                  {{ Number(featuredProject.progress) || 0 }}% Done
-                </q-chip>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Side: Structured Metadata Panel -->
-          <div
-            class="col-12 col-md-5 q-pa-lg row column justify-between border-left-subtle bg-card text-main"
-          >
-            <div>
-              <div class="row items-center justify-between q-mb-sm">
-                <span class="text-caption text-weight-bolder text-grey-6">PROJECT DETAILS</span>
-                <q-chip
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  class="text-weight-bold"
-                >
-                  {{ getHealthLabel(featuredProject) }}
-                </q-chip>
-              </div>
-
-              <!-- 4-Box Metadata Grid -->
-              <div class="row q-col-gutter-xs q-mb-md">
-                <div class="col-6 q-pa-xs">
-                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                    <div class="text-caption text-grey-6">HEALTH</div>
-                    <div
-                      class="text-weight-bold"
-                      :class="`text-${getProjectHealth(featuredProject).toLowerCase()}`"
-                    >
-                      {{ getHealthLabel(featuredProject) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="col-6 q-pa-xs">
-                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                    <div class="text-caption text-grey-6">STATUS</div>
-                    <div class="text-weight-bold text-main">
-                      {{ formatStatus(featuredProject.status) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="col-6 q-pa-xs">
-                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                    <div class="text-caption text-grey-6">DEADLINE</div>
-                    <div class="text-weight-bold text-main">
-                      {{ formatDate(featuredProject.deadline) }}
-                    </div>
-                  </div>
-                </div>
-                <div class="col-6 q-pa-xs">
-                  <div class="q-pa-sm rounded-borders border-subtle bg-subtle">
-                    <div class="text-caption text-grey-6">PRIORITY</div>
-                    <div class="text-weight-bold text-main">{{ featuredProject.priority }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Completion Progress Bar -->
-              <div>
-                <div class="row items-center justify-between text-caption text-weight-bold q-mb-xs">
-                  <span>Project Completion</span>
-                  <span>{{ Number(featuredProject.progress) || 0 }}%</span>
-                </div>
-                <q-linear-progress
-                  rounded
-                  size="8px"
-                  :value="Math.min(100, Math.max(0, Number(featuredProject.progress) || 0)) / 100"
-                  color="primary"
-                  :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                />
-              </div>
-            </div>
-
-            <!-- Footer Tags -->
-            <div class="row items-center justify-between text-caption text-grey-6 q-mt-sm">
-              <span>Targets: Scheduled Delivery, Quality Review</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Empty Focus State -->
-        <div v-else class="q-pa-xl text-center">
-          <q-avatar size="60px" color="purple-1" text-color="primary" class="q-mb-sm">
-            <q-icon name="folder_open" size="30px" />
-          </q-avatar>
-          <div class="text-h6 text-weight-bold">No projects available</div>
-          <p class="text-caption text-grey-6">
-            Create your first project to start planning your team's workflow and focus.
-          </p>
-          <q-btn
-            unelevated
-            no-caps
-            label="Create New Project"
-            icon="add"
-            color="primary"
-            @click="showCreateDialog = true"
-          />
-        </div>
-      </q-card>
-    </div>
 
     <!-- 4. SECONDARY DASHBOARD WIDGETS (Health Donut, Upcoming Deadlines) -->
     <div class="row q-col-gutter-md q-mb-lg">
@@ -654,21 +496,14 @@
                   class="project-grid-card cursor-pointer full-height column justify-between"
                   @click="goToProject(project.project_id)"
                 >
-                  <!-- Card Header with Soft Pastel / Vibrant Gradient (Image 4 Style) -->
-                  <div
-                    class="text-white q-px-md q-pt-md q-pb-sm relative-position overflow-hidden"
-                    :style="{
-                      background: getProjectTheme(project, index).gradient,
-                    }"
-                  >
+                  <!-- Consistent Clean Card Header -->
+                  <div class="q-px-md q-pt-md q-pb-sm relative-position overflow-hidden project-card-header">
                     <div class="row items-center justify-between no-wrap q-mb-sm">
                       <q-avatar
                         size="34px"
-                        color="white"
-                        :style="{ color: getProjectTheme(project, index).accent }"
-                        class="shadow-1"
+                        class="project-card-avatar"
                       >
-                        <q-icon :name="getProjectTheme(project, index).iconName" size="18px" />
+                        <q-icon name="folder" size="18px" />
                       </q-avatar>
 
                       <div class="row items-center q-gutter-xs no-wrap">
@@ -732,13 +567,13 @@
                     </div>
 
                     <div
-                      class="text-subtitle1 text-weight-bold text-white q-mb-xs project-card-title"
+                      class="text-subtitle1 text-weight-bold project-card-title q-mb-xs"
                       :title="project.name"
                     >
                       {{ project.name }}
                     </div>
                     <div
-                      class="text-caption text-white-8 project-card-desc"
+                      class="text-caption text-muted project-card-desc"
                       :title="project.description || ''"
                     >
                       {{
@@ -1661,20 +1496,6 @@ const completionAverage = computed(() => {
   return Math.round(total / activeWorkspaceProjects.value.length);
 });
 
-const featuredProject = computed(() => {
-  if (!activeWorkspaceProjects.value.length) return null;
-
-  const activeWithDeadline = activeWorkspaceProjects.value
-    .filter((p) => p.status === 'IN_PROGRESS' && !!p.deadline)
-    .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime());
-
-  if (activeWithDeadline.length > 0) return activeWithDeadline[0];
-
-  const activeProjects = activeWorkspaceProjects.value.filter((p) => p.status === 'IN_PROGRESS');
-  if (activeProjects.length > 0) return activeProjects[0];
-
-  return activeWorkspaceProjects.value[0];
-});
 
 export interface ResourceAllocationItem {
   user: ResourceUser;
@@ -1881,7 +1702,18 @@ onMounted(() => {
   }
 }
 
+.project-card-header {
+  background: var(--wo-bg-card-hover, #f8fafc);
+  border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.project-card-avatar {
+  background: var(--wo-primary-light, rgba(139, 111, 216, 0.12));
+  color: var(--wo-primary, #8b6fd8);
+}
+
 .project-card-title {
+  color: var(--wo-text-main, #172033);
   min-height: 44px;
   font-size: 15.5px;
   line-height: 1.35;
