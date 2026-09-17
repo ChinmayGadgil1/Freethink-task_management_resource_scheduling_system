@@ -48,7 +48,7 @@
           :class="{ 'rail-item-active': isLinkActive(computedHelpRoute) }"
           title="Help & Support"
         >
-          <div class="rail-icon-box flex flex-center bg-teal-soft">
+          <div class="rail-icon-box flex flex-center bg-purple-soft">
             <q-icon name="help_outline" size="18px" />
           </div>
           <q-tooltip anchor="center right" self="center left" :offset="[10, 0]">
@@ -114,7 +114,7 @@
               class="menu-nav-link"
               :class="{ 'menu-nav-link-active': isLinkActive(computedHelpRoute) }"
             >
-              <q-icon name="help_outline" size="17px" class="q-mr-sm text-teal" />
+              <q-icon name="help_outline" size="17px" class="q-mr-sm text-primary" />
               <span class="nav-text" :class="{ 'font-bold': isLinkActive(computedHelpRoute) }">
                 Help & Support
               </span>
