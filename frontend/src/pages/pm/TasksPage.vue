@@ -37,7 +37,7 @@
           label="New Task"
           color="primary"
           class="rounded-borders"
-          @click="showCreateDialog = true"
+          @click="quickCreateInColumn()"
         />
         <q-btn
           outline
@@ -201,7 +201,7 @@
                 icon="add"
                 size="sm"
                 title="Add task in this column"
-                @click="quickCreateInColumn()"
+                @click="quickCreateInColumn(col.id)"
               >
                 <q-tooltip>Add {{ col.title }} Task</q-tooltip>
               </q-btn>
@@ -857,6 +857,7 @@
     <!-- CREATE TASK DIALOG -->
     <CreateTaskDialog
       v-model="showCreateDialog"
+      :initial-status="createTaskInitialStatus"
       :projects="projectSelectOptions"
       :member-options="createMemberOptions"
       :supervisor-options="createMemberOptions"
@@ -1074,7 +1075,7 @@ import {
   unassignTaskResourceApi,
   updateTaskApi,
 } from '@/services/api';
-import type { Project, ResourceUser, Task, TaskPriority } from '@/services/api';
+import type { Project, ResourceUser, Task, TaskPriority, TaskStatus } from '@/services/api';
 
 const $q = useQuasar();
 
@@ -1117,6 +1118,7 @@ function filterScheduledTasks() {
 }
 
 const showCreateDialog = ref(false);
+const createTaskInitialStatus = ref<TaskStatus | undefined>(undefined);
 const showEditDialog = ref(false);
 const editingTaskId = ref<number | null>(null);
 const submitting = ref(false);
@@ -1159,7 +1161,8 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   },
 ];
 
-function quickCreateInColumn() {
+function quickCreateInColumn(columnStatus?: TaskStatus) {
+  createTaskInitialStatus.value = columnStatus;
   showCreateDialog.value = true;
 }
 
@@ -2014,6 +2017,7 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       title: data.title.trim(),
       description: data.description?.trim() || null,
       priority: data.priority,
+      status: data.status,
       expected_effort: Number(data.expected_effort) || 8,
       deadline: data.deadline || null,
       assigned_resource_ids: data.assigned_resource_ids,

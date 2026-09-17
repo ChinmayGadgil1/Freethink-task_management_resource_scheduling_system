@@ -1099,14 +1099,14 @@
     <!-- DELETE PROJECT CONFIRMATION DIALOG -->
     <ConfirmActionDialog
       v-model="showDeleteDialog"
-      title="Delete Project"
-      subtitle="This action cannot be undone"
-      confirm-label="Delete Project"
+      title="Move Project to Bin"
+      subtitle="The project will be moved to the Recycle Bin"
+      confirm-label="Move to Bin"
       :loading="deletingProject"
       @confirm="handleExecuteDeleteProject"
     >
-      Are you sure you want to delete project <strong>"{{ projectToDelete?.name }}"</strong>? All
-      associated tasks, dependencies, and team assignments will be permanently removed.
+      Are you sure you want to move project <strong>"{{ projectToDelete?.name }}"</strong> to the Recycle Bin? All
+      associated tasks will also be moved to the bin and can be restored later.
     </ConfirmActionDialog>
 
     <!-- ARCHIVE PROJECT CONFIRMATION DIALOG -->
@@ -1271,7 +1271,7 @@ async function handleExecuteDeleteProject() {
     await deleteProjectApi(projectToDelete.value.project_id);
     $q.notify({
       type: 'positive',
-      message: `Project "${projectToDelete.value.name}" deleted successfully`,
+      message: `Project "${projectToDelete.value.name}" moved to Recycle Bin`,
     });
     showDeleteDialog.value = false;
     projectToDelete.value = null;
