@@ -129,10 +129,12 @@ export async function createTask(
                 console.error("Failed to sync project progress in createTask:", syncErr);
             }
 
+            const nowIso = new Date().toISOString();
             const assignedResources = users.map(u => ({
                 user_id: Number(u.user_id),
                 name: String(u.name),
-                email: String(u.email)
+                email: String(u.email),
+                assigned_at: nowIso
             }));
 
             return {
@@ -309,7 +311,7 @@ export async function getTasksList(filters: {
     );
 
     const [assignments] = await pool.query<RowDataPacket[]>(
-        `SELECT ta.task_id, ta.user_id, u.name as resource_name, u.email as resource_email
+        `SELECT ta.task_id, ta.user_id, ta.created_at as assigned_at, u.name as resource_name, u.email as resource_email
          FROM task_assignments ta
          JOIN users u ON ta.user_id = u.user_id
          WHERE ta.task_id IN (?)`,
@@ -345,7 +347,7 @@ export async function getTasksList(filters: {
         });
     }
 
-    const assignmentMap = new Map<number, { user_id: number; name: string; email: string }[]>();
+    const assignmentMap = new Map<number, { user_id: number; name: string; email: string; assigned_at?: string | null }[]>();
     for (const a of assignments) {
         const tId = Number(a.task_id);
         if (!assignmentMap.has(tId)) {
@@ -354,7 +356,10 @@ export async function getTasksList(filters: {
         assignmentMap.get(tId)!.push({
             user_id: Number(a.user_id),
             name: String(a.resource_name),
-            email: String(a.resource_email)
+            email: String(a.resource_email),
+            assigned_at: a.assigned_at
+                ? (a.assigned_at instanceof Date ? a.assigned_at.toISOString() : new Date(a.assigned_at).toISOString())
+                : null
         });
     }
 
@@ -502,7 +507,7 @@ export async function getTaskById(taskId: number) {
     );
 
     const [assignments] = await pool.query<RowDataPacket[]>(
-        `SELECT ta.task_id, ta.user_id, u.name as resource_name, u.email as resource_email
+        `SELECT ta.task_id, ta.user_id, ta.created_at as assigned_at, u.name as resource_name, u.email as resource_email
          FROM task_assignments ta
          JOIN users u ON ta.user_id = u.user_id
          WHERE ta.task_id = ?`,
@@ -534,7 +539,10 @@ export async function getTaskById(taskId: number) {
     const assignedResources = assignments.map(a => ({
         user_id: Number(a.user_id),
         name: String(a.resource_name),
-        email: String(a.resource_email)
+        email: String(a.resource_email),
+        assigned_at: a.assigned_at
+            ? (a.assigned_at instanceof Date ? a.assigned_at.toISOString() : new Date(a.assigned_at).toISOString())
+            : null
     }));
 
     const formattedSchedules = schedules.map(s => ({

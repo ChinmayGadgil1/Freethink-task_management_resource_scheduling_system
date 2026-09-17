@@ -88,6 +88,7 @@ export interface AssignedResource {
   user_id: number;
   name: string;
   email?: string;
+  assigned_at?: string | null;
 }
 
 export interface PredecessorTaskInfo {

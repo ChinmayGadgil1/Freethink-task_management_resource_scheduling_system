@@ -76,25 +76,113 @@ export interface MilestoneItem {
   healthColor: string;
 }
 
+export interface WeeklyShiftDay {
+  dateStr: string;
+  dayLabel: string;
+  shortLabel: string;
+  isWeekend: boolean;
+}
+
+export interface WeeklyShiftWorkloadItem {
+  dayLabel: string;
+  shortLabel: string;
+  dateStr: string;
+  isWeekend: boolean;
+  allocatedHours: number;
+  capacityHours: number;
+  utilization: number;
+  isOverloaded: boolean;
+}
+
 /**
- * Returns Monday through Friday dates for the current calendar week.
+ * Returns Monday through Sunday dates for the current calendar week.
  */
-export function getCurrentWeekWorkingDays(): { dateStr: string; dayLabel: string }[] {
+export function getCurrentWeekShiftDays(): WeeklyShiftDay[] {
   const now = new Date();
   const currentDay = now.getDay(); // 0 is Sunday, 1 is Monday...
   const distanceToMonday = (currentDay + 6) % 7;
   const monday = new Date(now);
   monday.setDate(now.getDate() - distanceToMonday);
 
-  const days: { dateStr: string; dayLabel: string }[] = [];
-  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  for (let i = 0; i < 5; i++) {
+  const fullLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const shortLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const days: WeeklyShiftDay[] = [];
+  for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const dateStr = d.toISOString().split('T')[0]!;
-    days.push({ dateStr, dayLabel: labels[i] ?? `Day ${i + 1}` });
+    days.push({
+      dateStr,
+      dayLabel: fullLabels[i]!,
+      shortLabel: shortLabels[i]!,
+      isWeekend: i >= 5,
+    });
   }
   return days;
+}
+
+/**
+ * Computes Monday to Sunday daily shift workload and utilization.
+ * Uses real daily allocations and capacities; Saturday/Sunday reflect real zeros if non-working.
+ */
+export function computeWeeklyShiftWorkload(
+  resources: ResourceUser[],
+  workloadsMap: Record<number, ResourceWorkload | null>,
+  selectedResourceId?: number | 'ALL',
+): WeeklyShiftWorkloadItem[] {
+  const shiftDays = getCurrentWeekShiftDays();
+  const targetResources =
+    selectedResourceId && selectedResourceId !== 'ALL'
+      ? resources.filter((r) => r.user_id === selectedResourceId)
+      : resources;
+
+  return shiftDays.map((day) => {
+    let dailyAllocated = 0;
+    let dailyCapacity = 0;
+
+    targetResources.forEach((r) => {
+      // Standard working hours: 8h/day on weekdays (Mon-Fri)
+      const resDailyCapacity = day.isWeekend ? 0 : 8;
+      dailyCapacity += resDailyCapacity;
+
+      const wl = workloadsMap[r.user_id];
+      if (wl?.daily_allocations && wl.daily_allocations.length > 0) {
+        const match = wl.daily_allocations.find((d) => d.date === day.dateStr);
+        if (match) {
+          dailyAllocated += Number(match.allocated_hours) || 0;
+        }
+      }
+    });
+
+    const allocatedHours = Math.round(dailyAllocated * 10) / 10;
+    const capacityHours = Math.round(dailyCapacity * 10) / 10;
+    const utilization =
+      capacityHours > 0
+        ? Math.round((allocatedHours / capacityHours) * 100)
+        : allocatedHours > 0
+          ? 100
+          : 0;
+    const isOverloaded = utilization > 85;
+
+    return {
+      dayLabel: day.dayLabel,
+      shortLabel: day.shortLabel,
+      dateStr: day.dateStr,
+      isWeekend: day.isWeekend,
+      allocatedHours,
+      capacityHours,
+      utilization,
+      isOverloaded,
+    };
+  });
+}
+
+/**
+ * Returns Monday through Friday dates for the current calendar week.
+ */
+export function getCurrentWeekWorkingDays(): { dateStr: string; dayLabel: string }[] {
+  return getCurrentWeekShiftDays().slice(0, 5);
 }
 
 /**
@@ -239,7 +327,7 @@ export function computeTaskDistribution(tasks: Task[]): {
         },
         {
           status: 'UNASSIGNED',
-          label: 'On Hold / Queued',
+          label: 'Unassigned',
           count: 0,
           percentage: 0,
           color: ANALYTICS_PALETTE.warning,
@@ -294,7 +382,7 @@ export function computeTaskDistribution(tasks: Task[]): {
     },
     {
       status: 'UNASSIGNED',
-      label: 'On Hold / Queued',
+      label: 'Unassigned',
       count: counts.UNASSIGNED ?? 0,
       percentage: Math.round(((counts.UNASSIGNED ?? 0) / totalTasks) * 100),
       color: ANALYTICS_PALETTE.warning,
@@ -376,8 +464,7 @@ export function computeEffortVariance(tasks: Task[]): TaskEffortVarianceItem[] {
         isOverrun,
       };
     })
-    .sort((a, b) => b.plannedHours - a.plannedHours)
-    .slice(0, 7); // Show top 7 key deliverables for clean bar readability
+    .sort((a, b) => b.plannedHours - a.plannedHours);
 }
 
 /**
