@@ -5,7 +5,9 @@
       <div class="row items-center justify-between q-mb-lg">
         <div>
           <div class="page-title">Help &amp; Support</div>
-          <div class="page-subtitle">Find answers and learn how TaskFlow works.</div>
+          <div class="page-subtitle">
+            {{ isResourceRole ? 'Resource Guide: Tracking tasks, logging work, and managing availability.' : 'Project Manager Guide: Planning projects, balancing capacity, and scheduling.' }}
+          </div>
         </div>
 
         <!-- Search bar in header row -->
@@ -59,154 +61,38 @@
                 <div class="text-subtitle1 text-weight-bold text-main" style="line-height: 1.2">
                   Getting Started Guides
                 </div>
-                <div class="text-caption text-grey-6">Core concepts and step-by-step workflows</div>
+                <div class="text-caption text-grey-6">
+                  {{ isResourceRole ? 'Workflows and tools for Team Resources' : 'Workflows and tools for Project Managers' }}
+                </div>
               </div>
             </div>
 
             <div class="row q-col-gutter-md">
               <div
-                v-if="matchesFilter('projects project create health priority')"
+                v-for="(guide, index) in filteredGuides"
+                :key="index"
                 class="col-12 col-md-6"
               >
                 <q-card flat bordered class="guide-card">
                   <q-card-section>
                     <div class="row items-center q-gutter-x-sm q-mb-sm">
-                      <div class="guide-icon bg-purple-soft text-primary">
-                        <q-icon name="folder" size="16px" />
+                      <div :class="['guide-icon', guide.iconBgClass, guide.iconColorClass]">
+                        <q-icon :name="guide.icon" size="16px" />
                       </div>
                       <div class="text-subtitle2 text-weight-bold text-main">
-                        Projects Management
+                        {{ guide.title }}
                       </div>
                     </div>
                     <p class="text-body2 text-grey-7 q-mb-none" style="line-height: 1.5">
-                      Project Managers create projects with title, description, priority (<span
-                        class="text-weight-bold text-negative"
-                        >Critical</span
-                      >, <span class="text-weight-bold text-orange">High</span>,
-                      <span class="text-weight-bold text-primary">Medium</span>,
-                      <span class="text-weight-bold text-grey-7">Low</span>) and scheduled dates.
-                      TaskFlow auto-computes progress and health flags.
+                      {{ guide.description }}
                     </p>
                   </q-card-section>
                 </q-card>
               </div>
 
-              <div
-                v-if="
-                  matchesFilter('tasks task assign effort status scheduled in_progress completed')
-                "
-                class="col-12 col-md-6"
-              >
-                <q-card flat bordered class="guide-card">
-                  <q-card-section>
-                    <div class="row items-center q-gutter-x-sm q-mb-sm">
-                      <div class="guide-icon bg-teal-soft text-teal">
-                        <q-icon name="task_alt" size="16px" />
-                      </div>
-                      <div class="text-subtitle2 text-weight-bold text-main">
-                        Tasks &amp; Deliverables
-                      </div>
-                    </div>
-                    <p class="text-body2 text-grey-7 q-mb-none" style="line-height: 1.5">
-                      Tasks belong to projects with effort hours, target dates, and priorities. Work
-                      flows through
-                      <span class="status-chip-inline status-scheduled">SCHEDULED</span>,
-                      <span class="status-chip-inline status-inprogress">IN_PROGRESS</span>, and
-                      <span class="status-chip-inline status-completed">COMPLETED</span>.
-                    </p>
-                  </q-card-section>
-                </q-card>
-              </div>
-
-              <div
-                v-if="matchesFilter('resource assignment team allocation members capacity')"
-                class="col-12 col-md-6"
-              >
-                <q-card flat bordered class="guide-card">
-                  <q-card-section>
-                    <div class="row items-center q-gutter-x-sm q-mb-sm">
-                      <div class="guide-icon bg-orange-soft text-orange-9">
-                        <q-icon name="groups" size="16px" />
-                      </div>
-                      <div class="text-subtitle2 text-weight-bold text-main">
-                        Resource Assignment
-                      </div>
-                    </div>
-                    <p class="text-body2 text-grey-7 q-mb-none" style="line-height: 1.5">
-                      Assign team members to projects and tasks. Resources see their assigned items
-                      on the Resource Dashboard and Task Specs views.
-                    </p>
-                  </q-card-section>
-                </q-card>
-              </div>
-
-              <div
-                v-if="
-                  matchesFilter('scheduling schedule gantt timeline dates dependencies calendar')
-                "
-                class="col-12 col-md-6"
-              >
-                <q-card flat bordered class="guide-card">
-                  <q-card-section>
-                    <div class="row items-center q-gutter-x-sm q-mb-sm">
-                      <div class="guide-icon bg-blue-soft text-blue-8">
-                        <q-icon name="calendar_month" size="16px" />
-                      </div>
-                      <div class="text-subtitle2 text-weight-bold text-main">
-                        Scheduling &amp; Gantt
-                      </div>
-                    </div>
-                    <p class="text-body2 text-grey-7 q-mb-none" style="line-height: 1.5">
-                      The Schedule page plots task start and end dates onto interactive Gantt
-                      timelines showing duration bars, progress fills, priority colour coding, and
-                      assignee avatars.
-                    </p>
-                  </q-card-section>
-                </q-card>
-              </div>
-
-              <div
-                v-if="matchesFilter('progress work logs log hours effort actual completed')"
-                class="col-12 col-md-6"
-              >
-                <q-card flat bordered class="guide-card">
-                  <q-card-section>
-                    <div class="row items-center q-gutter-x-sm q-mb-sm">
-                      <div class="guide-icon bg-green-icon text-green-8">
-                        <q-icon name="insights" size="16px" />
-                      </div>
-                      <div class="text-subtitle2 text-weight-bold text-main">
-                        Progress &amp; Work Logs
-                      </div>
-                    </div>
-                    <p class="text-body2 text-grey-7 q-mb-none" style="line-height: 1.5">
-                      Resources log actual effort hours and update completion progress. Logged work
-                      updates the task's actual effort and rolls up into project-level metrics.
-                    </p>
-                  </q-card-section>
-                </q-card>
-              </div>
-
-              <div
-                v-if="matchesFilter('workload capacity 40h hours allocation balance overallocated')"
-                class="col-12 col-md-6"
-              >
-                <q-card flat bordered class="guide-card">
-                  <q-card-section>
-                    <div class="row items-center q-gutter-x-sm q-mb-sm">
-                      <div class="guide-icon bg-purple-soft text-primary">
-                        <q-icon name="pie_chart" size="16px" />
-                      </div>
-                      <div class="text-subtitle2 text-weight-bold text-main">
-                        Workload &amp; Capacity
-                      </div>
-                    </div>
-                    <p class="text-body2 text-grey-7 q-mb-none" style="line-height: 1.5">
-                      Calculated using the standard 40 h/week bandwidth. The system highlights when
-                      a team member's assigned effort exceeds capacity to prevent overbooking.
-                    </p>
-                  </q-card-section>
-                </q-card>
+              <div v-if="filteredGuides.length === 0" class="col-12 text-center q-pa-lg text-grey-6">
+                <q-icon name="search_off" size="32px" class="q-mb-xs" />
+                <div>No guides match "{{ searchQuery }}".</div>
               </div>
             </div>
           </div>
@@ -283,7 +169,7 @@
           <q-card flat bordered class="bg-card border-subtle">
             <q-card-section>
               <div class="text-body2 text-grey-7 q-mb-md" style="line-height: 1.6">
-                TaskFlow is a modern Task Management and Resource Scheduling System designed to
+                TaskFlow is an enterprise Task Management and Resource Scheduling System designed to
                 provide transparent planning, capacity balancing, and live progress visibility
                 across engineering teams.
               </div>
@@ -297,14 +183,14 @@
                 </div>
                 <div class="row justify-between items-center text-body2 q-py-xs">
                   <span class="text-grey-6">Version</span>
-                  <q-badge color="primary" outline>v0.0.1</q-badge>
+                  <q-badge color="primary" outline>v1.0.0</q-badge>
                 </div>
                 <div class="row justify-between items-center text-body2 q-py-xs">
                   <span class="text-grey-6">Capacity Baseline</span>
                   <span class="text-main">40 h / week</span>
                 </div>
                 <div class="row justify-between items-center text-body2 q-py-xs">
-                  <span class="text-grey-6">Your Role</span>
+                  <span class="text-grey-6">Logged-in Role</span>
                   <q-badge :color="isResourceRole ? 'teal' : 'primary'">
                     {{ isResourceRole ? 'Resource' : 'Project Manager' }}
                   </q-badge>
@@ -322,11 +208,9 @@
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { useQuasar } from 'quasar';
 
 const route = useRoute();
 const authStore = useAuthStore();
-const $q = useQuasar();
 
 const searchQuery = ref('');
 const activeTab = ref<'all' | 'guides' | 'faqs' | 'about'>('all');
@@ -342,79 +226,205 @@ const isResourceRole = computed(
   () => route.path.includes('resource-dashboard') || authStore.user?.role === 'RESOURCE',
 );
 
-// ── Search filter ─────────────────────────────────────────────────────────────
-function matchesFilter(text: string): boolean {
-  if (!searchQuery.value) return true;
-  return text.toLowerCase().includes(searchQuery.value.toLowerCase().trim());
+interface GuideItem {
+  title: string;
+  description: string;
+  icon: string;
+  iconBgClass: string;
+  iconColorClass: string;
+  role: 'ALL' | 'PROJECT_MANAGER' | 'RESOURCE';
+  tags: string;
 }
 
-// ── FAQs ──────────────────────────────────────────────────────────────────────
-const faqs = [
+const allGuides: GuideItem[] = [
+  // PM GUIDES
   {
-    question: 'How do I create a project?',
-    answer:
-      'Navigate to the Projects page and click "+ New Project". Provide the name, description, priority, and dates, then save.',
+    title: 'Project Planning & Lifecycle',
+    description: 'Create projects, set priority (Critical, High, Medium, Low), establish start and deadline dates, and track overall progress milestones.',
+    icon: 'folder',
+    iconBgClass: 'bg-purple-soft',
+    iconColorClass: 'text-primary',
+    role: 'PROJECT_MANAGER',
+    tags: 'projects project create health priority deadline lifecycle pm',
+  },
+  {
+    title: 'Resource Allocation & Workload',
+    description: 'Assign team members to projects and tasks. Monitor weekly 40h bandwidth and prevent overallocation across concurrent deliverables.',
+    icon: 'groups',
+    iconBgClass: 'bg-orange-soft',
+    iconColorClass: 'text-orange-9',
+    role: 'PROJECT_MANAGER',
+    tags: 'resource assignment team allocation members capacity workload overallocated pm',
+  },
+  {
+    title: 'Gantt Timeline & Scheduling',
+    description: 'Use the interactive Gantt chart to sequence tasks, establish predecessor dependencies, and track deliverable timelines in real time.',
+    icon: 'calendar_month',
+    iconBgClass: 'bg-blue-soft',
+    iconColorClass: 'text-blue-8',
+    role: 'PROJECT_MANAGER',
+    tags: 'scheduling schedule gantt timeline dates dependencies calendar pm',
+  },
+  {
+    title: 'Reviewing & Approving Leaves',
+    description: 'Review pending leave requests from team members, approve or reject applications, and trigger automatic Gantt schedule recalculations.',
+    icon: 'event_busy',
+    iconBgClass: 'bg-teal-soft',
+    iconColorClass: 'text-teal',
+    role: 'PROJECT_MANAGER',
+    tags: 'leave leaves approval approve reject calendar holiday pm',
+  },
+  {
+    title: 'Recycle Bin & Safe Restoration',
+    description: 'Soft-deleted projects and tasks are preserved in the Recycle Bin. Restore items at any time without losing schedule history or dependencies.',
+    icon: 'delete_outline',
+    iconBgClass: 'bg-purple-soft',
+    iconColorClass: 'text-purple-8',
+    role: 'PROJECT_MANAGER',
+    tags: 'bin recycle restore deleted tasks projects pm',
+  },
+
+  // RESOURCE GUIDES
+  {
+    title: 'My Daily Work Center',
+    description: 'View tasks actively assigned to you, check deadlines, review task specifications, and prioritize high-impact deliverables.',
+    icon: 'task_alt',
+    iconBgClass: 'bg-teal-soft',
+    iconColorClass: 'text-teal',
+    role: 'RESOURCE',
+    tags: 'tasks task dashboard deliverables my work resource',
+  },
+  {
+    title: 'Progress Logging & Effort Tracking',
+    description: 'Log actual hours worked on assigned tasks, submit completion progress percentages, and attach work notes directly from your dashboard.',
+    icon: 'insights',
+    iconBgClass: 'bg-green-icon',
+    iconColorClass: 'text-green-8',
+    role: 'RESOURCE',
+    tags: 'progress work logs log hours actual effort resource',
+  },
+  {
+    title: 'Applying for Leave & Time-Off',
+    description: 'Request single-day or multi-day leaves with full-day or half-day options. Check your remaining schedule and track PM approval status.',
+    icon: 'event_available',
+    iconBgClass: 'bg-blue-soft',
+    iconColorClass: 'text-blue-8',
+    role: 'RESOURCE',
+    tags: 'leaves leave request vacation timeoff approval resource',
+  },
+  {
+    title: 'Schedule & Capacity Overview',
+    description: 'View your personal working days, configured daily working hours, and company holidays on your interactive timeline calendar.',
+    icon: 'pie_chart',
+    iconBgClass: 'bg-purple-soft',
+    iconColorClass: 'text-primary',
+    role: 'RESOURCE',
+    tags: 'capacity schedule hours allocation calendar resource',
+  },
+
+  // SHARED GUIDES
+  {
+    title: 'Task Status Lifecycle',
+    description: 'Work moves transparently through SCHEDULED (planned), IN_PROGRESS (under active delivery), and COMPLETED (finished).',
+    icon: 'trending_up',
+    iconBgClass: 'bg-teal-soft',
+    iconColorClass: 'text-teal',
+    role: 'ALL',
+    tags: 'status lifecycle scheduled in_progress completed all',
+  },
+];
+
+const filteredGuides = computed(() => {
+  const currentRole = isResourceRole.value ? 'RESOURCE' : 'PROJECT_MANAGER';
+  const q = searchQuery.value.toLowerCase().trim();
+
+  return allGuides.filter((g) => {
+    const roleMatches = g.role === 'ALL' || g.role === currentRole;
+    if (!roleMatches) return false;
+    if (!q) return true;
+    return g.title.toLowerCase().includes(q) || g.description.toLowerCase().includes(q) || g.tags.includes(q);
+  });
+});
+
+interface FaqItem {
+  question: string;
+  answer: string;
+  role: 'ALL' | 'PROJECT_MANAGER' | 'RESOURCE';
+  tags: string;
+}
+
+const allFaqs: FaqItem[] = [
+  // PM FAQS
+  {
+    question: 'How do I create a new project?',
+    answer: 'Navigate to the Projects page and click "+ New Project". Fill in the title, description, priority, and scheduled dates, then click Create.',
+    role: 'PROJECT_MANAGER',
     tags: 'create project new pm priority deadline',
   },
   {
-    question: 'How do I create a task?',
-    answer:
-      'Open the Tasks page or a project details view and click "+ Create Task". Enter the title, expected effort hours, priority, dates, and assign resources.',
-    tags: 'create task new effort hours assignee',
+    question: 'How do I assign team members to a project or task?',
+    answer: 'From the Project Details page, click "Add Member" in the Members tab. When creating or editing tasks, pick team members from the Assignees selector.',
+    role: 'PROJECT_MANAGER',
+    tags: 'assign resource allocation member team pm',
   },
   {
-    question: 'How do I assign a resource to a task?',
-    answer:
-      'When creating or editing a task, choose team members from the Assignees multi-select dropdown.',
-    tags: 'assign resource allocation member team',
+    question: 'How do I review and approve leave requests?',
+    answer: 'Open the Leaves page or a resource\'s detail view. Pending requests display with Approve and Reject actions. Approving a leave automatically recalculates project timelines.',
+    role: 'PROJECT_MANAGER',
+    tags: 'approve reject leave request schedule recalculate pm',
   },
   {
-    question: 'How does the Gantt / Schedule view work?',
-    answer:
-      'The Schedule page maps task dates onto an interactive Gantt timeline with duration bars, priority colours, and assignee avatars across 7, 14, or 30-day windows.',
-    tags: 'scheduling gantt timeline calendar duration dates',
+    question: 'How do I restore binned items?',
+    answer: 'Open the Recycle Bin page from the sidebar. You can view all binned projects and tasks and click "Restore" to safely re-introduce them to active schedules.',
+    role: 'PROJECT_MANAGER',
+    tags: 'restore bin recycle undelete pm',
+  },
+
+  // RESOURCE FAQS
+  {
+    question: 'How do I log work hours and update task progress?',
+    answer: 'Click on any assigned task on your dashboard or Progress page and select "Add Update". Enter the hours logged, update the progress slider, and add any work notes.',
+    role: 'RESOURCE',
+    tags: 'log hours progress actual effort work update resource',
   },
   {
-    question: 'How is resource workload calculated?',
-    answer:
-      'Workload compares total allocated hours against the 40 h/week capacity baseline and highlights overallocation.',
-    tags: 'workload capacity 40h calculation allocated hours effort',
-  },
-  {
-    question: 'How do I log work hours and update progress?',
-    answer:
-      'Open your assigned task and click "Add Update". Enter actual hours worked and progress notes; these roll up into project-level metrics.',
-    tags: 'progress work logs log hours actual effort',
+    question: 'How do I request a leave of absence?',
+    answer: 'Navigate to the Leaves page from your sidebar and click "Request Leave". Choose your date range, select full-day or half-day options, and submit for PM review.',
+    role: 'RESOURCE',
+    tags: 'apply request leave timeoff vacation resource',
   },
   {
     question: "Why isn't a task appearing on my dashboard?",
-    answer:
-      'For PMs, check that the project filter shows "All Projects" and clear any search queries. For resources, ensure the task is explicitly assigned to your account.',
-    tags: 'missing task resource filter dashboard not appearing',
+    answer: 'Ensure that the task has been assigned to your account by the Project Manager. If you were recently added to a project, check your assigned task specs list.',
+    role: 'RESOURCE',
+    tags: 'missing task dashboard assigned resource',
   },
+
+  // SHARED FAQS
   {
     question: 'What do the task statuses mean?',
-    answer:
-      'SCHEDULED = planned but not started. IN_PROGRESS = actively being worked on. COMPLETED = fully delivered.',
+    answer: 'SCHEDULED = planned and assigned but work has not started. IN_PROGRESS = active work is underway. COMPLETED = deliverable is 100% finished.',
+    role: 'ALL',
     tags: 'status meaning scheduled in_progress completed',
   },
   {
-    question: 'What happens when a task is overdue?',
-    answer:
-      "If a task's deadline has passed and status isn't COMPLETED, TaskFlow flags it as overdue and marks the project as At Risk or Delayed.",
+    question: 'What happens when a task passes its deadline?',
+    answer: "If a task's deadline passes before it reaches COMPLETED, TaskFlow flags it as Overdue and highlights it on dashboards and project health indicators.",
+    role: 'ALL',
     tags: 'overdue late deadline delayed at risk',
   },
 ];
 
 const filteredFaqs = computed(() => {
-  if (!searchQuery.value) return faqs;
+  const currentRole = isResourceRole.value ? 'RESOURCE' : 'PROJECT_MANAGER';
   const q = searchQuery.value.toLowerCase().trim();
-  return faqs.filter(
-    (f) =>
-      f.question.toLowerCase().includes(q) ||
-      f.answer.toLowerCase().includes(q) ||
-      f.tags.includes(q),
-  );
+
+  return allFaqs.filter((f) => {
+    const roleMatches = f.role === 'ALL' || f.role === currentRole;
+    if (!roleMatches) return false;
+    if (!q) return true;
+    return f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q) || f.tags.includes(q);
+  });
 });
 </script>
 

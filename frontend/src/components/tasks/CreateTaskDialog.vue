@@ -269,6 +269,7 @@ export interface CreateTaskFormData {
   description: string;
   supervisor_id?: number | null;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   expected_effort: number;
   deadline: string;
   assigned_resource_ids: number[];
@@ -299,6 +300,7 @@ export interface CreateTaskDialogProps {
   showDependencies?: boolean;
   loading?: boolean;
   initialProjectId?: number | null;
+  initialStatus?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | null;
 }
 
 const props = withDefaults(defineProps<CreateTaskDialogProps>(), {
@@ -318,6 +320,7 @@ const props = withDefaults(defineProps<CreateTaskDialogProps>(), {
   showDependencies: true,
   loading: false,
   initialProjectId: null,
+  initialStatus: null,
 });
 
 const emit = defineEmits<{
@@ -355,6 +358,7 @@ const form = reactive<CreateTaskFormData>({
   description: '',
   supervisor_id: null,
   priority: 'MEDIUM',
+  status: undefined,
   expected_effort: 8,
   deadline: '',
   assigned_resource_ids: [],
@@ -371,6 +375,7 @@ function resetForm() {
   form.description = '';
   form.supervisor_id = null;
   form.priority = 'MEDIUM';
+  form.status = props.initialStatus || undefined;
   form.expected_effort = 8;
   form.deadline = '';
   form.assigned_resource_ids = [];

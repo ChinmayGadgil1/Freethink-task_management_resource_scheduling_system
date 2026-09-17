@@ -1285,7 +1285,14 @@
 
             <q-card-actions align="right" class="q-pa-md">
               <q-btn v-close-popup flat no-caps label="Cancel" />
-              <q-btn type="submit" no-caps unelevated label="Save Changes" color="primary" />
+              <q-btn
+                type="submit"
+                no-caps
+                unelevated
+                label="Save Changes"
+                color="primary"
+                :loading="savingProject"
+              />
             </q-card-actions>
           </q-form>
         </q-card>
@@ -1570,17 +1577,6 @@
       >
         Are you sure you want to move task <strong>"{{ taskToDelete?.title }}"</strong> to the
         Recycle Bin?
-      </ConfirmActionDialog>
-
-      <ConfirmActionDialog
-        v-model="showDeleteTaskDialog"
-        title="Delete Task"
-        subtitle="This action cannot be undone"
-        confirm-label="Delete Task"
-        :loading="deletingTask"
-        @confirm="handleExecuteDeleteTask"
-      >
-        Are you sure you want to delete task <strong>"{{ taskToDelete?.title }}"</strong>?
       </ConfirmActionDialog>
 
       <ConfirmActionDialog
@@ -1878,13 +1874,15 @@ const taskStatusFormOptions: {
   { label: 'Completed', value: 'COMPLETED' },
 ];
 
+const savingProject = ref(false);
+
 const projectStatusOptions = [
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Published', value: 'PUBLISHED' },
-  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Not Started', value: 'NOT_STARTED' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
   { label: 'On Hold', value: 'ON_HOLD' },
   { label: 'Completed', value: 'COMPLETED' },
   { label: 'Cancelled', value: 'CANCELLED' },
+  { label: 'Archived', value: 'ARCHIVED' },
 ];
 
 const projectPriorityOptions = [
@@ -2437,15 +2435,35 @@ function openEditDialog() {
   showEditProjectDialog.value = true;
 }
 
-function handleSaveProject() {
-  project.name = editProjectForm.name;
-  project.description = editProjectForm.description;
-  project.status = editProjectForm.status;
-  project.priority = editProjectForm.priority;
-  project.start_date = editProjectForm.start_date;
-  project.deadline = editProjectForm.deadline;
-  $q.notify({ type: 'positive', message: 'Project details updated' });
-  showEditProjectDialog.value = false;
+async function handleSaveProject() {
+  if (!project.project_id) return;
+  savingProject.value = true;
+  try {
+    const updated = await updateProjectApi(project.project_id, {
+      name: editProjectForm.name.trim(),
+      description: editProjectForm.description || null,
+      status: editProjectForm.status,
+      priority: editProjectForm.priority,
+      start_date: editProjectForm.start_date || null,
+      deadline: editProjectForm.deadline || null,
+    });
+    project.name = updated.name;
+    project.description = updated.description;
+    project.status = updated.status;
+    project.priority = updated.priority;
+    project.start_date = updated.start_date;
+    project.deadline = updated.deadline;
+    $q.notify({ type: 'positive', message: 'Project details updated successfully' });
+    showEditProjectDialog.value = false;
+    await loadProjectData();
+  } catch (err: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to update project details',
+    });
+  } finally {
+    savingProject.value = false;
+  }
 }
 
 function openQuickUpdate(task: Task) {

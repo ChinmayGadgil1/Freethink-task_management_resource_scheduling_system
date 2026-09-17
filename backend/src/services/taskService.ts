@@ -259,7 +259,10 @@ export async function getTasksList(filters: {
         LEFT JOIN tasks verified_t ON t.verified_task_id = verified_t.task_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
-        LEFT JOIN task_dependencies td ON t.task_id = td.task_id
+        LEFT JOIN (
+            task_dependencies td
+            INNER JOIN tasks pred ON td.predecessor_task_id = pred.task_id AND pred.deleted_at IS NULL
+        ) ON t.task_id = td.task_id
     `;
     const params: any[] = [];
     const whereClauses: string[] = [];
@@ -390,10 +393,12 @@ export async function getTasksList(filters: {
         }
     }
 
-    // Also fetch successor task mappings for all fetched tasks in one query
+    // Also fetch successor task mappings for all fetched tasks in one query (ignoring deleted tasks)
     const [allSuccessorRows] = await pool.query<RowDataPacket[]>(
         `SELECT td.predecessor_task_id, td.task_id as successor_task_id 
          FROM task_dependencies td 
+         INNER JOIN tasks pred ON td.predecessor_task_id = pred.task_id AND pred.deleted_at IS NULL
+         INNER JOIN tasks succ ON td.task_id = succ.task_id AND succ.deleted_at IS NULL
          WHERE td.predecessor_task_id IN (?)`,
         [taskIds]
     );
@@ -481,7 +486,10 @@ export async function getTaskById(taskId: number) {
         LEFT JOIN tasks verified_t ON t.verified_task_id = verified_t.task_id
         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
         LEFT JOIN users u_res ON ta.user_id = u_res.user_id
-        LEFT JOIN task_dependencies td ON t.task_id = td.task_id
+        LEFT JOIN (
+            task_dependencies td
+            INNER JOIN tasks pred ON td.predecessor_task_id = pred.task_id AND pred.deleted_at IS NULL
+        ) ON t.task_id = td.task_id
         WHERE t.task_id = ?
         GROUP BY t.task_id
         `,
@@ -560,7 +568,10 @@ export async function getTaskById(taskId: number) {
         : [];
 
     const [succRows] = await pool.query<RowDataPacket[]>(
-        `SELECT td.task_id FROM task_dependencies td WHERE td.predecessor_task_id = ?`,
+        `SELECT td.task_id 
+         FROM task_dependencies td 
+         INNER JOIN tasks succ ON td.task_id = succ.task_id AND succ.deleted_at IS NULL
+         WHERE td.predecessor_task_id = ?`,
         [taskId]
     );
     const succIds = succRows.map(r => Number(r.task_id)).filter(id => !isNaN(id));

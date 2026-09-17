@@ -1,6 +1,7 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { getPool } from "../config/database.js";
 import type { ProjectPriority, ProjectStatus } from "../models/projectModel.js";
+import { recalculate } from "./scheduler/SchedulingEngine.js";
 
 export async function createProject(
     projectManagerId: number,
@@ -592,11 +593,67 @@ export async function deleteProject(projectId: number, projectManagerId?: number
 
 export async function removeProjectMember(projectId: number, userId: number): Promise<boolean> {
     const pool = getPool();
-    const [result] = await pool.query<ResultSetHeader>(
-        "DELETE FROM project_members WHERE project_id = ? AND user_id = ?",
-        [projectId, userId]
-    );
-    return result.affectedRows > 0;
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // 1. Find all tasks in this project assigned to this user
+        const [assignedTasks] = await connection.query<RowDataPacket[]>(
+            `SELECT t.task_id
+             FROM tasks t
+             INNER JOIN task_assignments ta ON t.task_id = ta.task_id
+             WHERE t.project_id = ? AND ta.user_id = ?`,
+            [projectId, userId]
+        );
+
+        if (assignedTasks.length > 0) {
+            const taskIds = assignedTasks.map(t => Number(t.task_id));
+
+            // Delete task assignments
+            await connection.query(
+                "DELETE FROM task_assignments WHERE task_id IN (?) AND user_id = ?",
+                [taskIds, userId]
+            );
+
+            // Check if any of these tasks now have 0 assignees and revert status if appropriate
+            for (const tId of taskIds) {
+                const [remaining] = await connection.query<RowDataPacket[]>(
+                    "SELECT COUNT(*) as count FROM task_assignments WHERE task_id = ?",
+                    [tId]
+                );
+                const count = remaining[0]?.count ?? 0;
+                if (count === 0) {
+                    await connection.query(
+                        `UPDATE tasks SET status = 'UNASSIGNED' WHERE task_id = ? AND status IN ('SCHEDULED', 'PENDING')`,
+                        [tId]
+                    );
+                }
+            }
+        }
+
+        // 2. Remove project membership
+        const [result] = await connection.query<ResultSetHeader>(
+            "DELETE FROM project_members WHERE project_id = ? AND user_id = ?",
+            [projectId, userId]
+        );
+
+        await connection.commit();
+
+        // 3. Trigger Gantt schedule recalculation
+        try {
+            await recalculate(projectId);
+        } catch (schedErr) {
+            console.error(`Warning: Failed to recalculate schedule for project ${projectId} after removing member:`, schedErr);
+        }
+
+        return result.affectedRows > 0;
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
 }
 
 export async function archiveProject(projectId: number, projectManagerId: number) {

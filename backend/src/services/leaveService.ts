@@ -262,6 +262,12 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         }
     }
 
+    // Clean up any previously rejected leave rows on these dates to prevent MySQL unique key conflict
+    await pool.query(
+        `DELETE FROM user_leaves WHERE user_id = ? AND leave_date IN (?) AND status = 'REJECTED'`,
+        [user_id, workingDates]
+    );
+
     // 3. Insert records
     let firstInsertId = 0;
     const daysBreakdown: { leave_id: number; leave_date: string; leave_hours: number; leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF'; status: LeaveStatus }[] = [];
