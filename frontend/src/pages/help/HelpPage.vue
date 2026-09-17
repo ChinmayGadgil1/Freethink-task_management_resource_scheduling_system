@@ -5,9 +5,7 @@
       <div class="row items-center justify-between q-mb-lg">
         <div>
           <div class="page-title">Help &amp; Support</div>
-          <div class="page-subtitle">
-            Find answers, learn how TaskFlow works, or reach out to the team.
-          </div>
+          <div class="page-subtitle">Find answers and learn how TaskFlow works.</div>
         </div>
 
         <!-- Search bar in header row -->
@@ -263,221 +261,57 @@
           </div>
         </div>
 
-        <!-- Right Column: Contact Support & About -->
+        <!-- Right Column: About TaskFlow -->
         <div
-          v-show="activeTab === 'all' || activeTab === 'contact' || activeTab === 'about'"
+          v-show="activeTab === 'all' || activeTab === 'about'"
           class="col-12"
           :class="activeTab === 'all' ? 'col-lg-4' : 'col-lg-8'"
         >
-          <!-- SECTION 3: CONTACT SUPPORT -->
-          <div v-show="activeTab === 'all' || activeTab === 'contact'" class="q-mb-lg">
-            <q-card flat bordered class="bg-card border-subtle">
-              <q-card-section class="q-pb-xs">
-                <div class="row items-center q-gutter-x-sm q-mb-xs no-wrap">
-                  <div
-                    class="guide-icon bg-purple-soft text-primary"
-                    style="width: 28px; height: 28px"
-                  >
-                    <q-icon name="support_agent" size="16px" />
-                  </div>
-                  <div class="text-subtitle1 text-weight-bold text-main">Contact Support</div>
-                </div>
-                <p class="text-caption text-grey-6 q-my-none">
-                  Submit a ticket below — it's saved to the database. Or email us directly.
-                </p>
-              </q-card-section>
-
-              <!-- Direct Email CTA -->
-              <q-card-section class="q-pt-sm q-pb-xs">
-                <q-btn
-                  outline
-                  no-caps
-                  icon="mail"
-                  label="Email Us Directly"
-                  color="primary"
-                  class="full-width"
-                  style="border-radius: 8px"
-                  @click="openMailClient"
-                />
-              </q-card-section>
-
-              <q-separator class="q-my-xs" />
-
-              <q-card-section>
-                <!-- Success state -->
-                <div
-                  v-if="formSubmitted"
-                  class="q-pa-md bg-green-soft border-subtle q-mb-sm"
-                  style="border-radius: 8px"
-                >
-                  <div
-                    class="row items-center q-gutter-x-xs q-mb-xs text-positive text-weight-bold"
-                  >
-                    <q-icon name="check_circle" size="18px" />
-                    <span>Ticket Saved!</span>
-                  </div>
-                  <p class="text-body2 text-green-9 q-mb-sm">
-                    Your ticket for <em>"{{ contactForm.category }}"</em> was saved. We'll review it
-                    shortly.
-                  </p>
-                  <q-btn
-                    unelevated
-                    dense
-                    no-caps
-                    label="Submit Another"
-                    color="primary"
-                    class="q-px-sm"
-                    style="border-radius: 6px"
-                    @click="resetForm"
-                  />
-                </div>
-
-                <!-- Ticket form -->
-                <q-form v-else @submit.prevent="submitContactForm">
-                  <div class="q-gutter-y-sm">
-                    <q-input
-                      v-model="contactForm.name"
-                      dense
-                      outlined
-                      label="Your Name"
-                      :rules="[(val: string) => !!val || 'Name is required']"
-                      hide-bottom-space
-                    />
-                    <q-input
-                      v-model="contactForm.email"
-                      dense
-                      outlined
-                      type="email"
-                      label="Your Email"
-                      :rules="[(val: string) => !!val || 'Email is required']"
-                      hide-bottom-space
-                    />
-                    <q-select
-                      v-model="contactForm.category"
-                      dense
-                      outlined
-                      label="Issue Category"
-                      :options="categoryOptions"
-                      :rules="[(val: string) => !!val || 'Category is required']"
-                      hide-bottom-space
-                    />
-                    <q-input
-                      v-model="contactForm.description"
-                      dense
-                      outlined
-                      type="textarea"
-                      rows="3"
-                      label="Describe your issue or question"
-                      :rules="[(val: string) => !!val || 'Description is required']"
-                      hide-bottom-space
-                    />
-                    <q-btn
-                      type="submit"
-                      unelevated
-                      no-caps
-                      label="Submit Ticket"
-                      icon="send"
-                      color="primary"
-                      class="full-width q-mt-sm"
-                      :loading="submitting"
-                      style="border-radius: 8px"
-                    />
-                  </div>
-                </q-form>
-              </q-card-section>
-            </q-card>
-
-            <!-- Your Tickets History -->
-            <q-card
-              v-if="ticketsList.length > 0"
-              flat
-              bordered
-              class="bg-card border-subtle q-mt-md"
-            >
-              <q-card-section class="q-pb-xs">
-                <div class="row items-center q-gutter-x-sm no-wrap">
-                  <div
-                    class="guide-icon bg-blue-soft text-blue-8"
-                    style="width: 28px; height: 28px"
-                  >
-                    <q-icon name="list_alt" size="16px" />
-                  </div>
-                  <div class="text-subtitle2 text-weight-bold text-main">Your Previous Tickets</div>
-                </div>
-              </q-card-section>
-              <q-separator />
-              <q-list separator>
-                <q-item v-for="ticket in ticketsList" :key="ticket.ticket_id" class="q-py-sm">
-                  <q-item-section>
-                    <div class="row items-center justify-between no-wrap q-mb-xs">
-                      <div class="row items-center q-gutter-x-xs">
-                        <span class="text-caption text-weight-bold text-grey-6"
-                          >#{{ ticket.ticket_id }}</span
-                        >
-                        <q-badge
-                          color="purple"
-                          outline
-                          class="text-weight-medium"
-                          style="font-size: 10px"
-                        >
-                          {{ ticket.category }}
-                        </q-badge>
-                      </div>
-                    </div>
-                    <div class="text-body2 text-grey-8 q-mb-xs ellipsis" style="max-width: 300px">
-                      {{ ticket.description }}
-                    </div>
-                    <div class="text-caption text-grey-5">
-                      {{ formatDate(ticket.created_at) }}
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card>
+          <!-- SECTION 3: ABOUT TASKFLOW -->
+          <div class="row items-center q-gutter-x-sm q-mb-md no-wrap">
+            <div class="section-icon-box bg-purple-soft text-primary">
+              <q-icon name="info" size="18px" />
+            </div>
+            <div>
+              <div class="text-subtitle1 text-weight-bold text-main" style="line-height: 1.2">
+                About TaskFlow
+              </div>
+              <div class="text-caption text-grey-6">Workspace overview &amp; environment</div>
+            </div>
           </div>
 
-          <!-- SECTION 4: ABOUT TASKFLOW -->
-          <div v-show="activeTab === 'all' || activeTab === 'about'">
-            <q-card flat bordered class="bg-card border-subtle">
-              <q-card-section>
-                <div class="row items-center q-gutter-x-sm q-mb-md no-wrap">
-                  <div class="section-icon-box bg-purple-soft text-primary">
-                    <q-icon name="info" size="18px" />
-                  </div>
-                  <div class="text-subtitle1 text-weight-bold text-main">About TaskFlow</div>
-                </div>
+          <q-card flat bordered class="bg-card border-subtle">
+            <q-card-section>
+              <div class="text-body2 text-grey-7 q-mb-md" style="line-height: 1.6">
+                TaskFlow is a modern Task Management and Resource Scheduling System designed to
+                provide transparent planning, capacity balancing, and live progress visibility
+                across engineering teams.
+              </div>
 
-                <div class="text-body2 text-grey-7 q-mb-md" style="line-height: 1.6">
-                  TaskFlow is a modern Task Management and Resource Scheduling System designed to
-                  provide transparent planning, capacity balancing, and live progress visibility
-                  across engineering teams.
-                </div>
+              <q-separator class="q-mb-md" />
 
-                <q-separator class="q-mb-md" />
-
-                <div class="column q-gutter-y-xs">
-                  <div class="row justify-between items-center text-body2 q-py-xs">
-                    <span class="text-grey-6">Application</span>
-                    <span class="text-weight-bold text-main">TaskFlow Workspace</span>
-                  </div>
-                  <div class="row justify-between items-center text-body2 q-py-xs">
-                    <span class="text-grey-6">Version</span>
-                    <q-badge color="primary" outline>v0.0.1</q-badge>
-                  </div>
-                  <div class="row justify-between items-center text-body2 q-py-xs">
-                    <span class="text-grey-6">Capacity Baseline</span>
-                    <span class="text-main">40 h / week</span>
-                  </div>
-                  <div class="row justify-between items-center text-body2 q-py-xs">
-                    <span class="text-grey-6">Your Role</span>
-                    <q-badge :color="isResourceRole ? 'teal' : 'primary'">
-                      {{ isResourceRole ? 'Resource' : 'Project Manager' }}
-                    </q-badge>
-                  </div>
+              <div class="column q-gutter-y-xs">
+                <div class="row justify-between items-center text-body2 q-py-xs">
+                  <span class="text-grey-6">Application</span>
+                  <span class="text-weight-bold text-main">TaskFlow Workspace</span>
                 </div>
-              </q-card-section>
-            </q-card>
-          </div>
+                <div class="row justify-between items-center text-body2 q-py-xs">
+                  <span class="text-grey-6">Version</span>
+                  <q-badge color="primary" outline>v0.0.1</q-badge>
+                </div>
+                <div class="row justify-between items-center text-body2 q-py-xs">
+                  <span class="text-grey-6">Capacity Baseline</span>
+                  <span class="text-main">40 h / week</span>
+                </div>
+                <div class="row justify-between items-center text-body2 q-py-xs">
+                  <span class="text-grey-6">Your Role</span>
+                  <q-badge :color="isResourceRole ? 'teal' : 'primary'">
+                    {{ isResourceRole ? 'Resource' : 'Project Manager' }}
+                  </q-badge>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
       </div>
     </div>
@@ -485,97 +319,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useQuasar } from 'quasar';
-import { createSupportTicketApi, getSupportTicketsApi, type SupportTicket } from '@/services/api';
-import { formatDate } from '@/utils/formatters';
 
 const route = useRoute();
 const authStore = useAuthStore();
 const $q = useQuasar();
 
 const searchQuery = ref('');
-const activeTab = ref<'all' | 'guides' | 'faqs' | 'contact' | 'about'>('all');
-const formSubmitted = ref(false);
-const submitting = ref(false);
-const ticketsList = ref<SupportTicket[]>([]);
+const activeTab = ref<'all' | 'guides' | 'faqs' | 'about'>('all');
 
 const tabs = [
   { value: 'all', label: 'All Topics', icon: 'apps' },
   { value: 'guides', label: 'Getting Started', icon: 'menu_book' },
   { value: 'faqs', label: 'FAQs', icon: 'help' },
-  { value: 'contact', label: 'Contact Support', icon: 'mail' },
   { value: 'about', label: 'About', icon: 'info' },
 ] as const;
 
 const isResourceRole = computed(
   () => route.path.includes('resource-dashboard') || authStore.user?.role === 'RESOURCE',
 );
-
-// ── Contact Form ──────────────────────────────────────────────────────────────
-const contactForm = ref({
-  name: authStore.user?.name || '',
-  email: authStore.user?.email || '',
-  category: 'Task & Project Management',
-  description: '',
-});
-const categoryOptions = [
-  'Task & Project Management',
-  'Resource & Workload Scheduling',
-  'Progress & Work Logs',
-  'Account & Access',
-  'General Inquiry',
-];
-
-/** Open the user's default mail client with pre-filled fields */
-function openMailClient() {
-  const to = 'support@taskflow.dev';
-  const subject = encodeURIComponent(`[TaskFlow Support] ${contactForm.value.category}`);
-  const body = encodeURIComponent(
-    `Name: ${contactForm.value.name}\nEmail: ${contactForm.value.email}\n\n${contactForm.value.description || 'Please describe your issue here.'}`,
-  );
-  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-}
-
-async function loadTickets() {
-  try {
-    ticketsList.value = await getSupportTicketsApi();
-  } catch (err) {
-    console.error('Failed to load tickets:', err);
-  }
-}
-
-onMounted(() => {
-  void loadTickets();
-});
-
-async function submitContactForm() {
-  if (!contactForm.value.name || !contactForm.value.email || !contactForm.value.description) return;
-  submitting.value = true;
-  try {
-    await createSupportTicketApi({
-      name: contactForm.value.name,
-      email: contactForm.value.email,
-      category: contactForm.value.category,
-      description: contactForm.value.description,
-    });
-    $q.notify({ type: 'positive', message: 'Support ticket submitted!' });
-    formSubmitted.value = true;
-    void loadTickets();
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to submit support request.';
-    $q.notify({ type: 'negative', message: msg });
-  } finally {
-    submitting.value = false;
-  }
-}
-
-function resetForm() {
-  contactForm.value.description = '';
-  formSubmitted.value = false;
-}
 
 // ── Search filter ─────────────────────────────────────────────────────────────
 function matchesFilter(text: string): boolean {
