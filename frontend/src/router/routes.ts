@@ -138,10 +138,11 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // Public preview route for isolated analytics prototype
+  // Analytics preview route — auth + PM role required
   {
     path: '/analytics-preview',
     component: () => import('@/pages/pm/AnalyticsPage.vue'),
+    meta: { requiresAuth: true, roles: ['PROJECT_MANAGER'] },
   },
 
   // Catch-all 404 route

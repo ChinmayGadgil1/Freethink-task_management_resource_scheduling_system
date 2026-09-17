@@ -159,7 +159,7 @@ const handleLogin = async () => {
 
     const messageText = data.user?.name
       ? `Logged in successfully! Welcome ${data.user.name}`
-      : data.message || 'LOg in successful!';
+      : data.message || 'Log in successful!';
 
     sessionStorage.setItem('flashMessage', messageText);
 
