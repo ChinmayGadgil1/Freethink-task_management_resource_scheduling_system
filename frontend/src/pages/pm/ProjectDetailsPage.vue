@@ -2455,7 +2455,8 @@ async function handleSaveProject() {
     project.deadline = updated.deadline;
     $q.notify({ type: 'positive', message: 'Project details updated successfully' });
     showEditProjectDialog.value = false;
-    await loadProjectData();
+    await loadProjectDetails();
+    await loadProjectTasks();
   } catch (err: unknown) {
     $q.notify({
       type: 'negative',

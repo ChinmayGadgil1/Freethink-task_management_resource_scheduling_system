@@ -1401,16 +1401,18 @@ const createForm = reactive<{
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | undefined;
   expected_effort: number;
   deadline: string;
   assigned_resource_ids: number[];
   predecessor_task_ids: number[];
-  supervisor_id?: number | null;
+  supervisor_id?: number | null | undefined;
 }>({
   project_id: null,
   title: '',
   description: '',
   priority: 'MEDIUM',
+  status: undefined,
   expected_effort: 8,
   deadline: '',
   assigned_resource_ids: [],

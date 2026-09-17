@@ -267,9 +267,9 @@ export interface CreateTaskFormData {
   project_id: number | null;
   title: string;
   description: string;
-  supervisor_id?: number | null;
+  supervisor_id?: number | null | undefined;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
+  status?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | undefined;
   expected_effort: number;
   deadline: string;
   assigned_resource_ids: number[];
@@ -286,10 +286,10 @@ export interface CreateTaskProjectOption {
 export interface CreateTaskDialogProps {
   modelValue?: boolean;
   projects?: CreateTaskProjectOption[];
-  fixedProjectId?: number | null;
+  fixedProjectId?: number | null | undefined;
   fixedProjectName?: string;
-  projectStartDate?: string | null;
-  projectDeadline?: string | null;
+  projectStartDate?: string | null | undefined;
+  projectDeadline?: string | null | undefined;
   dialogTitle?: string;
   submitLabel?: string;
   memberOptions?: Array<{ label: string; value: number; alreadyAssigned?: boolean }>;
@@ -299,8 +299,8 @@ export interface CreateTaskDialogProps {
   showSupervisor?: boolean;
   showDependencies?: boolean;
   loading?: boolean;
-  initialProjectId?: number | null;
-  initialStatus?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | null;
+  initialProjectId?: number | null | undefined;
+  initialStatus?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | null | undefined;
 }
 
 const props = withDefaults(defineProps<CreateTaskDialogProps>(), {

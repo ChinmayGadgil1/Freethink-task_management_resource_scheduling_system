@@ -305,7 +305,7 @@
     <q-dialog v-model="confirmDialog.open" persistent>
       <q-card style="min-width: 380px; max-width: 480px" class="rounded-borders">
         <q-card-section class="row items-center gap-md">
-          <q-avatar icon="warning" color="negative" text-color="white" />
+          <q-avatar :icon="confirmDialog.icon || 'warning'" :color="confirmDialog.color || 'negative'" text-color="white" />
           <div>
             <div class="text-h6 text-weight-bold">{{ confirmDialog.title }}</div>
             <div class="text-body2 text-grey-7 q-mt-xs">{{ confirmDialog.message }}</div>
@@ -318,7 +318,7 @@
             unelevated
             no-caps
             :label="confirmDialog.actionLabel"
-            color="negative"
+            :color="confirmDialog.color || 'negative'"
             :loading="confirmDialog.loading"
             @click="confirmDialog.onConfirm"
           />
@@ -355,11 +355,22 @@ const binnedTasks = ref<BinnedTask[]>([]);
 
 const hasItems = computed(() => binnedProjects.value.length > 0 || binnedTasks.value.length > 0);
 
-const confirmDialog = ref({
+const confirmDialog = ref<{
+  open: boolean;
+  title: string;
+  message: string;
+  actionLabel: string;
+  color?: string;
+  icon?: string;
+  loading: boolean;
+  onConfirm: () => void;
+}>({
   open: false,
   title: '',
   message: '',
   actionLabel: 'Delete Forever',
+  color: 'negative',
+  icon: 'warning',
   loading: false,
   onConfirm: () => {},
 });
@@ -434,16 +445,19 @@ async function handleRestoreProject(proj: BinnedProject) {
   }
 }
 
-async function handleRestoreTask(task: BinnedTask) {
+async function executeRestoreTask(task: BinnedTask) {
   restoringId.value = `task_${task.task_id}`;
   try {
     await restoreTaskApi(task.task_id);
     $q.notify({
       type: 'positive',
-      message: `Task "${task.title}" restored successfully and Gantt chart updated!`,
+      message: task.project_deleted_at
+        ? `Task "${task.title}" and its parent project "${task.project_name}" restored successfully!`
+        : `Task "${task.title}" restored successfully and Gantt chart updated!`,
       position: 'top-right',
       icon: 'check_circle',
     });
+    confirmDialog.value.open = false;
     await fetchBin();
   } catch (err: unknown) {
     $q.notify({
@@ -453,7 +467,28 @@ async function handleRestoreTask(task: BinnedTask) {
     });
   } finally {
     restoringId.value = null;
+    confirmDialog.value.loading = false;
   }
+}
+
+async function handleRestoreTask(task: BinnedTask) {
+  if (task.project_deleted_at) {
+    confirmDialog.value = {
+      open: true,
+      title: 'Restore Parent Project?',
+      message: `The parent project "${task.project_name}" is currently in the Recycle Bin. Restoring this task will also restore the entire project and make it active. Do you wish to continue?`,
+      actionLabel: 'Restore Task & Project',
+      color: 'primary',
+      icon: 'restore_from_trash',
+      loading: false,
+      onConfirm: () => {
+        confirmDialog.value.loading = true;
+        void executeRestoreTask(task);
+      },
+    };
+    return;
+  }
+  await executeRestoreTask(task);
 }
 
 function confirmPermanentDeleteProject(proj: BinnedProject) {

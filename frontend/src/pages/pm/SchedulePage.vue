@@ -605,7 +605,7 @@
       :allow-unassign="false"
       :allow-assign-member="false"
       :allow-add-dependency="false"
-      :show-dependencies="false"
+      :show-dependencies="true"
       @edit="openEditFromDetails"
     />
 
@@ -613,11 +613,16 @@
     <CreateTaskDialog
       v-model="showCreateDialog"
       dialog-title="Schedule New Task"
+      :initial-project-id="projectFilter !== 'ALL' ? Number(projectFilter) : undefined"
       :projects="projectSelectOptions"
-      :show-assignees="false"
-      :show-dependencies="false"
+      :member-options="createMemberOptions"
+      :supervisor-options="createMemberOptions"
+      :predecessor-options="createPredecessorOptions"
+      :show-assignees="true"
+      :show-dependencies="true"
       :loading="submitting"
       @submit="handleCreateTask"
+      @project-change="handleCreateProjectChange"
     />
 
     <!-- 10. EDIT TASK MODAL -->
@@ -765,6 +770,7 @@ import {
   getResourcesApi,
   getHolidaysApi,
   createTaskApi,
+  addTaskDependencyApi,
   updateTaskApi,
   getProjectScheduleDataApi,
   getResourceScheduleDataApi,
@@ -1463,20 +1469,72 @@ function openEditFromDetails() {
   }
 }
 
+const createProjectMembers = ref<ResourceUser[]>([]);
+
+const createMemberOptions = computed(() => {
+  const source =
+    createProjectMembers.value.length > 0 ? createProjectMembers.value : resources.value;
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+  for (const r of source) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      opts.push({
+        label: r.name,
+        value: id,
+      });
+    }
+  }
+  return opts;
+});
+
+const createPredecessorOptions = computed(() => {
+  const activePid =
+    createForm.project_id ||
+    (projectFilter.value !== 'ALL' ? Number(projectFilter.value) : null) ||
+    (projects.value.length > 0 ? (projects.value[0]?.project_id ?? null) : null);
+  if (!activePid) return [];
+  return tasks.value
+    .filter((t) => t.project_id === activePid)
+    .map((t) => ({
+      label: `${t.title} (#${t.task_id})`,
+      value: t.task_id,
+    }));
+});
+
+async function handleCreateProjectChange(newProjectId: number | null) {
+  createForm.project_id = newProjectId;
+  if (newProjectId) {
+    const members = await getResourcesApi(newProjectId).catch(() => []);
+    createProjectMembers.value = members;
+  } else {
+    createProjectMembers.value = [];
+  }
+}
+
 const createForm = reactive<{
   project_id: number | null;
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status?: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | undefined;
   expected_effort: number;
   deadline: string;
+  assigned_resource_ids?: number[];
+  supervisor_id?: number | null | undefined;
+  predecessor_task_ids?: number[];
 }>({
   project_id: null,
   title: '',
   description: '',
   priority: 'MEDIUM',
+  status: undefined,
   expected_effort: 8,
   deadline: '',
+  assigned_resource_ids: [],
+  supervisor_id: null,
+  predecessor_task_ids: [],
 });
 
 const editForm = reactive<{
@@ -1495,14 +1553,23 @@ const editForm = reactive<{
   deadline: '',
 });
 
-function openCreateTaskDialog() {
+async function openCreateTaskDialog() {
   createForm.title = '';
   createForm.description = '';
   createForm.priority = 'MEDIUM';
+  createForm.status = undefined;
   createForm.deadline = '';
-  if (projects.value.length > 0 && projects.value[0]) {
-    createForm.project_id = projects.value[0].project_id;
-  }
+  createForm.assigned_resource_ids = [];
+  createForm.supervisor_id = null;
+  createForm.predecessor_task_ids = [];
+  const initialPid =
+    projectFilter.value !== 'ALL'
+      ? Number(projectFilter.value)
+      : projects.value.length > 0
+        ? (projects.value[0]?.project_id ?? null)
+        : null;
+  createForm.project_id = initialPid;
+  await handleCreateProjectChange(initialPid);
   showCreateDialog.value = true;
 }
 
@@ -1512,19 +1579,42 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
 
   submitting.value = true;
   try {
-    await createTaskApi({
+    const newTask = await createTaskApi({
       project_id: data.project_id,
       title: data.title.trim(),
       description: data.description || null,
       priority: data.priority,
+      status: data.status,
       expected_effort: Number(data.expected_effort) || 8,
       deadline: data.deadline || null,
+      assigned_resource_ids: data.assigned_resource_ids,
+      supervisor_id: data.supervisor_id || undefined,
     });
 
-    $q.notify({
-      type: 'positive',
-      message: 'Task scheduled successfully',
-    });
+    const newTaskId = newTask?.task_id;
+    let depErrors = 0;
+
+    if (newTaskId && data.predecessor_task_ids && data.predecessor_task_ids.length > 0) {
+      for (const predId of data.predecessor_task_ids) {
+        try {
+          await addTaskDependencyApi(newTaskId, predId);
+        } catch {
+          depErrors++;
+        }
+      }
+    }
+
+    if (depErrors > 0) {
+      $q.notify({
+        type: 'warning',
+        message: `Task scheduled, but ${depErrors} dependency/dependencies could not be linked`,
+      });
+    } else {
+      $q.notify({
+        type: 'positive',
+        message: 'Task scheduled successfully',
+      });
+    }
 
     showCreateDialog.value = false;
     void loadData();
