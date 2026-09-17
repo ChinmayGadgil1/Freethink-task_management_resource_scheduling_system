@@ -30,8 +30,8 @@
           <template #avatar>
             <q-icon name="fact_check" color="primary" />
           </template>
-          Assign an independent peer resource to review and verify deliverables for this completed task.
-          Original task assignees cannot verify their own work.
+          Assign an independent peer resource to review and verify deliverables for this completed
+          task. Original task assignees cannot verify their own work.
         </q-banner>
 
         <!-- Select Verifier -->
@@ -69,7 +69,8 @@
             v-if="!loadingMembers && memberOptions.length === 0"
             class="text-caption text-negative q-mt-xs"
           >
-            No other peer resources are available for verification (original task assignees cannot verify their own work).
+            No other peer resources are available for verification (original task assignees cannot
+            verify their own work).
           </div>
         </div>
 

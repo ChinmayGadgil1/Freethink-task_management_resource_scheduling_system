@@ -306,10 +306,7 @@
                       >
                         {{ d.label }}
                       </div>
-                      <div
-                        class="text-h6 text-weight-bold"
-                        :class="`text-${d.color}`"
-                      >
+                      <div class="text-h6 text-weight-bold" :class="`text-${d.color}`">
                         {{ d.value }}
                       </div>
                     </q-card-section>
@@ -749,7 +746,9 @@ const completedTasks = computed(
   () => assignedTasks.value.filter((t) => t.status === 'COMPLETED').length,
 );
 const activeTasks = computed(
-  () => assignedTasks.value.filter((t) => t.status !== 'COMPLETED').length,
+  () =>
+    assignedTasks.value.filter((t) => t.status === 'SCHEDULED' || t.status === 'IN_PROGRESS')
+      .length,
 );
 const delayedTasks = computed(() => assignedTasks.value.filter(isOverdue).length);
 
@@ -858,10 +857,11 @@ const projectProgress = computed(() => {
     const project = task.project_name ?? `Project #${task.project_id}`;
     const existing = groups.get(project);
 
+    const isActive = task.status === 'SCHEDULED' || task.status === 'IN_PROGRESS';
     if (existing) {
       existing.tasks += 1;
       existing.completed += task.status === 'COMPLETED' ? 1 : 0;
-      existing.active += task.status !== 'COMPLETED' ? 1 : 0;
+      existing.active += isActive ? 1 : 0;
       existing.progressTotal += Number(task.progress) || 0;
       existing.expectedEffort += getTaskExpectedEffortForMe(task);
       existing.actualEffort += Number(task.actual_effort) || 0;
@@ -870,7 +870,7 @@ const projectProgress = computed(() => {
         project,
         tasks: 1,
         completed: task.status === 'COMPLETED' ? 1 : 0,
-        active: task.status !== 'COMPLETED' ? 1 : 0,
+        active: isActive ? 1 : 0,
         progressTotal: Number(task.progress) || 0,
         expectedEffort: getTaskExpectedEffortForMe(task),
         actualEffort: Number(task.actual_effort) || 0,
@@ -1167,14 +1167,12 @@ function initEffortChart() {
 
   const myTasks = assignedTasks.value;
 
-  // Select up to 6 tasks, prioritizing non-completed tasks
-  const sortedTasks = [...myTasks]
-    .sort((a, b) => {
-      if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
-      if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
-      return getTaskExpectedEffortForMe(b) - getTaskExpectedEffortForMe(a);
-    })
-    .slice(0, 6);
+  // Sort tasks, prioritizing non-completed tasks
+  const sortedTasks = [...myTasks].sort((a, b) => {
+    if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
+    if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
+    return getTaskExpectedEffortForMe(b) - getTaskExpectedEffortForMe(a);
+  });
 
   const taskTitles = sortedTasks.map((t) => t.title);
   const plannedData = sortedTasks.map((t) => Number(getTaskExpectedEffortForMe(t).toFixed(1)));
@@ -1182,8 +1180,12 @@ function initEffortChart() {
   const remainingData = sortedTasks.map((t) =>
     t.status === 'COMPLETED'
       ? 0
-      : Number(Math.max(0, getTaskExpectedEffortForMe(t) - (Number(t.actual_effort) || 0)).toFixed(1)),
+      : Number(
+          Math.max(0, getTaskExpectedEffortForMe(t) - (Number(t.actual_effort) || 0)).toFixed(1),
+        ),
   );
+
+  const hasOverflow = sortedTasks.length > 6;
 
   const option: EChartsOption = {
     tooltip: {
@@ -1196,7 +1198,8 @@ function initEffortChart() {
         if (!task) return '';
         const planned = Number(getTaskExpectedEffortForMe(task).toFixed(1));
         const actual = Number(task.actual_effort) || 0;
-        const remaining = task.status === 'COMPLETED' ? 0 : Number(Math.max(0, planned - actual).toFixed(1));
+        const remaining =
+          task.status === 'COMPLETED' ? 0 : Number(Math.max(0, planned - actual).toFixed(1));
         return `
           <div style="font-weight:600; font-size:13px; color:${darkText};">${task.title}</div>
           <div style="font-size:11px; color:${mutedText}; margin-bottom:6px;">${task.project_name || `Project #${task.project_id}`}</div>
@@ -1227,7 +1230,7 @@ function initEffortChart() {
     grid: {
       top: '14%',
       left: '3%',
-      right: 50,
+      right: hasOverflow ? 65 : 50,
       bottom: '6%',
       containLabel: true,
     },
@@ -1296,6 +1299,36 @@ function initEffortChart() {
         : [],
   };
 
+  if (hasOverflow) {
+    option.dataZoom = [
+      {
+        type: 'inside',
+        yAxisIndex: 0,
+        startValue: 0,
+        endValue: 5,
+        zoomOnMouseWheel: false,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: true,
+      },
+      {
+        type: 'slider',
+        yAxisIndex: 0,
+        width: 10,
+        right: 4,
+        startValue: 0,
+        endValue: 5,
+        borderColor: 'transparent',
+        fillerColor: isDark ? 'rgba(148, 163, 184, 0.28)' : 'rgba(118, 84, 214, 0.2)',
+        handleStyle: {
+          color: '#7654D6',
+          borderColor: '#7654D6',
+        },
+        showDetail: false,
+        brushSelect: false,
+      },
+    ];
+  }
+
   effortChart.setOption(option, true);
   effortChart.off('click');
   effortChart.on('click', (params) => {
@@ -1320,18 +1353,17 @@ function initTaskProgressChart() {
 
   const myTasks = assignedTasks.value;
 
-  // Prioritize active or delayed tasks, slice up to 8
-  const progressList = [...myTasks]
-    .sort((a, b) => {
-      if (isOverdue(a) && !isOverdue(b)) return -1;
-      if (!isOverdue(a) && isOverdue(b)) return 1;
-      if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
-      if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
-      return (Number(b.progress) || 0) - (Number(a.progress) || 0);
-    })
-    .slice(0, 8);
+  // Prioritize active or delayed tasks
+  const progressList = [...myTasks].sort((a, b) => {
+    if (isOverdue(a) && !isOverdue(b)) return -1;
+    if (!isOverdue(a) && isOverdue(b)) return 1;
+    if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
+    if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
+    return (Number(b.progress) || 0) - (Number(a.progress) || 0);
+  });
 
   const taskTitles = progressList.map((t) => t.title);
+  const hasOverflow = progressList.length > 7;
 
   const option: EChartsOption = {
     tooltip: {
@@ -1368,7 +1400,7 @@ function initTaskProgressChart() {
     grid: {
       top: '8%',
       left: '3%',
-      right: 55,
+      right: hasOverflow ? 65 : 55,
       bottom: '6%',
       containLabel: true,
     },
@@ -1448,6 +1480,36 @@ function initTaskProgressChart() {
           ]
         : [],
   };
+
+  if (hasOverflow) {
+    option.dataZoom = [
+      {
+        type: 'inside',
+        yAxisIndex: 0,
+        startValue: 0,
+        endValue: 6,
+        zoomOnMouseWheel: false,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: true,
+      },
+      {
+        type: 'slider',
+        yAxisIndex: 0,
+        width: 10,
+        right: 4,
+        startValue: 0,
+        endValue: 6,
+        borderColor: 'transparent',
+        fillerColor: isDark ? 'rgba(148, 163, 184, 0.28)' : 'rgba(118, 84, 214, 0.2)',
+        handleStyle: {
+          color: '#7654D6',
+          borderColor: '#7654D6',
+        },
+        showDetail: false,
+        brushSelect: false,
+      },
+    ];
+  }
 
   taskProgressChart.setOption(option, true);
   taskProgressChart.off('click');

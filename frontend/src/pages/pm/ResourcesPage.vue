@@ -719,7 +719,8 @@
                     <q-icon name="supervisor_account" size="18px" />
                   </template>
                   <template #hint>
-                    Supervisor receives +20% effort overhead and can log work (cannot be the assigned resource)
+                    Supervisor receives +20% effort overhead and can log work (cannot be the
+                    assigned resource)
                   </template>
                 </q-select>
               </div>

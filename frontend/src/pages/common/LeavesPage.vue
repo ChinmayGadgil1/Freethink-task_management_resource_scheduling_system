@@ -366,9 +366,7 @@
                 </q-btn>
                 <div v-else>
                   <q-btn dense flat round disable color="grey-5" icon="check">
-                    <q-tooltip
-                      >Cannot approve: Leave dates have already passed</q-tooltip
-                    >
+                    <q-tooltip>Cannot approve: Leave dates have already passed</q-tooltip>
                   </q-btn>
                 </div>
 
@@ -457,8 +455,12 @@
                     (val) => !!val || 'Start date is required',
                     (val) =>
                       !val ||
-                      (isProjectManager ? String(val) >= getTodayIso() : String(val) > getTodayIso()) ||
-                      (isProjectManager ? 'Start date cannot be in the past' : 'Leaves must be applied at least 1 day in advance (tomorrow or later)'),
+                      (isProjectManager
+                        ? String(val) >= getTodayIso()
+                        : String(val) > getTodayIso()) ||
+                      (isProjectManager
+                        ? 'Start date cannot be in the past'
+                        : 'Leaves must be applied at least 1 day in advance (tomorrow or later)'),
                   ]"
                   @update:model-value="
                     (val) => {
@@ -499,8 +501,12 @@
                       'End date must be on or after start date',
                     (val) =>
                       !val ||
-                      (isProjectManager ? String(val) >= getTodayIso() : String(val) > getTodayIso()) ||
-                      (isProjectManager ? 'End date cannot be in the past' : 'End date must be tomorrow or later'),
+                      (isProjectManager
+                        ? String(val) >= getTodayIso()
+                        : String(val) > getTodayIso()) ||
+                      (isProjectManager
+                        ? 'End date cannot be in the past'
+                        : 'End date must be tomorrow or later'),
                   ]"
                 >
                   <template #append>
@@ -1222,7 +1228,8 @@ async function handleApplyLeave() {
   if (!isProjectManager.value && leaveForm.start_date <= todayStr) {
     $q.notify({
       type: 'warning',
-      message: 'Leaves must be requested at least 1 day in advance (start date must be tomorrow or later).',
+      message:
+        'Leaves must be requested at least 1 day in advance (start date must be tomorrow or later).',
     });
     return;
   }
@@ -1373,7 +1380,9 @@ onMounted(() => {
 
   &:hover {
     border-color: var(--wo-primary, #8b6fd8) !important;
-    box-shadow: 0 8px 22px rgba(139, 111, 216, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 8px 22px rgba(139, 111, 216, 0.12),
+      0 2px 6px rgba(0, 0, 0, 0.04);
     transform: translateY(-2px);
   }
 }
@@ -1387,7 +1396,9 @@ body.body--dark {
 
     &:hover {
       border-color: var(--wo-primary, #8b6fd8) !important;
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
+      box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(139, 111, 216, 0.3);
       transform: translateY(-2px);
     }
   }

@@ -676,7 +676,9 @@ export function computeResourcePerformanceData(
     const metric = metricMap.get(r.user_id);
     const utilization = metric ? metric.utilization : 0;
     const assignedHours = metric ? metric.assignedHours : 0;
-    const weeklyCapacity = metric ? metric.weeklyCapacity : (calculateResourceWeeklyCapacity(r) || 40);
+    const weeklyCapacity = metric
+      ? metric.weeklyCapacity
+      : calculateResourceWeeklyCapacity(r) || 40;
 
     return {
       resourceId: r.user_id,
@@ -770,4 +772,3 @@ export function computeResourcePerformanceData(
 
   return { rows, summary };
 }
-

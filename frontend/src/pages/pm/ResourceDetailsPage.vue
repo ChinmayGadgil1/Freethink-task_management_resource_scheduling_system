@@ -550,9 +550,7 @@
                         <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
                       </q-btn>
                       <q-btn v-else flat round dense disable icon="check" color="grey-5">
-                        <q-tooltip
-                          >Cannot approve: Leave dates have already passed</q-tooltip
-                        >
+                        <q-tooltip>Cannot approve: Leave dates have already passed</q-tooltip>
                       </q-btn>
 
                       <q-btn
@@ -670,7 +668,8 @@
                       <q-icon name="supervisor_account" size="18px" />
                     </template>
                     <template #hint>
-                      Supervisor receives +20% effort overhead and can log work (cannot be the assigned resource)
+                      Supervisor receives +20% effort overhead and can log work (cannot be the
+                      assigned resource)
                     </template>
                   </q-select>
                 </div>
@@ -712,7 +711,8 @@
                     label="Start Date (YYYY-MM-DD) *"
                     :rules="[
                       (val) => !!val || 'Start date is required',
-                      (val) => !val || String(val) >= getTodayIso() || 'Start date cannot be in the past',
+                      (val) =>
+                        !val || String(val) >= getTodayIso() || 'Start date cannot be in the past',
                     ]"
                     @update:model-value="
                       (val) => {
@@ -751,7 +751,8 @@
                         !leaveForm.start_date ||
                         val >= leaveForm.start_date ||
                         'End date must be on or after start date',
-                      (val) => !val || String(val) >= getTodayIso() || 'End date cannot be in the past',
+                      (val) =>
+                        !val || String(val) >= getTodayIso() || 'End date cannot be in the past',
                     ]"
                   >
                     <template #append>
@@ -1096,7 +1097,8 @@
                       <q-icon name="supervisor_account" size="18px" />
                     </template>
                     <template #hint>
-                      Supervisor receives +20% effort overhead and can log work (cannot be an assigned resource)
+                      Supervisor receives +20% effort overhead and can log work (cannot be an
+                      assigned resource)
                     </template>
                   </q-select>
                 </div>

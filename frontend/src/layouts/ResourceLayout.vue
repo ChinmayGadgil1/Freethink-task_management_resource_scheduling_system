@@ -30,7 +30,6 @@
           </div>
         </div>
 
-
         <!-- Header Actions -->
         <div class="header-right-actions row items-center gap-sm">
           <!-- Notification Bell Icon Button -->

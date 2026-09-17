@@ -1,5 +1,8 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg pm-dashboard-page">
+  <q-page
+    :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
+    class="q-pa-lg pm-dashboard-page"
+  >
     <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
       <!-- 01. HEADER & ACTIONS ROW -->
       <div class="row items-center justify-between wrap gap-md">
@@ -49,14 +52,7 @@
             :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
             @click="openLogProgressDialog"
           />
-          <q-btn
-            flat
-            round
-            dense
-            icon="download"
-            class="q-ml-xs"
-            @click="openGenerateReportDialog"
-          >
+          <q-btn flat round dense icon="download" class="q-ml-xs" @click="openGenerateReportDialog">
             <q-tooltip>Generate Project Report</q-tooltip>
           </q-btn>
         </div>
@@ -74,7 +70,9 @@
             </div>
             <div class="kpi-value q-mt-xs">{{ totalProjects }}</div>
             <div class="kpi-meta text-muted">
-              {{ totalProjects === 1 ? '1 active workspace' : `${totalProjects} active workspaces` }}
+              {{
+                totalProjects === 1 ? '1 active workspace' : `${totalProjects} active workspaces`
+              }}
             </div>
           </q-card>
         </div>
@@ -89,7 +87,11 @@
             </div>
             <div class="kpi-value q-mt-xs">{{ activeTasks }}</div>
             <div class="kpi-meta text-muted">
-              {{ tasks.length ? `${Math.round((activeTasks / tasks.length) * 100)}% of total tasks` : 'No active tasks' }}
+              {{
+                tasks.length
+                  ? `${Math.round((activeTasks / tasks.length) * 100)}% of total tasks`
+                  : 'No active tasks'
+              }}
             </div>
           </q-card>
         </div>
@@ -104,7 +106,11 @@
             </div>
             <div class="kpi-value q-mt-xs">{{ completedTasks }}</div>
             <div class="kpi-meta text-muted">
-              {{ tasks.length ? `${Math.round((completedTasks / tasks.length) * 100)}% completion rate` : '0% completed' }}
+              {{
+                tasks.length
+                  ? `${Math.round((completedTasks / tasks.length) * 100)}% completion rate`
+                  : '0% completed'
+              }}
             </div>
           </q-card>
         </div>
@@ -126,8 +132,15 @@
             <div class="kpi-value q-mt-xs" :class="{ 'text-negative': overdueTasks > 0 }">
               {{ overdueTasks }}
             </div>
-            <div class="kpi-meta" :class="overdueTasks > 0 ? 'text-negative text-weight-bold' : 'text-muted'">
-              {{ overdueTasks > 0 ? `${overdueTasks} deliverable${overdueTasks === 1 ? '' : 's'} need attention` : 'All tasks on schedule' }}
+            <div
+              class="kpi-meta"
+              :class="overdueTasks > 0 ? 'text-negative text-weight-bold' : 'text-muted'"
+            >
+              {{
+                overdueTasks > 0
+                  ? `${overdueTasks} deliverable${overdueTasks === 1 ? '' : 's'} need attention`
+                  : 'All tasks on schedule'
+              }}
             </div>
           </q-card>
         </div>
@@ -144,7 +157,15 @@
                 <div class="panel-title">Active Projects</div>
                 <div class="panel-subtitle">Current status and delivery progress</div>
               </div>
-              <q-btn flat no-caps dense color="primary" label="View all projects" icon-right="chevron_right" @click="goToProjects" />
+              <q-btn
+                flat
+                no-caps
+                dense
+                color="primary"
+                label="View all projects"
+                icon-right="chevron_right"
+                @click="goToProjects"
+              />
             </div>
 
             <q-separator />
@@ -186,9 +207,15 @@
                     <div class="column items-end" style="min-width: 150px">
                       <div class="row items-center justify-between full-width q-mb-xs">
                         <span class="text-caption text-muted">
-                          {{ project.deadline ? `Due ${formatDateShort(project.deadline)}` : 'No deadline' }}
+                          {{
+                            project.deadline
+                              ? `Due ${formatDateShort(project.deadline)}`
+                              : 'No deadline'
+                          }}
                         </span>
-                        <span class="text-caption text-weight-bold">{{ Math.round(Number(project.progress) || 0) }}%</span>
+                        <span class="text-caption text-weight-bold"
+                          >{{ Math.round(Number(project.progress) || 0) }}%</span
+                        >
                       </div>
                       <q-linear-progress
                         rounded
@@ -206,7 +233,14 @@
             <div v-else class="column items-center justify-center q-pa-xl text-muted">
               <q-icon name="folder_open" size="36px" color="grey-5" />
               <div class="text-body2 q-mt-sm">No active projects created yet</div>
-              <q-btn flat no-caps color="primary" label="Create your first project" class="q-mt-xs" @click="openNewProjectDialog" />
+              <q-btn
+                flat
+                no-caps
+                color="primary"
+                label="Create your first project"
+                class="q-mt-xs"
+                @click="openNewProjectDialog"
+              />
             </div>
           </q-card>
 
@@ -217,7 +251,15 @@
                 <div class="panel-title">Schedule & Milestone Horizon</div>
                 <div class="panel-subtitle">Deliverable dates for {{ timelineMonthLabel }}</div>
               </div>
-              <q-btn flat no-caps dense color="primary" label="Full Schedule" icon-right="chevron_right" @click="goToSchedule" />
+              <q-btn
+                flat
+                no-caps
+                dense
+                color="primary"
+                label="Full Schedule"
+                icon-right="chevron_right"
+                @click="goToSchedule"
+              />
             </div>
 
             <q-separator />
@@ -234,7 +276,9 @@
                   </div>
                   <div
                     class="timeline-days-track"
-                    :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(48px, 1fr))` }"
+                    :style="{
+                      gridTemplateColumns: `repeat(${timelineDays.length}, minmax(48px, 1fr))`,
+                    }"
                   >
                     <div
                       v-for="day in timelineDays"
@@ -262,14 +306,18 @@
                       @click="row.projectId ? goToProject(row.projectId) : goToTasks()"
                     >
                       <div class="text-caption text-weight-bold ellipsis">{{ row.title }}</div>
-                      <div class="text-muted ellipsis" style="font-size: 10px">{{ row.projectName }}</div>
+                      <div class="text-muted ellipsis" style="font-size: 10px">
+                        {{ row.projectName }}
+                      </div>
                     </div>
 
                     <div class="row-track-col">
                       <!-- Grid lines -->
                       <div
                         class="timeline-grid-overlay"
-                        :style="{ gridTemplateColumns: `repeat(${timelineDays.length}, minmax(48px, 1fr))` }"
+                        :style="{
+                          gridTemplateColumns: `repeat(${timelineDays.length}, minmax(48px, 1fr))`,
+                        }"
                       >
                         <div v-for="day in timelineDays" :key="day.key" class="track-line" />
                       </div>
@@ -298,7 +346,9 @@
 
               <div v-else class="column items-center justify-center q-pa-xl text-muted">
                 <q-icon name="event_busy" size="36px" color="grey-5" />
-                <div class="text-caption q-mt-sm">No scheduled deliverables with dates found for this timeframe.</div>
+                <div class="text-caption q-mt-sm">
+                  No scheduled deliverables with dates found for this timeframe.
+                </div>
               </div>
             </div>
           </q-card>
@@ -313,7 +363,15 @@
                 <div class="panel-title">Tasks Requiring Attention</div>
                 <div class="panel-subtitle">Overdue and high priority items</div>
               </div>
-              <q-btn flat no-caps dense color="primary" label="View all" icon-right="chevron_right" @click="goToTasks" />
+              <q-btn
+                flat
+                no-caps
+                dense
+                color="primary"
+                label="View all"
+                icon-right="chevron_right"
+                @click="goToTasks"
+              />
             </div>
 
             <q-separator />
@@ -329,7 +387,9 @@
                 indicator-color="primary"
               >
                 <q-tab name="urgent" label="Urgent / Overdue">
-                  <q-badge v-if="urgentTasks.length" color="negative" floating rounded>{{ urgentTasks.length }}</q-badge>
+                  <q-badge v-if="urgentTasks.length" color="negative" floating rounded>{{
+                    urgentTasks.length
+                  }}</q-badge>
                 </q-tab>
                 <q-tab name="in_progress" label="In Progress" />
                 <q-tab name="recent" label="Recent" />
@@ -360,9 +420,13 @@
                           </q-badge>
                         </div>
                         <div class="row items-center gap-xs text-muted text-caption q-mt-xs">
-                          <span class="ellipsis">{{ task.project_name || `Project #${task.project_id}` }}</span>
+                          <span class="ellipsis">{{
+                            task.project_name || `Project #${task.project_id}`
+                          }}</span>
                           <span>•</span>
-                          <span>{{ task.deadline ? formatDateShort(task.deadline) : 'No due date' }}</span>
+                          <span>{{
+                            task.deadline ? formatDateShort(task.deadline) : 'No due date'
+                          }}</span>
                         </div>
                       </q-item-section>
                       <q-item-section side>
@@ -390,9 +454,13 @@
                       <q-item-section>
                         <div class="text-body2 text-weight-bold ellipsis">{{ task.title }}</div>
                         <div class="row items-center gap-xs text-muted text-caption q-mt-xs">
-                          <span class="ellipsis">{{ task.project_name || `Project #${task.project_id}` }}</span>
+                          <span class="ellipsis">{{
+                            task.project_name || `Project #${task.project_id}`
+                          }}</span>
                           <span>•</span>
-                          <span>{{ task.deadline ? formatDateShort(task.deadline) : 'Ongoing' }}</span>
+                          <span>{{
+                            task.deadline ? formatDateShort(task.deadline) : 'Ongoing'
+                          }}</span>
                         </div>
                       </q-item-section>
                       <q-item-section side>
@@ -419,9 +487,13 @@
                       <q-item-section>
                         <div class="text-body2 text-weight-bold ellipsis">{{ task.title }}</div>
                         <div class="row items-center gap-xs text-muted text-caption q-mt-xs">
-                          <span class="ellipsis">{{ task.project_name || `Project #${task.project_id}` }}</span>
+                          <span class="ellipsis">{{
+                            task.project_name || `Project #${task.project_id}`
+                          }}</span>
                           <span>•</span>
-                          <span class="text-capitalize">{{ task.status.toLowerCase().replace('_', ' ') }}</span>
+                          <span class="text-capitalize">{{
+                            task.status.toLowerCase().replace('_', ' ')
+                          }}</span>
                         </div>
                       </q-item-section>
                       <q-item-section side>
@@ -441,7 +513,15 @@
                 <div class="panel-title">Team Capacity</div>
                 <div class="panel-subtitle">Resource allocation and load</div>
               </div>
-              <q-btn flat no-caps dense color="primary" label="Manage team" icon-right="chevron_right" @click="goToResources" />
+              <q-btn
+                flat
+                no-caps
+                dense
+                color="primary"
+                label="Manage team"
+                icon-right="chevron_right"
+                @click="goToResources"
+              />
             </div>
 
             <q-separator />
@@ -473,7 +553,9 @@
                       </span>
                     </div>
                     <div class="row items-center justify-between q-mt-xs">
-                      <span class="text-muted text-caption ellipsis">{{ member.role || 'Team Member' }}</span>
+                      <span class="text-muted text-caption ellipsis">{{
+                        member.role || 'Team Member'
+                      }}</span>
                       <span class="text-muted" style="font-size: 10px">{{ member.status }}</span>
                     </div>
                     <q-linear-progress
@@ -491,7 +573,14 @@
             <div v-else class="column items-center justify-center q-pa-xl text-muted">
               <q-icon name="group" size="36px" color="grey-5" />
               <div class="text-caption q-mt-sm">No resources available.</div>
-              <q-btn flat no-caps color="primary" label="View resources" class="q-mt-xs" @click="goToResources" />
+              <q-btn
+                flat
+                no-caps
+                color="primary"
+                label="View resources"
+                class="q-mt-xs"
+                @click="goToResources"
+              />
             </div>
           </q-card>
         </div>
@@ -965,7 +1054,12 @@ import {
   type TaskPriority,
 } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
-import { getStatusFromProgress, formatStatusLabel, getTaskStatusClass, isTaskOverdue } from '@/utils/taskHelpers';
+import {
+  getStatusFromProgress,
+  formatStatusLabel,
+  getTaskStatusClass,
+  isTaskOverdue,
+} from '@/utils/taskHelpers';
 import { getInitials, formatDateShort } from '@/utils/formatters';
 
 const $q = useQuasar();
@@ -1105,10 +1199,7 @@ async function loadTeamWorkloads() {
           },
         ] as const;
       } catch {
-        return [
-          res.user_id,
-          { workload: 0, totalExpectedEffort: 0, status: 'Available' },
-        ] as const;
+        return [res.user_id, { workload: 0, totalExpectedEffort: 0, status: 'Available' }] as const;
       }
     }),
   );
@@ -1146,7 +1237,6 @@ function getWorkloadProgressColor(workload: number) {
   if (workload > 80) return 'warning';
   return 'primary';
 }
-
 
 function getPriorityBadgeClass(priority: string) {
   const p = (priority || '').toUpperCase();
@@ -1745,4 +1835,3 @@ body.body--dark {
   }
 }
 </style>
-

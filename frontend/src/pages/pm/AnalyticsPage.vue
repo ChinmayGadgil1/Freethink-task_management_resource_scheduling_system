@@ -39,7 +39,6 @@
         </div>
       </div>
 
-
       <!-- 3. LOADING SKELETON -->
       <div v-if="loading && isInitialLoad" class="q-my-lg">
         <div class="row q-col-gutter-md q-mb-md">
@@ -254,7 +253,8 @@
                     <span>Resource Workload & Utilization</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
                       <q-tooltip
-                        >Weekly shift workload (Monday → Sunday) against 85% operational limit</q-tooltip
+                        >Weekly shift workload (Monday → Sunday) against 85% operational
+                        limit</q-tooltip
                       >
                     </q-icon>
                   </div>
@@ -386,7 +386,9 @@
                   >
                     <span>Planned vs. Actual Effort</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip>Hours variance on key deliverables with scrollable viewport</q-tooltip>
+                      <q-tooltip
+                        >Hours variance on key deliverables with scrollable viewport</q-tooltip
+                      >
                     </q-icon>
                   </div>
                   <div class="text-caption text-grey-6">
@@ -414,7 +416,9 @@
           <div class="col-12">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
               <!-- Section Header & Controls -->
-              <div class="row items-center justify-between q-mb-sm chart-header-row wrap q-col-gutter-sm">
+              <div
+                class="row items-center justify-between q-mb-sm chart-header-row wrap q-col-gutter-sm"
+              >
                 <div>
                   <div
                     class="text-subtitle1 text-weight-bold row items-center q-gutter-x-xs"
@@ -476,19 +480,25 @@
                     :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                     class="q-px-sm q-py-xs text-weight-medium"
                   >
-                    {{ performanceRows.length }} {{ performanceRows.length === 1 ? 'Resource' : 'Resources' }}
+                    {{ performanceRows.length }}
+                    {{ performanceRows.length === 1 ? 'Resource' : 'Resources' }}
                   </q-badge>
                 </div>
               </div>
 
               <!-- Single Interactive ECharts Visualization -->
-              <div ref="resourceOverviewChartRef" class="echarts-box resource-overview-chart-box"></div>
+              <div
+                ref="resourceOverviewChartRef"
+                class="echarts-box resource-overview-chart-box"
+              ></div>
 
               <!-- Contextual Dynamic Insight -->
               <q-banner
                 dense
                 rounded
-                :class="$q.dark.isActive ? 'bg-deep-purple-10 text-purple-2' : 'bg-purple-1 text-purple-9'"
+                :class="
+                  $q.dark.isActive ? 'bg-deep-purple-10 text-purple-2' : 'bg-purple-1 text-purple-9'
+                "
                 class="q-mt-sm"
               >
                 <template #avatar>
@@ -511,7 +521,13 @@
         <!-- ======================================================= -->
         <div class="row q-col-gutter-md q-mb-md">
           <div class="col-12">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md" style="min-height: auto;">
+            <q-card
+              flat
+              bordered
+              :dark="$q.dark.isActive"
+              class="chart-card q-pa-md"
+              style="min-height: auto"
+            >
               <div class="row items-center justify-between q-mb-md chart-header-row">
                 <div>
                   <div
@@ -521,7 +537,8 @@
                     <span>Detailed Resource Metrics</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
                       <q-tooltip>
-                        Detailed drill-down across assigned tasks, completion rate, utilization, and logged effort
+                        Detailed drill-down across assigned tasks, completion rate, utilization, and
+                        logged effort
                       </q-tooltip>
                     </q-icon>
                   </div>
@@ -547,11 +564,20 @@
                 <template #body-cell-name="props">
                   <q-td :props="props">
                     <div class="row items-center no-wrap q-gutter-x-sm">
-                      <q-avatar size="28px" color="primary" text-color="white" class="text-caption text-weight-bold">
+                      <q-avatar
+                        size="28px"
+                        color="primary"
+                        text-color="white"
+                        class="text-caption text-weight-bold"
+                      >
                         {{ getInitials(props.row.name) }}
                       </q-avatar>
-                      <div class="column ellipsis" style="max-width: 180px;">
-                        <span class="text-weight-bold ellipsis" :class="$q.dark.isActive ? 'text-white' : 'text-dark'" :title="props.row.name">
+                      <div class="column ellipsis" style="max-width: 180px">
+                        <span
+                          class="text-weight-bold ellipsis"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                          :title="props.row.name"
+                        >
                           {{ props.row.name }}
                         </span>
                         <span class="text-caption text-grey-6">
@@ -566,21 +592,34 @@
                 <template #body-cell-completionRate="props">
                   <q-td :props="props">
                     <div v-if="props.row.completionRate === null">
-                      <q-chip dense square :color="$q.dark.isActive ? 'grey-9' : 'grey-2'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'" class="text-caption text-weight-medium">
+                      <q-chip
+                        dense
+                        square
+                        :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                        :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                        class="text-caption text-weight-medium"
+                      >
                         N/A
                       </q-chip>
                     </div>
-                    <div v-else class="row items-center justify-center no-wrap q-gutter-x-xs" style="min-width: 110px;">
+                    <div
+                      v-else
+                      class="row items-center justify-center no-wrap q-gutter-x-xs"
+                      style="min-width: 110px"
+                    >
                       <q-linear-progress
                         :value="props.row.completionRate / 100"
                         :color="props.row.completionRate === 100 ? 'positive' : 'primary'"
                         rounded
                         size="6px"
                         class="col"
-                        style="min-width: 50px;"
+                        style="min-width: 50px"
                         :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
                       />
-                      <span class="text-caption text-weight-bold" :class="props.row.completionRate === 100 ? 'text-positive' : ''">
+                      <span
+                        class="text-caption text-weight-bold"
+                        :class="props.row.completionRate === 100 ? 'text-positive' : ''"
+                      >
                         {{ props.row.completionRate }}%
                       </span>
                     </div>
@@ -593,11 +632,40 @@
                     <q-chip
                       dense
                       square
-                      :color="props.row.utilization > 85 ? ($q.dark.isActive ? 'red-10' : 'red-1') : props.row.utilization > 70 ? ($q.dark.isActive ? 'blue-10' : 'blue-1') : ($q.dark.isActive ? 'green-10' : 'green-1')"
-                      :text-color="props.row.utilization > 85 ? ($q.dark.isActive ? 'red-2' : 'negative') : props.row.utilization > 70 ? ($q.dark.isActive ? 'blue-2' : 'primary') : ($q.dark.isActive ? 'green-2' : 'positive')"
+                      :color="
+                        props.row.utilization > 85
+                          ? $q.dark.isActive
+                            ? 'red-10'
+                            : 'red-1'
+                          : props.row.utilization > 70
+                            ? $q.dark.isActive
+                              ? 'blue-10'
+                              : 'blue-1'
+                            : $q.dark.isActive
+                              ? 'green-10'
+                              : 'green-1'
+                      "
+                      :text-color="
+                        props.row.utilization > 85
+                          ? $q.dark.isActive
+                            ? 'red-2'
+                            : 'negative'
+                          : props.row.utilization > 70
+                            ? $q.dark.isActive
+                              ? 'blue-2'
+                              : 'primary'
+                            : $q.dark.isActive
+                              ? 'green-2'
+                              : 'positive'
+                      "
                       class="text-caption text-weight-bold"
                     >
-                      <q-icon v-if="props.row.utilization > 85" name="warning" size="12px" class="q-mr-xs" />
+                      <q-icon
+                        v-if="props.row.utilization > 85"
+                        name="warning"
+                        size="12px"
+                        class="q-mr-xs"
+                      />
                       {{ props.row.utilization }}%
                     </q-chip>
                   </q-td>
@@ -606,19 +674,26 @@
                 <!-- Effort Cells -->
                 <template #body-cell-plannedEffort="props">
                   <q-td :props="props">
-                    <span class="text-weight-medium">{{ formatHours(props.row.plannedEffort) }}</span>
+                    <span class="text-weight-medium">{{
+                      formatHours(props.row.plannedEffort)
+                    }}</span>
                   </q-td>
                 </template>
 
                 <template #body-cell-actualEffort="props">
                   <q-td :props="props">
-                    <span class="text-weight-medium">{{ formatHours(props.row.actualEffort) }}</span>
+                    <span class="text-weight-medium">{{
+                      formatHours(props.row.actualEffort)
+                    }}</span>
                   </q-td>
                 </template>
 
                 <template #body-cell-remainingEffort="props">
                   <q-td :props="props">
-                    <span class="text-weight-medium" :class="props.row.remainingEffort > 0 ? 'text-teal' : 'text-grey-6'">
+                    <span
+                      class="text-weight-medium"
+                      :class="props.row.remainingEffort > 0 ? 'text-teal' : 'text-grey-6'"
+                    >
                       {{ formatHours(props.row.remainingEffort) }}
                     </span>
                   </q-td>
@@ -651,12 +726,7 @@ import {
   getResourcesApi,
   getResourceWorkloadApi,
 } from '@/services/api';
-import type {
-  Project,
-  ResourceUser,
-  Task,
-  ResourceWorkload,
-} from '@/services/api';
+import type { Project, ResourceUser, Task, ResourceWorkload } from '@/services/api';
 import {
   ANALYTICS_PALETTE,
   computeResourceMetrics,
@@ -783,12 +853,7 @@ const taskStatusFilteredTasks = computed(() => {
 
 // Team-wide stats for top KPI Overview cards
 const resourceStats = computed(() =>
-  computeResourceMetrics(
-    resourceList.value,
-    workloadsMap.value,
-    taskList.value,
-    'ALL',
-  ),
+  computeResourceMetrics(resourceList.value, workloadsMap.value, taskList.value, 'ALL'),
 );
 
 // Task Status Distribution scoped strictly to card project selector
@@ -835,9 +900,8 @@ const performanceRows = computed(() => {
 const selectedPerformanceRow = computed(() => {
   if (selectedPerformanceResourceId.value === 'ALL') return null;
   return (
-    performanceData.value.rows.find(
-      (r) => r.resourceId === selectedPerformanceResourceId.value,
-    ) || null
+    performanceData.value.rows.find((r) => r.resourceId === selectedPerformanceResourceId.value) ||
+    null
   );
 });
 
@@ -962,7 +1026,6 @@ const performanceColumns = [
     sortable: true,
   },
 ];
-
 
 // -------------------------------------------------------------
 // Live Backend Data Loading
@@ -1182,8 +1245,6 @@ function initUtilizationChart() {
   utilizationChart.setOption(option, true);
 }
 
-
-
 // 3. Task Status Distribution (Card-Scoped Project Filter)
 function initTaskStatusChart() {
   if (!taskStatusChartRef.value) return;
@@ -1325,7 +1386,11 @@ function initEffortVarianceChart() {
       type: 'value',
       name: isVeryNarrow ? '' : 'Hours',
       nameTextStyle: { color: theme.mutedText, fontSize: 10 },
-      axisLabel: { formatter: '{value}h', color: theme.mutedText, fontSize: isVeryNarrow ? 10 : 11 },
+      axisLabel: {
+        formatter: '{value}h',
+        color: theme.mutedText,
+        fontSize: isVeryNarrow ? 10 : 11,
+      },
       splitLine: { lineStyle: { color: theme.gridLine, type: 'dashed' } },
     },
     yAxis: {
@@ -1339,7 +1404,8 @@ function initEffortVarianceChart() {
         color: theme.darkText,
         fontSize: isVeryNarrow ? 10 : 11,
         fontWeight: 500,
-        formatter: (val: string) => (val.length > maxLabelLen ? val.substring(0, maxLabelLen - 1) + '…' : val),
+        formatter: (val: string) =>
+          val.length > maxLabelLen ? val.substring(0, maxLabelLen - 1) + '…' : val,
       },
     },
     dataZoom: hasOverflow
@@ -1465,7 +1531,11 @@ function initCapacityChart() {
       type: 'value',
       name: isVeryNarrow ? '' : 'Hours / Week',
       nameTextStyle: { color: theme.mutedText, fontSize: 10 },
-      axisLabel: { formatter: '{value}h', color: theme.mutedText, fontSize: isVeryNarrow ? 10 : 11 },
+      axisLabel: {
+        formatter: '{value}h',
+        color: theme.mutedText,
+        fontSize: isVeryNarrow ? 10 : 11,
+      },
       splitLine: { lineStyle: { color: theme.gridLine, type: 'dashed' } },
     },
     yAxis: {
@@ -1479,7 +1549,8 @@ function initCapacityChart() {
         color: theme.darkText,
         fontSize: isVeryNarrow ? 10 : 11,
         fontWeight: 500,
-        formatter: (val: string) => (val.length > maxNameLen ? val.substring(0, maxNameLen - 1) + '…' : val),
+        formatter: (val: string) =>
+          val.length > maxNameLen ? val.substring(0, maxNameLen - 1) + '…' : val,
       },
     },
     dataZoom: hasOverflow
@@ -1875,10 +1946,12 @@ function initResourceOverviewChart() {
   // Horizontal dataZoom setup for 35+ resources
   // Displays ~8-10 bars initially and allows horizontal navigation
   const showDataZoom = rows.length > 8;
-  const initialBarsVisible = isVeryNarrow ? 6 : (containerWidth < 768 ? 7 : 9);
+  const initialBarsVisible = isVeryNarrow ? 6 : containerWidth < 768 ? 7 : 9;
   const endValue = Math.min(rows.length - 1, initialBarsVisible - 1);
 
-  const dataZoomConfig: (echarts.InsideDataZoomComponentOption | echarts.SliderDataZoomComponentOption)[] = showDataZoom
+  const dataZoomConfig: (
+    echarts.InsideDataZoomComponentOption | echarts.SliderDataZoomComponentOption
+  )[] = showDataZoom
     ? [
         {
           type: 'inside',
@@ -1926,7 +1999,7 @@ function initResourceOverviewChart() {
       top: metric === 'UTILIZATION' ? 36 : 28,
       left: isVeryNarrow ? 36 : 52,
       right: isVeryNarrow ? 16 : 24,
-      bottom: showDataZoom ? (isVeryNarrow ? 70 : 60) : (isVeryNarrow ? 50 : 38),
+      bottom: showDataZoom ? (isVeryNarrow ? 70 : 60) : isVeryNarrow ? 50 : 38,
       containLabel: true,
     },
     dataZoom: dataZoomConfig,
@@ -1938,9 +2011,9 @@ function initResourceOverviewChart() {
         fontSize: isVeryNarrow ? 9 : 10.5,
         fontFamily: FONT_FAMILY,
         interval: 0,
-        rotate: isVeryNarrow ? 35 : (containerWidth < 768 ? 25 : 0),
+        rotate: isVeryNarrow ? 35 : containerWidth < 768 ? 25 : 0,
         formatter: (val: string) => {
-          const maxLen = isVeryNarrow ? 7 : (containerWidth < 768 ? 9 : 12);
+          const maxLen = isVeryNarrow ? 7 : containerWidth < 768 ? 9 : 12;
           return val.length > maxLen ? val.slice(0, maxLen - 1) + '…' : val;
         },
       },
@@ -2268,7 +2341,9 @@ onBeforeUnmount(() => {
 
   &:hover {
     border-color: var(--wo-primary, #8b6fd8) !important;
-    box-shadow: 0 8px 20px rgba(139, 111, 216, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 8px 20px rgba(139, 111, 216, 0.12),
+      0 2px 6px rgba(0, 0, 0, 0.04);
     transform: translateY(-2px);
   }
 
@@ -2301,7 +2376,9 @@ onBeforeUnmount(() => {
 
   &:hover {
     border-color: var(--wo-primary, #8b6fd8) !important;
-    box-shadow: 0 8px 22px rgba(139, 111, 216, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 8px 22px rgba(139, 111, 216, 0.12),
+      0 2px 6px rgba(0, 0, 0, 0.04);
     transform: translateY(-2px);
   }
 }
@@ -2332,7 +2409,9 @@ body.body--dark {
   .kpi-card:hover,
   .chart-card:hover {
     border-color: var(--wo-primary, #8b6fd8) !important;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 111, 216, 0.3);
+    box-shadow:
+      0 8px 22px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(139, 111, 216, 0.3);
   }
 
   .kpi-card.kpi-card-alert {

@@ -1546,7 +1546,9 @@ const editSupervisorOptions = computed(() => {
     return taskProjectMembers.value.length > 0 ? taskProjectMembers.value : resources.value;
   };
 
-  const editingTask = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+  const editingTask = tasks.value.find(
+    (task) => Number(task.task_id) === Number(editingTaskId.value),
+  );
   const assignedIds = editingTask?.assigned_resource_ids || [];
 
   for (const r of getSource()) {
@@ -1875,7 +1877,9 @@ function openAssignTaskMemberDialog(taskId: number | null) {
   assignTaskMemberForm.task_id = selectedId;
   assignTaskMemberForm.user_ids = [];
   const currentTask = tasks.value.find((t) => t.task_id === selectedId);
-  assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
+  assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id
+    ? Number(currentTask.supervisor_id)
+    : null;
   showAssignTaskMemberDialog.value = true;
 }
 
@@ -1889,7 +1893,9 @@ async function handleAssignTaskMember() {
   );
 
   const origSupId = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
-  const newSupId = assignTaskMemberForm.supervisor_id ? Number(assignTaskMemberForm.supervisor_id) : null;
+  const newSupId = assignTaskMemberForm.supervisor_id
+    ? Number(assignTaskMemberForm.supervisor_id)
+    : null;
   const supervisorChanged = origSupId !== newSupId;
 
   if (toAssignIds.length === 0 && !supervisorChanged) {
@@ -1920,10 +1926,7 @@ async function handleAssignTaskMember() {
     showAssignTaskMemberDialog.value = false;
     assignTaskMemberForm.user_ids = [];
     await loadData();
-    if (
-      selectedTaskDetails.value &&
-      selectedTaskDetails.value.task_id === currentTaskId
-    ) {
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === currentTaskId) {
       const updated = tasks.value.find((t) => t.task_id === currentTaskId);
       selectedTaskDetails.value = updated || null;
     }

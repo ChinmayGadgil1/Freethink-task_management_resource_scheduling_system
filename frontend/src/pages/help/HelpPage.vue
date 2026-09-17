@@ -6,7 +6,11 @@
         <div>
           <div class="page-title">Help &amp; Support</div>
           <div class="page-subtitle">
-            {{ isResourceRole ? 'Resource Guide: Tracking tasks, logging work, and managing availability.' : 'Project Manager Guide: Planning projects, balancing capacity, and scheduling.' }}
+            {{
+              isResourceRole
+                ? 'Resource Guide: Tracking tasks, logging work, and managing availability.'
+                : 'Project Manager Guide: Planning projects, balancing capacity, and scheduling.'
+            }}
           </div>
         </div>
 
@@ -62,17 +66,17 @@
                   Getting Started Guides
                 </div>
                 <div class="text-caption text-grey-6">
-                  {{ isResourceRole ? 'Workflows and tools for Team Resources' : 'Workflows and tools for Project Managers' }}
+                  {{
+                    isResourceRole
+                      ? 'Workflows and tools for Team Resources'
+                      : 'Workflows and tools for Project Managers'
+                  }}
                 </div>
               </div>
             </div>
 
             <div class="row q-col-gutter-md">
-              <div
-                v-for="(guide, index) in filteredGuides"
-                :key="index"
-                class="col-12 col-md-6"
-              >
+              <div v-for="(guide, index) in filteredGuides" :key="index" class="col-12 col-md-6">
                 <q-card flat bordered class="guide-card">
                   <q-card-section>
                     <div class="row items-center q-gutter-x-sm q-mb-sm">
@@ -90,7 +94,10 @@
                 </q-card>
               </div>
 
-              <div v-if="filteredGuides.length === 0" class="col-12 text-center q-pa-lg text-grey-6">
+              <div
+                v-if="filteredGuides.length === 0"
+                class="col-12 text-center q-pa-lg text-grey-6"
+              >
                 <q-icon name="search_off" size="32px" class="q-mb-xs" />
                 <div>No guides match "{{ searchQuery }}".</div>
               </div>
@@ -240,7 +247,8 @@ const allGuides: GuideItem[] = [
   // PM GUIDES
   {
     title: 'Project Planning & Lifecycle',
-    description: 'Create projects, set priority (Critical, High, Medium, Low), establish start and deadline dates, and track overall progress milestones.',
+    description:
+      'Create projects, set priority (Critical, High, Medium, Low), establish start and deadline dates, and track overall progress milestones.',
     icon: 'folder',
     iconBgClass: 'bg-purple-soft',
     iconColorClass: 'text-primary',
@@ -249,7 +257,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Resource Allocation & Workload',
-    description: 'Assign team members to projects and tasks. Monitor weekly 40h bandwidth and prevent overallocation across concurrent deliverables.',
+    description:
+      'Assign team members to projects and tasks. Monitor weekly 40h bandwidth and prevent overallocation across concurrent deliverables.',
     icon: 'groups',
     iconBgClass: 'bg-orange-soft',
     iconColorClass: 'text-orange-9',
@@ -258,7 +267,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Gantt Timeline & Scheduling',
-    description: 'Use the interactive Gantt chart to sequence tasks, establish predecessor dependencies, and track deliverable timelines in real time.',
+    description:
+      'Use the interactive Gantt chart to sequence tasks, establish predecessor dependencies, and track deliverable timelines in real time.',
     icon: 'calendar_month',
     iconBgClass: 'bg-blue-soft',
     iconColorClass: 'text-blue-8',
@@ -267,7 +277,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Reviewing & Approving Leaves',
-    description: 'Review pending leave requests from team members, approve or reject applications, and trigger automatic Gantt schedule recalculations.',
+    description:
+      'Review pending leave requests from team members, approve or reject applications, and trigger automatic Gantt schedule recalculations.',
     icon: 'event_busy',
     iconBgClass: 'bg-teal-soft',
     iconColorClass: 'text-teal',
@@ -276,7 +287,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Recycle Bin & Safe Restoration',
-    description: 'Soft-deleted projects and tasks are preserved in the Recycle Bin. Restore items at any time without losing schedule history or dependencies.',
+    description:
+      'Soft-deleted projects and tasks are preserved in the Recycle Bin. Restore items at any time without losing schedule history or dependencies.',
     icon: 'delete_outline',
     iconBgClass: 'bg-purple-soft',
     iconColorClass: 'text-purple-8',
@@ -287,7 +299,8 @@ const allGuides: GuideItem[] = [
   // RESOURCE GUIDES
   {
     title: 'My Daily Work Center',
-    description: 'View tasks actively assigned to you, check deadlines, review task specifications, and prioritize high-impact deliverables.',
+    description:
+      'View tasks actively assigned to you, check deadlines, review task specifications, and prioritize high-impact deliverables.',
     icon: 'task_alt',
     iconBgClass: 'bg-teal-soft',
     iconColorClass: 'text-teal',
@@ -296,7 +309,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Progress Logging & Effort Tracking',
-    description: 'Log actual hours worked on assigned tasks, submit completion progress percentages, and attach work notes directly from your dashboard.',
+    description:
+      'Log actual hours worked on assigned tasks, submit completion progress percentages, and attach work notes directly from your dashboard.',
     icon: 'insights',
     iconBgClass: 'bg-green-icon',
     iconColorClass: 'text-green-8',
@@ -305,7 +319,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Applying for Leave & Time-Off',
-    description: 'Request single-day or multi-day leaves with full-day or half-day options. Check your remaining schedule and track PM approval status.',
+    description:
+      'Request single-day or multi-day leaves with full-day or half-day options. Check your remaining schedule and track PM approval status.',
     icon: 'event_available',
     iconBgClass: 'bg-blue-soft',
     iconColorClass: 'text-blue-8',
@@ -314,7 +329,8 @@ const allGuides: GuideItem[] = [
   },
   {
     title: 'Schedule & Capacity Overview',
-    description: 'View your personal working days, configured daily working hours, and company holidays on your interactive timeline calendar.',
+    description:
+      'View your personal working days, configured daily working hours, and company holidays on your interactive timeline calendar.',
     icon: 'pie_chart',
     iconBgClass: 'bg-purple-soft',
     iconColorClass: 'text-primary',
@@ -325,7 +341,8 @@ const allGuides: GuideItem[] = [
   // SHARED GUIDES
   {
     title: 'Task Status Lifecycle',
-    description: 'Work moves transparently through SCHEDULED (planned), IN_PROGRESS (under active delivery), and COMPLETED (finished).',
+    description:
+      'Work moves transparently through SCHEDULED (planned), IN_PROGRESS (under active delivery), and COMPLETED (finished).',
     icon: 'trending_up',
     iconBgClass: 'bg-teal-soft',
     iconColorClass: 'text-teal',
@@ -342,7 +359,11 @@ const filteredGuides = computed(() => {
     const roleMatches = g.role === 'ALL' || g.role === currentRole;
     if (!roleMatches) return false;
     if (!q) return true;
-    return g.title.toLowerCase().includes(q) || g.description.toLowerCase().includes(q) || g.tags.includes(q);
+    return (
+      g.title.toLowerCase().includes(q) ||
+      g.description.toLowerCase().includes(q) ||
+      g.tags.includes(q)
+    );
   });
 });
 
@@ -357,25 +378,29 @@ const allFaqs: FaqItem[] = [
   // PM FAQS
   {
     question: 'How do I create a new project?',
-    answer: 'Navigate to the Projects page and click "+ New Project". Fill in the title, description, priority, and scheduled dates, then click Create.',
+    answer:
+      'Navigate to the Projects page and click "+ New Project". Fill in the title, description, priority, and scheduled dates, then click Create.',
     role: 'PROJECT_MANAGER',
     tags: 'create project new pm priority deadline',
   },
   {
     question: 'How do I assign team members to a project or task?',
-    answer: 'From the Project Details page, click "Add Member" in the Members tab. When creating or editing tasks, pick team members from the Assignees selector.',
+    answer:
+      'From the Project Details page, click "Add Member" in the Members tab. When creating or editing tasks, pick team members from the Assignees selector.',
     role: 'PROJECT_MANAGER',
     tags: 'assign resource allocation member team pm',
   },
   {
     question: 'How do I review and approve leave requests?',
-    answer: 'Open the Leaves page or a resource\'s detail view. Pending requests display with Approve and Reject actions. Approving a leave automatically recalculates project timelines.',
+    answer:
+      "Open the Leaves page or a resource's detail view. Pending requests display with Approve and Reject actions. Approving a leave automatically recalculates project timelines.",
     role: 'PROJECT_MANAGER',
     tags: 'approve reject leave request schedule recalculate pm',
   },
   {
     question: 'How do I restore binned items?',
-    answer: 'Open the Recycle Bin page from the sidebar. You can view all binned projects and tasks and click "Restore" to safely re-introduce them to active schedules.',
+    answer:
+      'Open the Recycle Bin page from the sidebar. You can view all binned projects and tasks and click "Restore" to safely re-introduce them to active schedules.',
     role: 'PROJECT_MANAGER',
     tags: 'restore bin recycle undelete pm',
   },
@@ -383,19 +408,22 @@ const allFaqs: FaqItem[] = [
   // RESOURCE FAQS
   {
     question: 'How do I log work hours and update task progress?',
-    answer: 'Click on any assigned task on your dashboard or Progress page and select "Add Update". Enter the hours logged, update the progress slider, and add any work notes.',
+    answer:
+      'Click on any assigned task on your dashboard or Progress page and select "Add Update". Enter the hours logged, update the progress slider, and add any work notes.',
     role: 'RESOURCE',
     tags: 'log hours progress actual effort work update resource',
   },
   {
     question: 'How do I request a leave of absence?',
-    answer: 'Navigate to the Leaves page from your sidebar and click "Request Leave". Choose your date range, select full-day or half-day options, and submit for PM review.',
+    answer:
+      'Navigate to the Leaves page from your sidebar and click "Request Leave". Choose your date range, select full-day or half-day options, and submit for PM review.',
     role: 'RESOURCE',
     tags: 'apply request leave timeoff vacation resource',
   },
   {
     question: "Why isn't a task appearing on my dashboard?",
-    answer: 'Ensure that the task has been assigned to your account by the Project Manager. If you were recently added to a project, check your assigned task specs list.',
+    answer:
+      'Ensure that the task has been assigned to your account by the Project Manager. If you were recently added to a project, check your assigned task specs list.',
     role: 'RESOURCE',
     tags: 'missing task dashboard assigned resource',
   },
@@ -403,13 +431,15 @@ const allFaqs: FaqItem[] = [
   // SHARED FAQS
   {
     question: 'What do the task statuses mean?',
-    answer: 'SCHEDULED = planned and assigned but work has not started. IN_PROGRESS = active work is underway. COMPLETED = deliverable is 100% finished.',
+    answer:
+      'SCHEDULED = planned and assigned but work has not started. IN_PROGRESS = active work is underway. COMPLETED = deliverable is 100% finished.',
     role: 'ALL',
     tags: 'status meaning scheduled in_progress completed',
   },
   {
     question: 'What happens when a task passes its deadline?',
-    answer: "If a task's deadline passes before it reaches COMPLETED, TaskFlow flags it as Overdue and highlights it on dashboards and project health indicators.",
+    answer:
+      "If a task's deadline passes before it reaches COMPLETED, TaskFlow flags it as Overdue and highlights it on dashboards and project health indicators.",
     role: 'ALL',
     tags: 'overdue late deadline delayed at risk',
   },
@@ -423,7 +453,11 @@ const filteredFaqs = computed(() => {
     const roleMatches = f.role === 'ALL' || f.role === currentRole;
     if (!roleMatches) return false;
     if (!q) return true;
-    return f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q) || f.tags.includes(q);
+    return (
+      f.question.toLowerCase().includes(q) ||
+      f.answer.toLowerCase().includes(q) ||
+      f.tags.includes(q)
+    );
   });
 });
 </script>

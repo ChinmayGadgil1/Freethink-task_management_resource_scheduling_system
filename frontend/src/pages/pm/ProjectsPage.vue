@@ -74,8 +74,6 @@
       </div>
     </div>
 
-
-
     <!-- 4. SECONDARY DASHBOARD WIDGETS (Health Donut, Upcoming Deadlines) -->
     <div class="row q-col-gutter-md q-mb-lg">
       <!-- Active Resource Allocations (5 cols) -->
@@ -497,12 +495,11 @@
                   @click="goToProject(project.project_id)"
                 >
                   <!-- Consistent Clean Card Header -->
-                  <div class="q-px-md q-pt-md q-pb-sm relative-position overflow-hidden project-card-header">
+                  <div
+                    class="q-px-md q-pt-md q-pb-sm relative-position overflow-hidden project-card-header"
+                  >
                     <div class="row items-center justify-between no-wrap q-mb-sm">
-                      <q-avatar
-                        size="34px"
-                        class="project-card-avatar"
-                      >
+                      <q-avatar size="34px" class="project-card-avatar">
                         <q-icon name="folder" size="18px" />
                       </q-avatar>
 
@@ -940,8 +937,8 @@
       :loading="deletingProject"
       @confirm="handleExecuteDeleteProject"
     >
-      Are you sure you want to move project <strong>"{{ projectToDelete?.name }}"</strong> to the Recycle Bin? All
-      associated tasks will also be moved to the bin and can be restored later.
+      Are you sure you want to move project <strong>"{{ projectToDelete?.name }}"</strong> to the
+      Recycle Bin? All associated tasks will also be moved to the bin and can be restored later.
     </ConfirmActionDialog>
 
     <!-- ARCHIVE PROJECT CONFIRMATION DIALOG -->
@@ -1495,7 +1492,6 @@ const completionAverage = computed(() => {
 
   return Math.round(total / activeWorkspaceProjects.value.length);
 });
-
 
 export interface ResourceAllocationItem {
   user: ResourceUser;

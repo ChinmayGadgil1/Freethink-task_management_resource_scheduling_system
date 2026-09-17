@@ -999,7 +999,9 @@ function configureGanttEngine() {
     const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
     const combinedEffort = Number((baseEffort + supEffort).toFixed(1));
     const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
-    const supervisorLabel = task.supervisor_name || (task.supervisor_id ? `Supervisor #${task.supervisor_id}` : 'Supervisor');
+    const supervisorLabel =
+      task.supervisor_name ||
+      (task.supervisor_id ? `Supervisor #${task.supervisor_id}` : 'Supervisor');
     const effortText = hasSupervisor
       ? ` · ${combinedEffort}h [${baseEffort}h + ${supEffort}h 🛡️ ${escapeHtml(supervisorLabel)}]`
       : baseEffort > 0
@@ -1060,8 +1062,22 @@ function configureGanttEngine() {
             segEndH = pEnd.getHours();
           }
         }
-        actualSegStart = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), segStartH, 0, 0);
-        actualSegEnd = new Date(addDays(seg.endDate, -1).getFullYear(), addDays(seg.endDate, -1).getMonth(), addDays(seg.endDate, -1).getDate(), segEndH, 0, 0);
+        actualSegStart = new Date(
+          seg.startDate.getFullYear(),
+          seg.startDate.getMonth(),
+          seg.startDate.getDate(),
+          segStartH,
+          0,
+          0,
+        );
+        actualSegEnd = new Date(
+          addDays(seg.endDate, -1).getFullYear(),
+          addDays(seg.endDate, -1).getMonth(),
+          addDays(seg.endDate, -1).getDate(),
+          segEndH,
+          0,
+          0,
+        );
       } else {
         actualSegStart = seg.startDate;
         actualSegEnd = seg.endDate;
@@ -1153,7 +1169,9 @@ function configureGanttEngine() {
     const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
     const supName = task.supervisor_name
       ? escapeHtml(task.supervisor_name)
-      : (task.supervisor_id ? `Supervisor #${task.supervisor_id}` : null);
+      : task.supervisor_id
+        ? `Supervisor #${task.supervisor_id}`
+        : null;
     const baseEffort = Number(task.expected_effort || task.total_hours || 0);
     const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
     const combinedEffort = Number((baseEffort + supEffort).toFixed(1));
@@ -1179,8 +1197,12 @@ function configureGanttEngine() {
       `<div class="tooltip-row"><span class="tooltip-k">Status:</span><span class="tooltip-v">${statusText}</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Priority:</span><span class="tooltip-v">${priorityText}</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Assignee:</span><span class="tooltip-v">${assignee} (${baseEffort}h)</span></div>` +
-      (hasSupervisor && supName ? `<div class="tooltip-row"><span class="tooltip-k">Supervisor (20%):</span><span class="tooltip-v text-amber-9 font-weight-bold">🛡️ ${supName} (${supEffort}h)</span></div>` : '') +
-      (hasSupervisor ? `<div class="tooltip-row"><span class="tooltip-k">Combined Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${combinedEffort} hrs</span></div>` : `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>`) +
+      (hasSupervisor && supName
+        ? `<div class="tooltip-row"><span class="tooltip-k">Supervisor (20%):</span><span class="tooltip-v text-amber-9 font-weight-bold">🛡️ ${supName} (${supEffort}h)</span></div>`
+        : '') +
+      (hasSupervisor
+        ? `<div class="tooltip-row"><span class="tooltip-k">Combined Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${combinedEffort} hrs</span></div>`
+        : `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>`) +
       `<div class="tooltip-row"><span class="tooltip-k">Overall Span:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
       segmentsHtml +
       `<div class="tooltip-row"><span class="tooltip-k">Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
@@ -1652,7 +1674,10 @@ function buildGanttDataset() {
       return t.assigned_resource_names.join(', ');
     }
     if (Array.isArray(t.assigned_resources) && t.assigned_resources.length > 0) {
-      return t.assigned_resources.map((r) => r.name).filter(Boolean).join(', ');
+      return t.assigned_resources
+        .map((r) => r.name)
+        .filter(Boolean)
+        .join(', ');
     }
     const ids = parseResourceIds(t.assigned_resource_ids);
     if (ids.length > 0) {
@@ -1750,7 +1775,7 @@ function buildGanttDataset() {
         const isSupervisedByMe = Boolean(myId && supId === myId && !assignedIds.includes(myId));
         const resolvedAssigneeName = resolveAssigneeName(t);
         const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
-        const supervisorEffort = Number((baseExpectedEffort * 0.20).toFixed(1));
+        const supervisorEffort = Number((baseExpectedEffort * 0.2).toFixed(1));
 
         childTaskDataItems.push({
           id: t.task_id,
@@ -1859,7 +1884,7 @@ function buildGanttDataset() {
       const isSupervisedByMe = Boolean(myId && supId === myId && !assignedIds.includes(myId));
       const resolvedAssigneeName = resolveAssigneeName(t);
       const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
-      const supervisorEffort = Number((baseExpectedEffort * 0.20).toFixed(1));
+      const supervisorEffort = Number((baseExpectedEffort * 0.2).toFixed(1));
 
       data.push({
         id: t.task_id,
@@ -3554,7 +3579,11 @@ body.body--dark {
 }
 
 .bar-supervised-pill {
-  background: linear-gradient(135deg, rgba(254, 243, 199, 0.95), rgba(253, 230, 138, 0.95)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(254, 243, 199, 0.95),
+    rgba(253, 230, 138, 0.95)
+  ) !important;
   border: 1.5px dashed #d97706 !important;
   color: #92400e !important;
   font-weight: 600;

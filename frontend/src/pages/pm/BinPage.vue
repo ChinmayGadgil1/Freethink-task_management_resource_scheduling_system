@@ -305,7 +305,11 @@
     <q-dialog v-model="confirmDialog.open" persistent>
       <q-card style="min-width: 380px; max-width: 480px" class="rounded-borders">
         <q-card-section class="row items-center gap-md">
-          <q-avatar :icon="confirmDialog.icon || 'warning'" :color="confirmDialog.color || 'negative'" text-color="white" />
+          <q-avatar
+            :icon="confirmDialog.icon || 'warning'"
+            :color="confirmDialog.color || 'negative'"
+            text-color="white"
+          />
           <div>
             <div class="text-h6 text-weight-bold">{{ confirmDialog.title }}</div>
             <div class="text-body2 text-grey-7 q-mt-xs">{{ confirmDialog.message }}</div>

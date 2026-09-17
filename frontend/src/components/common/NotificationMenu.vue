@@ -301,10 +301,8 @@ onUnmounted(() => {
 const taskCount = computed(() => {
   return notificationStore.notifications.filter(
     (n) =>
-      (n.type === 'TASK_VERIFICATION' ||
-        n.type === 'TASK_CREATED' ||
-        n.type === 'TASK_ASSIGNED') &&
-      !n.is_read
+      (n.type === 'TASK_VERIFICATION' || n.type === 'TASK_CREATED' || n.type === 'TASK_ASSIGNED') &&
+      !n.is_read,
   ).length;
 });
 
@@ -327,9 +325,7 @@ const filteredNotifications = computed(() => {
   if (filterTab.value === 'tasks') {
     return notificationStore.notifications.filter(
       (n) =>
-        n.type === 'TASK_VERIFICATION' ||
-        n.type === 'TASK_CREATED' ||
-        n.type === 'TASK_ASSIGNED'
+        n.type === 'TASK_VERIFICATION' || n.type === 'TASK_CREATED' || n.type === 'TASK_ASSIGNED',
     );
   }
   if (filterTab.value === 'delays') {

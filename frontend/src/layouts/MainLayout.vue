@@ -31,8 +31,6 @@
           </div>
         </div>
 
-
-
         <!-- Right Header Actions -->
         <div class="header-actions row items-center q-gutter-sm">
           <!-- Notification Bell Icon Button -->

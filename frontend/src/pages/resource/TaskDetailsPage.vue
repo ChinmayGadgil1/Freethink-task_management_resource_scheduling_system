@@ -1221,11 +1221,7 @@
                       (You)
                     </span>
                   </q-chip>
-                  <q-badge
-                    outline
-                    color="amber-9"
-                    class="q-ml-xs text-weight-bold"
-                  >
+                  <q-badge outline color="amber-9" class="q-ml-xs text-weight-bold">
                     20% Effort ({{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h)
                   </q-badge>
                   <span v-if="task.supervisor_email" class="text-caption text-grey-6">
@@ -1372,14 +1368,21 @@
                   <q-banner
                     dense
                     rounded
-                    :class="$q.dark.isActive ? 'bg-amber-10 text-amber-1' : 'bg-amber-1 text-amber-10'"
+                    :class="
+                      $q.dark.isActive ? 'bg-amber-10 text-amber-1' : 'bg-amber-1 text-amber-10'
+                    "
                     class="q-pa-sm text-caption text-weight-medium q-mb-xs"
                   >
                     <template #avatar>
-                      <q-icon name="verified_user" :color="$q.dark.isActive ? 'amber-2' : 'amber-9'" />
+                      <q-icon
+                        name="verified_user"
+                        :color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
+                      />
                     </template>
                     <span>
-                      <b>Supervisor Active Oversight Mode</b>: You have 20% review effort (<b>{{ (Number(task.expected_effort) * 0.2).toFixed(1) }}h</b>) allocated to this task.
+                      <b>Supervisor Active Oversight Mode</b>: You have 20% review effort (<b
+                        >{{ (Number(task.expected_effort) * 0.2).toFixed(1) }}h</b
+                      >) allocated to this task.
                     </span>
                   </q-banner>
 
@@ -1591,7 +1594,8 @@
                           v-if="task.supervisor_id"
                           class="text-caption text-weight-medium text-amber-9 q-mt-xs"
                         >
-                          + {{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h supervisor (Total: {{ (Number(task.expected_effort || 0) * 1.2).toFixed(1) }}h)
+                          + {{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h supervisor
+                          (Total: {{ (Number(task.expected_effort || 0) * 1.2).toFixed(1) }}h)
                         </div>
                       </div>
                     </q-card-section>
@@ -2038,7 +2042,11 @@
                     outline
                     no-caps
                     color="primary"
-                    :label="isSupervisedByMe(task) && !isAssignedToMe(task) ? 'Log Review Update' : 'Log First Update'"
+                    :label="
+                      isSupervisedByMe(task) && !isAssignedToMe(task)
+                        ? 'Log Review Update'
+                        : 'Log First Update'
+                    "
                     icon="edit_note"
                     class="q-mt-md"
                     @click="updateDialog = true"
@@ -2099,7 +2107,11 @@
 
                         <!-- Supervisor Review Chip -->
                         <q-chip
-                          v-if="log.is_supervisor_log || (task.supervisor_id && Number(log.user_id) === Number(task.supervisor_id))"
+                          v-if="
+                            log.is_supervisor_log ||
+                            (task.supervisor_id &&
+                              Number(log.user_id) === Number(task.supervisor_id))
+                          "
                           dense
                           square
                           size="xs"

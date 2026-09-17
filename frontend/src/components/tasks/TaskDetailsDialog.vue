@@ -176,8 +176,12 @@
           <div class="detail-item">
             <div class="detail-label">Expected Effort</div>
             <div class="detail-val">{{ formatNumber(task.expected_effort || 8) }} Hours</div>
-            <div v-if="task.supervisor_id || task.supervisor_name" class="text-caption text-amber-9 text-weight-medium q-mt-xs">
-              + {{ (Number(task.expected_effort || 8) * 0.2).toFixed(1) }}h supervisor (Total: {{ (Number(task.expected_effort || 8) * 1.2).toFixed(1) }}h)
+            <div
+              v-if="task.supervisor_id || task.supervisor_name"
+              class="text-caption text-amber-9 text-weight-medium q-mt-xs"
+            >
+              + {{ (Number(task.expected_effort || 8) * 0.2).toFixed(1) }}h supervisor (Total:
+              {{ (Number(task.expected_effort || 8) * 1.2).toFixed(1) }}h)
             </div>
           </div>
 
@@ -255,7 +259,11 @@
               icon="verified_user"
               class="text-weight-bold"
             >
-              {{ task.supervisor_name || (task.supervisor_id ? resolveResourceName(task.supervisor_id) : '') || `Resource #${task.supervisor_id}` }}
+              {{
+                task.supervisor_name ||
+                (task.supervisor_id ? resolveResourceName(task.supervisor_id) : '') ||
+                `Resource #${task.supervisor_id}`
+              }}
             </q-chip>
             <q-badge outline color="amber-9" class="text-weight-bold">
               20% Effort ({{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h)
@@ -542,7 +550,11 @@
       <q-card-actions align="right" class="q-pa-md q-gutter-sm">
         <q-btn flat no-caps label="Close" color="grey-7" v-close-popup class="text-weight-medium" />
         <q-btn
-          v-if="task.status === 'COMPLETED' && task.task_type !== 'VERIFICATION' && !task.verification_task"
+          v-if="
+            task.status === 'COMPLETED' &&
+            task.task_type !== 'VERIFICATION' &&
+            !task.verification_task
+          "
           unelevated
           no-caps
           icon="verified"

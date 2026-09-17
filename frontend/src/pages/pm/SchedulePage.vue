@@ -1709,7 +1709,9 @@ function openAssignTaskMemberDialog(taskId: number | null) {
   assignTaskMemberForm.task_id = selectedId;
   assignTaskMemberForm.user_ids = [];
   const currentTask = tasks.value.find((t) => t.task_id === selectedId);
-  assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
+  assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id
+    ? Number(currentTask.supervisor_id)
+    : null;
   showAssignTaskMemberDialog.value = true;
 }
 
@@ -1723,7 +1725,9 @@ async function handleAssignTaskMember() {
   );
 
   const origSupId = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
-  const newSupId = assignTaskMemberForm.supervisor_id ? Number(assignTaskMemberForm.supervisor_id) : null;
+  const newSupId = assignTaskMemberForm.supervisor_id
+    ? Number(assignTaskMemberForm.supervisor_id)
+    : null;
   const supervisorChanged = origSupId !== newSupId;
 
   if (toAssignIds.length === 0 && !supervisorChanged) {
@@ -1754,10 +1758,7 @@ async function handleAssignTaskMember() {
     showAssignTaskMemberDialog.value = false;
     assignTaskMemberForm.user_ids = [];
     void loadData();
-    if (
-      selectedTaskDetails.value &&
-      selectedTaskDetails.value.task_id === currentTaskId
-    ) {
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === currentTaskId) {
       const updated = tasks.value.find((t) => t.task_id === currentTaskId);
       selectedTaskDetails.value = updated || null;
     }
@@ -1776,7 +1777,9 @@ const editSupervisorOptions = computed(() => {
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
 
-  const editingTask = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+  const editingTask = tasks.value.find(
+    (task) => Number(task.task_id) === Number(editingTaskId.value),
+  );
   const assignedIds = editingTask?.assigned_resource_ids || [];
 
   for (const r of resources.value) {
@@ -1938,10 +1941,7 @@ async function handleUpdateTask() {
 
     showEditDialog.value = false;
     void loadData();
-    if (
-      selectedTaskDetails.value &&
-      selectedTaskDetails.value.task_id === editingTaskId.value
-    ) {
+    if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === editingTaskId.value) {
       const updated = tasks.value.find((t) => t.task_id === editingTaskId.value);
       selectedTaskDetails.value = updated || null;
     }
