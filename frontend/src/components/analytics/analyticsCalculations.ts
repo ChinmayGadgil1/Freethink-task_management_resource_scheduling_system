@@ -589,3 +589,185 @@ export function computeUpcomingMilestones(tasks: Task[], projects: Project[]): M
     .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
     .slice(0, 6);
 }
+
+export interface ResourcePerformanceRow {
+  resourceId: number;
+  name: string;
+  role: string;
+  assignedTasks: number;
+  completedTasks: number;
+  completionRate: number | null; // null indicates N/A (0 assigned tasks)
+  utilization: number;
+  assignedHours: number;
+  weeklyCapacity: number;
+  plannedEffort: number;
+  actualEffort: number;
+  remainingEffort: number;
+}
+
+export interface ResourcePerformanceSummary {
+  highestCompletionRate: {
+    resourceId: number;
+    name: string;
+    completed: number;
+    assigned: number;
+    rate: number;
+  } | null;
+  mostTasksCompleted: {
+    resourceId: number;
+    name: string;
+    completed: number;
+  } | null;
+  highestUtilization: {
+    resourceId: number;
+    name: string;
+    utilization: number;
+  } | null;
+  highestAssignedEffort: {
+    resourceId: number;
+    name: string;
+    hours: number;
+  } | null;
+}
+
+/**
+ * Computes objective, measurable resource-wise performance metrics and summary cards.
+ * Avoids arbitrary scores; every metric maps directly to real task and workload data.
+ */
+export function computeResourcePerformanceData(
+  resources: ResourceUser[],
+  tasks: Task[],
+  workloadsMap: Record<number, ResourceWorkload | null>,
+): {
+  rows: ResourcePerformanceRow[];
+  summary: ResourcePerformanceSummary;
+} {
+  const resourceMetricsResult = computeResourceMetrics(resources, workloadsMap, tasks);
+  const metricMap = new Map<number, ResourceMetricItem>();
+  resourceMetricsResult.items.forEach((item) => metricMap.set(item.resourceId, item));
+
+  const rows: ResourcePerformanceRow[] = resources.map((r) => {
+    const userTasks = tasks.filter(
+      (t) =>
+        t.assigned_resource_ids?.includes(r.user_id) ||
+        t.assigned_resources?.some((ar) => ar.user_id === r.user_id),
+    );
+
+    const assignedTasks = userTasks.length;
+    const completedTasks = userTasks.filter((t) => t.status === 'COMPLETED').length;
+    const completionRate =
+      assignedTasks > 0 ? Math.round((completedTasks / assignedTasks) * 100) : null;
+
+    const plannedEffort =
+      Math.round(userTasks.reduce((sum, t) => sum + (Number(t.expected_effort) || 0), 0) * 10) / 10;
+    const actualEffort =
+      Math.round(userTasks.reduce((sum, t) => sum + (Number(t.actual_effort) || 0), 0) * 10) / 10;
+    const remainingEffort =
+      Math.round(
+        userTasks
+          .filter((t) => t.status !== 'COMPLETED')
+          .reduce(
+            (sum, t) =>
+              sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+            0,
+          ) * 10,
+      ) / 10;
+
+    const metric = metricMap.get(r.user_id);
+    const utilization = metric ? metric.utilization : 0;
+    const assignedHours = metric ? metric.assignedHours : 0;
+    const weeklyCapacity = metric ? metric.weeklyCapacity : (calculateResourceWeeklyCapacity(r) || 40);
+
+    return {
+      resourceId: r.user_id,
+      name: r.name,
+      role: r.role === 'RESOURCE' ? 'Team Resource' : 'Project Manager',
+      assignedTasks,
+      completedTasks,
+      completionRate,
+      utilization,
+      assignedHours,
+      weeklyCapacity,
+      plannedEffort,
+      actualEffort,
+      remainingEffort,
+    };
+  });
+
+  // Summary Metrics (strictly based on real data, with tie-break handling)
+  const eligibleForRate = rows.filter(
+    (row) => row.completionRate !== null && row.assignedTasks > 0,
+  );
+  const highestRateRow =
+    eligibleForRate.length > 0
+      ? eligibleForRate.reduce((best, cur) => {
+          if (!best) return cur;
+          if (cur.completionRate! > best.completionRate!) return cur;
+          if (
+            cur.completionRate! === best.completionRate! &&
+            cur.completedTasks > best.completedTasks
+          ) {
+            return cur;
+          }
+          return best;
+        })
+      : null;
+
+  const eligibleForCompleted = rows.filter((row) => row.completedTasks > 0);
+  const mostCompletedRow =
+    eligibleForCompleted.length > 0
+      ? eligibleForCompleted.reduce((best, cur) =>
+          cur.completedTasks > best.completedTasks ? cur : best,
+        )
+      : null;
+
+  const eligibleForUtil = rows.filter((row) => row.utilization > 0);
+  const highestUtilRow =
+    eligibleForUtil.length > 0
+      ? eligibleForUtil.reduce((best, cur) => (cur.utilization > best.utilization ? cur : best))
+      : null;
+
+  const eligibleForEffort = rows.filter((row) => row.plannedEffort > 0);
+  const highestEffortRow =
+    eligibleForEffort.length > 0
+      ? eligibleForEffort.reduce((best, cur) =>
+          cur.plannedEffort > best.plannedEffort ? cur : best,
+        )
+      : null;
+
+  const summary: ResourcePerformanceSummary = {
+    highestCompletionRate: highestRateRow
+      ? {
+          resourceId: highestRateRow.resourceId,
+          name: highestRateRow.name,
+          completed: highestRateRow.completedTasks,
+          assigned: highestRateRow.assignedTasks,
+          rate: highestRateRow.completionRate!,
+        }
+      : null,
+    mostTasksCompleted: mostCompletedRow
+      ? {
+          resourceId: mostCompletedRow.resourceId,
+          name: mostCompletedRow.name,
+          completed: mostCompletedRow.completedTasks,
+        }
+      : null,
+    highestUtilization: highestUtilRow
+      ? {
+          resourceId: highestUtilRow.resourceId,
+          name: highestUtilRow.name,
+          utilization: highestUtilRow.utilization,
+        }
+      : null,
+    highestAssignedEffort: highestEffortRow
+      ? {
+          resourceId: highestEffortRow.resourceId,
+          name: highestEffortRow.name,
+          hours: highestEffortRow.plannedEffort,
+        }
+      : null,
+  };
+
+  return { rows, summary };
+}
+

@@ -239,11 +239,11 @@
         </div>
 
         <!-- ======================================================= -->
-        <!-- ROW 1: Resource Workload & Assigned Task Trend          -->
+        <!-- ROW 1: Resource Workload & Utilization (Full Width)      -->
         <!-- ======================================================= -->
         <div class="row q-col-gutter-md q-mb-md">
-          <!-- 1A: Resource Workload & Utilization (Monday → Sunday Shift) -->
-          <div class="col-12 col-lg-6">
+          <!-- Resource Workload & Utilization (Monday → Sunday Shift) -->
+          <div class="col-12">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
               <div class="row items-center justify-between q-mb-sm chart-header-row">
                 <div>
@@ -275,7 +275,6 @@
                     :dark="$q.dark.isActive"
                     :bg-color="$q.dark.isActive ? 'dark' : 'white'"
                     class="workload-resource-select"
-                    @update:model-value="onWorkloadResourceChange"
                   >
                     <template #prepend>
                       <q-icon name="person" size="14px" color="primary" />
@@ -291,98 +290,6 @@
                 </div>
               </div>
               <div ref="utilizationChartRef" class="echarts-box"></div>
-            </q-card>
-          </div>
-
-          <!-- 1B: Resource Task Trend (Weekly Assigned Tasks) -->
-          <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
-              <div class="row items-center justify-between q-mb-sm chart-header-row">
-                <div>
-                  <div
-                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
-                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                  >
-                    <span>Resource Task Trend</span>
-                    <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip
-                        >Number of tasks assigned to each resource per week</q-tooltip
-                      >
-                    </q-icon>
-                  </div>
-                  <div class="text-caption text-grey-6">
-                    Number of tasks assigned to each resource per week
-                  </div>
-                </div>
-                <div class="row items-center q-gutter-x-xs chart-header-actions">
-                  <q-select
-                    v-model="selectedTrendResourceIds"
-                    :options="trendResourceOptions"
-                    multiple
-                    dense
-                    outlined
-                    rounded
-                    emit-value
-                    map-options
-                    options-dense
-                    :dark="$q.dark.isActive"
-                    :bg-color="$q.dark.isActive ? 'dark' : 'white'"
-                    class="trend-resource-select"
-                    @update:model-value="onTrendResourcesChange"
-                  >
-                    <template #prepend>
-                      <q-icon name="people" size="14px" color="primary" />
-                    </template>
-                    <template #selected>
-                      <span class="text-caption text-weight-medium text-no-wrap">
-                        {{ selectedTrendResourceIds.length }} Selected
-                      </span>
-                    </template>
-                    <template #option="{ itemProps, opt, selected }">
-                      <q-item v-bind="itemProps" dense>
-                        <q-item-section side>
-                          <q-checkbox
-                            :model-value="selected"
-                            dense
-                            :disable="!selected && selectedTrendResourceIds.length >= 8"
-                          />
-                        </q-item-section>
-                        <q-item-section>
-                          <q-item-label class="text-caption">{{ opt.label }}</q-item-label>
-                          <q-item-label caption class="text-grey-6">
-                            {{ opt.taskCount }} assigned
-                          </q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                  </q-select>
-                  <q-badge
-                    outline
-                    :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
-                    class="q-px-sm q-py-xs text-weight-medium"
-                  >
-                    Last 4 Weeks
-                  </q-badge>
-                </div>
-              </div>
-              <div ref="taskTrendChartRef" class="echarts-box task-trend-chart-box"></div>
-              <q-banner
-                dense
-                rounded
-                :class="$q.dark.isActive ? 'bg-blue-10 text-blue-2' : 'bg-blue-1 text-blue-9'"
-                class="q-mt-sm"
-              >
-                <template #avatar>
-                  <q-icon
-                    name="lightbulb_outline"
-                    size="18px"
-                    :color="$q.dark.isActive ? 'blue-2' : 'primary'"
-                  />
-                </template>
-                <span class="text-caption text-weight-medium">
-                  Tracks the number of tasks assigned to each resource per week over the last 4 weeks.
-                </span>
-              </q-banner>
             </q-card>
           </div>
         </div>
@@ -421,7 +328,6 @@
                   :dark="$q.dark.isActive"
                   :bg-color="$q.dark.isActive ? 'dark' : 'white'"
                   class="task-status-project-select"
-                  @update:model-value="onTaskStatusProjectChange"
                 >
                   <template #prepend>
                     <q-icon name="folder" size="14px" color="primary" />
@@ -499,6 +405,236 @@
             </q-card>
           </div>
         </div>
+
+        <!-- ======================================================= -->
+        <!-- ======================================================= -->
+        <!-- ROW 4: Resource Performance Overview Analytics          -->
+        <!-- ======================================================= -->
+        <div class="row q-col-gutter-md q-mb-md">
+          <div class="col-12">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
+              <!-- Section Header & Controls -->
+              <div class="row items-center justify-between q-mb-sm chart-header-row wrap q-col-gutter-sm">
+                <div>
+                  <div
+                    class="text-subtitle1 text-weight-bold row items-center q-gutter-x-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    <span>Resource Performance</span>
+                    <q-icon name="info_outline" size="16px" class="text-grey-5">
+                      <q-tooltip>
+                        Compare resource performance across key delivery and workload metrics
+                      </q-tooltip>
+                    </q-icon>
+                  </div>
+                  <div class="text-caption text-grey-6">
+                    Resource-wise task delivery and workload analytics
+                  </div>
+                </div>
+
+                <!-- Section Filters: Resource Selector, Metric Selector & Resource Count -->
+                <div class="row items-center q-gutter-xs chart-header-actions">
+                  <!-- Section-Specific Resource Filter -->
+                  <q-select
+                    v-model="selectedPerformanceResourceId"
+                    :options="performanceResourceOptions"
+                    emit-value
+                    map-options
+                    dense
+                    outlined
+                    rounded
+                    options-dense
+                    :dark="$q.dark.isActive"
+                    :bg-color="$q.dark.isActive ? 'dark' : 'white'"
+                    class="performance-resource-select"
+                  >
+                    <template #prepend>
+                      <q-icon name="person" size="14px" color="primary" />
+                    </template>
+                  </q-select>
+
+                  <!-- View By Metric Selector -->
+                  <div class="row items-center q-gutter-x-xs">
+                    <span class="text-caption text-grey-6 gt-xs">View by:</span>
+                    <q-select
+                      v-model="selectedPerformanceMetric"
+                      :options="performanceMetricOptions"
+                      emit-value
+                      map-options
+                      dense
+                      outlined
+                      rounded
+                      options-dense
+                      :dark="$q.dark.isActive"
+                      :bg-color="$q.dark.isActive ? 'dark' : 'white'"
+                      class="performance-metric-select"
+                    />
+                  </div>
+
+                  <q-badge
+                    outline
+                    :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
+                    class="q-px-sm q-py-xs text-weight-medium"
+                  >
+                    {{ performanceRows.length }} {{ performanceRows.length === 1 ? 'Resource' : 'Resources' }}
+                  </q-badge>
+                </div>
+              </div>
+
+              <!-- Single Interactive ECharts Visualization -->
+              <div ref="resourceOverviewChartRef" class="echarts-box resource-overview-chart-box"></div>
+
+              <!-- Contextual Dynamic Insight -->
+              <q-banner
+                dense
+                rounded
+                :class="$q.dark.isActive ? 'bg-deep-purple-10 text-purple-2' : 'bg-purple-1 text-purple-9'"
+                class="q-mt-sm"
+              >
+                <template #avatar>
+                  <q-icon
+                    name="info"
+                    size="18px"
+                    :color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  />
+                </template>
+                <span class="text-caption text-weight-medium">
+                  {{ dynamicPerformanceInsight }}
+                </span>
+              </q-banner>
+            </q-card>
+          </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ROW 4D: Detailed Resource Metrics Table (Supporting)    -->
+        <!-- ======================================================= -->
+        <div class="row q-col-gutter-md q-mb-md">
+          <div class="col-12">
+            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md" style="min-height: auto;">
+              <div class="row items-center justify-between q-mb-md chart-header-row">
+                <div>
+                  <div
+                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    <span>Detailed Resource Metrics</span>
+                    <q-icon name="info_outline" size="14px" class="text-grey-5">
+                      <q-tooltip>
+                        Detailed drill-down across assigned tasks, completion rate, utilization, and logged effort
+                      </q-tooltip>
+                    </q-icon>
+                  </div>
+                  <div class="text-caption text-grey-6">
+                    Supporting drill-down view of task completion, utilization, and logged effort
+                  </div>
+                </div>
+              </div>
+
+              <!-- Performance Table -->
+              <q-table
+                flat
+                bordered
+                :dark="$q.dark.isActive"
+                :rows="performanceRows"
+                :columns="performanceColumns"
+                row-key="resourceId"
+                v-model:pagination="performancePagination"
+                :rows-per-page-options="[10, 20, 50]"
+                class="performance-table"
+              >
+                <!-- Resource Name Cell -->
+                <template #body-cell-name="props">
+                  <q-td :props="props">
+                    <div class="row items-center no-wrap q-gutter-x-sm">
+                      <q-avatar size="28px" color="primary" text-color="white" class="text-caption text-weight-bold">
+                        {{ getInitials(props.row.name) }}
+                      </q-avatar>
+                      <div class="column ellipsis" style="max-width: 180px;">
+                        <span class="text-weight-bold ellipsis" :class="$q.dark.isActive ? 'text-white' : 'text-dark'" :title="props.row.name">
+                          {{ props.row.name }}
+                        </span>
+                        <span class="text-caption text-grey-6">
+                          {{ props.row.role }}
+                        </span>
+                      </div>
+                    </div>
+                  </q-td>
+                </template>
+
+                <!-- Completion Rate Cell -->
+                <template #body-cell-completionRate="props">
+                  <q-td :props="props">
+                    <div v-if="props.row.completionRate === null">
+                      <q-chip dense square :color="$q.dark.isActive ? 'grey-9' : 'grey-2'" :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'" class="text-caption text-weight-medium">
+                        N/A
+                      </q-chip>
+                    </div>
+                    <div v-else class="row items-center justify-center no-wrap q-gutter-x-xs" style="min-width: 110px;">
+                      <q-linear-progress
+                        :value="props.row.completionRate / 100"
+                        :color="props.row.completionRate === 100 ? 'positive' : 'primary'"
+                        rounded
+                        size="6px"
+                        class="col"
+                        style="min-width: 50px;"
+                        :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                      />
+                      <span class="text-caption text-weight-bold" :class="props.row.completionRate === 100 ? 'text-positive' : ''">
+                        {{ props.row.completionRate }}%
+                      </span>
+                    </div>
+                  </q-td>
+                </template>
+
+                <!-- Utilization Cell -->
+                <template #body-cell-utilization="props">
+                  <q-td :props="props">
+                    <q-chip
+                      dense
+                      square
+                      :color="props.row.utilization > 85 ? ($q.dark.isActive ? 'red-10' : 'red-1') : props.row.utilization > 70 ? ($q.dark.isActive ? 'blue-10' : 'blue-1') : ($q.dark.isActive ? 'green-10' : 'green-1')"
+                      :text-color="props.row.utilization > 85 ? ($q.dark.isActive ? 'red-2' : 'negative') : props.row.utilization > 70 ? ($q.dark.isActive ? 'blue-2' : 'primary') : ($q.dark.isActive ? 'green-2' : 'positive')"
+                      class="text-caption text-weight-bold"
+                    >
+                      <q-icon v-if="props.row.utilization > 85" name="warning" size="12px" class="q-mr-xs" />
+                      {{ props.row.utilization }}%
+                    </q-chip>
+                  </q-td>
+                </template>
+
+                <!-- Effort Cells -->
+                <template #body-cell-plannedEffort="props">
+                  <q-td :props="props">
+                    <span class="text-weight-medium">{{ formatHours(props.row.plannedEffort) }}</span>
+                  </q-td>
+                </template>
+
+                <template #body-cell-actualEffort="props">
+                  <q-td :props="props">
+                    <span class="text-weight-medium">{{ formatHours(props.row.actualEffort) }}</span>
+                  </q-td>
+                </template>
+
+                <template #body-cell-remainingEffort="props">
+                  <q-td :props="props">
+                    <span class="text-weight-medium" :class="props.row.remainingEffort > 0 ? 'text-teal' : 'text-grey-6'">
+                      {{ formatHours(props.row.remainingEffort) }}
+                    </span>
+                  </q-td>
+                </template>
+
+                <!-- Empty State -->
+                <template #no-data>
+                  <div class="full-width column items-center q-pa-lg text-grey-6">
+                    <q-icon name="person_off" size="32px" />
+                    <span class="q-mt-xs text-caption">No resource metrics found</span>
+                  </div>
+                </template>
+              </q-table>
+            </q-card>
+          </div>
+        </div>
       </div>
     </div>
   </q-page>
@@ -527,7 +663,9 @@ import {
   computeTaskDistribution,
   computeEffortVariance,
   computeWeeklyShiftWorkload,
+  computeResourcePerformanceData,
 } from '@/components/analytics/analyticsCalculations';
+import { formatHours, getInitials } from '@/utils/formatters';
 
 const $q = useQuasar();
 
@@ -541,6 +679,24 @@ const errorMessage = ref<string | null>(null);
 // Card-specific filters
 const taskStatusProjectId = ref<number | 'ALL'>('ALL');
 const selectedWorkloadResourceId = ref<number | 'ALL'>('ALL');
+const selectedPerformanceResourceId = ref<number | 'ALL'>('ALL');
+
+type PerformanceMetric = 'COMPLETION_RATE' | 'TASKS_COMPLETED' | 'UTILIZATION' | 'ASSIGNED_EFFORT';
+const selectedPerformanceMetric = ref<PerformanceMetric>('COMPLETION_RATE');
+const performanceMetricOptions = [
+  { label: 'Completion Rate', value: 'COMPLETION_RATE' },
+  { label: 'Tasks Completed', value: 'TASKS_COMPLETED' },
+  { label: 'Utilization', value: 'UTILIZATION' },
+  { label: 'Assigned Effort', value: 'ASSIGNED_EFFORT' },
+];
+
+// Performance table pagination state
+const performancePagination = ref({
+  sortBy: 'completionRate',
+  descending: true,
+  page: 1,
+  rowsPerPage: 10,
+});
 
 // Raw live datasets fetched from backend
 const projectList = ref<Project[]>([]);
@@ -550,17 +706,17 @@ const workloadsMap = ref<Record<number, ResourceWorkload | null>>({});
 
 // DOM chart container references
 const utilizationChartRef = ref<HTMLDivElement | null>(null);
-const taskTrendChartRef = ref<HTMLDivElement | null>(null);
 const taskStatusChartRef = ref<HTMLDivElement | null>(null);
 const effortVarianceChartRef = ref<HTMLDivElement | null>(null);
 const capacityChartRef = ref<HTMLDivElement | null>(null);
+const resourceOverviewChartRef = ref<HTMLDivElement | null>(null);
 
 // ECharts instances
 let utilizationChart: ECharts | null = null;
-let taskTrendChart: ECharts | null = null;
 let taskStatusChart: ECharts | null = null;
 let effortVarianceChart: ECharts | null = null;
 let capacityChart: ECharts | null = null;
+let resourceOverviewChart: ECharts | null = null;
 
 let resizeObserver: ResizeObserver | null = null;
 
@@ -656,63 +812,157 @@ const weeklyShiftWorkload = computed(() =>
   ),
 );
 
-// Resource Task Trend Selection Filter (Scalability: cap at 8 selected resources)
-const selectedTrendResourceIds = ref<number[]>([]);
+// -------------------------------------------------------------
+// Resource-wise Analytics & Performance Computeds
+// -------------------------------------------------------------
+const performanceResourceOptions = computed(() => [
+  { label: 'All Resources', value: 'ALL' as const },
+  ...resourceList.value.map((r) => ({ label: r.name, value: r.user_id })),
+]);
 
-const trendResourceOptions = computed(() => {
-  const allTasks = taskList.value;
-  return resourceList.value
-    .map((r) => {
-      const assignedTasks = allTasks.filter(
-        (t) =>
-          t.assigned_resource_ids?.includes(r.user_id) ||
-          t.assigned_resources?.some((ar) => ar.user_id === r.user_id) ||
-          t.assigned_resource_names?.some((name) => name.toLowerCase() === r.name.toLowerCase()),
-      );
-      return {
-        label: r.name,
-        value: r.user_id,
-        taskCount: assignedTasks.length,
-      };
-    })
-    .sort((a, b) => b.taskCount - a.taskCount || a.label.localeCompare(b.label));
+const performanceData = computed(() =>
+  computeResourcePerformanceData(resourceList.value, taskList.value, workloadsMap.value),
+);
+
+const performanceRows = computed(() => {
+  const all = performanceData.value.rows;
+  if (selectedPerformanceResourceId.value === 'ALL') {
+    return all;
+  }
+  return all.filter((r) => r.resourceId === selectedPerformanceResourceId.value);
 });
 
-function initDefaultTrendResources() {
-  const opts = trendResourceOptions.value;
-  if (!opts.length) {
-    selectedTrendResourceIds.value = [];
-    return;
+const selectedPerformanceRow = computed(() => {
+  if (selectedPerformanceResourceId.value === 'ALL') return null;
+  return (
+    performanceData.value.rows.find(
+      (r) => r.resourceId === selectedPerformanceResourceId.value,
+    ) || null
+  );
+});
+
+const dynamicPerformanceInsight = computed(() => {
+  const isSingleResource = selectedPerformanceResourceId.value !== 'ALL';
+  const singleRow = selectedPerformanceRow.value;
+  const summary = performanceData.value.summary;
+  const metric = selectedPerformanceMetric.value;
+
+  if (isSingleResource && singleRow) {
+    if (metric === 'COMPLETION_RATE') {
+      const rateStr =
+        singleRow.completionRate !== null
+          ? `${singleRow.completionRate}% · ${singleRow.completedTasks} of ${singleRow.assignedTasks} tasks`
+          : 'N/A · 0 assigned tasks';
+      return `${singleRow.name} · Completion rate: ${rateStr}`;
+    }
+    if (metric === 'TASKS_COMPLETED') {
+      return `${singleRow.name} · Completed tasks: ${singleRow.completedTasks} (${singleRow.assignedTasks} assigned)`;
+    }
+    if (metric === 'UTILIZATION') {
+      return `${singleRow.name} · Utilization: ${singleRow.utilization}% · ${singleRow.assignedHours}h assigned`;
+    }
+    if (metric === 'ASSIGNED_EFFORT') {
+      return `${singleRow.name} · Assigned effort: ${singleRow.plannedEffort}h (${singleRow.actualEffort}h logged, ${singleRow.remainingEffort}h remaining)`;
+    }
   }
-  // Max 8 resources, prioritizing those with highest assigned tasks
-  const count = Math.min(8, opts.length);
-  selectedTrendResourceIds.value = opts.slice(0, count).map((o) => o.value);
-}
 
-function onTrendResourcesChange(val: number[]) {
-  if (val.length > 8) {
-    selectedTrendResourceIds.value = val.slice(0, 8);
-    $q.notify({
-      type: 'warning',
-      message: 'Maximum 8 resources can be displayed simultaneously for optimal readability.',
-      timeout: 2000,
-    });
-  } else if (val.length === 0 && trendResourceOptions.value.length > 0) {
-    // Keep at least 1 resource selected
-    selectedTrendResourceIds.value = [trendResourceOptions.value[0]!.value];
-  } else {
-    selectedTrendResourceIds.value = val;
+  // Objective team insight by selected metric
+  if (metric === 'COMPLETION_RATE') {
+    if (summary.highestCompletionRate) {
+      return `Highest completion rate: ${summary.highestCompletionRate.name} · ${summary.highestCompletionRate.rate}% · ${summary.highestCompletionRate.completed} of ${summary.highestCompletionRate.assigned} tasks`;
+    }
+    return 'No task completion recorded yet across the team.';
   }
-  initTaskTrendChart();
-}
 
-function onTaskStatusProjectChange() {
-  initTaskStatusChart();
-}
+  if (metric === 'TASKS_COMPLETED') {
+    if (summary.mostTasksCompleted) {
+      return `Most tasks completed: ${summary.mostTasksCompleted.name} · ${summary.mostTasksCompleted.completed} tasks`;
+    }
+    return 'No completed tasks recorded yet across the team.';
+  }
 
-function onWorkloadResourceChange() {
-  initUtilizationChart();
-}
+  if (metric === 'UTILIZATION') {
+    if (summary.highestUtilization) {
+      return `Highest utilization: ${summary.highestUtilization.name} · ${summary.highestUtilization.utilization}%`;
+    }
+    return 'No resource utilization recorded yet across the team.';
+  }
+
+  if (metric === 'ASSIGNED_EFFORT') {
+    if (summary.highestAssignedEffort) {
+      return `Highest assigned effort: ${summary.highestAssignedEffort.name} · ${summary.highestAssignedEffort.hours}h`;
+    }
+    return 'No assigned effort recorded yet across the team.';
+  }
+
+  return 'No resource performance metrics recorded yet.';
+});
+
+const performanceColumns = [
+  {
+    name: 'name',
+    label: 'Resource',
+    field: 'name',
+    align: 'left' as const,
+    sortable: true,
+  },
+  {
+    name: 'assignedTasks',
+    label: 'Assigned Tasks',
+    field: 'assignedTasks',
+    align: 'center' as const,
+    sortable: true,
+  },
+  {
+    name: 'completedTasks',
+    label: 'Completed',
+    field: 'completedTasks',
+    align: 'center' as const,
+    sortable: true,
+  },
+  {
+    name: 'completionRate',
+    label: 'Completion Rate',
+    field: 'completionRate',
+    align: 'center' as const,
+    sortable: true,
+    sort: (a: number | null, b: number | null) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return -1;
+      if (b === null) return 1;
+      return a - b;
+    },
+  },
+  {
+    name: 'utilization',
+    label: 'Utilization',
+    field: 'utilization',
+    align: 'center' as const,
+    sortable: true,
+  },
+  {
+    name: 'plannedEffort',
+    label: 'Planned Effort',
+    field: 'plannedEffort',
+    align: 'right' as const,
+    sortable: true,
+  },
+  {
+    name: 'actualEffort',
+    label: 'Actual Effort',
+    field: 'actualEffort',
+    align: 'right' as const,
+    sortable: true,
+  },
+  {
+    name: 'remainingEffort',
+    label: 'Remaining Effort',
+    field: 'remainingEffort',
+    align: 'right' as const,
+    sortable: true,
+  },
+];
+
 
 // -------------------------------------------------------------
 // Live Backend Data Loading
@@ -751,7 +1001,6 @@ async function loadAllAnalyticsData() {
   } finally {
     loading.value = false;
     isInitialLoad.value = false;
-    initDefaultTrendResources();
     void nextTick(() => {
       renderAllCharts();
     });
@@ -764,10 +1013,10 @@ async function loadAllAnalyticsData() {
 function renderAllCharts() {
   void nextTick(() => {
     initUtilizationChart();
-    initTaskTrendChart();
     initTaskStatusChart();
     initEffortVarianceChart();
     initCapacityChart();
+    initResourceOverviewChart();
     resizeAll();
   });
 }
@@ -780,15 +1029,22 @@ function initUtilizationChart() {
 
   const theme = getThemeColors();
   const shiftData = weeklyShiftWorkload.value;
-  const dayNames = shiftData.map((d) => d.dayLabel);
   const el = utilizationChartRef.value;
   const containerWidth = el.clientWidth || window.innerWidth;
   const isVeryNarrow = containerWidth < 400;
+  const dayNames = shiftData.map((d) => (isVeryNarrow ? d.shortLabel : d.dayLabel));
 
   const option: EChartsOption = {
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'shadow' },
+      axisPointer: {
+        type: 'line',
+        lineStyle: {
+          color: '#7654D6',
+          type: 'dashed',
+          width: 1.5,
+        },
+      },
       ...getCommonTooltip(theme),
       formatter: (params: unknown) => {
         const items = params as Array<{ dataIndex: number }>;
@@ -835,33 +1091,36 @@ function initUtilizationChart() {
     },
     grid: {
       top: '14%',
-      left: isVeryNarrow ? '1%' : '3%',
-      right: isVeryNarrow ? '2%' : '4%',
-      bottom: isVeryNarrow ? '14%' : '8%',
+      left: isVeryNarrow ? '2%' : '4%',
+      right: isVeryNarrow ? '4%' : '6%',
+      bottom: isVeryNarrow ? '10%' : '8%',
       containLabel: true,
     },
     xAxis: {
       type: 'category',
       data: dayNames,
+      boundaryGap: false,
       axisTick: { show: false },
       axisLine: { lineStyle: { color: theme.border } },
       axisLabel: {
         interval: 0,
         color: theme.darkText,
-        fontSize: isVeryNarrow ? 9.5 : 10.5,
+        fontSize: isVeryNarrow ? 9.5 : 11,
+        fontFamily: FONT_FAMILY,
         fontWeight: 600,
-        rotate: isVeryNarrow ? 35 : 0,
       },
     },
     yAxis: {
       type: 'value',
       name: isVeryNarrow ? '' : 'Utilization (%)',
       nameTextStyle: { color: theme.mutedText, fontSize: 11 },
+      min: 0,
       max: (value) => Math.max(100, Math.ceil(value.max * 1.15)),
       axisLabel: {
         formatter: '{value}%',
         color: theme.mutedText,
         fontSize: isVeryNarrow ? 10 : 11,
+        fontFamily: FONT_FAMILY,
       },
       splitLine: {
         lineStyle: { color: theme.gridLine, type: 'dashed' },
@@ -870,48 +1129,48 @@ function initUtilizationChart() {
     series: [
       {
         name: 'Workload Utilization',
-        type: 'bar',
-        barWidth: isVeryNarrow ? 16 : 24,
-        data: shiftData.map((d) => {
-          let barColor: string;
-          if (d.utilization >= 100) {
-            barColor = '#EF4444';
-          } else if (d.utilization >= 85) {
-            barColor = '#F59E0B';
-          } else if (d.utilization >= 60) {
-            barColor = '#10B981';
-          } else if (d.utilization > 0) {
-            barColor = '#06B6D4';
-          } else {
-            barColor = theme.isDark ? '#334155' : '#cbd5e1';
-          }
-
-          return {
-            value: d.utilization,
-            itemStyle: {
-              color: barColor,
-              borderRadius: [4, 4, 0, 0],
-            },
-          };
-        }),
+        type: 'line',
+        smooth: 0.35,
+        symbol: 'circle',
+        symbolSize: isVeryNarrow ? 6 : 8,
+        showSymbol: true,
+        lineStyle: {
+          color: '#7654D6',
+          width: 2.8,
+        },
+        itemStyle: {
+          color: '#7654D6',
+          borderColor: '#FFFFFF',
+          borderWidth: 2,
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(118, 84, 214, 0.42)' },
+            { offset: 0.75, color: 'rgba(118, 84, 214, 0.08)' },
+            { offset: 1, color: 'rgba(118, 84, 214, 0.0)' },
+          ]),
+        },
+        data: shiftData.map((d) => d.utilization),
         label: {
           show: true,
           position: 'top',
           formatter: '{c}%',
           color: theme.mutedText,
-          fontSize: isVeryNarrow ? 9.5 : 11,
+          fontSize: isVeryNarrow ? 9 : 10.5,
+          fontFamily: FONT_FAMILY,
           fontWeight: 600,
         },
         markLine: {
           silent: true,
           symbol: 'none',
-          lineStyle: { color: '#DC2626', type: 'dashed', width: 2 },
+          lineStyle: { color: '#DC2626', type: 'dashed', width: 1.8 },
           label: {
             formatter: '85% Limit',
             position: 'insideEndTop',
             fontSize: 10,
             fontWeight: 700,
             color: '#DC2626',
+            fontFamily: FONT_FAMILY,
           },
           data: [{ yAxis: 85 }],
           z: 10,
@@ -923,231 +1182,7 @@ function initUtilizationChart() {
   utilizationChart.setOption(option, true);
 }
 
-// 2. Resource Task Trend (Multi-series Line Chart over 4 Weeks - Weekly Assigned Tasks)
-function initTaskTrendChart() {
-  if (!taskTrendChartRef.value) return;
-  taskTrendChart = getOrInitChart(taskTrendChartRef.value);
-  if (!taskTrendChart) return;
 
-  const theme = getThemeColors();
-  const el = taskTrendChartRef.value;
-  const containerWidth = el.clientWidth || window.innerWidth;
-  const isVeryNarrow = containerWidth < 400;
-
-  // Filter resources to only selected resources (capped at 8 for readability)
-  const selectedSet = new Set(selectedTrendResourceIds.value);
-  let resources = resourceList.value.filter((r) => selectedSet.has(r.user_id));
-  if (!resources.length && resourceList.value.length > 0) {
-    initDefaultTrendResources();
-    const fallbackSet = new Set(selectedTrendResourceIds.value);
-    resources = resourceList.value.filter((r) => fallbackSet.has(r.user_id));
-  }
-  const allTasks = taskList.value;
-
-  // Define 4 weekly intervals (Last 4 Weeks up to now)
-  const now = new Date();
-  const weeks = [
-    {
-      label: 'Week 1',
-      start: new Date(now.getTime() - 28 * 86400000),
-      end: new Date(now.getTime() - 21 * 86400000),
-    },
-    {
-      label: 'Week 2',
-      start: new Date(now.getTime() - 21 * 86400000),
-      end: new Date(now.getTime() - 14 * 86400000),
-    },
-    {
-      label: 'Week 3',
-      start: new Date(now.getTime() - 14 * 86400000),
-      end: new Date(now.getTime() - 7 * 86400000),
-    },
-    {
-      label: 'Week 4',
-      start: new Date(now.getTime() - 7 * 86400000),
-      end: now,
-    },
-  ];
-
-  const RESOURCE_COLOR_MAP: Record<string, string> = {
-    'chinmay gadgil': '#7654D6',
-    'hridham chimulkar': '#06B6D4',
-    'sana shaikh': '#2563EB',
-    'shikhaa prabhudesai': '#22C55E',
-    'tanvi khandeparkar': '#EF4444',
-  };
-
-  const DEFAULT_COLORS = [
-    '#7654D6',
-    '#06B6D4',
-    '#2563EB',
-    '#22C55E',
-    '#EF4444',
-    '#F59E0B',
-    '#8B5CF6',
-    '#10B981',
-  ];
-
-  // Calculate ASSIGNED task counts per resource during each week (using real assignment/schedule/creation dates)
-  const seriesData = resources.map((r, index) => {
-    const rTasks = allTasks.filter(
-      (t) =>
-        t.assigned_resource_ids?.includes(r.user_id) ||
-        t.assigned_resources?.some((ar) => ar.user_id === r.user_id) ||
-        t.assigned_resource_names?.some((name) => name.toLowerCase() === r.name.toLowerCase()),
-    );
-
-    const weeklyCounts = weeks.map((w) => {
-      const assignedThisWeek = rTasks.filter((t) => {
-        const ar = t.assigned_resources?.find((a) => a.user_id === r.user_id);
-        if (!ar || !ar.assigned_at) return false;
-        const assignDate = new Date(ar.assigned_at);
-        return !isNaN(assignDate.getTime()) && assignDate >= w.start && assignDate <= w.end;
-      });
-      return assignedThisWeek.length;
-    });
-
-    const seriesColor =
-      RESOURCE_COLOR_MAP[r.name.trim().toLowerCase()] ||
-      DEFAULT_COLORS[index % DEFAULT_COLORS.length] ||
-      '#7654D6';
-
-    const visualSpread = (index - 2) * 0.045;
-    const displayCounts = weeklyCounts.map((c) =>
-      c > 0 ? Number((c + visualSpread).toFixed(3)) : 0,
-    );
-
-    return {
-      name: r.name,
-      type: 'line' as const,
-      smooth: 0.35,
-      symbol: 'circle',
-      symbolSize: isVeryNarrow ? 5 : 6,
-      itemStyle: {
-        color: seriesColor,
-      },
-      lineStyle: {
-        width: isVeryNarrow ? 1.8 : 2.2,
-        color: seriesColor,
-      },
-      endLabel: {
-        show: !isVeryNarrow,
-        formatter: () => String(weeklyCounts[3]),
-        color: '#ffffff',
-        backgroundColor: seriesColor,
-        borderRadius: 8,
-        padding: [2, 5],
-        fontSize: 10,
-        fontWeight: 700,
-        distance: 6,
-      },
-      data: displayCounts,
-      rawWeeklyCounts: weeklyCounts,
-    };
-  });
-
-  const maxRecorded = Math.max(...seriesData.flatMap((s) => s.rawWeeklyCounts), 0);
-  const yMax = Math.max(5, maxRecorded + 1);
-
-  const option: EChartsOption = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'line',
-        lineStyle: {
-          color: theme.border,
-          type: 'dashed',
-        },
-      },
-      ...getCommonTooltip(theme),
-      formatter: (params: unknown) => {
-        const list = Array.isArray(params) ? params : [params];
-        if (!list.length) return '';
-        const firstItem = list[0] as {
-          axisValueLabel?: string;
-          name?: string;
-          dataIndex?: number;
-        };
-        const weekLabel = firstItem?.axisValueLabel || firstItem?.name || '';
-        const dataIndex = typeof firstItem?.dataIndex === 'number' ? firstItem.dataIndex : 0;
-        let html = `<div style="font-weight:700; font-size:12px; margin-bottom:6px; color:${theme.darkText};">${weekLabel}</div>`;
-        seriesData.forEach((s) => {
-          const color = s.itemStyle.color;
-          const count = s.rawWeeklyCounts[dataIndex] ?? 0;
-          html += `
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:3px; font-size:11.5px;">
-              <span style="display:flex; align-items:center; gap:6px; color:${theme.darkText};">
-                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${color};"></span>
-                ${s.name}
-              </span>
-              <strong style="color:${color}; font-weight:700;">${count} ${count === 1 ? 'task' : 'tasks'} assigned</strong>
-            </div>
-          `;
-        });
-        return html;
-      },
-    },
-    legend: {
-      top: '0%',
-      left: 'center',
-      icon: 'circle',
-      itemWidth: isVeryNarrow ? 6 : 8,
-      itemHeight: isVeryNarrow ? 6 : 8,
-      itemGap: isVeryNarrow ? 8 : 12,
-      textStyle: {
-        color: theme.darkText,
-        fontFamily: FONT_FAMILY,
-        fontSize: isVeryNarrow ? 9.5 : 10.5,
-        fontWeight: 500,
-      },
-      data: resources.map((r) => r.name),
-    },
-    grid: {
-      top: isVeryNarrow ? 40 : 50,
-      left: isVeryNarrow ? '2%' : '4%',
-      right: isVeryNarrow ? '6%' : '8%',
-      bottom: '8%',
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-      boundaryGap: false,
-      axisTick: { show: false },
-      axisLine: { lineStyle: { color: theme.border } },
-      axisLabel: {
-        color: theme.mutedText,
-        fontFamily: FONT_FAMILY,
-        fontSize: isVeryNarrow ? 10 : 11,
-      },
-    },
-    yAxis: {
-      type: 'value',
-      name: isVeryNarrow ? '' : 'Assigned Tasks',
-      nameLocation: 'middle',
-      nameGap: isVeryNarrow ? 0 : 28,
-      min: 0,
-      max: yMax,
-      interval: 1,
-      nameTextStyle: {
-        color: theme.mutedText,
-        fontFamily: FONT_FAMILY,
-        fontSize: 11,
-      },
-      splitLine: {
-        lineStyle: { color: theme.gridLine, type: 'dashed' },
-      },
-      axisLabel: {
-        color: theme.mutedText,
-        fontFamily: FONT_FAMILY,
-        fontSize: isVeryNarrow ? 10 : 11,
-      },
-    },
-    series: seriesData,
-  };
-
-  taskTrendChart.setOption(option, true);
-}
 
 // 3. Task Status Distribution (Card-Scoped Project Filter)
 function initTaskStatusChart() {
@@ -1500,20 +1535,501 @@ function initCapacityChart() {
 }
 
 // -------------------------------------------------------------
+// 5. Resource Performance Vertical Bar Chart (Multi-Metric View)
+// X: Resources | Y: Metric Value | Horizontal dataZoom for 35+ resources
+// -------------------------------------------------------------
+function initResourceOverviewChart() {
+  if (!resourceOverviewChartRef.value) return;
+  resourceOverviewChart = getOrInitChart(resourceOverviewChartRef.value);
+  if (!resourceOverviewChart) return;
+
+  const theme = getThemeColors();
+  const el = resourceOverviewChartRef.value;
+  const containerWidth = el.clientWidth || window.innerWidth;
+  const isVeryNarrow = containerWidth < 400;
+
+  const metric = selectedPerformanceMetric.value;
+  const allRows = performanceRows.value;
+
+  // Filter if single resource is selected
+  const rows: (typeof allRows)[number][] =
+    selectedPerformanceResourceId.value !== 'ALL'
+      ? allRows.filter((r) => r.resourceId === selectedPerformanceResourceId.value)
+      : [...allRows];
+
+  if (rows.length === 0) {
+    resourceOverviewChart.setOption(
+      {
+        title: {
+          text: 'No resources found',
+          subtext: 'No performance metrics available for the current filter',
+          left: 'center',
+          top: 'middle',
+          textStyle: {
+            color: theme.mutedText,
+            fontFamily: FONT_FAMILY,
+            fontSize: 13,
+            fontWeight: 500,
+          },
+          subtextStyle: {
+            color: theme.mutedText,
+            fontFamily: FONT_FAMILY,
+            fontSize: 11,
+          },
+        },
+        xAxis: { show: false },
+        yAxis: { show: false },
+        series: [],
+      },
+      true,
+    );
+    return;
+  }
+
+  // Sort rows descending depending on selected metric
+  if (metric === 'COMPLETION_RATE') {
+    rows.sort((a, b) => {
+      // Valid completion rates first, sorted descending
+      if (a.completionRate !== null && b.completionRate !== null) {
+        if (b.completionRate !== a.completionRate) return b.completionRate - a.completionRate;
+        if (b.completedTasks !== a.completedTasks) return b.completedTasks - a.completedTasks;
+        return a.name.localeCompare(b.name);
+      }
+      if (a.completionRate !== null) return -1;
+      if (b.completionRate !== null) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  } else if (metric === 'TASKS_COMPLETED') {
+    rows.sort((a, b) => {
+      if (b.completedTasks !== a.completedTasks) return b.completedTasks - a.completedTasks;
+      if (b.assignedTasks !== a.assignedTasks) return b.assignedTasks - a.assignedTasks;
+      return a.name.localeCompare(b.name);
+    });
+  } else if (metric === 'UTILIZATION') {
+    rows.sort((a, b) => {
+      if (b.utilization !== a.utilization) return b.utilization - a.utilization;
+      return a.name.localeCompare(b.name);
+    });
+  } else if (metric === 'ASSIGNED_EFFORT') {
+    rows.sort((a, b) => {
+      if (b.plannedEffort !== a.plannedEffort) return b.plannedEffort - a.plannedEffort;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  // Build X-axis categories (Resource names)
+  const resourceNames = rows.map((r) => r.name);
+
+  // Build series data and formatters based on metric
+  interface BarDataItem {
+    value: number;
+    fullName: string;
+    role: string;
+    completedTasks: number;
+    assignedTasks: number;
+    completionRate: number | null;
+    isNA: boolean;
+    utilization: number;
+    assignedHours: number;
+    weeklyCapacity: number;
+    plannedEffort: number;
+    actualEffort: number;
+    remainingEffort: number;
+    itemStyle?: {
+      color?: string | echarts.graphic.LinearGradient;
+      borderRadius?: number[];
+      borderColor?: string;
+      borderWidth?: number;
+      borderType?: 'solid' | 'dashed' | 'dotted';
+    };
+  }
+
+  const barData: BarDataItem[] = rows.map((r) => {
+    let val = 0;
+    let isNA = false;
+    let itemStyle: {
+      color?: string | echarts.graphic.LinearGradient;
+      borderRadius?: number[];
+      borderColor?: string;
+      borderWidth?: number;
+      borderType?: 'solid' | 'dashed' | 'dotted';
+    } = {
+      borderRadius: [4, 4, 0, 0],
+    };
+
+    if (metric === 'COMPLETION_RATE') {
+      if (r.completionRate === null) {
+        val = 0;
+        isNA = true;
+        itemStyle = {
+          color: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
+          borderColor: theme.border,
+          borderWidth: 1,
+          borderType: 'dashed',
+          borderRadius: [4, 4, 0, 0],
+        };
+      } else {
+        val = r.completionRate;
+        itemStyle.color = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#7654D6' },
+          { offset: 1, color: '#906FE2' },
+        ]);
+      }
+    } else if (metric === 'TASKS_COMPLETED') {
+      val = r.completedTasks;
+      itemStyle.color = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#3B82F6' },
+        { offset: 1, color: '#60A5FA' },
+      ]);
+    } else if (metric === 'UTILIZATION') {
+      val = r.utilization;
+      // Semantic coloring by 85% operational limit threshold
+      if (r.utilization > 85) {
+        itemStyle.color = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#EF4444' },
+          { offset: 1, color: '#F87171' },
+        ]);
+      } else if (r.utilization >= 70) {
+        itemStyle.color = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#F59E0B' },
+          { offset: 1, color: '#FBBF24' },
+        ]);
+      } else {
+        itemStyle.color = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#10B981' },
+          { offset: 1, color: '#34D399' },
+        ]);
+      }
+    } else if (metric === 'ASSIGNED_EFFORT') {
+      val = r.plannedEffort;
+      itemStyle.color = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#8B5CF6' },
+        { offset: 1, color: '#A78BFA' },
+      ]);
+    }
+
+    return {
+      value: val,
+      fullName: r.name,
+      role: r.role,
+      completedTasks: r.completedTasks,
+      assignedTasks: r.assignedTasks,
+      completionRate: r.completionRate,
+      isNA,
+      utilization: r.utilization,
+      assignedHours: r.assignedHours,
+      weeklyCapacity: r.weeklyCapacity,
+      plannedEffort: r.plannedEffort,
+      actualEffort: r.actualEffort,
+      remainingEffort: r.remainingEffort,
+      itemStyle,
+    };
+  });
+
+  // Dynamic Y-axis setup
+  let yAxisName = '';
+  let yAxisMax: number | ((params: { max: number }) => number) | undefined = undefined;
+  let yAxisInterval: number | undefined = undefined;
+  let yAxisFormatter = '{value}';
+
+  if (metric === 'COMPLETION_RATE') {
+    yAxisName = isVeryNarrow ? '' : 'Completion Rate (%)';
+    yAxisMax = 100;
+    yAxisFormatter = '{value}%';
+  } else if (metric === 'TASKS_COMPLETED') {
+    yAxisName = isVeryNarrow ? '' : 'Tasks Completed';
+    const maxVal = Math.max(...rows.map((r) => r.completedTasks), 1);
+    yAxisMax = maxVal < 5 ? 5 : undefined;
+    yAxisInterval = maxVal <= 10 ? 1 : undefined;
+  } else if (metric === 'UTILIZATION') {
+    yAxisName = isVeryNarrow ? '' : 'Utilization (%)';
+    yAxisMax = (v: { max: number }) => Math.max(100, Math.ceil((v.max + 10) / 10) * 10);
+    yAxisFormatter = '{value}%';
+  } else if (metric === 'ASSIGNED_EFFORT') {
+    yAxisName = isVeryNarrow ? '' : 'Assigned Effort (h)';
+    yAxisFormatter = '{value}h';
+  }
+
+  // Label Formatter above each bar
+  const labelFormatter = (params: unknown) => {
+    const p = params as { data?: BarDataItem };
+    const d = p?.data;
+    if (!d) return '';
+    if (metric === 'COMPLETION_RATE') {
+      if (d.isNA) return 'N/A';
+      return `${d.value}%`;
+    }
+    if (metric === 'TASKS_COMPLETED') {
+      return `${d.value}`;
+    }
+    if (metric === 'UTILIZATION') {
+      return `${d.value}%`;
+    }
+    if (metric === 'ASSIGNED_EFFORT') {
+      return `${d.value}h`;
+    }
+    return `${d.value}`;
+  };
+
+  // Rich Tooltip Formatter
+  const tooltipFormatter = (params: unknown) => {
+    const p = params as { data?: BarDataItem };
+    const d = p?.data;
+    if (!d) return '';
+
+    if (metric === 'COMPLETION_RATE') {
+      const rateStr = d.isNA
+        ? '<span style="color: #94A3B8;">N/A (No tasks assigned)</span>'
+        : `<strong style="color: #7654D6; font-weight:700;">${d.completionRate}%</strong>`;
+      return `
+        <div style="font-weight: 700; font-size: 13px; color: ${theme.darkText};">${d.fullName}</div>
+        <div style="font-size: 11px; color: ${theme.mutedText}; margin-bottom: 6px;">${d.role}</div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Completed Tasks:</span>
+          <strong>${d.completedTasks}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Assigned Tasks:</span>
+          <strong>${d.assignedTasks}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText}; margin-top:4px;">
+          <span>Completion Rate:</span>
+          ${rateStr}
+        </div>
+      `;
+    }
+
+    if (metric === 'TASKS_COMPLETED') {
+      return `
+        <div style="font-weight: 700; font-size: 13px; color: ${theme.darkText};">${d.fullName}</div>
+        <div style="font-size: 11px; color: ${theme.mutedText}; margin-bottom: 6px;">${d.role}</div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Completed Tasks:</span>
+          <strong style="color: #3B82F6; font-weight:700;">${d.completedTasks}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Assigned Tasks:</span>
+          <strong>${d.assignedTasks}</strong>
+        </div>
+      `;
+    }
+
+    if (metric === 'UTILIZATION') {
+      let statusColor = '#10B981';
+      let statusText = 'Normal (<70%)';
+      if (d.utilization > 85) {
+        statusColor = '#EF4444';
+        statusText = 'Over operational limit (>85%)';
+      } else if (d.utilization >= 70) {
+        statusColor = '#F59E0B';
+        statusText = 'Approaching operational limit (70–85%)';
+      }
+      const availableCap = Math.max(0, Math.round((d.weeklyCapacity - d.assignedHours) * 10) / 10);
+      return `
+        <div style="font-weight: 700; font-size: 13px; color: ${theme.darkText};">${d.fullName}</div>
+        <div style="font-size: 11px; color: ${theme.mutedText}; margin-bottom: 6px;">${d.role}</div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Utilization:</span>
+          <strong style="color: ${statusColor}; font-weight:700;">${d.utilization}%</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Assigned Effort:</span>
+          <strong>${d.assignedHours}h</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Available Capacity:</span>
+          <strong>${availableCap}h</strong>
+        </div>
+        <div style="margin-top:6px; padding-top:4px; border-top:1px dashed ${theme.border}; font-size:11px; font-weight:600; color:${statusColor};">
+          Status: ${statusText}
+        </div>
+      `;
+    }
+
+    if (metric === 'ASSIGNED_EFFORT') {
+      return `
+        <div style="font-weight: 700; font-size: 13px; color: ${theme.darkText};">${d.fullName}</div>
+        <div style="font-size: 11px; color: ${theme.mutedText}; margin-bottom: 6px;">${d.role}</div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Assigned Effort:</span>
+          <strong style="color: #8B5CF6; font-weight:700;">${d.assignedHours}h</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Planned Effort:</span>
+          <strong>${d.plannedEffort}h</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Actual Effort:</span>
+          <strong>${d.actualEffort}h</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:16px; color: ${theme.darkText};">
+          <span>Remaining Effort:</span>
+          <strong>${d.remainingEffort}h</strong>
+        </div>
+      `;
+    }
+
+    return '';
+  };
+
+  // Horizontal dataZoom setup for 35+ resources
+  // Displays ~8-10 bars initially and allows horizontal navigation
+  const showDataZoom = rows.length > 8;
+  const initialBarsVisible = isVeryNarrow ? 6 : (containerWidth < 768 ? 7 : 9);
+  const endValue = Math.min(rows.length - 1, initialBarsVisible - 1);
+
+  const dataZoomConfig: (echarts.InsideDataZoomComponentOption | echarts.SliderDataZoomComponentOption)[] = showDataZoom
+    ? [
+        {
+          type: 'inside',
+          xAxisIndex: 0,
+          zoomOnMouseWheel: false,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: true,
+          startValue: 0,
+          endValue,
+        },
+        {
+          type: 'slider',
+          xAxisIndex: 0,
+          bottom: 6,
+          height: 20,
+          borderColor: 'transparent',
+          backgroundColor: theme.isDark ? '#1E222D' : '#F1F5F9',
+          fillerColor: theme.isDark ? 'rgba(118, 84, 214, 0.28)' : 'rgba(118, 84, 214, 0.18)',
+          handleStyle: {
+            color: '#7654D6',
+            borderColor: '#7654D6',
+          },
+          moveHandleStyle: {
+            color: '#7654D6',
+          },
+          textStyle: {
+            color: theme.mutedText,
+            fontSize: 9.5,
+            fontFamily: FONT_FAMILY,
+          },
+          brushSelect: false,
+          startValue: 0,
+          endValue,
+        },
+      ]
+    : [];
+
+  const option: EChartsOption = {
+    tooltip: {
+      trigger: 'item',
+      ...getCommonTooltip(theme),
+      formatter: tooltipFormatter,
+    },
+    grid: {
+      top: metric === 'UTILIZATION' ? 36 : 28,
+      left: isVeryNarrow ? 36 : 52,
+      right: isVeryNarrow ? 16 : 24,
+      bottom: showDataZoom ? (isVeryNarrow ? 70 : 60) : (isVeryNarrow ? 50 : 38),
+      containLabel: true,
+    },
+    dataZoom: dataZoomConfig,
+    xAxis: {
+      type: 'category',
+      data: resourceNames,
+      axisLabel: {
+        color: theme.mutedText,
+        fontSize: isVeryNarrow ? 9 : 10.5,
+        fontFamily: FONT_FAMILY,
+        interval: 0,
+        rotate: isVeryNarrow ? 35 : (containerWidth < 768 ? 25 : 0),
+        formatter: (val: string) => {
+          const maxLen = isVeryNarrow ? 7 : (containerWidth < 768 ? 9 : 12);
+          return val.length > maxLen ? val.slice(0, maxLen - 1) + '…' : val;
+        },
+      },
+      axisLine: { lineStyle: { color: theme.border } },
+      axisTick: { alignWithLabel: true },
+    },
+    yAxis: {
+      type: 'value',
+      name: yAxisName,
+      nameLocation: 'end',
+      nameTextStyle: {
+        color: theme.mutedText,
+        fontSize: 10.5,
+        fontFamily: FONT_FAMILY,
+      },
+      min: 0,
+      ...(yAxisMax !== undefined ? { max: yAxisMax } : {}),
+      ...(yAxisInterval !== undefined ? { interval: yAxisInterval } : {}),
+      axisLabel: {
+        formatter: yAxisFormatter,
+        color: theme.mutedText,
+        fontSize: isVeryNarrow ? 9.5 : 10.5,
+        fontFamily: FONT_FAMILY,
+      },
+      splitLine: {
+        lineStyle: { color: theme.gridLine, type: 'dashed' },
+      },
+      axisLine: { lineStyle: { color: theme.border } },
+    },
+    series: [
+      {
+        name: 'Resource Performance',
+        type: 'bar',
+        barMaxWidth: isVeryNarrow ? 26 : 38,
+        barMinWidth: 12,
+        data: barData,
+        label: {
+          show: true,
+          position: 'top',
+          formatter: labelFormatter,
+          color: theme.darkText,
+          fontSize: isVeryNarrow ? 9 : 10.5,
+          fontFamily: FONT_FAMILY,
+          fontWeight: 600,
+        },
+        ...(metric === 'UTILIZATION'
+          ? {
+              markLine: {
+                silent: true,
+                symbol: 'none',
+                data: [
+                  {
+                    yAxis: 85,
+                    name: '85% Operational Limit',
+                    lineStyle: {
+                      color: '#EF4444',
+                      type: 'dashed',
+                      width: 1.8,
+                    },
+                    label: {
+                      show: true,
+                      position: 'end',
+                      formatter: '85% Operational Limit',
+                      color: '#EF4444',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fontFamily: FONT_FAMILY,
+                    },
+                  },
+                ],
+              },
+            }
+          : {}),
+      },
+    ],
+  };
+
+  resourceOverviewChart.setOption(option, true);
+}
+
+// -------------------------------------------------------------
 // Lifecycle & Responsiveness
 // -------------------------------------------------------------
 function resizeAll() {
   if (utilizationChart) initUtilizationChart();
-  if (taskTrendChart) initTaskTrendChart();
   if (taskStatusChart) initTaskStatusChart();
   if (effortVarianceChart) initEffortVarianceChart();
   if (capacityChart) initCapacityChart();
-
-  utilizationChart?.resize();
-  taskTrendChart?.resize();
-  taskStatusChart?.resize();
-  effortVarianceChart?.resize();
-  capacityChart?.resize();
+  if (resourceOverviewChart) initResourceOverviewChart();
 }
 
 onMounted(() => {
@@ -1544,6 +2060,18 @@ watch(selectedWorkloadResourceId, () => {
   });
 });
 
+watch(selectedPerformanceResourceId, () => {
+  void nextTick(() => {
+    initResourceOverviewChart();
+  });
+});
+
+watch(selectedPerformanceMetric, () => {
+  void nextTick(() => {
+    initResourceOverviewChart();
+  });
+});
+
 watch(
   () => $q.dark.isActive,
   () => {
@@ -1564,9 +2092,6 @@ onBeforeUnmount(() => {
   utilizationChart?.dispose();
   utilizationChart = null;
 
-  taskTrendChart?.dispose();
-  taskTrendChart = null;
-
   taskStatusChart?.dispose();
   taskStatusChart = null;
 
@@ -1575,6 +2100,9 @@ onBeforeUnmount(() => {
 
   capacityChart?.dispose();
   capacityChart = null;
+
+  resourceOverviewChart?.dispose();
+  resourceOverviewChart = null;
 });
 </script>
 
@@ -1676,9 +2204,35 @@ onBeforeUnmount(() => {
   }
 }
 
-.trend-resource-select {
-  min-width: 130px;
-  max-width: 165px;
+.performance-resource-select {
+  min-width: 140px;
+  max-width: 190px;
+  font-size: 11px;
+
+  @media (max-width: 480px) {
+    max-width: 100% !important;
+    flex-grow: 1;
+  }
+
+  :deep(.q-field__control) {
+    height: 28px;
+    min-height: 28px;
+    padding: 0 8px;
+  }
+
+  :deep(.q-field__marginal) {
+    height: 28px;
+  }
+
+  :deep(.q-field__native) {
+    padding: 0;
+    min-height: 28px;
+  }
+}
+
+.performance-metric-select {
+  min-width: 135px;
+  max-width: 175px;
   font-size: 11px;
 
   @media (max-width: 480px) {
@@ -1757,12 +2311,13 @@ onBeforeUnmount(() => {
   height: 290px;
 }
 
-.task-trend-chart-box {
-  height: 265px;
-}
-
 .effort-variance-chart-box {
   height: 320px;
+}
+
+.resource-overview-chart-box {
+  height: 380px;
+  width: 100%;
 }
 
 .legend-dot {
@@ -1783,11 +2338,40 @@ body.body--dark {
   .kpi-card.kpi-card-alert {
     border-color: rgba(239, 68, 68, 0.4);
     background: rgba(239, 68, 68, 0.1);
-
-    &:hover {
-      border-color: #f87171 !important;
-      box-shadow: 0 8px 22px rgba(239, 68, 68, 0.25);
-    }
   }
+}
+
+/* Performance Section Scoped Styles */
+.performance-resource-select,
+.performance-metric-select {
+  min-width: 150px;
+  max-width: 190px;
+  font-size: 11.5px;
+
+  @media (max-width: 480px) {
+    max-width: 100% !important;
+    flex-grow: 1;
+  }
+
+  :deep(.q-field__control) {
+    height: 30px;
+    min-height: 30px;
+    padding: 0 10px;
+  }
+
+  :deep(.q-field__marginal) {
+    height: 30px;
+  }
+
+  :deep(.q-field__native) {
+    padding: 0;
+    min-height: 30px;
+    font-size: 11.5px;
+  }
+}
+
+.performance-table {
+  border-radius: 8px;
+  overflow: hidden;
 }
 </style>
