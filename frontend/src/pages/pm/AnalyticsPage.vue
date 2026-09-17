@@ -388,14 +388,11 @@
                   >
                     <span>Project Schedule Health</span>
                     <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip
-                        >Actual completion progress against planned pace derived from milestone
-                        dates</q-tooltip
-                      >
+                      <q-tooltip>Actual completion progress across project deliverables</q-tooltip>
                     </q-icon>
                   </div>
                   <div class="text-caption text-grey-6">
-                    Actual milestone completion vs. planned pace
+                    Milestone completion progress across projects
                   </div>
                 </div>
                 <div
@@ -403,15 +400,8 @@
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
                 >
                   <span class="row items-center q-gutter-x-xs">
-                    <span class="legend-dot" style="background-color: #7654d6"></span>
+                    <span class="legend-dot" style="background-color: #21ba45"></span>
                     <span>Actual Progress</span>
-                  </span>
-                  <span class="row items-center q-gutter-x-xs">
-                    <span
-                      class="legend-dot"
-                      :style="{ backgroundColor: $q.dark.isActive ? '#334155' : '#e2e5eb' }"
-                    ></span>
-                    <span>Planned Pace</span>
                   </span>
                 </div>
               </div>
@@ -578,7 +568,6 @@ function getThemeColors() {
     border: isDark ? '#283042' : '#E6E8ED',
     gridLine: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F0F2F5',
     cardBg: isDark ? '#181D28' : '#FFFFFF',
-    plannedBar: isDark ? '#334155' : '#E2E5EB',
     headroomBar: isDark ? '#14B8A6' : '#BEE7E4',
     tooltipBg: isDark ? '#1E293B' : '#FFFFFF',
     tooltipBorder: isDark ? '#334155' : '#E6E8ED',
@@ -1158,10 +1147,6 @@ function initProjectScheduleChart() {
             <span>Actual Progress:</span>
             <strong>${p.actualProgress}%</strong>
           </div>
-          <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
-            <span>Planned Pace:</span>
-            <strong>${p.plannedPace}%</strong>
-          </div>
           <div style="margin-top:4px; font-weight:600; color:${p.healthColor};">
             Health: ${p.health}
           </div>
@@ -1174,7 +1159,7 @@ function initProjectScheduleChart() {
     grid: {
       top: '6%',
       left: '3%',
-      right: '6%',
+      right: '8%',
       bottom: '4%',
       containLabel: true,
     },
@@ -1200,23 +1185,21 @@ function initProjectScheduleChart() {
       {
         name: 'Actual Progress',
         type: 'bar',
-        barWidth: 8,
+        barWidth: 16,
         data: projects.map((d) => ({
           value: d.actualProgress,
           itemStyle: {
             color: d.healthColor,
-            borderRadius: [0, 3, 3, 0],
+            borderRadius: [0, 4, 4, 0],
           },
         })),
-      },
-      {
-        name: 'Planned Pace',
-        type: 'bar',
-        barWidth: 8,
-        data: projects.map((d) => d.plannedPace),
-        itemStyle: {
-          color: theme.plannedBar,
-          borderRadius: [0, 3, 3, 0],
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{c}%',
+          color: theme.darkText,
+          fontSize: 11,
+          fontWeight: 600,
         },
       },
     ],
