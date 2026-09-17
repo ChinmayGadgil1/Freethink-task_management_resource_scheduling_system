@@ -186,10 +186,16 @@
                           cy="43"
                           r="36"
                           fill="none"
-                          stroke="var(--wo-primary, #8b6fd8)"
+                          :stroke="
+                            workload.consumedPct > 100
+                              ? '#ef4444'
+                              : 'var(--wo-primary, #8b6fd8)'
+                          "
                           stroke-width="7"
                           :stroke-dasharray="226.19"
-                          :stroke-dashoffset="226.19 * (1 - workload.consumedPct / 100)"
+                          :stroke-dashoffset="
+                            226.19 * (1 - Math.min(100, Math.max(0, workload.consumedPct)) / 100)
+                          "
                           stroke-linecap="round"
                           style="
                             transform: rotate(-90deg);
@@ -200,7 +206,8 @@
                       </svg>
                       <div class="productivity-ring-center">
                         <div
-                          class="text-subtitle1 text-weight-bolder text-primary"
+                          class="text-subtitle1 text-weight-bolder"
+                          :class="workload.consumedPct > 100 ? 'text-negative' : 'text-primary'"
                           style="line-height: 1"
                         >
                           {{ workload.consumedPct }}%
@@ -528,7 +535,7 @@ const workload = computed(() => {
     const expected = Number(workloadData.value.total_expected_effort) || 0;
     const actual = Number(workloadData.value.total_actual_effort) || 0;
     const remaining = Math.max(0, formatNumber(expected - actual));
-    const consumedPct = expected > 0 ? Math.min(100, Math.round((actual / expected) * 100)) : 0;
+    const consumedPct = expected > 0 ? Math.round((actual / expected) * 100) : 0;
     const activeTasks = Number(workloadData.value.active_tasks_count) || activeTasksCount.value;
 
     return {
@@ -560,7 +567,7 @@ const workload = computed(() => {
   });
 
   const remaining = Math.max(0, formatNumber(expected - actual));
-  const consumedPct = expected > 0 ? Math.min(100, Math.round((actual / expected) * 100)) : 0;
+  const consumedPct = expected > 0 ? Math.round((actual / expected) * 100) : 0;
 
   return {
     expectedEffort: formatNumber(expected),

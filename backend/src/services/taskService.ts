@@ -3,6 +3,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { TaskPriority, TaskStatus } from "../models/taskModel.js";
 import { wouldCreateCycle } from "./scheduler/DependencyEngine.js";
 import { syncProjectProgress } from "./projectService.js";
+import { recalculate } from "./scheduler/SchedulingEngine.js";
 
 export async function createTask(
     projectId: number,
@@ -1172,12 +1173,26 @@ export async function restoreTaskFromBin(taskId: number, projectManagerId?: numb
 
         await connection.query("UPDATE tasks SET deleted_at = NULL WHERE task_id = ?", [taskId]);
 
+        // Validate dependency integrity: prune dead references to non-existent or permanently deleted predecessors/successors
+        await connection.query(
+            `DELETE FROM task_dependencies
+             WHERE (task_id = ? AND predecessor_task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL))
+                OR (predecessor_task_id = ? AND task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL))`,
+            [taskId, taskId]
+        );
+
         await connection.commit();
 
         try {
             await syncProjectProgress(projectId);
         } catch (syncErr) {
             console.error("Failed to sync project progress in restoreTaskFromBin:", syncErr);
+        }
+
+        try {
+            await recalculate(projectId);
+        } catch (schedErr) {
+            console.error("Failed to recalculate project schedule in restoreTaskFromBin:", schedErr);
         }
 
         return { success: true, projectId };

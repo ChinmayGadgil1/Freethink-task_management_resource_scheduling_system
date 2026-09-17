@@ -21,11 +21,13 @@ export async function createWorkLog(
 
         // Check if task exists and user is assigned OR supervisor
         const [tasks] = await connection.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.project_id, t.expected_effort, t.actual_effort, t.progress, t.status, t.deadline, t.supervisor_id
+            `SELECT t.task_id, t.project_id, t.expected_effort, t.actual_effort, t.progress, t.status, t.deadline, t.supervisor_id,
+                    GROUP_CONCAT(DISTINCT ta.user_id) as assigned_user_ids
              FROM tasks t
-             LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
-             WHERE t.task_id = ? AND (ta.user_id = ? OR t.supervisor_id = ?)`,
-            [userId, taskId, userId, userId]
+             LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+             WHERE t.task_id = ?
+             GROUP BY t.task_id`,
+            [taskId]
         );
 
         if (tasks.length === 0) {
@@ -33,6 +35,17 @@ export async function createWorkLog(
         }
 
         const task = tasks[0]!;
+        const assignedIds = task.assigned_user_ids
+            ? String(task.assigned_user_ids).split(",").map(Number)
+            : [];
+        const isAssigned = assignedIds.includes(userId);
+        const isSupervisor = Number(task.supervisor_id) === userId;
+
+        if (!isAssigned && !isSupervisor) {
+            throw new Error("Task not found or you are neither assigned to nor supervising this task");
+        }
+
+        const isSupervisorOnly = isSupervisor && !isAssigned;
 
         // Count previous work logs to detect if this is the first work log
         const [workLogCountRows] = await connection.query<RowDataPacket[]>(
@@ -42,53 +55,60 @@ export async function createWorkLog(
         const isFirstLog = (workLogCountRows[0]?.log_count ?? 0) === 0;
 
         // Calculate updated effort and progress values
-        const oldActualEffort = Number(task.actual_effort);
-        const expectedEffort = Number(task.expected_effort);
+        const oldActualEffort = Number(task.actual_effort || 0);
         const newActualEffort = oldActualEffort + Number(hoursLogged);
-        const newProgress = Number(progressLogged);
 
-        /* BACKEND STATUS SYNCHRONIZATION:
-         Automatically determine task status based on progress logged:
-         0% progress     -> 'SCHEDULED' (planned / not started)
-         100% progress   -> 'COMPLETED' (all work finished)
-         1% - 99% progress -> 'IN_PROGRESS' (work actively ongoing) */
-
+        let newProgress = Number(progressLogged);
         let newStatus: string;
-        if (newProgress <= 0) {
-            newStatus = "SCHEDULED";
-        } else if (newProgress >= 100) {
-            newStatus = "COMPLETED";
+
+        if (isSupervisorOnly) {
+            // Time-based oversight log for supervisor: preserve task progress and status
+            newProgress = Number(task.progress || 0);
+            newStatus = String(task.status);
         } else {
-            newStatus = "IN_PROGRESS";
+            /* BACKEND STATUS SYNCHRONIZATION FOR ASSIGNEES:
+             0% progress     -> 'SCHEDULED' (planned / not started)
+             100% progress   -> 'COMPLETED' (all work finished)
+             1% - 99% progress -> 'IN_PROGRESS' (work actively ongoing) */
+            if (newProgress <= 0) {
+                newStatus = "SCHEDULED";
+            } else if (newProgress >= 100) {
+                newStatus = "COMPLETED";
+            } else {
+                newStatus = "IN_PROGRESS";
+            }
         }
 
         // Insert the work log with the progress-aligned status
         const [result] = await connection.query<ResultSetHeader>(
             `INSERT INTO work_logs (task_id, user_id, hours_logged, progress_logged, status, notes, blockers, log_date)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [taskId, userId, hoursLogged, progressLogged, newStatus, notes, blockers, logDate]
+            [taskId, userId, hoursLogged, isSupervisorOnly ? newProgress : progressLogged, newStatus, notes, blockers, logDate]
         );
 
         // Dynamically build UPDATE query for tasks
-        // We set actual_start on first log if supported, and actual_end on COMPLETED
-        const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
-        const updateParams: any[] = [newActualEffort, newProgress, newStatus];
+        // For supervisors, only effort is updated, preserving task progress and status
+        const updateFields: string[] = ["actual_effort = ?"];
+        const updateParams: any[] = [newActualEffort];
 
-        // Check if actual_start / actual_end columns exist or can be updated safely
-        if (isFirstLog) {
-            try {
-                // If actual_start column exists, update it
-                updateFields.push("actual_start = COALESCE(actual_start, NOW())");
-            } catch {
-                // Ignore if column not present yet
+        if (!isSupervisorOnly) {
+            updateFields.push("progress = ?", "status = ?");
+            updateParams.push(newProgress, newStatus);
+
+            if (isFirstLog) {
+                try {
+                    updateFields.push("actual_start = COALESCE(actual_start, NOW())");
+                } catch {
+                    // Column might not exist
+                }
             }
-        }
 
-        if (newStatus === "COMPLETED") {
-            try {
-                updateFields.push("actual_end = NOW()");
-            } catch {
-                // Ignore if column not present yet
+            if (newStatus === "COMPLETED") {
+                try {
+                    updateFields.push("actual_end = NOW()");
+                } catch {
+                    // Column might not exist
+                }
             }
         }
 
@@ -100,11 +120,17 @@ export async function createWorkLog(
                 updateParams
             );
         } catch (updateErr: any) {
-            // Fallback in case actual_start or actual_end column has not been added by Dev 1 yet
-            await connection.query(
-                `UPDATE tasks SET actual_effort = ?, progress = ?, status = ? WHERE task_id = ?`,
-                [newActualEffort, newProgress, newStatus, taskId]
-            );
+            if (!isSupervisorOnly) {
+                await connection.query(
+                    `UPDATE tasks SET actual_effort = ?, progress = ?, status = ? WHERE task_id = ?`,
+                    [newActualEffort, newProgress, newStatus, taskId]
+                );
+            } else {
+                await connection.query(
+                    `UPDATE tasks SET actual_effort = ? WHERE task_id = ?`,
+                    [newActualEffort, taskId]
+                );
+            }
         }
 
         await connection.commit();

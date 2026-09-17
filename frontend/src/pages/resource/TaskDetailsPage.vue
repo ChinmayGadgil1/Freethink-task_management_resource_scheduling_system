@@ -1179,7 +1179,7 @@
               </div>
 
               <!-- Task Supervisor / Reviewer Details -->
-              <div class="q-mt-md">
+              <div v-if="!isVerificationTask(task)" class="q-mt-md">
                 <div
                   class="text-caption text-weight-bold q-mb-xs"
                   :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
@@ -2579,6 +2579,7 @@ import {
   isTaskOverdue,
   getStatusFromProgress,
   formatStatusLabel,
+  isVerificationTask,
 } from '@/utils/taskHelpers';
 
 const $q = useQuasar();

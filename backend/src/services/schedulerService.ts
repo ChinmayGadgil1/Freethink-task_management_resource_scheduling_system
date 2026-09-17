@@ -178,6 +178,7 @@ export async function getProjectSchedule(projectId: number) {
                 ? String(t.assigned_resource_ids).split(",").map(Number)
                 : [],
             assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
+            assigned_resource_names: (assignmentMap.get(Number(t.task_id)) || []).map(a => a.name),
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
                 : [],
@@ -365,6 +366,7 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
                 ? String(t.assigned_resource_ids).split(",").map(Number)
                 : [resourceId],
             assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
+            assigned_resource_names: (assignmentMap.get(Number(t.task_id)) || []).map(a => a.name),
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
                 : [],

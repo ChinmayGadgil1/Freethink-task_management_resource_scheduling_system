@@ -248,7 +248,7 @@
         </div>
 
         <!-- Supervisor in Popup -->
-        <div class="popup-supervisor-block q-mt-md">
+        <div v-if="!isVerificationTask(task)" class="popup-supervisor-block q-mt-md">
           <div class="detail-label q-mb-xs">Task Supervisor / Reviewer</div>
           <div v-if="task.supervisor_name || task.supervisor_id" class="row items-center gap-xs">
             <q-chip
@@ -589,7 +589,12 @@ import {
   formatNumber,
   getInitials,
 } from '@/utils/formatters';
-import { isTaskOverdue, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
+import {
+  isTaskOverdue,
+  getTaskStatusClass,
+  getPriorityClass,
+  isVerificationTask,
+} from '@/utils/taskHelpers';
 
 export interface TaskDetailsDialogProps {
   modelValue?: boolean;

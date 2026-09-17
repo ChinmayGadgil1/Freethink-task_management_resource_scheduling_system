@@ -291,15 +291,24 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         });
     }
 
-    // 4. Recalculate schedules if approved immediately
+    // 4. Recalculate schedules if approved immediately and includes future dates >= today
     if (initialStatus === "APPROVED") {
-        try {
-            const projects = await getResourceProjects(user_id);
-            for (const project of projects) {
-                await recalculate(Number(project.project_id));
+        const now = new Date();
+        const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const hasUpcomingLeave = leavesToCreate.some((item) => {
+            const dStr = String(item.leave_date).split("T")[0]!;
+            return dStr >= curDateStr;
+        });
+
+        if (hasUpcomingLeave) {
+            try {
+                const projects = await getResourceProjects(user_id);
+                for (const project of projects) {
+                    await recalculate(Number(project.project_id));
+                }
+            } catch (schedError) {
+                console.error("Warning: Failed to recalculate project schedules after applying approved leave:", schedError);
             }
-        } catch (schedError) {
-            console.error("Warning: Failed to recalculate project schedules after applying approved leave:", schedError);
         }
     } else {
         // Resource submitted a pending leave request: notify relevant Project Managers
@@ -487,14 +496,23 @@ export async function approveLeave(identifier: number | string, pmUserId: number
         );
     }
 
-    // Recalculate schedules once
-    try {
-        const projects = await getResourceProjects(userId);
-        for (const project of projects) {
-            await recalculate(Number(project.project_id));
+    // Scheduling Boundary Check: only recalculate future schedules if leave dates include dates on or after today
+    const hasUpcomingLeave = rows.some(r => {
+        const dStr = r.leave_date instanceof Date
+            ? r.leave_date.toISOString().split("T")[0]!
+            : String(r.leave_date).split("T")[0]!;
+        return dStr >= todayStr;
+    });
+
+    if (hasUpcomingLeave) {
+        try {
+            const projects = await getResourceProjects(userId);
+            for (const project of projects) {
+                await recalculate(Number(project.project_id));
+            }
+        } catch (schedError) {
+            console.error("Warning: Failed to recalculate project schedules after approving leave:", schedError);
         }
-    } catch (schedError) {
-        console.error("Warning: Failed to recalculate project schedules after approving leave:", schedError);
     }
 
     // Fetch PM name for response

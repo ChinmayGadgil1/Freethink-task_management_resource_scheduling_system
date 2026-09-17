@@ -365,6 +365,13 @@ export async function updateProject(
         return null;
     }
 
+    // Trigger auto-scheduler recalculation to update Gantt schedules and deadline risks with new project dates
+    try {
+        await recalculate(projectId);
+    } catch (schedError) {
+        console.error("Failed to recalculate project schedules after updating project:", schedError);
+    }
+
     return getProjectById(projectId);
 }
 
