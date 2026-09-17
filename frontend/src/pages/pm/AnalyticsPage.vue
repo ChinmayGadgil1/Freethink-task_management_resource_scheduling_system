@@ -166,7 +166,7 @@
                     >
                       {{ taskStats.completionPercent }}%
                     </span>
-                    <span class="text-caption text-positive text-weight-medium">Active</span>
+                    <span class="text-caption text-teal text-weight-medium">Active</span>
                   </div>
                   <span class="text-caption text-grey-6 q-mt-xs">
                     {{ taskStats.completedTasks }} / {{ taskStats.totalTasks }} tasks done
@@ -176,8 +176,8 @@
                   rounded
                   size="40px"
                   font-size="20px"
-                  :color="$q.dark.isActive ? 'green-10' : 'green-1'"
-                  :text-color="$q.dark.isActive ? 'green-3' : 'positive'"
+                  :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+                  :text-color="$q.dark.isActive ? 'teal-3' : 'teal'"
                   icon="check_circle"
                 />
               </div>
@@ -1253,23 +1253,36 @@ function initTaskStatusChart() {
 
   const theme = getThemeColors();
   const stats = taskStats.value;
+  const isZeroTasks = stats.totalTasks === 0;
 
   const option: EChartsOption = {
-    tooltip: {
-      trigger: 'item',
-      ...getCommonTooltip(theme),
-      formatter: (params: unknown) => {
-        const it = params as { name: string; value: number; percent: number; color: string };
-        return `
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px; color:${theme.darkText};">
-            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${it.color};"></span>
-            <strong>${it.name}</strong>
-          </div>
-          <div style="color:${theme.mutedText};">${it.value} tasks (${it.percent}%)</div>
-        `;
-      },
-    },
+    tooltip: isZeroTasks
+      ? {
+          trigger: 'item',
+          ...getCommonTooltip(theme),
+          formatter: () =>
+            `<div style="color:${theme.mutedText}; font-size: 12px; padding: 2px 4px;">No tasks in this project</div>`,
+        }
+      : {
+          trigger: 'item',
+          ...getCommonTooltip(theme),
+          formatter: (params: unknown) => {
+            const it = params as { name: string; value: number; percent: number; color: string };
+            return `
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px; color:${theme.darkText};">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${it.color};"></span>
+                <strong>${it.name}</strong>
+              </div>
+              <div style="color:${theme.mutedText};">${it.value} tasks (${it.percent}%)</div>
+            `;
+          },
+        },
     legend: {
+      data: stats.items.map((d) => ({
+        name: d.label,
+        itemStyle: { color: d.label === 'Completed' ? theme.headroomBar : d.color },
+      })),
+      selectedMode: !isZeroTasks,
       bottom: '0%',
       left: 'center',
       itemWidth: 10,
@@ -1277,7 +1290,7 @@ function initTaskStatusChart() {
       textStyle: { color: theme.mutedText, fontSize: 11 },
       formatter: (name: string) => {
         const item = stats.items.find((d) => d.label === name);
-        return `${name}  ${item ? item.count : ''}`;
+        return `${name}  ${item ? item.count : 0}`;
       },
     },
     series: [
@@ -1287,16 +1300,31 @@ function initTaskStatusChart() {
         center: ['50%', '44%'],
         avoidLabelOverlap: false,
         itemStyle: {
-          borderRadius: 3,
+          borderRadius: isZeroTasks ? 0 : 3,
           borderColor: theme.cardBg,
-          borderWidth: 2,
+          borderWidth: isZeroTasks ? 0 : 2,
+        },
+        emphasis: {
+          scale: !isZeroTasks,
         },
         label: { show: false },
-        data: stats.items.map((d) => ({
-          name: d.label,
-          value: d.count,
-          itemStyle: { color: d.color },
-        })),
+        data: isZeroTasks
+          ? [
+              {
+                name: 'No Tasks',
+                value: 1,
+                itemStyle: {
+                  color: theme.isDark ? '#334155' : '#E2E8F0',
+                  borderColor: theme.cardBg,
+                  borderWidth: 0,
+                },
+              },
+            ]
+          : stats.items.map((d) => ({
+              name: d.label,
+              value: d.count,
+              itemStyle: { color: d.label === 'Completed' ? theme.headroomBar : d.color },
+            })),
       },
     ],
     title: {
@@ -1350,7 +1378,7 @@ function initEffortVarianceChart() {
         if (!t) return '';
         const varianceText =
           t.variance > 0 ? `+${t.variance}h Overrun` : `${t.variance}h Within Estimate`;
-        const varianceColor = t.isOverrun ? ANALYTICS_PALETTE.danger : ANALYTICS_PALETTE.green;
+        const varianceColor = t.isOverrun ? ANALYTICS_PALETTE.danger : theme.headroomBar;
         return `
           <div style="font-weight:600; font-size:12px; margin-bottom:4px; color:${theme.darkText};">${t.title}</div>
           <div style="display:flex; justify-content:space-between; gap:16px; color:${theme.darkText};">
@@ -1373,7 +1401,10 @@ function initEffortVarianceChart() {
       itemWidth: isVeryNarrow ? 8 : 10,
       itemHeight: isVeryNarrow ? 8 : 10,
       textStyle: { color: theme.mutedText, fontSize: isVeryNarrow ? 9.5 : 11 },
-      data: ['Planned (hrs)', 'Actual (hrs)'],
+      data: [
+        { name: 'Planned (hrs)', itemStyle: { color: ANALYTICS_PALETTE.primary } },
+        { name: 'Actual (hrs)', itemStyle: { color: theme.headroomBar } },
+      ],
     },
     grid: {
       top: '10%',
@@ -1446,10 +1477,14 @@ function initEffortVarianceChart() {
         name: 'Actual (hrs)',
         type: 'bar',
         barWidth: isVeryNarrow ? 10 : 12,
+        itemStyle: {
+          color: theme.headroomBar,
+          borderRadius: [0, 3, 3, 0],
+        },
         data: taskEfforts.map((d) => ({
           value: d.actualHours,
           itemStyle: {
-            color: d.isOverrun ? ANALYTICS_PALETTE.danger : ANALYTICS_PALETTE.teal,
+            color: d.isOverrun ? ANALYTICS_PALETTE.danger : theme.headroomBar,
             borderRadius: [0, 3, 3, 0],
           },
         })),

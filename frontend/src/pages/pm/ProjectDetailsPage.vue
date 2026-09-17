@@ -2,7 +2,7 @@
   <q-page
     :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
     class="q-pa-lg project-details-page"
-    style="overflow-x: hidden; width: 100%"
+    style="overflow-x: hidden; width: 100%; max-width: 100%"
   >
     <div
       class="q-mx-auto column q-gutter-y-lg project-details-container"
@@ -20,9 +20,15 @@
       </div>
 
       <!-- 01 HERO CARD -->
-      <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-lg">
+      <q-card
+        flat
+        bordered
+        :dark="$q.dark.isActive"
+        class="rounded-borders q-pa-lg"
+        style="min-width: 0; width: 100%"
+      >
         <div class="row q-col-gutter-lg justify-between items-start">
-          <div class="col-12 col-md-8 column q-gutter-y-md" style="min-width: 0">
+          <div class="col-12 col-md-7 col-lg-8 column q-gutter-y-md" style="min-width: 0">
             <!-- Badges Row -->
             <div class="row items-center q-gutter-xs wrap">
               <q-chip
@@ -69,7 +75,7 @@
 
             <!-- Meta info grid -->
             <div class="row q-col-gutter-md q-mt-xs">
-              <div class="col-6 col-sm-3">
+              <div class="col-6 col-md-6 col-lg-3">
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                   Project Manager
                 </div>
@@ -82,14 +88,14 @@
                     >{{ currentPmName.charAt(0) }}</q-avatar
                   >
                   <span
-                    class="text-caption text-weight-bold"
+                    class="text-caption text-weight-bold ellipsis"
                     :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >{{ currentPmName }}</span
                   >
                 </div>
               </div>
 
-              <div class="col-6 col-sm-3" style="min-width: 0">
+              <div class="col-6 col-md-6 col-lg-3" style="min-width: 0">
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                   Timeline
                 </div>
@@ -104,7 +110,7 @@
                 </div>
               </div>
 
-              <div class="col-6 col-sm-3">
+              <div class="col-6 col-md-6 col-lg-3">
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                   Days Remaining
                 </div>
@@ -116,11 +122,11 @@
                 </div>
               </div>
 
-              <div class="col-6 col-sm-3">
+              <div class="col-6 col-md-6 col-lg-3">
                 <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
                   Team Members
                 </div>
-                <div class="row items-center q-gutter-xs q-mt-xs">
+                <div class="row items-center q-gutter-xs q-mt-xs wrap">
                   <q-avatar
                     v-for="m in teamMembers.slice(0, 3)"
                     :key="m.id"
@@ -147,7 +153,7 @@
           </div>
 
           <!-- Hero Sidebar: Progress & Actions -->
-          <div class="col-12 col-md-4" style="min-width: 0">
+          <div class="col-12 col-md-5 col-lg-4" style="min-width: 0">
             <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md q-mb-md">
               <div class="row items-center justify-between no-wrap">
                 <span
@@ -169,7 +175,7 @@
                 :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
               />
 
-              <div class="row items-center justify-between text-caption text-grey-5 q-mt-xs">
+              <div class="row items-center justify-between text-caption text-grey-5 q-mt-xs wrap">
                 <span>{{ completedTasksCount }} of {{ totalTasksCount }} tasks done</span>
                 <span class="q-ml-xs"
                   >{{ formatHours(totalEffortLogged) }} /
@@ -260,8 +266,8 @@
       </q-card>
 
       <!-- 02 KPI METRIC CARDS -->
-      <div class="row q-col-gutter-md items-stretch">
-        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
+      <div class="row q-col-gutter-md items-stretch" style="min-width: 0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
             title="Overall Progress"
             :value="`${overallProgress}%`"
@@ -272,7 +278,7 @@
             @click="filterAllTasks"
           />
         </div>
-        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
             title="Total Tasks"
             :value="totalTasksCount"
@@ -283,7 +289,7 @@
             @click="filterAllTasks"
           />
         </div>
-        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
             title="Completed Tasks"
             :value="completedTasksCount"
@@ -294,7 +300,7 @@
             @click="filterCompletedTasks"
           />
         </div>
-        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
             title="Overdue Tasks"
             :value="overdueTasksCount"
@@ -306,7 +312,7 @@
             @click="filterOverdueTasks"
           />
         </div>
-        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
             title="Team Members"
             :value="teamMembers.length"
@@ -317,7 +323,7 @@
             @click="scrollToTeam"
           />
         </div>
-        <div class="col-6 col-sm-4 col-md-2" style="min-width: 0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
             title="Days Remaining"
             :value="
@@ -338,7 +344,7 @@
       </div>
 
       <!-- 03 & 04 PROGRESS BREAKDOWN & MILESTONES -->
-      <div class="row q-col-gutter-md items-stretch">
+      <div class="row q-col-gutter-md items-stretch" style="min-width: 0">
         <div class="col-12 col-md-6" style="min-width: 0">
           <q-card
             flat
@@ -542,9 +548,10 @@
             bordered
             :dark="$q.dark.isActive"
             class="rounded-borders full-height column justify-between"
+            style="min-width: 0"
           >
             <div>
-              <q-card-section class="row items-center justify-between">
+              <q-card-section class="row items-center justify-between wrap q-gutter-xs">
                 <div class="row items-center">
                   <q-icon name="flag" size="20px" color="primary" class="q-mr-xs" />
                   <div
@@ -645,6 +652,7 @@
         bordered
         :dark="$q.dark.isActive"
         class="rounded-borders"
+        style="min-width: 0; width: 100%; max-width: 100%; overflow: hidden"
       >
         <q-card-section class="row items-center justify-between wrap q-gutter-y-sm">
           <div class="row items-center">
@@ -739,7 +747,10 @@
         <q-separator />
 
         <!-- Table Container to prevent horizontal page overflow -->
-        <div class="task-table-wrapper" style="overflow-x: auto; width: 100%; max-width: 100%">
+        <div
+          class="task-table-wrapper"
+          style="width: 100%; max-width: 100%; min-width: 0; overflow: hidden"
+        >
           <q-table
             flat
             :dark="$q.dark.isActive"
@@ -750,7 +761,8 @@
             :pagination="taskPagination"
             :rows-per-page-options="[5, 10, 20]"
             no-data-label="No tasks found for this project"
-            style="min-width: 760px"
+            class="full-width"
+            table-style="min-width: 760px"
           >
             <template #body-cell-title="props">
               <q-td :props="props">
@@ -1004,9 +1016,9 @@
       </q-card>
 
       <!-- 06 & 07 TEAM & RECENT ACTIVITY -->
-      <div class="row q-col-gutter-lg">
+      <div class="row q-col-gutter-md items-stretch" style="min-width: 0">
         <!-- Team Card -->
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6" style="min-width: 0">
           <q-card
             id="team-workload-card"
             flat
@@ -1107,7 +1119,7 @@
         </div>
 
         <!-- Activity Card -->
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6" style="min-width: 0">
           <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders full-height">
             <q-card-section class="row items-center justify-between">
               <div class="row items-center">
@@ -2832,3 +2844,54 @@ async function handleExecuteUnarchiveProject() {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.project-details-page {
+  box-sizing: border-box;
+}
+
+.project-details-container {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1400px;
+
+  /* Every card direct child takes exactly 100% of the container width */
+  > .q-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Grid rows using q-col-gutter-md offset margin-left: -16px with width: calc(100% + 16px),
+     ensuring both the left and right outer boundaries match the cards above and below */
+  > .row.q-col-gutter-md {
+    width: calc(100% + 16px) !important;
+    max-width: calc(100% + 16px) !important;
+    min-width: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  > .row.q-col-gutter-lg {
+    width: calc(100% + 24px) !important;
+    max-width: calc(100% + 24px) !important;
+    min-width: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ensure table container never expands beyond card boundary */
+  :deep(.q-table__container) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  :deep(.q-table__middle) {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+}
+</style>

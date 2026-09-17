@@ -1346,6 +1346,22 @@
                     </div>
                   </div>
 
+                  <!-- Add Daily Update Action Row -->
+                  <div class="row">
+                    <div class="col-12">
+                      <q-btn
+                        outline
+                        no-caps
+                        color="primary"
+                        icon="edit_note"
+                        label="Add Daily Update"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        @click="updateDialog = true"
+                      />
+                    </div>
+                  </div>
+
                   <!-- Secondary Action Row (Only for self-assigned tasks) -->
                   <div v-if="isSelfAssigned(task)" class="row">
                     <div class="col-12">
@@ -1966,17 +1982,30 @@
                   </div>
                 </div>
               </div>
-              <!-- Total updates count chip -->
-              <q-chip
-                v-if="workLogs.length > 0"
-                dense
-                square
-                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-                :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
-                class="text-caption text-weight-bold"
-              >
-                {{ workLogs.length }} update{{ workLogs.length === 1 ? '' : 's' }}
-              </q-chip>
+              <!-- Total updates count chip & Add Update button -->
+              <div class="row items-center q-gutter-sm">
+                <q-chip
+                  v-if="workLogs.length > 0"
+                  dense
+                  square
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                  :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
+                  class="text-caption text-weight-bold"
+                >
+                  {{ workLogs.length }} update{{ workLogs.length === 1 ? '' : 's' }}
+                </q-chip>
+                <q-btn
+                  v-if="isAssignedToMe(task) || isSupervisedByMe(task)"
+                  outline
+                  no-caps
+                  color="primary"
+                  icon="edit_note"
+                  label="Add Daily Update"
+                  class="text-weight-bold"
+                  style="border-radius: 8px"
+                  @click="updateDialog = true"
+                />
+              </div>
             </q-card-section>
 
             <q-separator />

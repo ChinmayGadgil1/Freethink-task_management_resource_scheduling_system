@@ -309,7 +309,7 @@ export function computeTaskDistribution(tasks: Task[]): {
           label: 'Completed',
           count: 0,
           percentage: 0,
-          color: ANALYTICS_PALETTE.green,
+          color: ANALYTICS_PALETTE.teal,
         },
         {
           status: 'IN_PROGRESS',
@@ -364,7 +364,7 @@ export function computeTaskDistribution(tasks: Task[]): {
       label: 'Completed',
       count: counts.COMPLETED ?? 0,
       percentage: Math.round(((counts.COMPLETED ?? 0) / totalTasks) * 100),
-      color: ANALYTICS_PALETTE.green,
+      color: ANALYTICS_PALETTE.teal,
     },
     {
       status: 'IN_PROGRESS',
