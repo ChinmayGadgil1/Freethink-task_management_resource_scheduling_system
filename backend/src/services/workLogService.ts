@@ -19,17 +19,17 @@ export async function createWorkLog(
     try {
         await connection.beginTransaction();
 
-        // Check if task exists and user is assigned
+        // Check if task exists and user is assigned OR supervisor
         const [tasks] = await connection.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.project_id, t.expected_effort, t.actual_effort, t.progress, t.status, t.deadline
+            `SELECT t.task_id, t.project_id, t.expected_effort, t.actual_effort, t.progress, t.status, t.deadline, t.supervisor_id
              FROM tasks t
-             JOIN task_assignments ta ON t.task_id = ta.task_id
-             WHERE t.task_id = ? AND ta.user_id = ?`,
-            [taskId, userId]
+             LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
+             WHERE t.task_id = ? AND (ta.user_id = ? OR t.supervisor_id = ?)`,
+            [userId, taskId, userId, userId]
         );
 
         if (tasks.length === 0) {
-            throw new Error("Task not found or user is not assigned to this task");
+            throw new Error("Task not found or you are neither assigned to nor supervising this task");
         }
 
         const task = tasks[0]!;
@@ -147,11 +147,13 @@ export async function createWorkLog(
 export async function getWorkLogsByTask(taskId: number) {
     const pool = getPool();
 
-    // Fetch all work logs for the specified task joined with users table to provide author details for co-assignees
+    // Fetch all work logs for the specified task joined with users table to provide author details for co-assignees & supervisors
     const [logs] = await pool.query<RowDataPacket[]>(
-        `SELECT wl.*, u.name as author_name, u.email as author_email 
+        `SELECT wl.*, u.name as author_name, u.email as author_email,
+                (wl.user_id = t.supervisor_id) as is_supervisor_log
          FROM work_logs wl
          JOIN users u ON wl.user_id = u.user_id
+         JOIN tasks t ON wl.task_id = t.task_id
          WHERE wl.task_id = ?
          ORDER BY wl.created_at DESC`,
         [taskId]
@@ -185,16 +187,16 @@ export async function startSession(taskId: number, userId: number) {
     try {
         await connection.beginTransaction();
 
-        // Verify task exists and user is assigned to this task
+        // Verify task exists and user is assigned or supervisor of this task
         const [tasks] = await connection.query<RowDataPacket[]>(
-            `SELECT t.task_id FROM tasks t
-             JOIN task_assignments ta ON t.task_id = ta.task_id
-             WHERE t.task_id = ? AND ta.user_id = ?`,
-            [taskId, userId]
+            `SELECT t.task_id, t.supervisor_id FROM tasks t
+             LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
+             WHERE t.task_id = ? AND (ta.user_id = ? OR t.supervisor_id = ?)`,
+            [userId, taskId, userId, userId]
         );
 
         if (tasks.length === 0) {
-            throw new Error("Cannot start session: You are not assigned to this task");
+            throw new Error("Cannot start session: You are neither assigned to nor supervising this task");
         }
 
         // Ensure user has no other active sessions

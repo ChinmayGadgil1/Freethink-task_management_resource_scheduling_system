@@ -135,7 +135,7 @@
                     : ''
                 "
                 label="Assign Member(s) (Optional)"
-                :options="memberOptions"
+                :options="filteredMemberOptions"
                 emit-value
                 map-options
                 :disable="!activeProjectId"
@@ -174,13 +174,11 @@
                 dense
                 clearable
                 label="Supervisor / Reviewer (Optional)"
-                :options="
-                  supervisorOptions && supervisorOptions.length ? supervisorOptions : memberOptions
-                "
+                :options="filteredSupervisorOptions"
                 emit-value
                 map-options
                 :disable="!activeProjectId"
-                hint="Select a senior resource to oversee progress and review deliverables"
+                hint="Select a senior resource to oversee progress (cannot be an assigned resource)"
               >
                 <template #prepend>
                   <q-icon name="verified_user" color="primary" />
@@ -363,6 +361,21 @@ const form = reactive<CreateTaskFormData>({
   deadline: '',
   assigned_resource_ids: [],
   predecessor_task_ids: [],
+});
+
+const filteredMemberOptions = computed(() => {
+  if (!form.supervisor_id) return props.memberOptions;
+  return props.memberOptions.filter((opt) => Number(opt.value) !== Number(form.supervisor_id));
+});
+
+const filteredSupervisorOptions = computed(() => {
+  const baseOptions =
+    props.supervisorOptions && props.supervisorOptions.length > 0
+      ? props.supervisorOptions
+      : props.memberOptions;
+  if (!form.assigned_resource_ids || form.assigned_resource_ids.length === 0) return baseOptions;
+  const assignedSet = new Set(form.assigned_resource_ids.map(Number));
+  return baseOptions.filter((opt) => !assignedSet.has(Number(opt.value)));
 });
 
 function resetForm() {

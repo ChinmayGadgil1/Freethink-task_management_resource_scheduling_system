@@ -32,6 +32,14 @@ export async function createTask(
                 : ("UNASSIGNED" as TaskStatus);
         }
 
+        // Validate that assignee cannot be assigned as supervisor
+        if (supervisorId && assignedResourceIds && assignedResourceIds.length > 0) {
+            const hasConflict = assignedResourceIds.some(id => Number(id) === Number(supervisorId));
+            if (hasConflict) {
+                throw new Error("CANNOT_SUPERVISE_OWN_TASK: An assigned resource cannot be designated as the supervisor for the same task.");
+            }
+        }
+
         const [result] = await connection.query<ResultSetHeader>(
             `
         INSERT INTO tasks
@@ -753,7 +761,7 @@ export async function assignResourceToTask(
 
         const [tasks] = await connection.query<RowDataPacket[]>(
             `
-            SELECT t.task_id, t.project_id, t.status, t.task_type, t.verified_task_id
+            SELECT t.task_id, t.project_id, t.status, t.task_type, t.verified_task_id, t.supervisor_id
             FROM tasks t
             JOIN projects p
                 ON t.project_id = p.project_id
@@ -768,6 +776,11 @@ export async function assignResourceToTask(
             throw new Error("TASK_NOT_FOUND");
 
         const task = tasks[0]!;
+
+        // Prevent assigning the task's supervisor as an assignee
+        if (task.supervisor_id && Number(task.supervisor_id) === Number(resourceId)) {
+            throw new Error("CANNOT_SUPERVISE_OWN_TASK: An assigned resource cannot be designated as supervisor for the same task.");
+        }
 
         // If this is a verification task, ensure resource was not an assignee of the original verified task
         if (task.task_type === "VERIFICATION" && task.verified_task_id) {

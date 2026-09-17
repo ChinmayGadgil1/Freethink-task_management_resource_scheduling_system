@@ -543,9 +543,20 @@ const workload = computed(() => {
 
   let expected = 0;
   let actual = 0;
+  const myId = currentUserId.value;
   tasks.value.forEach((t) => {
-    expected += Number(t.expected_effort) || 0;
-    actual += Number(t.actual_effort) || 0;
+    const isSupervisor = Boolean(myId && Number(t.supervisor_id) === myId);
+    const isAssignee =
+      t.assigned_resource_ids?.includes(myId as number) ||
+      t.assigned_resources?.some((ar) => Number(ar.user_id) === myId);
+
+    if (isAssignee) {
+      expected += Number(t.expected_effort) || 0;
+      actual += Number(t.actual_effort) || 0;
+    } else if (isSupervisor) {
+      expected += (Number(t.expected_effort) || 0) * 0.2;
+      actual += Number(t.actual_effort) || 0;
+    }
   });
 
   const remaining = Math.max(0, formatNumber(expected - actual));

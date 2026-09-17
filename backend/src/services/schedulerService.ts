@@ -66,9 +66,12 @@ export async function getProjectSchedule(projectId: number) {
     // 2. Fetch project tasks with assignees, dependencies, and calculated risks (excluding special verification tasks from Gantt)
     const [tasks] = await pool.query<RowDataPacket[]>(
         `SELECT t.*,
+                u_sup.name as supervisor_name,
+                u_sup.email as supervisor_email,
                 GROUP_CONCAT(DISTINCT ta.user_id) as assigned_resource_ids,
                 GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
          FROM tasks t
+         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
          LEFT JOIN task_dependencies td ON t.task_id = td.task_id
          WHERE t.project_id = ?
@@ -154,6 +157,9 @@ export async function getProjectSchedule(projectId: number) {
         return {
             task_id: Number(t.task_id),
             project_id: Number(t.project_id),
+            supervisor_id: t.supervisor_id ? Number(t.supervisor_id) : null,
+            supervisor_name: t.supervisor_name || null,
+            supervisor_email: t.supervisor_email || null,
             title: t.title,
             description: t.description,
             priority: t.priority,
@@ -228,11 +234,14 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
     const [tasks] = await pool.query<RowDataPacket[]>(
         `SELECT t.*,
                 p.name as project_name,
+                u_sup.name as supervisor_name,
+                u_sup.email as supervisor_email,
                 GROUP_CONCAT(DISTINCT ta_all.user_id) as assigned_resource_ids,
                 GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
          FROM tasks t
          JOIN projects p ON t.project_id = p.project_id
          JOIN task_assignments ta ON t.task_id = ta.task_id
+         LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
          LEFT JOIN task_assignments ta_all ON t.task_id = ta_all.task_id
          LEFT JOIN task_dependencies td ON t.task_id = td.task_id
          WHERE ta.user_id = ?
@@ -335,6 +344,9 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
             task_id: Number(t.task_id),
             project_id: projectId,
             project_name: t.project_name,
+            supervisor_id: t.supervisor_id ? Number(t.supervisor_id) : null,
+            supervisor_name: t.supervisor_name || null,
+            supervisor_email: t.supervisor_email || null,
             title: t.title,
             description: t.description,
             priority: t.priority,
@@ -415,6 +427,42 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
 
     const visibleTaskIds = new Set(visibleTasks.map(t => Number(t.task_id)));
 
+    // Fetch active/scheduled tasks supervised by the resource (20% effort)
+    const [supervisedTasks] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT t.*, p.name as project_name
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.project_id
+        WHERE t.supervisor_id = ? AND t.status IN ('SCHEDULED', 'IN_PROGRESS')
+          AND t.deleted_at IS NULL
+          AND p.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
+        ORDER BY t.deadline ASC
+        `,
+        [resourceId]
+    );
+
+    const visibleSupervisedTasks = pmProjectIds
+        ? supervisedTasks.filter(t => pmProjectIds.has(Number(t.project_id)))
+        : supervisedTasks;
+
+    // Fetch supervisor actual logged hours from work_logs
+    const supTaskIds = visibleSupervisedTasks.map(t => Number(t.task_id));
+    const supActualMap = new Map<number, number>();
+    if (supTaskIds.length > 0) {
+        const [supLogs] = await pool.query<RowDataPacket[]>(
+            `SELECT task_id, SUM(hours_logged) as total_sup_hours
+             FROM work_logs
+             WHERE user_id = ? AND task_id IN (?)
+             GROUP BY task_id`,
+            [resourceId, supTaskIds]
+        );
+        for (const l of supLogs) {
+            supActualMap.set(Number(l.task_id), Number(l.total_sup_hours || 0));
+        }
+    }
+
     // Fetch daily allocated hours from task_schedules for this resource
     const [scheduleRows] = await pool.query<RowDataPacket[]>(
         `
@@ -472,11 +520,38 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         });
     }
 
+    // Add supervised tasks with 20% expected effort
+    for (const row of visibleSupervisedTasks) {
+        const supEffort = Number((Number(row.expected_effort) * 0.20).toFixed(2));
+        const supActual = supActualMap.get(Number(row.task_id)) || 0;
+        totalExpectedEffort += supEffort;
+        totalActualEffort += supActual;
+        const projectId = Number(row.project_id);
+
+        taskDetails.push({
+            task_id: Number(row.task_id),
+            project_id: projectId,
+            project_name: row.project_name,
+            title: `🛡️ [Review] ${row.title}`,
+            priority: row.priority,
+            status: row.status,
+            deadline: row.deadline ? String(row.deadline).split("T")[0]! : null,
+            planned_start: row.planned_start ? String(row.planned_start).split("T")[0]! : null,
+            planned_end: row.planned_end ? String(row.planned_end).split("T")[0]! : null,
+            expected_effort: supEffort,
+            actual_effort: supActual,
+            progress: Number(row.progress),
+            is_schedule_at_risk: Boolean(row.is_schedule_at_risk),
+            is_deadline_at_risk: Boolean(row.is_deadline_at_risk),
+            is_external: false
+        });
+    }
+
     return {
         resource_id: resourceId,
         active_tasks_count: taskDetails.length,
-        total_expected_effort: totalExpectedEffort,
-        total_actual_effort: totalActualEffort,
+        total_expected_effort: Number(totalExpectedEffort.toFixed(2)),
+        total_actual_effort: Number(totalActualEffort.toFixed(2)),
         daily_allocations: dailyAllocations,
         tasks: taskDetails
     };

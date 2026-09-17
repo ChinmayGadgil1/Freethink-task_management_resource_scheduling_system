@@ -1221,6 +1221,13 @@
                       (You)
                     </span>
                   </q-chip>
+                  <q-badge
+                    outline
+                    color="amber-9"
+                    class="q-ml-xs text-weight-bold"
+                  >
+                    20% Effort ({{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h)
+                  </q-badge>
                   <span v-if="task.supervisor_email" class="text-caption text-grey-6">
                     {{ task.supervisor_email }}
                   </span>
@@ -1286,7 +1293,7 @@
                 </q-card>
               </div>
 
-              <!-- Action Buttons (Only for assigned resources; read-only for supervisors and dependent viewers) -->
+              <!-- Action Buttons (For assigned resources and supervisors) -->
               <div class="column gap-sm q-mt-md full-width" style="max-width: 320px">
                 <template v-if="isAssignedToMe(task)">
                   <!-- Assign Verifier Action (if task completed and no verifier assigned) -->
@@ -1360,6 +1367,69 @@
                   </div>
                 </template>
 
+                <!-- Supervisor Active Oversight Controls -->
+                <template v-else-if="Number(task.supervisor_id) === getCurrentUserId()">
+                  <q-banner
+                    dense
+                    rounded
+                    :class="$q.dark.isActive ? 'bg-amber-10 text-amber-1' : 'bg-amber-1 text-amber-10'"
+                    class="q-pa-sm text-caption text-weight-medium q-mb-xs"
+                  >
+                    <template #avatar>
+                      <q-icon name="verified_user" :color="$q.dark.isActive ? 'amber-2' : 'amber-9'" />
+                    </template>
+                    <span>
+                      <b>Supervisor Active Oversight Mode</b>: You have 20% review effort (<b>{{ (Number(task.expected_effort) * 0.2).toFixed(1) }}h</b>) allocated to this task.
+                    </span>
+                  </q-banner>
+
+                  <!-- Supervisor Session Controls -->
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-btn
+                        v-if="!isCurrentTaskSessionActive"
+                        unelevated
+                        no-caps
+                        color="amber-9"
+                        text-color="white"
+                        icon="play_arrow"
+                        label="Start Review Session"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        :loading="sessionStore.loading"
+                        @click="handleStartSession(task.task_id)"
+                      />
+                      <q-btn
+                        v-else
+                        unelevated
+                        no-caps
+                        color="negative"
+                        icon="stop"
+                        label="Stop & Log Review"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        :loading="sessionStore.loading"
+                        @click="promptStopSession"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-12">
+                      <q-btn
+                        outline
+                        no-caps
+                        color="primary"
+                        icon="edit_note"
+                        label="Log Review Update"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 38px"
+                        @click="updateDialog = true"
+                      />
+                    </div>
+                  </div>
+                </template>
+
                 <template v-else>
                   <q-banner
                     dense
@@ -1370,11 +1440,7 @@
                     <template #avatar>
                       <q-icon name="visibility" :color="$q.dark.isActive ? 'amber-2' : 'amber-9'" />
                     </template>
-                    <span v-if="Number(task.supervisor_id) === getCurrentUserId()">
-                      You are supervising this task in <b>Review & Oversight mode (Read-only)</b>.
-                      Progress is logged by the assigned resources.
-                    </span>
-                    <span v-else>
+                    <span>
                       <b>Dependency View Mode (Read-only)</b>. You can monitor progress and specs
                       for your dependent work without modifying effort.
                     </span>
@@ -1520,6 +1586,12 @@
                         >
                           {{ formatNumber(task.expected_effort) }}
                           <span class="text-caption text-weight-bold">hrs</span>
+                        </div>
+                        <div
+                          v-if="task.supervisor_id"
+                          class="text-caption text-weight-medium text-amber-9 q-mt-xs"
+                        >
+                          + {{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h supervisor (Total: {{ (Number(task.expected_effort || 0) * 1.2).toFixed(1) }}h)
                         </div>
                       </div>
                     </q-card-section>
@@ -1962,11 +2034,11 @@
                     No daily updates recorded for this task yet.
                   </div>
                   <q-btn
-                    v-if="isAssignedToMe(task)"
+                    v-if="isAssignedToMe(task) || isSupervisedByMe(task)"
                     outline
                     no-caps
                     color="primary"
-                    label="Log First Update"
+                    :label="isSupervisedByMe(task) && !isAssignedToMe(task) ? 'Log Review Update' : 'Log First Update'"
                     icon="edit_note"
                     class="q-mt-md"
                     @click="updateDialog = true"
@@ -2022,6 +2094,19 @@
                           v-if="Number(log.user_id) === getCurrentUserId()"
                           color="primary"
                           label="You"
+                          class="text-weight-bold q-ml-xs"
+                        />
+
+                        <!-- Supervisor Review Chip -->
+                        <q-chip
+                          v-if="log.is_supervisor_log || (task.supervisor_id && Number(log.user_id) === Number(task.supervisor_id))"
+                          dense
+                          square
+                          size="xs"
+                          color="amber-9"
+                          text-color="white"
+                          icon="verified_user"
+                          label="Supervisor Review"
                           class="text-weight-bold q-ml-xs"
                         />
 
@@ -2663,6 +2748,14 @@ function isAssignedToMe(item: Task | ResourceTask | null | undefined): boolean {
   return false;
 }
 
+function isSupervisedByMe(item: Task | ResourceTask | null | undefined): boolean {
+  if (!item) return false;
+  const currentUserId = getCurrentUserId();
+  if (!currentUserId) return false;
+  const taskObj = item as Task;
+  return Boolean(taskObj.supervisor_id && Number(taskObj.supervisor_id) === currentUserId);
+}
+
 function priorityBgColor(priority: string | null | undefined): string {
   const p = (priority || '').toUpperCase();
   if ($q.dark.isActive) {
@@ -3236,9 +3329,10 @@ watch(
       const res = await getResourcesApi({ project_id: newProjectId });
       const seen = new Set<number>();
       const opts: Array<{ label: string; value: number }> = [];
+      const myId = currentUserId.value;
       for (const r of res) {
         const id = Number(r.user_id);
-        if (id && !isNaN(id) && !seen.has(id)) {
+        if (id && !isNaN(id) && id !== myId && !seen.has(id)) {
           seen.add(id);
           opts.push({
             label: `${r.name || r.email || `User #${r.user_id}`} (${r.role || 'RESOURCE'})`,

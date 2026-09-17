@@ -701,6 +701,29 @@
                 />
               </div>
             </div>
+
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-select
+                  v-model="assignForm.supervisor_id"
+                  outlined
+                  dense
+                  clearable
+                  emit-value
+                  map-options
+                  label="Supervisor / Reviewer (Optional)"
+                  :options="assignSupervisorOptions"
+                  :disable="!assignForm.project_id"
+                >
+                  <template #prepend>
+                    <q-icon name="supervisor_account" size="18px" />
+                  </template>
+                  <template #hint>
+                    Supervisor receives +20% effort overhead and can log work (cannot be the assigned resource)
+                  </template>
+                </q-select>
+              </div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -1090,12 +1113,30 @@ const assignForm = reactive<{
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   expected_effort: number;
+  supervisor_id: number | null;
 }>({
   project_id: null,
   title: '',
   description: '',
   priority: 'MEDIUM',
   expected_effort: 8,
+  supervisor_id: null,
+});
+
+const assignSupervisorOptions = computed(() => {
+  if (!assignForm.project_id) return [];
+  const targetPid = assignForm.project_id;
+  return resourceList.value
+    .filter((r) => {
+      const isNotAssignee = r.user_id !== selectedResourceId.value;
+      const projs = resourceProjectsMap.value[r.user_id] || [];
+      const isMember = projs.length === 0 || projs.some((p) => p.project_id === targetPid);
+      return isNotAssignee && isMember;
+    })
+    .map((r) => ({
+      label: `${r.name} (${r.email || 'Resource'})`,
+      value: r.user_id,
+    }));
 });
 
 const statusOptions = [
@@ -1470,6 +1511,7 @@ function openAssignModal(resourceId: number) {
   assignForm.description = '';
   assignForm.priority = 'MEDIUM';
   assignForm.expected_effort = 8;
+  assignForm.supervisor_id = null;
   showAssignDialog.value = true;
 }
 
@@ -1514,6 +1556,7 @@ async function handleAssignTask() {
       status: 'SCHEDULED',
       expected_effort: Number(assignForm.expected_effort) || 8,
       assigned_resource_ids: [selectedResourceId.value],
+      supervisor_id: assignForm.supervisor_id || undefined,
     });
 
     $q.notify({

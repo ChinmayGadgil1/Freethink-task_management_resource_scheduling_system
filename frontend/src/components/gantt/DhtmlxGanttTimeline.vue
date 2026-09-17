@@ -286,6 +286,7 @@ import type {
   DailyAvailabilityDTO,
 } from '@/services/api';
 import { useThemeStore } from '@/stores/theme';
+import { useAuthStore } from '@/stores/auth';
 import { isVerificationTask } from '@/utils/taskHelpers';
 
 export interface GanttTimelineProps {
@@ -325,6 +326,12 @@ export interface DhtmlxGanttTaskItem {
   project_name?: string;
   project_id?: number;
   assignee_name?: string;
+  supervisor_id?: number | null;
+  supervisor_name?: string | null;
+  is_supervised?: boolean;
+  expected_effort?: number;
+  actual_effort?: number;
+  supervisor_effort?: number;
   task_count?: number;
   segments?: TaskWorkSegment[];
   total_hours?: number;
@@ -359,6 +366,7 @@ const emit = defineEmits<{
 }>();
 
 const themeStore = useThemeStore();
+const authStore = useAuthStore();
 const isDark = computed(() => themeStore.isDark);
 
 const holidayDateSet = computed(() => {
@@ -721,10 +729,30 @@ function applyColumnsConfig() {
           `</div>`
         );
       }
+      if (task.is_supervised) {
+        const supH = Number(task.supervisor_effort || 0);
+        return (
+          `<div class="gantt-col-task is-supervised-task" title="Supervised Deliverable (Review: ${supH}h / 20%)">` +
+          `<span class="task-icon-supervisor">🛡️</span>` +
+          `<span class="task-title ellipsis text-weight-bold" style="color: #b45309;">${text}</span>` +
+          `<span class="task-count-pill" style="background: rgba(245, 158, 11, 0.2); color: #b45309; margin-left: 4px;">🛡️ ${supH}h (20%)</span>` +
+          `</div>`
+        );
+      }
+      const baseH = Number(task.expected_effort || task.total_hours || 0);
+      let effortTag = '';
+      if (task.supervisor_name || task.supervisor_id) {
+        const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
+        const totalReq = Number((baseH + supH).toFixed(1));
+        effortTag = `<span class="task-count-pill" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; margin-left: 4px;" title="Required Effort: ${totalReq}h (${baseH}h resource + ${supH}h supervisor)">${totalReq}h (${baseH}+${supH})</span>`;
+      } else if (baseH > 0) {
+        effortTag = `<span class="task-count-pill" style="background: #f1f5f9; color: #475569; margin-left: 4px;" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+      }
       return (
         `<div class="gantt-col-task" title="${text}">` +
         `<span class="task-icon-dot"></span>` +
         `<span class="task-title ellipsis">${text}</span>` +
+        effortTag +
         `</div>`
       );
     },
@@ -735,9 +763,9 @@ function applyColumnsConfig() {
       name: 'status',
       label: 'STATUS',
       align: 'center',
-      width: 95,
+      width: 90,
       min_width: 75,
-      max_width: 110,
+      max_width: 105,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
         if (task.is_external) return '<span class="text-grey-6 text-caption">🔒 Busy</span>';
@@ -768,9 +796,9 @@ function applyColumnsConfig() {
       name: 'priority',
       label: 'PRIORITY',
       align: 'center',
-      width: 80,
+      width: 75,
       min_width: 65,
-      max_width: 90,
+      max_width: 85,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
         if (task.is_external) return '<span class="text-grey-5">—</span>';
@@ -778,6 +806,32 @@ function applyColumnsConfig() {
         const p = task.priority.toLowerCase();
         const pLabel = task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase();
         return `<span class="priority-badge p-${p}" title="Priority: ${pLabel}">${pLabel}</span>`;
+      },
+    },
+    {
+      name: 'effort',
+      label: 'EFFORT',
+      align: 'center',
+      width: 110,
+      min_width: 90,
+      max_width: 140,
+      resize: true,
+      template: (task: DhtmlxGanttTaskItem) => {
+        if (task.is_external) return '<span class="text-grey-5">—</span>';
+        if (task.type === 'project') {
+          return '<span class="text-muted">—</span>';
+        }
+        if (task.is_supervised) {
+          const supH = Number(task.supervisor_effort || 0);
+          return `<span class="effort-badge sup-effort-badge" title="Supervisor Oversight: ${supH}h">🛡️ ${supH}h (20%)</span>`;
+        }
+        const baseH = Number(task.expected_effort || task.total_hours || 0);
+        if (task.supervisor_name || task.supervisor_id) {
+          const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
+          const totalReq = Number((baseH + supH).toFixed(1));
+          return `<span class="effort-badge combined-effort-badge" title="Total Required: ${totalReq}h (${baseH}h assignee + ${supH}h supervisor)"><b>${totalReq}h</b> <span class="sup-split">(${baseH}+${supH})</span></span>`;
+        }
+        return `<span class="effort-badge" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
       },
     },
     {
@@ -800,7 +854,7 @@ function applyColumnsConfig() {
   if (showExtraColumns.value) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (gantt.config as any).columns = [baseColumn, ...extraColumns];
-    gantt.config.grid_width = 430;
+    gantt.config.grid_width = 540;
   } else {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (gantt.config as any).columns = [baseColumn];
@@ -889,6 +943,9 @@ function configureGanttEngine() {
       return 'dhtmlx-bar-task dhtmlx-bar-external';
     }
     const classes = ['dhtmlx-bar-task'];
+    if (task.is_supervised) {
+      classes.push('dhtmlx-bar-supervised');
+    }
     if (task.priority) {
       classes.push(`bar-p-${task.priority.toLowerCase()}`);
     }
@@ -924,7 +981,31 @@ function configureGanttEngine() {
       );
     }
 
+    if (task.is_supervised) {
+      const supEffort = task.supervisor_effort || 0;
+      return (
+        `<div class="gantt-segments-container">` +
+        `<div class="gantt-segment-pill bar-supervised-pill" style="left: 0; width: 100%;">` +
+        `<div class="segment-progress-fill supervisor-progress-fill" style="width: ${pct}%;"></div>` +
+        `<span class="segment-pct-badge supervisor-pct-badge">${pct}%</span>` +
+        `<span class="segment-title ellipsis">🛡️ Review: ${text} (${supEffort}h / 20%)</span>` +
+        `</div>` +
+        `</div>`
+      );
+    }
+
     const segments = task.segments || [];
+    const baseEffort = Number(task.expected_effort || task.total_hours || 0);
+    const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
+    const combinedEffort = Number((baseEffort + supEffort).toFixed(1));
+    const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
+    const supervisorLabel = task.supervisor_name || (task.supervisor_id ? `Supervisor #${task.supervisor_id}` : 'Supervisor');
+    const effortText = hasSupervisor
+      ? ` · ${combinedEffort}h [${baseEffort}h + ${supEffort}h 🛡️ ${escapeHtml(supervisorLabel)}]`
+      : baseEffort > 0
+        ? ` · ${baseEffort}h`
+        : '';
+
     if (segments.length === 0) {
       const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
       const sClass = `bar-s-${(task.status || 'scheduled').toLowerCase().replace('_', '-')}`;
@@ -934,7 +1015,7 @@ function configureGanttEngine() {
         `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: 0; width: 100%;">` +
         `<div class="segment-progress-fill" style="width: ${pct}%;"></div>` +
         `<span class="segment-pct-badge">${pct}%</span>` +
-        `<span class="segment-title ellipsis">${text}${assignee}</span>` +
+        `<span class="segment-title ellipsis">${text}${assignee}${effortText}</span>` +
         `</div>` +
         `</div>`
       );
@@ -966,86 +1047,42 @@ function configureGanttEngine() {
             segStartH = pStart.getHours();
           }
         }
-        actualSegStart = new Date(
-          seg.startDate.getFullYear(),
-          seg.startDate.getMonth(),
-          seg.startDate.getDate(),
-          segStartH,
-          0,
-          0,
-        );
-
-        const lastDayOfSeg = addDays(seg.endDate, -1);
         let segEndH = 18;
         if (idx === segments.length - 1) {
           const pEnd = parseIsoToDate(task.actual_end || task.planned_end);
           if (
             pEnd &&
-            formatDateIso(pEnd) === seg.endStr &&
-            pEnd.getHours() > 10 &&
+            (formatDateIso(pEnd) === seg.endStr ||
+              formatDateIso(pEnd) === formatDateIso(seg.endDate)) &&
+            pEnd.getHours() >= 10 &&
             pEnd.getHours() <= 18
           ) {
             segEndH = pEnd.getHours();
           }
         }
-        actualSegEnd = new Date(
-          lastDayOfSeg.getFullYear(),
-          lastDayOfSeg.getMonth(),
-          lastDayOfSeg.getDate(),
-          segEndH,
-          0,
-          0,
-        );
+        actualSegStart = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), segStartH, 0, 0);
+        actualSegEnd = new Date(addDays(seg.endDate, -1).getFullYear(), addDays(seg.endDate, -1).getMonth(), addDays(seg.endDate, -1).getDate(), segEndH, 0, 0);
       } else {
-        actualSegStart = new Date(
-          seg.startDate.getFullYear(),
-          seg.startDate.getMonth(),
-          seg.startDate.getDate(),
-          0,
-          0,
-          0,
-        );
-        actualSegEnd = new Date(
-          seg.endDate.getFullYear(),
-          seg.endDate.getMonth(),
-          seg.endDate.getDate(),
-          0,
-          0,
-          0,
-        );
+        actualSegStart = seg.startDate;
+        actualSegEnd = seg.endDate;
       }
 
       const segStartX = gantt.posFromDate(actualSegStart);
       const segEndX = gantt.posFromDate(actualSegEnd);
+      const rawSegWidth = Math.max(12, segEndX - segStartX);
       const segLeft = Math.max(0, segStartX - taskStartX);
-      let segWidth = Math.max(4, segEndX - segStartX);
+      const segWidth = Math.min(rawSegWidth, Math.max(12, taskTotalWidth - segLeft));
 
-      if (segLeft + segWidth > taskTotalWidth) {
-        segWidth = Math.max(4, taskTotalWidth - segLeft);
-      }
-
-      const hoursBadge =
-        seg.allocatedHours > 0
-          ? `<span class="segment-hours-badge">${seg.allocatedHours}h</span>`
-          : '';
-
-      let innerContent: string;
-      if (segWidth >= 120) {
-        const assignee = task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : '';
-        innerContent =
-          `<span class="segment-pct-badge">${pct}%</span>` +
-          `<span class="segment-title ellipsis">${text}${assignee}</span>` +
-          hoursBadge;
-      } else if (segWidth >= 60) {
-        innerContent = `<span class="segment-pct-badge">${pct}%</span>` + hoursBadge;
-      } else {
-        innerContent = hoursBadge || `<span class="segment-pct-badge">${pct}%</span>`;
-      }
+      const isMulti = segments.length > 1;
+      const segLabel = isMulti
+        ? `${text} [Part ${idx + 1}/${segments.length}: ${seg.allocatedHours}h / ${combinedEffort}h req]`
+        : `${text}${task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : ''}${effortText}`;
 
       return (
-        `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: ${segLeft}px; width: ${segWidth}px;">` +
+        `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: ${segLeft}px; width: ${segWidth}px;" title="Work Segment ${idx + 1}/${segments.length}: ${seg.allocatedHours}h (${formatDate(seg.startDate)} – ${formatDate(addDays(seg.endDate, -1))})">` +
         `<div class="segment-progress-fill" style="width: ${pct}%;"></div>` +
-        innerContent +
+        `<span class="segment-pct-badge">${pct}%</span>` +
+        `<span class="segment-title ellipsis">${segLabel}</span>` +
         `</div>`
       );
     });
@@ -1065,6 +1102,9 @@ function configureGanttEngine() {
     }
     if (task.is_external) {
       return 'dhtmlx-grid-row-task is-external-row';
+    }
+    if (task.is_supervised) {
+      return 'dhtmlx-grid-row-task is-supervised-row';
     }
     return 'dhtmlx-grid-row-task';
   };
@@ -1110,6 +1150,13 @@ function configureGanttEngine() {
     }
 
     const assignee = escapeHtml(task.assignee_name || 'Unassigned');
+    const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
+    const supName = task.supervisor_name
+      ? escapeHtml(task.supervisor_name)
+      : (task.supervisor_id ? `Supervisor #${task.supervisor_id}` : null);
+    const baseEffort = Number(task.expected_effort || task.total_hours || 0);
+    const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
+    const combinedEffort = Number((baseEffort + supEffort).toFixed(1));
     const statusText = task.status ? task.status.replace(/_/g, ' ') : '—';
     const priorityText = task.priority || '—';
     const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
@@ -1127,12 +1174,13 @@ function configureGanttEngine() {
 
     return (
       `<div class="gantt-tooltip-card">` +
-      `<div class="tooltip-header"><div class="tooltip-title">${text}</div><div class="tooltip-project-tag">${projName}</div></div>` +
+      `<div class="tooltip-header"><div class="tooltip-title">${task.is_supervised ? '🛡️ ' : ''}${text}</div><div class="tooltip-project-tag">${projName}</div></div>` +
       `<div class="tooltip-body">` +
       `<div class="tooltip-row"><span class="tooltip-k">Status:</span><span class="tooltip-v">${statusText}</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Priority:</span><span class="tooltip-v">${priorityText}</span></div>` +
-      `<div class="tooltip-row"><span class="tooltip-k">Assignee:</span><span class="tooltip-v">${assignee}</span></div>` +
-      `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">Assignee:</span><span class="tooltip-v">${assignee} (${baseEffort}h)</span></div>` +
+      (hasSupervisor && supName ? `<div class="tooltip-row"><span class="tooltip-k">Supervisor (20%):</span><span class="tooltip-v text-amber-9 font-weight-bold">🛡️ ${supName} (${supEffort}h)</span></div>` : '') +
+      (hasSupervisor ? `<div class="tooltip-row"><span class="tooltip-k">Combined Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${combinedEffort} hrs</span></div>` : `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>`) +
       `<div class="tooltip-row"><span class="tooltip-k">Overall Span:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
       segmentsHtml +
       `<div class="tooltip-row"><span class="tooltip-k">Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
@@ -1578,6 +1626,52 @@ function buildGanttDataset() {
     return getMacroDate(d, false);
   };
 
+  function parseResourceIds(val: unknown): number[] {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.map((x) => Number(x)).filter((n) => !isNaN(n) && n > 0);
+    }
+    if (typeof val === 'number') {
+      return val > 0 ? [val] : [];
+    }
+    if (typeof val === 'string') {
+      return val
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => !isNaN(n) && n > 0);
+    }
+    return [];
+  }
+
+  function resolveAssigneeName(t: Task): string | undefined {
+    const rawNames = (t as unknown as Record<string, unknown>).assigned_resource_names;
+    if (typeof rawNames === 'string' && rawNames.trim().length > 0) {
+      return rawNames.trim();
+    }
+    if (Array.isArray(t.assigned_resource_names) && t.assigned_resource_names.length > 0) {
+      return t.assigned_resource_names.join(', ');
+    }
+    if (Array.isArray(t.assigned_resources) && t.assigned_resources.length > 0) {
+      return t.assigned_resources.map((r) => r.name).filter(Boolean).join(', ');
+    }
+    const ids = parseResourceIds(t.assigned_resource_ids);
+    if (ids.length > 0) {
+      const names = ids.map((id) => resourceMap.value.get(id)?.name || `User #${id}`);
+      return names.join(', ');
+    }
+    return undefined;
+  }
+
+  function resolveSupervisorName(t: Task): string | null {
+    if (t.supervisor_name) return t.supervisor_name;
+    if (t.supervisor_id) {
+      const r = resourceMap.value.get(Number(t.supervisor_id));
+      if (r?.name) return r.name;
+      return `Resource #${t.supervisor_id}`;
+    }
+    return null;
+  }
+
   if (isHierarchical.value) {
     // Group tasks by project
     const tasksByProjectId = new Map<number, Task[]>();
@@ -1626,9 +1720,6 @@ function buildGanttDataset() {
         totalWeightedProgress += prog * dur;
         totalDuration += dur;
 
-        const firstAssigneeId = t.assigned_resource_ids?.[0];
-        const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
-
         let effectiveStart = tStart;
         let effectiveEnd = tEnd;
         if (segments.length > 0) {
@@ -1652,6 +1743,15 @@ function buildGanttDataset() {
         const resolvedChildStart = resolveStartDate(effectiveStart) ?? effectiveStart;
         const resolvedChildEnd = resolveEndDate(effectiveEnd) ?? effectiveEnd;
 
+        const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
+        const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
+        const supName = resolveSupervisorName(t);
+        const assignedIds = parseResourceIds(t.assigned_resource_ids);
+        const isSupervisedByMe = Boolean(myId && supId === myId && !assignedIds.includes(myId));
+        const resolvedAssigneeName = resolveAssigneeName(t);
+        const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
+        const supervisorEffort = Number((baseExpectedEffort * 0.20).toFixed(1));
+
         childTaskDataItems.push({
           id: t.task_id,
           text: t.title,
@@ -1662,7 +1762,13 @@ function buildGanttDataset() {
           priority: t.priority,
           status: t.status,
           project_name: p.name,
-          assignee_name: resourceObj?.name,
+          assignee_name: resolvedAssigneeName,
+          supervisor_id: supId,
+          supervisor_name: supName,
+          is_supervised: isSupervisedByMe,
+          expected_effort: baseExpectedEffort,
+          actual_effort: Number(t.actual_effort || 0),
+          supervisor_effort: supervisorEffort,
           type: 'task',
           segments,
           total_hours: totalHours,
@@ -1722,8 +1828,6 @@ function buildGanttDataset() {
       } = getTaskWorkSegments(t);
 
       const p = projectMap.value.get(t.project_id);
-      const firstAssigneeId = t.assigned_resource_ids?.[0];
-      const resourceObj = firstAssigneeId ? resourceMap.value.get(firstAssigneeId) : undefined;
 
       let effectiveStart = tStart;
       let effectiveEnd = tEnd;
@@ -1748,6 +1852,15 @@ function buildGanttDataset() {
       const resolvedFlatStart = resolveStartDate(effectiveStart) ?? effectiveStart;
       const resolvedFlatEnd = resolveEndDate(effectiveEnd) ?? effectiveEnd;
 
+      const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
+      const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
+      const supName = resolveSupervisorName(t);
+      const assignedIds = parseResourceIds(t.assigned_resource_ids);
+      const isSupervisedByMe = Boolean(myId && supId === myId && !assignedIds.includes(myId));
+      const resolvedAssigneeName = resolveAssigneeName(t);
+      const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
+      const supervisorEffort = Number((baseExpectedEffort * 0.20).toFixed(1));
+
       data.push({
         id: t.task_id,
         text: t.title,
@@ -1757,7 +1870,13 @@ function buildGanttDataset() {
         priority: t.priority,
         status: t.status,
         project_name: p?.name || '—',
-        assignee_name: resourceObj?.name,
+        assignee_name: resolvedAssigneeName,
+        supervisor_id: supId,
+        supervisor_name: supName,
+        is_supervised: isSupervisedByMe,
+        expected_effort: baseExpectedEffort,
+        actual_effort: Number(t.actual_effort || 0),
+        supervisor_effort: supervisorEffort,
         type: 'task',
         segments,
         total_hours: totalHours,
@@ -2593,6 +2712,42 @@ defineExpose({
     }
   }
 
+  .effort-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: #f5f3ff;
+    color: #6d28d9;
+    white-space: nowrap;
+    text-align: center;
+
+    &.combined-effort-badge {
+      background: #faf5ff;
+      color: #7c3aed;
+      border: 1px solid #e9d5ff;
+
+      .sup-split {
+        font-size: 9.5px;
+        color: #b45309;
+        font-weight: 700;
+      }
+    }
+
+    &.sup-effort-badge {
+      background: #fef3c7;
+      color: #b45309;
+      font-weight: 700;
+    }
+
+    &.project-effort-badge {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+    }
+  }
+
   /* Completely disable/hide drag and resize handles on task bars */
   .gantt_task_drag,
   .gantt_task_progress_drag,
@@ -3242,6 +3397,31 @@ body.body--dark {
       }
     }
 
+    .effort-badge {
+      background: rgba(124, 58, 237, 0.18);
+      color: #c084fc;
+
+      &.combined-effort-badge {
+        background: rgba(124, 58, 237, 0.22);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, 0.35);
+
+        .sup-split {
+          color: #fbbf24;
+        }
+      }
+
+      &.sup-effort-badge {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+      }
+
+      &.project-effort-badge {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+      }
+    }
+
     /* Today marker boundary/accent */
     .gantt_link_point {
       border-color: #181d28 !important;
@@ -3358,5 +3538,81 @@ body.body--dark {
 .task-icon-lock {
   font-size: 11px;
   margin-right: 4px;
+}
+
+/* Supervised / Review Deliverables (Option A) */
+.dhtmlx-bar-supervised {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(245, 158, 11, 0.14),
+    rgba(245, 158, 11, 0.14) 10px,
+    rgba(217, 119, 6, 0.24) 10px,
+    rgba(217, 119, 6, 0.24) 20px
+  ) !important;
+  border: 1.5px dashed #f59e0b !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.18) !important;
+}
+
+.bar-supervised-pill {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.95), rgba(253, 230, 138, 0.95)) !important;
+  border: 1.5px dashed #d97706 !important;
+  color: #92400e !important;
+  font-weight: 600;
+
+  .supervisor-progress-fill {
+    background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+  }
+
+  .supervisor-pct-badge {
+    background: #d97706 !important;
+    color: #ffffff !important;
+    font-weight: 700;
+  }
+}
+
+.is-supervised-row {
+  background: rgba(245, 158, 11, 0.06) !important;
+}
+
+.is-supervised-task {
+  font-weight: 600;
+}
+
+.task-icon-supervisor {
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+body.body--dark {
+  .dhtmlx-bar-supervised {
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(245, 158, 11, 0.18),
+      rgba(245, 158, 11, 0.18) 10px,
+      rgba(217, 119, 6, 0.32) 10px,
+      rgba(217, 119, 6, 0.32) 20px
+    ) !important;
+    border: 1.5px dashed #fbbf24 !important;
+  }
+
+  .bar-supervised-pill {
+    background: linear-gradient(135deg, rgba(120, 53, 15, 0.8), rgba(180, 83, 9, 0.8)) !important;
+    border: 1.5px dashed #f59e0b !important;
+    color: #fde68a !important;
+
+    .supervisor-progress-fill {
+      background: linear-gradient(90deg, #d97706, #f59e0b) !important;
+    }
+
+    .supervisor-pct-badge {
+      background: #f59e0b !important;
+      color: #1e1b2e !important;
+      font-weight: 700;
+    }
+  }
+
+  .is-supervised-row {
+    background: rgba(245, 158, 11, 0.12) !important;
+  }
 }
 </style>

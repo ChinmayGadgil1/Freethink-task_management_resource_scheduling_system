@@ -285,6 +285,15 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
             return res.status(403).json({ message: "Unauthorized role" });
         }
 
+        if (parsed.supervisor_id !== undefined && parsed.supervisor_id !== null) {
+            const assignees = Array.isArray(task.assigned_resources)
+                ? task.assigned_resources.map((r: any) => Number(r.user_id))
+                : (task.assigned_resource_ids ? String(task.assigned_resource_ids).split(",").map(Number) : []);
+            if (assignees.includes(Number(parsed.supervisor_id))) {
+                return res.status(400).json({ message: "CANNOT_SUPERVISE_OWN_TASK: An assigned resource cannot be designated as supervisor for the same task." });
+            }
+        }
+
         if (parsed.deadline !== undefined && parsed.deadline !== null) {
             const deadlineError = validateTaskDeadlineAgainstProject(parsed.deadline, project);
             if (deadlineError) {

@@ -168,6 +168,7 @@ export interface WorkLog {
   created_at: string;
   author_name?: string; // Author name of the resource who created the work log
   author_email?: string; // Author email of the resource who created the work log
+  is_supervisor_log?: boolean; // Whether this log was created by the task supervisor
 }
 
 export interface CreateWorkLogPayload {

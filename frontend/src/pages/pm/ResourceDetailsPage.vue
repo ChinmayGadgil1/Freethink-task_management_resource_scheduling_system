@@ -38,7 +38,7 @@
             label="Assign Task"
             no-caps
             unelevated
-            @click="showAssignDialog = true"
+            @click="openAssignTaskDialog"
           />
           <q-btn outline color="grey-8" icon="refresh" label="Refresh" no-caps @click="loadData" />
         </div>
@@ -652,6 +652,29 @@
                   />
                 </div>
               </div>
+
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-select
+                    v-model="assignForm.supervisor_id"
+                    outlined
+                    dense
+                    clearable
+                    emit-value
+                    map-options
+                    label="Supervisor / Reviewer (Optional)"
+                    :options="assignSupervisorOptions"
+                    :disable="!assignForm.project_id"
+                  >
+                    <template #prepend>
+                      <q-icon name="supervisor_account" size="18px" />
+                    </template>
+                    <template #hint>
+                      Supervisor receives +20% effort overhead and can log work (cannot be the assigned resource)
+                    </template>
+                  </q-select>
+                </div>
+              </div>
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
@@ -1055,6 +1078,29 @@
                   />
                 </div>
               </div>
+
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-select
+                    v-model="editForm.supervisor_id"
+                    outlined
+                    dense
+                    clearable
+                    emit-value
+                    map-options
+                    label="Supervisor / Reviewer (Optional)"
+                    :options="editSupervisorOptions"
+                    :dark="$q.dark.isActive"
+                  >
+                    <template #prepend>
+                      <q-icon name="supervisor_account" size="18px" />
+                    </template>
+                    <template #hint>
+                      Supervisor receives +20% effort overhead and can log work (cannot be an assigned resource)
+                    </template>
+                  </q-select>
+                </div>
+              </div>
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
@@ -1089,6 +1135,7 @@ import {
   createTaskApi,
   updateTaskApi,
   getProjectsApi,
+  getResourcesApi,
   getResourceByIdApi,
   getResourceProjectsApi,
   getResourceWorkloadApi,
@@ -1263,6 +1310,7 @@ const resourceGanttTasks = computed(() =>
 );
 const holidaysList = ref<HolidayItem[]>([]);
 const resourceAvailability = ref<DailyAvailabilityDTO[]>([]);
+const resourceList = ref<ResourceUser[]>([]);
 
 const showTaskDetailsDialog = ref(false);
 const selectedTaskDetails = ref<Task | null>(null);
@@ -1277,6 +1325,7 @@ const editForm = reactive<{
   progress: number;
   expected_effort: number;
   deadline: string;
+  supervisor_id: number | null;
 }>({
   title: '',
   status: 'UNASSIGNED',
@@ -1284,6 +1333,7 @@ const editForm = reactive<{
   progress: 0,
   expected_effort: 8,
   deadline: '',
+  supervisor_id: null,
 });
 
 const editingTaskTitle = computed(() => {
@@ -1299,6 +1349,19 @@ const editingTaskProject = computed(() => {
   return allProjects.value.find((p) => Number(p.project_id) === Number(t.project_id)) || null;
 });
 
+const editSupervisorOptions = computed(() => {
+  if (!editingTaskId.value) return [];
+  const editingTask = allTasks.value.find((t) => t.task_id === editingTaskId.value);
+  const assignedSet = new Set((editingTask?.assigned_resource_ids || []).map(Number));
+
+  return resourceList.value
+    .filter((r) => !assignedSet.has(r.user_id))
+    .map((r) => ({
+      label: `${r.name} (${r.email || 'Resource'})`,
+      value: r.user_id,
+    }));
+});
+
 function openEditModal(task: Task) {
   editingTaskId.value = task.task_id;
   editForm.title = task.title;
@@ -1307,6 +1370,7 @@ function openEditModal(task: Task) {
   editForm.progress = Number(task.progress) || 0;
   editForm.expected_effort = Number(task.expected_effort) || 8;
   editForm.deadline = task.deadline?.split('T')[0] ?? '';
+  editForm.supervisor_id = task.supervisor_id || null;
   showEditDialog.value = true;
 }
 
@@ -1356,6 +1420,7 @@ async function handleUpdateTask() {
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
       deadline: editForm.deadline || null,
+      supervisor_id: editForm.supervisor_id || null,
     });
 
     $q.notify({
@@ -1384,6 +1449,9 @@ const resourceNamesMap = computed(() => {
   const map: Record<number, string> = {};
   if (resourceInfo.value) {
     map[resourceInfo.value.user_id] = resourceInfo.value.name;
+  }
+  for (const r of resourceList.value) {
+    map[r.user_id] = r.name;
   }
   return map;
 });
@@ -1417,13 +1485,35 @@ const assignForm = reactive<{
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   expected_effort: number;
+  supervisor_id: number | null;
 }>({
   project_id: null,
   title: '',
   description: '',
   priority: 'MEDIUM',
   expected_effort: 8,
+  supervisor_id: null,
 });
+
+const assignSupervisorOptions = computed(() => {
+  if (!assignForm.project_id) return [];
+  return resourceList.value
+    .filter((r) => r.user_id !== resourceId.value)
+    .map((r) => ({
+      label: `${r.name} (${r.email || 'Resource'})`,
+      value: r.user_id,
+    }));
+});
+
+function openAssignTaskDialog() {
+  assignForm.project_id = allProjects.value[0]?.project_id ?? null;
+  assignForm.title = '';
+  assignForm.description = '';
+  assignForm.priority = 'MEDIUM';
+  assignForm.expected_effort = 8;
+  assignForm.supervisor_id = null;
+  showAssignDialog.value = true;
+}
 
 const leavesList = ref<LeaveItem[]>([]);
 const showLeaveDialog = ref(false);
@@ -1739,6 +1829,7 @@ async function loadData() {
       schedData,
       holidays,
       avail,
+      allRes,
     ] = await Promise.all([
       getTasksApi(),
       getProjectsApi(),
@@ -1750,12 +1841,14 @@ async function loadData() {
       getResourceScheduleDataApi(resourceId.value).catch(() => null),
       getHolidaysApi().catch(() => []),
       getResourceAvailabilityApi(resourceId.value, startStr, endStr).catch(() => null),
+      getResourcesApi().catch(() => []),
     ]);
     allTasks.value = tasks;
     allProjects.value = projects;
     directMemberProjects.value = memberProjs;
     leavesList.value = leaves;
     holidaysList.value = holidays || [];
+    resourceList.value = allRes || [];
     if (avail && avail.days) {
       resourceAvailability.value = avail.days;
     }
@@ -1873,6 +1966,7 @@ async function handleAssignTask() {
       status: 'SCHEDULED',
       expected_effort: Number(assignForm.expected_effort) || 8,
       assigned_resource_ids: [resourceId.value],
+      supervisor_id: assignForm.supervisor_id || undefined,
     });
 
     $q.notify({

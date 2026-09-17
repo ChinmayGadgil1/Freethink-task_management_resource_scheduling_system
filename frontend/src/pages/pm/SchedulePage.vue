@@ -595,7 +595,6 @@
         </template>
       </q-table>
     </q-card>
-
     <!-- 8. TASK DETAILS POPUP DIALOG -->
     <TaskDetailsDialog
       v-model="showTaskDetailsDialog"
@@ -603,11 +602,86 @@
       :project-name="selectedTaskDetails ? getProjectName(selectedTaskDetails.project_id) : ''"
       :resource-names-map="resourceNamesMap"
       :allow-unassign="false"
-      :allow-assign-member="false"
+      :allow-assign-member="true"
       :allow-add-dependency="false"
       :show-dependencies="true"
       @edit="openEditFromDetails"
+      @assign-member="openAssignTaskMemberDialog"
     />
+
+    <!-- ASSIGN MEMBER DIALOG -->
+    <q-dialog v-model="showAssignTaskMemberDialog">
+      <q-card :dark="$q.dark.isActive" style="min-width: 420px" class="rounded-borders">
+        <q-card-section class="row items-center justify-between">
+          <div class="text-subtitle1 text-weight-bold">Assign Member / Supervisor to Task</div>
+          <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+        </q-card-section>
+
+        <q-form @submit.prevent="handleAssignTaskMember">
+          <q-card-section class="column q-gutter-md">
+            <q-select
+              v-model="assignTaskMemberForm.task_id"
+              outlined
+              dense
+              :dark="$q.dark.isActive"
+              label="Select Task"
+              :options="taskSelectOptions"
+              emit-value
+              map-options
+              :rules="[(val) => !val || 'Task is required']"
+            />
+
+            <q-select
+              v-model="assignTaskMemberForm.user_ids"
+              outlined
+              dense
+              multiple
+              clearable
+              :dark="$q.dark.isActive"
+              :display-value="
+                assignTaskMemberForm.user_ids.length
+                  ? `${assignTaskMemberForm.user_ids.length} selected`
+                  : ''
+              "
+              label="Assign Member(s)"
+              :options="resourceMemberSelectOptions"
+              emit-value
+              map-options
+              hint="Assign resources who will execute this deliverable"
+            />
+
+            <q-select
+              v-model="assignTaskMemberForm.supervisor_id"
+              outlined
+              dense
+              clearable
+              :dark="$q.dark.isActive"
+              label="Supervisor / Reviewer (Optional)"
+              :options="assignSupervisorSelectOptions"
+              emit-value
+              map-options
+              hint="Designate an experienced resource to oversee deliverables (+20% effort overhead)"
+            >
+              <template #prepend>
+                <q-icon name="verified_user" color="amber-9" />
+              </template>
+            </q-select>
+          </q-card-section>
+
+          <q-card-actions align="right" class="q-pa-md">
+            <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+            <q-btn
+              type="submit"
+              unelevated
+              no-caps
+              color="primary"
+              label="Save Assignments"
+              :loading="submittingTaskMember"
+            />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
 
     <!-- 9. CREATE TASK MODAL -->
     <CreateTaskDialog
@@ -647,7 +721,7 @@
                   outlined
                   dense
                   label="Task Title"
-                  :rules="[(val) => !!val.trim() || 'Title is required']"
+                  :rules="[(val) => !val.trim() || 'Title is required']"
                 />
               </div>
             </div>
@@ -671,6 +745,27 @@
                   label="Priority"
                   :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
                 />
+              </div>
+            </div>
+
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-select
+                  v-model="editForm.supervisor_id"
+                  outlined
+                  dense
+                  clearable
+                  emit-value
+                  map-options
+                  label="Supervisor / Reviewer"
+                  :options="editSupervisorOptions"
+                  :dark="$q.dark.isActive"
+                  hint="Designate an experienced resource to supervise and review deliverables (20% effort overhead)"
+                >
+                  <template #prepend>
+                    <q-icon name="verified_user" color="amber-9" />
+                  </template>
+                </q-select>
               </div>
             </div>
 
@@ -772,6 +867,7 @@ import {
   createTaskApi,
   addTaskDependencyApi,
   updateTaskApi,
+  assignTaskResourceApi,
   getProjectScheduleDataApi,
   getResourceScheduleDataApi,
   getResourceAvailabilityApi,
@@ -1537,6 +1633,165 @@ const createForm = reactive<{
   predecessor_task_ids: [],
 });
 
+const taskSelectOptions = computed(() => {
+  return tasks.value.map((t) => ({
+    label: `${t.title} (#${t.task_id})`,
+    value: t.task_id,
+  }));
+});
+
+const showAssignTaskMemberDialog = ref(false);
+const submittingTaskMember = ref(false);
+
+const assignTaskMemberForm = reactive({
+  task_id: null as number | null,
+  user_ids: [] as number[],
+  supervisor_id: null as number | null,
+});
+
+const resourceMemberSelectOptions = computed(() => {
+  const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
+  const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
+  const chosenSupId = assignTaskMemberForm.supervisor_id;
+
+  const seen = new Set<number>();
+  const opts: Array<{
+    label: string;
+    value: number;
+    alreadyAssigned: boolean;
+    disable: boolean;
+  }> = [];
+
+  for (const r of resources.value) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      const isAssigned = alreadyAssignedIds.includes(id);
+      const isChosenSupervisor = chosenSupId ? Number(id) === Number(chosenSupId) : false;
+      opts.push({
+        label: r.name + (isChosenSupervisor ? ' (Designated Supervisor)' : ''),
+        value: id,
+        alreadyAssigned: isAssigned,
+        disable: isAssigned || isChosenSupervisor,
+      });
+    }
+  }
+
+  return opts;
+});
+
+const assignSupervisorSelectOptions = computed(() => {
+  const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
+  const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
+  const selectedUserIds = assignTaskMemberForm.user_ids || [];
+
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+
+  for (const r of resources.value) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      if (!alreadyAssignedIds.includes(id) && !selectedUserIds.includes(id)) {
+        opts.push({
+          label: r.name,
+          value: id,
+        });
+      }
+    }
+  }
+
+  return opts;
+});
+
+function openAssignTaskMemberDialog(taskId: number | null) {
+  const selectedId = taskId || (tasks.value[0]?.task_id ?? null);
+  assignTaskMemberForm.task_id = selectedId;
+  assignTaskMemberForm.user_ids = [];
+  const currentTask = tasks.value.find((t) => t.task_id === selectedId);
+  assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
+  showAssignTaskMemberDialog.value = true;
+}
+
+async function handleAssignTaskMember() {
+  if (!assignTaskMemberForm.task_id) return;
+  const currentTaskId = assignTaskMemberForm.task_id;
+  const currentTask = tasks.value.find((t) => t.task_id === currentTaskId);
+  const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
+  const toAssignIds = (assignTaskMemberForm.user_ids || []).filter(
+    (id) => !alreadyAssignedIds.includes(id),
+  );
+
+  const origSupId = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
+  const newSupId = assignTaskMemberForm.supervisor_id ? Number(assignTaskMemberForm.supervisor_id) : null;
+  const supervisorChanged = origSupId !== newSupId;
+
+  if (toAssignIds.length === 0 && !supervisorChanged) {
+    $q.notify({
+      type: 'info',
+      message: 'No changes made to task assignment or supervisor',
+    });
+    showAssignTaskMemberDialog.value = false;
+    return;
+  }
+
+  submittingTaskMember.value = true;
+  try {
+    for (const userId of toAssignIds) {
+      await assignTaskResourceApi(currentTaskId, userId);
+    }
+
+    if (supervisorChanged) {
+      await updateTaskApi(currentTaskId, {
+        supervisor_id: newSupId,
+      });
+    }
+
+    $q.notify({
+      type: 'positive',
+      message: 'Task assignments and supervisor saved successfully',
+    });
+    showAssignTaskMemberDialog.value = false;
+    assignTaskMemberForm.user_ids = [];
+    void loadData();
+    if (
+      selectedTaskDetails.value &&
+      selectedTaskDetails.value.task_id === currentTaskId
+    ) {
+      const updated = tasks.value.find((t) => t.task_id === currentTaskId);
+      selectedTaskDetails.value = updated || null;
+    }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to update task assignments';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+    });
+  } finally {
+    submittingTaskMember.value = false;
+  }
+}
+
+const editSupervisorOptions = computed(() => {
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+
+  const editingTask = tasks.value.find((task) => Number(task.task_id) === Number(editingTaskId.value));
+  const assignedIds = editingTask?.assigned_resource_ids || [];
+
+  for (const r of resources.value) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      if (!assignedIds.includes(id)) {
+        opts.push({ label: r.name, value: id });
+      }
+    }
+  }
+
+  return opts;
+});
+
 const editForm = reactive<{
   title: string;
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
@@ -1544,6 +1799,7 @@ const editForm = reactive<{
   progress: number;
   expected_effort: number;
   deadline: string;
+  supervisor_id: number | null;
 }>({
   title: '',
   status: 'UNASSIGNED',
@@ -1551,6 +1807,7 @@ const editForm = reactive<{
   progress: 0,
   expected_effort: 8,
   deadline: '',
+  supervisor_id: null,
 });
 
 async function openCreateTaskDialog() {
@@ -1637,6 +1894,7 @@ function openEditModal(task: Task) {
   editForm.progress = Number(task.progress) || 0;
   editForm.expected_effort = Number(task.expected_effort) || 8;
   editForm.deadline = task.deadline?.split('T')[0] ?? '';
+  editForm.supervisor_id = task.supervisor_id ? Number(task.supervisor_id) : null;
   showEditDialog.value = true;
 }
 
@@ -1670,6 +1928,7 @@ async function handleUpdateTask() {
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
       deadline: editForm.deadline || null,
+      supervisor_id: editForm.supervisor_id ?? null,
     });
 
     $q.notify({
@@ -1679,6 +1938,13 @@ async function handleUpdateTask() {
 
     showEditDialog.value = false;
     void loadData();
+    if (
+      selectedTaskDetails.value &&
+      selectedTaskDetails.value.task_id === editingTaskId.value
+    ) {
+      const updated = tasks.value.find((t) => t.task_id === editingTaskId.value);
+      selectedTaskDetails.value = updated || null;
+    }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to update task';
     $q.notify({

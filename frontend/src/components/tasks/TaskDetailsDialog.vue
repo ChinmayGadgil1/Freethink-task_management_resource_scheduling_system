@@ -176,6 +176,9 @@
           <div class="detail-item">
             <div class="detail-label">Expected Effort</div>
             <div class="detail-val">{{ formatNumber(task.expected_effort || 8) }} Hours</div>
+            <div v-if="task.supervisor_id || task.supervisor_name" class="text-caption text-amber-9 text-weight-medium q-mt-xs">
+              + {{ (Number(task.expected_effort || 8) * 0.2).toFixed(1) }}h supervisor (Total: {{ (Number(task.expected_effort || 8) * 1.2).toFixed(1) }}h)
+            </div>
           </div>
 
           <div class="detail-item">
@@ -252,8 +255,11 @@
               icon="verified_user"
               class="text-weight-bold"
             >
-              {{ task.supervisor_name || `Resource #${task.supervisor_id}` }}
+              {{ task.supervisor_name || (task.supervisor_id ? resolveResourceName(task.supervisor_id) : '') || `Resource #${task.supervisor_id}` }}
             </q-chip>
+            <q-badge outline color="amber-9" class="text-weight-bold">
+              20% Effort ({{ (Number(task.expected_effort || 0) * 0.2).toFixed(1) }}h)
+            </q-badge>
             <span v-if="task.supervisor_email" class="text-caption text-grey-6"
               >({{ task.supervisor_email }})</span
             >

@@ -719,14 +719,29 @@ function daysUntil(deadline: string): number {
   return Math.round((d.getTime() - today.getTime()) / 86400000);
 }
 
-// Ensure tasks are strictly scoped to the logged-in resource
+function getTaskExpectedEffortForMe(t: Task): number {
+  const myId = currentUserId.value;
+  const isAssignee =
+    t.assigned_resource_ids?.includes(myId as number) ||
+    t.assigned_resources?.some((ar) => Number(ar.user_id) === myId);
+  if (isAssignee) {
+    return Number(t.expected_effort) || 0;
+  }
+  if (myId && Number(t.supervisor_id) === myId) {
+    return (Number(t.expected_effort) || 0) * 0.2;
+  }
+  return Number(t.expected_effort) || 0;
+}
+
+// Ensure tasks are strictly scoped to the logged-in resource (assigned or supervised)
 const assignedTasks = computed(() => {
   const myId = currentUserId.value;
   if (!myId) return tasks.value;
   return tasks.value.filter(
     (t) =>
       t.assigned_resource_ids?.includes(myId) ||
-      t.assigned_resources?.some((ar) => ar.user_id === myId),
+      t.assigned_resources?.some((ar) => Number(ar.user_id) === myId) ||
+      Number(t.supervisor_id) === myId,
   );
 });
 
@@ -747,7 +762,7 @@ const overallProgress = computed(() => {
 });
 
 const expectedEffort = computed(() =>
-  assignedTasks.value.reduce((s, t) => s + (Number(t.expected_effort) || 0), 0),
+  assignedTasks.value.reduce((s, t) => s + getTaskExpectedEffortForMe(t), 0),
 );
 
 const actualEffort = computed(() =>
@@ -758,7 +773,7 @@ const actualHoursRemaining = computed(() =>
   assignedTasks.value
     .filter((t) => t.status !== 'COMPLETED')
     .reduce(
-      (s, t) => s + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+      (s, t) => s + Math.max(0, getTaskExpectedEffortForMe(t) - (Number(t.actual_effort) || 0)),
       0,
     ),
 );
@@ -848,7 +863,7 @@ const projectProgress = computed(() => {
       existing.completed += task.status === 'COMPLETED' ? 1 : 0;
       existing.active += task.status !== 'COMPLETED' ? 1 : 0;
       existing.progressTotal += Number(task.progress) || 0;
-      existing.expectedEffort += Number(task.expected_effort) || 0;
+      existing.expectedEffort += getTaskExpectedEffortForMe(task);
       existing.actualEffort += Number(task.actual_effort) || 0;
     } else {
       groups.set(project, {
@@ -857,7 +872,7 @@ const projectProgress = computed(() => {
         completed: task.status === 'COMPLETED' ? 1 : 0,
         active: task.status !== 'COMPLETED' ? 1 : 0,
         progressTotal: Number(task.progress) || 0,
-        expectedEffort: Number(task.expected_effort) || 0,
+        expectedEffort: getTaskExpectedEffortForMe(task),
         actualEffort: Number(task.actual_effort) || 0,
       });
     }
@@ -1157,17 +1172,17 @@ function initEffortChart() {
     .sort((a, b) => {
       if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
       if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
-      return (Number(b.expected_effort) || 0) - (Number(a.expected_effort) || 0);
+      return getTaskExpectedEffortForMe(b) - getTaskExpectedEffortForMe(a);
     })
     .slice(0, 6);
 
   const taskTitles = sortedTasks.map((t) => t.title);
-  const plannedData = sortedTasks.map((t) => Number(t.expected_effort) || 0);
+  const plannedData = sortedTasks.map((t) => Number(getTaskExpectedEffortForMe(t).toFixed(1)));
   const actualData = sortedTasks.map((t) => Number(t.actual_effort) || 0);
   const remainingData = sortedTasks.map((t) =>
     t.status === 'COMPLETED'
       ? 0
-      : Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
+      : Number(Math.max(0, getTaskExpectedEffortForMe(t) - (Number(t.actual_effort) || 0)).toFixed(1)),
   );
 
   const option: EChartsOption = {
@@ -1179,9 +1194,9 @@ function initEffortChart() {
         const items = params as Array<{ dataIndex: number }>;
         const task = sortedTasks[items[0]?.dataIndex ?? 0];
         if (!task) return '';
-        const planned = Number(task.expected_effort) || 0;
+        const planned = Number(getTaskExpectedEffortForMe(task).toFixed(1));
         const actual = Number(task.actual_effort) || 0;
-        const remaining = task.status === 'COMPLETED' ? 0 : Math.max(0, planned - actual);
+        const remaining = task.status === 'COMPLETED' ? 0 : Number(Math.max(0, planned - actual).toFixed(1));
         return `
           <div style="font-weight:600; font-size:13px; color:${darkText};">${task.title}</div>
           <div style="font-size:11px; color:${mutedText}; margin-bottom:6px;">${task.project_name || `Project #${task.project_id}`}</div>
