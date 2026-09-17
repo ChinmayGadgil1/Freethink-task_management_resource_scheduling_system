@@ -42,42 +42,6 @@
             </template>
           </q-select>
 
-          <!-- Interactive Date Range Picker Filter -->
-          <q-btn
-            outline
-            rounded
-            dense
-            no-caps
-            :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
-            class="gt-xs q-px-sm text-caption text-weight-medium"
-            icon="calendar_today"
-            :label="formattedWeekRange"
-            icon-right="arrow_drop_down"
-          >
-            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-              <q-date
-                v-model="customDateRange"
-                range
-                mask="YYYY-MM-DD"
-                color="primary"
-                :dark="$q.dark.isActive"
-                @update:model-value="onDateRangeChange"
-              >
-                <div class="row items-center justify-end q-gutter-xs q-pa-xs">
-                  <q-btn
-                    v-close-popup
-                    label="Reset Week"
-                    flat
-                    dense
-                    color="primary"
-                    @click="resetToCurrentWeek"
-                  />
-                  <q-btn v-close-popup label="Done" color="primary" dense class="q-px-sm" />
-                </div>
-              </q-date>
-            </q-popup-proxy>
-          </q-btn>
-
           <!-- Refresh Action Button -->
           <q-btn
             outline
@@ -380,56 +344,10 @@
         </div>
 
         <!-- ======================================================= -->
-        <!-- ROW 2: Availability Heatmap & Task Status Doughnut      -->
+        <!-- ROW 2: Task Status Distribution & Schedule Health       -->
         <!-- ======================================================= -->
         <div class="row q-col-gutter-md q-mb-md">
-          <!-- 2A: Resource Availability Heatmap -->
-          <div class="col-12 col-lg-6">
-            <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
-              <div class="row items-center justify-between q-mb-sm">
-                <div>
-                  <div
-                    class="text-subtitle2 text-weight-bold row items-center q-gutter-x-xs"
-                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                  >
-                    <span>Resource Availability Heatmap</span>
-                    <q-icon name="info_outline" size="14px" class="text-grey-5">
-                      <q-tooltip
-                        >Daily working schedule availability for automated task dispatch</q-tooltip
-                      >
-                    </q-icon>
-                  </div>
-                  <div class="text-caption text-grey-6">
-                    Daily schedule status for automated task dispatch
-                  </div>
-                </div>
-                <div
-                  class="row items-center q-gutter-x-sm text-caption gt-xs"
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-                >
-                  <span class="row items-center q-gutter-x-xs">
-                    <span class="legend-dot bg-teal"></span>
-                    <span>Available</span>
-                  </span>
-                  <span class="row items-center q-gutter-x-xs">
-                    <span class="legend-dot bg-positive"></span>
-                    <span>Moderate</span>
-                  </span>
-                  <span class="row items-center q-gutter-x-xs">
-                    <span class="legend-dot bg-warning"></span>
-                    <span>High Load</span>
-                  </span>
-                  <span class="row items-center q-gutter-x-xs">
-                    <span class="legend-dot bg-negative"></span>
-                    <span>Fully Booked</span>
-                  </span>
-                </div>
-              </div>
-              <div ref="heatmapChartRef" class="echarts-box"></div>
-            </q-card>
-          </div>
-
-          <!-- 2B: Task Status Distribution -->
+          <!-- 2A: Task Status Distribution -->
           <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
               <div class="row items-center justify-between q-mb-sm">
@@ -458,13 +376,8 @@
               <div ref="taskStatusChartRef" class="echarts-box"></div>
             </q-card>
           </div>
-        </div>
 
-        <!-- ======================================================= -->
-        <!-- ROW 3: Project Schedule Health & Planned vs Actual      -->
-        <!-- ======================================================= -->
-        <div class="row q-col-gutter-md q-mb-md">
-          <!-- 3A: Project Schedule Health -->
+          <!-- 2B: Project Schedule Health -->
           <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
               <div class="row items-center justify-between q-mb-sm">
@@ -505,8 +418,13 @@
               <div ref="projectScheduleChartRef" class="echarts-box"></div>
             </q-card>
           </div>
+        </div>
 
-          <!-- 3B: Planned vs Actual Effort -->
+        <!-- ======================================================= -->
+        <!-- ROW 3: Planned vs Actual Effort & Capacity Headroom     -->
+        <!-- ======================================================= -->
+        <div class="row q-col-gutter-md q-mb-md">
+          <!-- 3A: Planned vs Actual Effort -->
           <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
               <div class="row items-center justify-between q-mb-sm">
@@ -541,14 +459,9 @@
               <div ref="effortVarianceChartRef" class="echarts-box"></div>
             </q-card>
           </div>
-        </div>
 
-        <!-- ======================================================= -->
-        <!-- ROW 4: Capacity vs Assigned Effort (Full Width)        -->
-        <!-- ======================================================= -->
-        <div class="row q-col-gutter-md q-mb-md">
-          <!-- 4A: Capacity vs Assigned Effort (Full Width) -->
-          <div class="col-12">
+          <!-- 3B: Capacity vs Assigned Effort -->
+          <div class="col-12 col-lg-6">
             <q-card flat bordered :dark="$q.dark.isActive" class="chart-card q-pa-md">
               <div class="row items-center justify-between q-mb-sm">
                 <div>
@@ -595,23 +508,19 @@ import {
   getTasksApi,
   getResourcesApi,
   getResourceWorkloadApi,
-  getResourceAvailabilityApi,
 } from '@/services/api';
 import type {
   Project,
   ResourceUser,
   Task,
   ResourceWorkload,
-  ResourceAvailabilityResponseDTO,
 } from '@/services/api';
 import {
   ANALYTICS_PALETTE,
-  getCurrentWeekWorkingDays,
   computeResourceMetrics,
   computeTaskDistribution,
   computeProjectScheduleHealth,
   computeEffortVariance,
-  computeAvailabilityHeatmap,
 } from '@/components/analytics/analyticsCalculations';
 
 const $q = useQuasar();
@@ -630,12 +539,10 @@ const projectList = ref<Project[]>([]);
 const taskList = ref<Task[]>([]);
 const resourceList = ref<ResourceUser[]>([]);
 const workloadsMap = ref<Record<number, ResourceWorkload | null>>({});
-const availabilityMap = ref<Record<number, ResourceAvailabilityResponseDTO | null>>({});
 
 // DOM chart container references
 const utilizationChartRef = ref<HTMLDivElement | null>(null);
 const taskTrendChartRef = ref<HTMLDivElement | null>(null);
-const heatmapChartRef = ref<HTMLDivElement | null>(null);
 const taskStatusChartRef = ref<HTMLDivElement | null>(null);
 const projectScheduleChartRef = ref<HTMLDivElement | null>(null);
 const effortVarianceChartRef = ref<HTMLDivElement | null>(null);
@@ -644,7 +551,6 @@ const capacityChartRef = ref<HTMLDivElement | null>(null);
 // ECharts instances
 let utilizationChart: ECharts | null = null;
 let taskTrendChart: ECharts | null = null;
-let heatmapChart: ECharts | null = null;
 let taskStatusChart: ECharts | null = null;
 let projectScheduleChart: ECharts | null = null;
 let effortVarianceChart: ECharts | null = null;
@@ -723,37 +629,6 @@ const filteredProjects = computed(() => {
   return projectList.value.filter((p) => p.project_id === selectedProjectId.value);
 });
 
-const defaultWorkingDays = getCurrentWeekWorkingDays();
-const defaultStartDate = defaultWorkingDays[0]?.dateStr ?? '';
-const defaultEndDate = defaultWorkingDays[defaultWorkingDays.length - 1]?.dateStr ?? '';
-
-const customDateRange = ref<{ from: string; to: string } | string>({
-  from: defaultStartDate,
-  to: defaultEndDate,
-});
-
-const formattedWeekRange = computed(() => {
-  if (typeof customDateRange.value === 'string') {
-    return customDateRange.value;
-  }
-  if (customDateRange.value?.from && customDateRange.value?.to) {
-    return `${customDateRange.value.from} – ${customDateRange.value.to}`;
-  }
-  return `${defaultStartDate} – ${defaultEndDate}`;
-});
-
-function onDateRangeChange() {
-  void loadAllAnalyticsData();
-}
-
-function resetToCurrentWeek() {
-  customDateRange.value = {
-    from: defaultStartDate,
-    to: defaultEndDate,
-  };
-  void loadAllAnalyticsData();
-}
-
 // Computed statistical analytics - dynamically scoped to selected project
 const resourceStats = computed(() =>
   computeResourceMetrics(
@@ -774,15 +649,6 @@ async function loadAllAnalyticsData() {
   errorMessage.value = null;
 
   try {
-    const startDate =
-      typeof customDateRange.value === 'string'
-        ? customDateRange.value
-        : customDateRange.value?.from || defaultStartDate;
-    const endDate =
-      typeof customDateRange.value === 'string'
-        ? customDateRange.value
-        : customDateRange.value?.to || defaultEndDate;
-
     // 1. Fetch primary entities in parallel
     const [projects, tasks, resources] = await Promise.all([
       getProjectsApi(),
@@ -794,23 +660,17 @@ async function loadAllAnalyticsData() {
     taskList.value = tasks;
     resourceList.value = resources;
 
-    // 2. Fetch resource workloads and availability in parallel
+    // 2. Fetch resource workloads in parallel
     const wMap: Record<number, ResourceWorkload | null> = {};
-    const aMap: Record<number, ResourceAvailabilityResponseDTO | null> = {};
 
     await Promise.all(
       resources.map(async (r) => {
-        const [wRes, aRes] = await Promise.all([
-          getResourceWorkloadApi(r.user_id).catch(() => null),
-          getResourceAvailabilityApi(r.user_id, startDate, endDate).catch(() => null),
-        ]);
+        const wRes = await getResourceWorkloadApi(r.user_id).catch(() => null);
         wMap[r.user_id] = wRes;
-        aMap[r.user_id] = aRes;
       }),
     );
 
     workloadsMap.value = wMap;
-    availabilityMap.value = aMap;
   } catch (err) {
     console.error('Failed to load analytics data:', err);
     errorMessage.value =
@@ -835,7 +695,6 @@ function renderAllCharts() {
   void nextTick(() => {
     initUtilizationChart();
     initTaskTrendChart();
-    initHeatmapChart();
     initTaskStatusChart();
     initProjectScheduleChart();
     initEffortVarianceChart();
@@ -1195,111 +1054,7 @@ function initTaskTrendChart() {
   taskTrendChart.setOption(option, true);
 }
 
-// 3. Resource Availability Heatmap
-function initHeatmapChart() {
-  if (!heatmapChartRef.value) return;
-  heatmapChart = getOrInitChart(heatmapChartRef.value);
-  if (!heatmapChart) return;
-
-  const theme = getThemeColors();
-  const heatmap = computeAvailabilityHeatmap(
-    resourceList.value,
-    availabilityMap.value,
-    workloadsMap.value,
-  );
-
-  const STATUS_LABELS = [
-    { label: 'Available', color: '#16A6A1' },
-    { label: 'Moderate', color: '#32A56B' },
-    { label: 'High Load', color: '#F08A24' },
-    { label: 'Fully Booked', color: '#E05260' },
-  ];
-
-  const option: EChartsOption = {
-    tooltip: {
-      position: 'top',
-      ...getCommonTooltip(theme),
-      formatter: (params: unknown) => {
-        const item = params as { value: [number, number, number] };
-        const day = heatmap.days[item.value[0]] ?? '';
-        const res = heatmap.resources[item.value[1]] ?? '';
-        const detailKey = `${item.value[0]}_${item.value[1]}`;
-        const detail = heatmap.details[detailKey];
-        const statusIdx = item.value[2];
-        const statusConfig = STATUS_LABELS[statusIdx] ?? STATUS_LABELS[0]!;
-
-        return `
-          <div style="font-weight:600; color:${theme.darkText};">${res} – ${day}</div>
-          <div style="margin-top:4px; display:flex; align-items:center; gap:6px; color:${theme.darkText};">
-            <span style="display:inline-block; width:8px; height:8px; border-radius:2px; background:${statusConfig.color};"></span>
-            <span>Status: <strong>${detail?.label || statusConfig.label}</strong></span>
-          </div>
-          ${detail?.hours ? `<div style="font-size:11px; color:${theme.mutedText}; margin-top:2px;">Scheduled: ${detail.hours}h</div>` : ''}
-        `;
-      },
-    },
-    grid: {
-      top: '4%',
-      left: '3%',
-      right: '3%',
-      bottom: '6%',
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: heatmap.days,
-      splitArea: { show: false },
-      axisTick: { show: false },
-      axisLine: { lineStyle: { color: theme.border } },
-      axisLabel: { interval: 0, color: theme.darkText, fontSize: 12, fontWeight: 500 },
-    },
-    yAxis: {
-      type: 'category',
-      data: heatmap.resources,
-      splitArea: { show: false },
-      axisTick: { show: false },
-      axisLine: { lineStyle: { color: theme.border } },
-      axisLabel: { interval: 0, color: theme.darkText, fontSize: 12, fontWeight: 500 },
-    },
-    visualMap: {
-      show: false,
-      min: 0,
-      max: 3,
-      pieces: [
-        { value: 0, color: '#16A6A1' },
-        { value: 1, color: '#32A56B' },
-        { value: 2, color: '#F08A24' },
-        { value: 3, color: '#E05260' },
-      ],
-    },
-    series: [
-      {
-        type: 'heatmap',
-        data: heatmap.matrix.map(([d, r, v]) => [d, r, v]),
-        label: {
-          show: true,
-          formatter: (params: unknown) => {
-            const p = params as { value?: [number, number, number] };
-            const v = p.value ? p.value[2] : 0;
-            return v === 0 ? 'Free' : v === 1 ? 'Partial' : v === 2 ? 'High' : 'Booked';
-          },
-          color: '#FFFFFF',
-          fontSize: 11,
-          fontWeight: 600,
-        },
-        itemStyle: {
-          borderRadius: 4,
-          borderColor: theme.cardBg,
-          borderWidth: 3,
-        },
-      },
-    ],
-  };
-
-  heatmapChart.setOption(option, true);
-}
-
-// 4. Task Status Distribution
+// 3. Task Status Distribution
 function initTaskStatusChart() {
   if (!taskStatusChartRef.value) return;
   taskStatusChart = getOrInitChart(taskStatusChartRef.value);
@@ -1414,15 +1169,10 @@ function initProjectScheduleChart() {
       },
     },
     legend: {
-      top: '0%',
-      right: '2%',
-      itemWidth: 10,
-      itemHeight: 8,
-      textStyle: { color: theme.mutedText, fontSize: 11 },
-      data: ['Actual Progress', 'Planned Pace'],
+      show: false,
     },
     grid: {
-      top: '14%',
+      top: '6%',
       left: '3%',
       right: '6%',
       bottom: '4%',
@@ -1514,15 +1264,10 @@ function initEffortVarianceChart() {
       },
     },
     legend: {
-      top: '0%',
-      right: '2%',
-      itemWidth: 10,
-      itemHeight: 8,
-      textStyle: { color: theme.mutedText, fontSize: 11 },
-      data: ['Planned (hrs)', 'Actual (hrs)'],
+      show: false,
     },
     grid: {
-      top: '14%',
+      top: '6%',
       left: '3%',
       right: '4%',
       bottom: '8%',
@@ -1681,7 +1426,6 @@ function initCapacityChart() {
 function resizeAll() {
   utilizationChart?.resize();
   taskTrendChart?.resize();
-  heatmapChart?.resize();
   taskStatusChart?.resize();
   projectScheduleChart?.resize();
   effortVarianceChart?.resize();
@@ -1734,9 +1478,6 @@ onBeforeUnmount(() => {
 
   taskTrendChart?.dispose();
   taskTrendChart = null;
-
-  heatmapChart?.dispose();
-  heatmapChart = null;
 
   taskStatusChart?.dispose();
   taskStatusChart = null;
