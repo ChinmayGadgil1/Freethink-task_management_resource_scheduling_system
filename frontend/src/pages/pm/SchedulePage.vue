@@ -251,7 +251,11 @@
             v-for="day in displayedDays"
             :key="day.toISOString()"
             class="day-column-cell"
-            :class="{ 'is-today-col': isSameDay(day, todayDate), 'is-weekend-col': isWeekend(day) }"
+            :class="{
+              'is-today-col': isSameDay(day, todayDate),
+              'is-weekend-col': isDayNonWorking(day),
+              'is-non-working-col': isDayNonWorking(day),
+            }"
           >
             <!-- Date Column Header -->
             <div class="date-col-header">
@@ -765,6 +769,7 @@ import {
   getProjectScheduleDataApi,
   getResourceScheduleDataApi,
   getResourceAvailabilityApi,
+  getResourceWorkScheduleApi,
 } from '@/services/api';
 import type {
   Project,
@@ -773,6 +778,8 @@ import type {
   ResourceUser,
   HolidayItem,
   DailyAvailabilityDTO,
+  ResourceScheduleConfig,
+  DayOfWeek,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -928,9 +935,79 @@ function isSameDay(d1: Date, d2: Date): boolean {
   );
 }
 
-function isWeekend(d: Date): boolean {
-  const day = d.getDay();
-  return day === 0 || day === 6;
+const selectedResourceSchedule = ref<ResourceScheduleConfig | null>(null);
+
+const DAY_INDEX_TO_WEEKDAY: Record<number, DayOfWeek> = {
+  0: 'SUNDAY',
+  1: 'MONDAY',
+  2: 'TUESDAY',
+  3: 'WEDNESDAY',
+  4: 'THURSDAY',
+  5: 'FRIDAY',
+  6: 'SATURDAY',
+};
+
+function parseNonWorkingDays(val: unknown): DayOfWeek[] {
+  if (val === null || val === undefined) {
+    return ['SATURDAY', 'SUNDAY'];
+  }
+  if (Array.isArray(val)) {
+    return val.map((d) => String(d).toUpperCase().trim() as DayOfWeek);
+  }
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) {
+        return parsed.map((d) => String(d).toUpperCase().trim() as DayOfWeek);
+      }
+    } catch {
+      if (val.includes(',')) {
+        return val.split(',').map((d) => d.toUpperCase().trim() as DayOfWeek);
+      }
+      if (val.trim()) {
+        return [val.toUpperCase().trim() as DayOfWeek];
+      }
+    }
+  }
+  return ['SATURDAY', 'SUNDAY'];
+}
+
+const selectedResourceNonWorkingDays = computed<DayOfWeek[]>(() => {
+  if (assigneeFilter.value === 'ALL' || assigneeFilter.value === -1) {
+    return [];
+  }
+
+  const selectedId = Number(assigneeFilter.value);
+
+  // 1. If we have fetched detailed schedule config for this resource
+  if (
+    selectedResourceSchedule.value &&
+    selectedResourceSchedule.value.user_id === selectedId &&
+    Array.isArray(selectedResourceSchedule.value.non_working_days)
+  ) {
+    return selectedResourceSchedule.value.non_working_days.map(
+      (d) => String(d).toUpperCase().trim() as DayOfWeek,
+    );
+  }
+
+  // 2. Check resource in resources.value
+  const res = resources.value.find((r) => r.user_id === selectedId);
+  if (res && res.non_working_days !== undefined && res.non_working_days !== null) {
+    return parseNonWorkingDays(res.non_working_days);
+  }
+
+  return ['SATURDAY', 'SUNDAY'];
+});
+
+function isDayNonWorking(d: Date): boolean {
+  if (assigneeFilter.value === 'ALL' || assigneeFilter.value === -1) {
+    return false;
+  }
+
+  const dayName = DAY_INDEX_TO_WEEKDAY[d.getDay()];
+  if (!dayName) return false;
+
+  return selectedResourceNonWorkingDays.value.includes(dayName);
 }
 
 function formatWeekdayName(d: Date): string {
@@ -1054,7 +1131,7 @@ function getTasksOnDate(date: Date): Task[] {
           String(s.schedule_date).slice(0, 10) === targetDateStr && Number(s.allocated_hours) > 0,
       );
     }
-    if (isWeekend(date)) {
+    if (isDayNonWorking(date)) {
       return false;
     }
     const startStr =
@@ -1253,11 +1330,26 @@ async function loadData() {
 }
 
 watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
-  if (newAssignee !== 'ALL') {
+  if (newAssignee !== 'ALL' && newAssignee !== -1) {
+    const selectedId = Number(newAssignee);
+    const localRes = resources.value.find((r) => r.user_id === selectedId);
+    if (localRes && localRes.non_working_days !== undefined && localRes.non_working_days !== null) {
+      selectedResourceSchedule.value = {
+        user_id: selectedId,
+        non_working_days: parseNonWorkingDays(localRes.non_working_days),
+        working_days: [],
+        daily_working_hours: localRes.daily_working_hours || 8,
+        is_custom: Boolean(localRes.schedule_configured),
+      };
+    } else {
+      selectedResourceSchedule.value = null;
+    }
+
     try {
-      const [resSchedule, availRes] = await Promise.all([
-        getResourceScheduleDataApi(Number(newAssignee)).catch(() => null),
-        getResourceAvailabilityApi(Number(newAssignee)).catch(() => null),
+      const [resSchedule, availRes, scheduleConfig] = await Promise.all([
+        getResourceScheduleDataApi(selectedId).catch(() => null),
+        getResourceAvailabilityApi(selectedId).catch(() => null),
+        getResourceWorkScheduleApi(selectedId).catch(() => null),
       ]);
       if (resSchedule && resSchedule.tasks) {
         tasks.value = (resSchedule.tasks || []).filter((t) => !isVerificationTask(t));
@@ -1267,12 +1359,19 @@ watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
       } else {
         pmAvailabilityList.value = [];
       }
+      if (scheduleConfig && Array.isArray(scheduleConfig.non_working_days)) {
+        selectedResourceSchedule.value = scheduleConfig;
+        if (localRes) {
+          localRes.non_working_days = scheduleConfig.non_working_days;
+        }
+      }
       return;
     } catch {
       pmAvailabilityList.value = [];
     }
   } else {
     pmAvailabilityList.value = [];
+    selectedResourceSchedule.value = null;
   }
 
   if (newProj !== 'ALL') {
@@ -1673,7 +1772,8 @@ async function handleUpdateTask() {
     background: rgba(139, 111, 216, 0.03);
   }
 
-  &.is-weekend-col {
+  &.is-weekend-col,
+  &.is-non-working-col {
     background: rgba(241, 245, 249, 0.35);
   }
 }
@@ -2052,5 +2152,12 @@ async function handleUpdateTask() {
   color: var(--wo-text-muted, #64748b);
   font-size: 12px;
   white-space: nowrap;
+}
+
+body.body--dark {
+  .day-column-cell.is-weekend-col,
+  .day-column-cell.is-non-working-col {
+    background: rgba(255, 255, 255, 0.04);
+  }
 }
 </style>
