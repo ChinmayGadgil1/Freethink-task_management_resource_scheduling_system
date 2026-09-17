@@ -607,6 +607,15 @@
       :show-dependencies="true"
       @edit="openEditFromDetails"
       @assign-member="openAssignTaskMemberDialog"
+      @assign-verification="openAssignVerificationFromDetails"
+    />
+
+    <!-- ASSIGN VERIFICATION DIALOG -->
+    <AssignVerificationDialog
+      v-model="showAssignVerificationDialog"
+      :task="verificationTargetTask"
+      :project-members="resources"
+      @saved="loadData"
     />
 
     <!-- ASSIGN MEMBER DIALOG -->
@@ -628,7 +637,7 @@
               :options="taskSelectOptions"
               emit-value
               map-options
-              :rules="[(val) => !val || 'Task is required']"
+              :rules="[(val) => !!val || 'Task is required']"
             />
 
             <q-select
@@ -721,7 +730,7 @@
                   outlined
                   dense
                   label="Task Title"
-                  :rules="[(val) => !val.trim() || 'Title is required']"
+                  :rules="[(val) => !!val?.trim() || 'Title is required']"
                 />
               </div>
             </div>
@@ -850,6 +859,7 @@ import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
+import AssignVerificationDialog from '@/components/tasks/AssignVerificationDialog.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus } from '@/utils/formatters';
 import {
@@ -985,6 +995,8 @@ function filterOverdueTasks() {
 
 const showTaskDetailsDialog = ref(false);
 const selectedTaskDetails = ref<Task | null>(null);
+const showAssignVerificationDialog = ref(false);
+const verificationTargetTask = ref<Task | null>(null);
 
 const showCreateDialog = ref(false);
 const showEditDialog = ref(false);
@@ -1563,6 +1575,16 @@ function openEditFromDetails() {
     showTaskDetailsDialog.value = false;
     openEditModal(t);
   }
+}
+
+function openAssignVerification(task: Task) {
+  verificationTargetTask.value = task;
+  showAssignVerificationDialog.value = true;
+}
+
+function openAssignVerificationFromDetails(task: Task) {
+  showTaskDetailsDialog.value = false;
+  openAssignVerification(task);
 }
 
 const createProjectMembers = ref<ResourceUser[]>([]);

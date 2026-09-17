@@ -979,6 +979,14 @@
         :allow-add-dependency="false"
         :show-dependencies="false"
         @edit="openEditFromDetails"
+        @assign-verification="openAssignVerificationFromDetails"
+      />
+
+      <!-- ASSIGN VERIFICATION DIALOG -->
+      <AssignVerificationDialog
+        v-model="showAssignVerificationDialog"
+        :task="verificationTargetTask"
+        @saved="loadData"
       />
 
       <!-- EDIT TASK MODAL -->
@@ -1132,6 +1140,7 @@ import { getInitials, formatHours, formatNumber, formatDate } from '@/utils/form
 import ResourceAvailabilityCalendar from '@/components/resource/ResourceAvailabilityCalendar.vue';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
 import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
+import AssignVerificationDialog from '@/components/tasks/AssignVerificationDialog.vue';
 import { isVerificationTask } from '@/utils/taskHelpers';
 import {
   createTaskApi,
@@ -1316,6 +1325,8 @@ const resourceList = ref<ResourceUser[]>([]);
 
 const showTaskDetailsDialog = ref(false);
 const selectedTaskDetails = ref<Task | null>(null);
+const showAssignVerificationDialog = ref(false);
+const verificationTargetTask = ref<Task | null>(null);
 
 const showEditDialog = ref(false);
 const editingTaskId = ref<number | null>(null);
@@ -1382,6 +1393,16 @@ function openEditFromDetails() {
     showTaskDetailsDialog.value = false;
     openEditModal(t);
   }
+}
+
+function openAssignVerification(task: Task) {
+  verificationTargetTask.value = task;
+  showAssignVerificationDialog.value = true;
+}
+
+function openAssignVerificationFromDetails(task: Task) {
+  showTaskDetailsDialog.value = false;
+  openAssignVerification(task);
 }
 
 function getStatusFromProgress(

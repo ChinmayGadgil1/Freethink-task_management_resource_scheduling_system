@@ -194,8 +194,17 @@ async function loadResources() {
 const originalAssigneeIds = computed<number[]>(() => {
   if (!props.task) return [];
   const ids = new Set<number>();
-  if (props.task.assigned_resource_ids && Array.isArray(props.task.assigned_resource_ids)) {
-    props.task.assigned_resource_ids.forEach((id) => ids.add(Number(id)));
+  if (props.task.assigned_resource_ids) {
+    if (Array.isArray(props.task.assigned_resource_ids)) {
+      props.task.assigned_resource_ids.forEach((id) => ids.add(Number(id)));
+    } else if (typeof props.task.assigned_resource_ids === 'string') {
+      String(props.task.assigned_resource_ids)
+        .split(',')
+        .forEach((id) => {
+          const n = Number(id.trim());
+          if (!isNaN(n) && n > 0) ids.add(n);
+        });
+    }
   }
   if (props.task.assigned_resources && Array.isArray(props.task.assigned_resources)) {
     props.task.assigned_resources.forEach((r) => ids.add(Number(r.user_id)));
