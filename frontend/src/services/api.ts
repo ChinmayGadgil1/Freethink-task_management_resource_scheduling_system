@@ -1360,59 +1360,6 @@ export async function deleteLeaveApi(id: number | string): Promise<{ message: st
   return data;
 }
 
-export interface SupportTicket {
-  ticket_id: number;
-  user_id: number;
-  name: string;
-  email: string;
-  category: string;
-  description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
-  created_at: string;
-}
-
-/**
- * Submit a new support ticket
- * POST /api/support/tickets
- */
-export async function createSupportTicketApi(payload: {
-  name: string;
-  email: string;
-  category: string;
-  description: string;
-}): Promise<SupportTicket> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/support/tickets`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to submit support ticket');
-  }
-
-  return data.data;
-}
-
-/**
- * Fetch all support tickets for the current user
- * GET /api/support/tickets
- */
-export async function getSupportTicketsApi(): Promise<SupportTicket[]> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/support/tickets`, {
-    method: 'GET',
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to retrieve support tickets');
-  }
-
-  return data.data;
-}
-
 export type DayOfWeek =
   'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 

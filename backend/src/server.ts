@@ -7,7 +7,6 @@ import resourceRoutes from "./routes/resourceRoutes.js";
 import schedulerRoutes from "./routes/schedulerRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
-import supportRoutes from "./routes/supportRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import binRoutes from "./routes/binRoutes.js";
@@ -39,7 +38,6 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/scheduler", schedulerRoutes);
 app.use("/api/holidays", holidayRoutes);
 app.use("/api/leaves", leaveRoutes);
-app.use("/api/support", supportRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/bin", binRoutes);
 
