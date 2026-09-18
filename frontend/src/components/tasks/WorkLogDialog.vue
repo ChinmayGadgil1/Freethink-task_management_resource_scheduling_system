@@ -179,13 +179,13 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { CreateWorkLogPayload, Task } from '@/services/api';
+import type { CreateWorkLogPayload, DailyAllocationTask, Task } from '@/services/api';
 import { getStatusFromProgress, getTaskStatusClass, formatStatusLabel } from '@/utils/taskHelpers';
 
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
-    task: Task | null;
+    task: Task | DailyAllocationTask | null;
     defaultDate?: string;
     saving?: boolean;
   }>(),
@@ -245,9 +245,8 @@ function formatHours(val: unknown): string {
   return parseFloat(Number(val).toFixed(2)).toString();
 }
 
-function resetForm(task: Task | null) {
-  const scheduledHours = (task)
-    ?.scheduled_hours;
+function resetForm(task: Task | DailyAllocationTask | null) {
+  const scheduledHours = task && 'scheduled_hours' in task ? task.scheduled_hours : undefined;
   form.hours_logged = scheduledHours && Number(scheduledHours) > 0 ? Number(scheduledHours) : 1.0;
   // Ensure default is aligned to 0.5
   if (Math.round(form.hours_logged * 10) % 5 !== 0) {
