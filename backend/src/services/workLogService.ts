@@ -86,67 +86,9 @@ export async function createWorkLog(
             [taskId, userId, hoursLogged, isSupervisorOnly ? newProgress : progressLogged, newStatus, notes, blockers, logDate]
         );
 
-        // Dynamically build UPDATE query for tasks
-        // For supervisors, only effort is updated, preserving task progress and status
-        const updateFields: string[] = ["actual_effort = ?"];
-        const updateParams: any[] = [newActualEffort];
-
-        if (!isSupervisorOnly) {
-            updateFields.push("progress = ?", "status = ?");
-            updateParams.push(newProgress, newStatus);
-
-            if (isFirstLog) {
-                try {
-                    updateFields.push("actual_start = COALESCE(actual_start, NOW())");
-                } catch {
-                    // Column might not exist
-                }
-            }
-
-            if (newStatus === "COMPLETED") {
-                try {
-                    updateFields.push("actual_end = NOW()");
-                } catch {
-                    // Column might not exist
-                }
-            }
-        }
-
-        updateParams.push(taskId);
-
-        try {
-            await connection.query(
-                `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
-                updateParams
-            );
-        } catch (updateErr: any) {
-            if (!isSupervisorOnly) {
-                await connection.query(
-                    `UPDATE tasks SET actual_effort = ?, progress = ?, status = ? WHERE task_id = ?`,
-                    [newActualEffort, newProgress, newStatus, taskId]
-                );
-            } else {
-                await connection.query(
-                    `UPDATE tasks SET actual_effort = ? WHERE task_id = ?`,
-                    [newActualEffort, taskId]
-                );
-            }
-        }
-
         await connection.commit();
 
-        // 4. Hook project progress auto-rollup and SchedulingEngine.recalculate whenever work is logged
-        try {
-            await syncProjectProgress(task.project_id);
-        } catch (syncErr) {
-            console.error("Error synchronizing project progress in workLogService:", syncErr);
-        }
-
-        try {
-            await recalculateSchedule(task.project_id);
-        } catch (scheduleErr) {
-            console.error("Error triggering schedule recalculation in workLogService:", scheduleErr);
-        }
+        // Removed recalculateSchedule to allow batch recalculation on daily checkout.
 
         return {
             log_id: result.insertId,
@@ -221,16 +163,7 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
            AND p.deleted_at IS NULL
            AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
            AND t.verified_task_id IS NULL
-           AND (
-                -- Scheduled allocation exists for this user on this date
-                ts.schedule_id IS NOT NULL
-                OR
-                -- User is assigned or supervisor and task is active/ongoing
-                ((ta.user_id IS NOT NULL OR t.supervisor_id = ?) AND (
-                    t.status IN ('IN_PROGRESS', 'SCHEDULED')
-                    OR (? BETWEEN DATE(COALESCE(t.planned_start, t.created_at)) AND DATE(COALESCE(t.planned_end, t.deadline, CURDATE())))
-                ))
-           )
+           AND ts.schedule_id IS NOT NULL
          GROUP BY t.task_id, p.name
          ORDER BY scheduled_hours_today > 0 DESC,
                   CASE t.priority
@@ -241,7 +174,7 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
                       ELSE 5
                   END ASC,
                   t.title ASC`,
-        [userId, userId, userId, dateStr, userId, dateStr]
+        [userId, userId, userId, dateStr]
     );
 
     // 2. Fetch any work logs logged by this user for these tasks on dateStr
@@ -280,7 +213,17 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
         };
     });
 
-    return allocations;
+    // 4. Check if user is checked out for this date
+    const [checkoutRows] = await pool.query<RowDataPacket[]>(
+        `SELECT 1 FROM daily_checkouts WHERE user_id = ? AND checkout_date = ?`,
+        [userId, dateStr]
+    );
+    const is_checked_out = checkoutRows.length > 0;
+
+    return {
+        allocations,
+        is_checked_out
+    };
 }
 
 export async function getRecentWorkLogsForManager(projectManagerId: number, limit: number = 50) {
@@ -416,4 +359,105 @@ export async function stopSession(userId: number, progressLogged: number, notes:
     );
     
     return workLog;
+}
+
+export async function submitDailyLogs(userId: number, dateStr: string) {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // 1. Insert into daily_checkouts, ignoring if already checked out
+        await connection.query(
+            `INSERT IGNORE INTO daily_checkouts (user_id, checkout_date) VALUES (?, ?)`,
+            [userId, dateStr]
+        );
+
+        // 1.5 Apply all work logs logged by this user today to the tasks table
+        const [logs] = await connection.query<RowDataPacket[]>(
+            `SELECT DISTINCT task_id FROM work_logs WHERE user_id = ? AND log_date = ?`,
+            [userId, dateStr]
+        );
+
+        for (const row of logs) {
+            const tId = row.task_id;
+            
+            // Get total effort across ALL logs for this task
+            const [effortRows] = await connection.query<RowDataPacket[]>(
+                `SELECT COALESCE(SUM(hours_logged), 0) as total_effort FROM work_logs WHERE task_id = ?`,
+                [tId]
+            );
+            const newActualEffort = Number(effortRows[0]?.total_effort || 0);
+
+            // Get the latest log's progress and status
+            const [latestLogRows] = await connection.query<RowDataPacket[]>(
+                `SELECT progress_logged, status, created_at FROM work_logs WHERE task_id = ? ORDER BY created_at DESC LIMIT 1`,
+                [tId]
+            );
+            
+            if (latestLogRows.length > 0) {
+                const latestLog = latestLogRows[0]!;
+                const newProgress = Number(latestLog.progress_logged);
+                const newStatus = String(latestLog.status);
+
+                const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
+                const updateParams: any[] = [newActualEffort, newProgress, newStatus];
+
+                // Check if this task has actual_start set, if not, set it
+                const [taskRows] = await connection.query<RowDataPacket[]>(
+                    `SELECT actual_start FROM tasks WHERE task_id = ?`,
+                    [tId]
+                );
+                
+                if (taskRows.length > 0 && !taskRows[0]?.actual_start) {
+                    updateFields.push("actual_start = NOW()");
+                }
+                
+                if (newStatus === "COMPLETED") {
+                    updateFields.push("actual_end = NOW()");
+                }
+
+                updateParams.push(tId);
+
+                await connection.query(
+                    `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
+                    updateParams
+                );
+            }
+        }
+
+        // 2. Find all active projects this user is involved in so we can trigger recalculation
+        const [projectRows] = await connection.query<RowDataPacket[]>(
+            `SELECT DISTINCT p.project_id
+             FROM projects p
+             LEFT JOIN project_members pm ON p.project_id = pm.project_id AND pm.user_id = ?
+             LEFT JOIN tasks t ON p.project_id = t.project_id
+             LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
+             WHERE p.deleted_at IS NULL
+               AND p.status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
+               AND (pm.user_id IS NOT NULL OR ta.user_id IS NOT NULL OR t.supervisor_id = ?)`,
+            [userId, userId, userId]
+        );
+
+        await connection.commit();
+
+        // 3. Trigger schedule recalculation and project progress sync for those projects
+        const projectIds = projectRows.map(row => Number(row.project_id));
+        for (const pid of projectIds) {
+            try {
+                await syncProjectProgress(pid);
+                await recalculateSchedule(pid);
+            } catch (scheduleErr) {
+                console.error(`Error synchronizing/recalculating schedule for project ${pid} during daily checkout:`, scheduleErr);
+            }
+        }
+
+        return { message: "Daily logs submitted and schedule recalculated" };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
 }

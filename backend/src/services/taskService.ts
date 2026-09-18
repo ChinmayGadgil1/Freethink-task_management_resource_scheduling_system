@@ -3,7 +3,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { TaskPriority, TaskStatus } from "../models/taskModel.js";
 import { wouldCreateCycle } from "./scheduler/DependencyEngine.js";
 import { syncProjectProgress } from "./projectService.js";
-import { recalculate } from "./scheduler/SchedulingEngine.js";
+import { recalculate, parseAndFormatDatetime } from "./scheduler/SchedulingEngine.js";
 
 export async function createTask(
     projectId: number,
@@ -232,8 +232,8 @@ async function getPredecessorDetailsMap(allPredIds: number[]): Promise<Map<numbe
             status: r.status,
             priority: r.priority,
             deadline: r.deadline ? (r.deadline instanceof Date ? r.deadline.toISOString().split("T")[0] : String(r.deadline).split("T")[0]) : null,
-            planned_start: r.planned_start ? String(r.planned_start) : null,
-            planned_end: r.planned_end ? String(r.planned_end) : null,
+            planned_start: r.planned_start ? parseAndFormatDatetime(r.planned_start) : null,
+            planned_end: r.planned_end ? parseAndFormatDatetime(r.planned_end) : null,
             expected_effort: Number(r.expected_effort || 0),
             actual_effort: Number(r.actual_effort || 0),
             progress: Number(r.progress || 0),

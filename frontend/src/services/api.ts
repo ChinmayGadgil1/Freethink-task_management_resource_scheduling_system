@@ -189,6 +189,7 @@ export interface DailyAllocationTask extends Task {
 export interface DailyAllocationsResponse {
   date: string;
   allocations: DailyAllocationTask[];
+  is_checked_out?: boolean;
 }
 
 export function isTokenExpired(token: string): boolean {
@@ -815,6 +816,21 @@ export async function getDailyAllocationsApi(dateStr?: string): Promise<DailyAll
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch daily allocations');
+  }
+
+  return data;
+}
+
+export async function submitDailyLogsApi(dateStr: string): Promise<{ message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/daily-checkout`, {
+    method: 'POST',
+    body: JSON.stringify({ date: dateStr }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to submit daily logs');
   }
 
   return data;

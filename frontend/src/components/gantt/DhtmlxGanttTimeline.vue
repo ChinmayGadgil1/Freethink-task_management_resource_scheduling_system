@@ -33,14 +33,14 @@
 
         <!-- Scale Toggle Group: Hour | Day | Week | Month -->
         <div class="scale-toggle-group row items-center no-wrap">
-          <button
+          <!-- <button
             type="button"
             class="scale-btn"
             :class="{ active: activeScale === 'hour' }"
             @click="setScale('hour')"
           >
             Hour
-          </button>
+          </button> -->
           <button
             type="button"
             class="scale-btn"
@@ -498,14 +498,222 @@ function getMacroDate(d: Date | null, isStart: boolean): Date | null {
   if (isStart) {
     if (next.getHours() <= 10) {
       next.setHours(0, 0, 0, 0);
+    } else if (next.getHours() >= 11 && next.getHours() <= 15) {
+      // Half-day start: starts in the second half (at 12:00 = 50% of the day cell)
+      next.setHours(12, 0, 0, 0);
     }
   } else {
-    if (next.getHours() >= 18) {
+    if (next.getHours() >= 17) {
       next.setDate(next.getDate() + 1);
       next.setHours(0, 0, 0, 0);
+    } else if (next.getHours() >= 11 && next.getHours() <= 15) {
+      // Half-day end: ends in the first half (at 12:00 = 50% of the day cell)
+      next.setHours(12, 0, 0, 0);
     }
   }
   return next;
+}
+
+/**
+ * Determines whether a task allocation on a specific date is on the 'first' half,
+ * 'second' half, or 'full' day.
+ */
+function resolveTaskDateHalf(
+  task: Task,
+  dateStr: string,
+  isStartDay: boolean,
+  isSingleDay: boolean,
+): 'first' | 'second' | 'full' {
+  if (!task || !dateStr) return 'full';
+
+  // 1. Check explicit planned/actual start/end times
+  const pStart = parseIsoToDate(task.actual_start || task.planned_start);
+  const pEnd = parseIsoToDate(task.actual_end || task.planned_end);
+
+  if (isSingleDay) {
+    if (pStart && formatDateIso(pStart) === dateStr) {
+      const startH = pStart.getHours();
+      if (startH >= 12) return 'second';
+    }
+    if (pEnd && formatDateIso(pEnd) === dateStr) {
+      const endH = pEnd.getHours();
+      if (endH >= 11 && endH <= 14) return 'first';
+    }
+  } else {
+    if (isStartDay && pStart && formatDateIso(pStart) === dateStr) {
+      const h = pStart.getHours();
+      if (h >= 12) return 'second';
+    }
+    if (!isStartDay && pEnd && formatDateIso(pEnd) === dateStr) {
+      const h = pEnd.getHours();
+      if (h >= 11 && h <= 14) return 'first';
+      if (h >= 17) return 'full';
+    }
+  }
+
+  // 2. Check resource availability/leave for this date
+  const avail = availabilityMap.value.get(dateStr);
+  if (avail) {
+    const isSecondHalfLeave =
+      avail.leave_type === 'SECOND_HALF' ||
+      String(avail.leave_type || '')
+        .toUpperCase()
+        .includes('SECOND') ||
+      String(avail.leave_type || '')
+        .toUpperCase()
+        .includes('2');
+    const isFirstHalfLeave =
+      avail.leave_type === 'FIRST_HALF' ||
+      String(avail.leave_type || '')
+        .toUpperCase()
+        .includes('FIRST') ||
+      String(avail.leave_type || '')
+        .toUpperCase()
+        .includes('1');
+
+    if (isFirstHalfLeave) {
+      // User on leave in 1st half -> task allocation must be in 2nd half
+      return 'second';
+    }
+    if (isSecondHalfLeave) {
+      // User on leave in 2nd half -> task allocation must be in 1st half
+      return 'first';
+    }
+  }
+
+  // 3. Check task schedules for this date
+  const sched = (task.schedules || []).find(
+    (s) => s && s.schedule_date && String(s.schedule_date).split('T')[0] === dateStr,
+  );
+  if (sched && Number(sched.allocated_hours) > 0 && Number(sched.allocated_hours) <= 4) {
+    const tasksOnDate = (props.tasks || []).filter((t) =>
+      (t.schedules || []).some(
+        (s) =>
+          s &&
+          s.schedule_date &&
+          String(s.schedule_date).split('T')[0] === dateStr &&
+          Number(s.allocated_hours) > 0,
+      ),
+    );
+    if (tasksOnDate.length > 1) {
+      const sorted = [...tasksOnDate].sort((a, b) => {
+        const startA = a.actual_start || a.planned_start || '';
+        const startB = b.actual_start || b.planned_start || '';
+        if (startA && startB && startA !== startB) return startA.localeCompare(startB);
+        return Number(a.task_id) - Number(b.task_id);
+      });
+      const index = sorted.findIndex((t) => t.task_id === task.task_id);
+      if (index === 0) return 'first';
+      return 'second';
+    }
+
+    if (isSingleDay) {
+      return 'first';
+    }
+
+    const totalSchedHours = (task.schedules || []).reduce(
+      (sum, s) => sum + Number(s.allocated_hours || 0),
+      0,
+    );
+    if (isStartDay && totalSchedHours > Number(sched.allocated_hours)) {
+      return 'second';
+    }
+    if (!isStartDay && totalSchedHours > Number(sched.allocated_hours)) {
+      return 'first';
+    }
+
+    return isStartDay ? 'second' : 'first';
+  }
+
+  return 'full';
+}
+
+function normalizeTimeToDay(d: Date): Date {
+  const h = d.getHours();
+  const m = d.getMinutes();
+  
+  if (h === 0 && m === 0) return new Date(d); // Already midnight, likely a full day or snapped date
+
+  let decimalHours = h + m / 60;
+  
+  // Clamp to 10 - 18
+  if (decimalHours < 10) decimalHours = 10;
+  if (decimalHours > 18) decimalHours = 18;
+  
+  // Map 10-18 to 0-24
+  const fraction = (decimalHours - 10) / 8; // 0.0 to 1.0
+  const mappedHours = fraction * 24; // 0.0 to 24.0
+  
+  const mappedH = Math.floor(mappedHours);
+  const mappedM = Math.round((mappedHours - mappedH) * 60);
+  
+  const next = new Date(d.getFullYear(), d.getMonth(), d.getDate(), mappedH, mappedM, 0);
+  return next;
+}
+
+function computeTaskGanttDates(
+  t: Task,
+  tStart: Date,
+  tEnd: Date,
+  segments: TaskWorkSegment[],
+): { start: Date; end: Date } {
+  let effectiveStart = tStart;
+  let effectiveEnd = tEnd;
+
+  if (segments.length > 0) {
+    const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
+    if (plannedStartParsed && formatDateIso(plannedStartParsed) === formatDateIso(tStart)) {
+      effectiveStart = plannedStartParsed;
+    }
+    const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
+    if (
+      plannedEndParsed &&
+      (formatDateIso(plannedEndParsed) === formatDateIso(tEnd) ||
+        formatDateIso(plannedEndParsed) === formatDateIso(addDays(tEnd, -1)))
+    ) {
+      effectiveEnd = plannedEndParsed;
+    }
+  } else {
+    effectiveStart = parseIsoToDate(t.actual_start || t.planned_start) ?? tStart;
+    effectiveEnd = parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd;
+  }
+
+  const resolveStart = (d: Date | null) => {
+    if (!d) return null;
+    if (activeScale.value === 'hour') {
+      return snapToGanttWorkTime(d);
+    }
+    return normalizeTimeToDay(d);
+  };
+
+  const resolveEnd = (d: Date | null) => {
+    if (!d) return null;
+    if (activeScale.value === 'hour') {
+      if (d.getHours() === 0 && d.getMinutes() === 0) {
+        const prevDay = addDays(d, -1);
+        return new Date(prevDay.getFullYear(), prevDay.getMonth(), prevDay.getDate(), 18, 0, 0);
+      }
+      return snapToGanttWorkTime(d);
+    }
+    return normalizeTimeToDay(d);
+  };
+
+  let resolvedStart = resolveStart(effectiveStart) ?? effectiveStart;
+  let resolvedEnd = resolveEnd(effectiveEnd) ?? effectiveEnd;
+
+  if (!isValidDate(resolvedStart)) {
+    resolvedStart = new Date(effectiveStart.getTime());
+    if (isNaN(resolvedStart.getTime())) {
+      resolvedStart = new Date();
+      resolvedStart.setHours(0, 0, 0, 0);
+    }
+  }
+
+  if (!isValidDate(resolvedEnd) || resolvedEnd.getTime() <= resolvedStart.getTime()) {
+    resolvedEnd = new Date(resolvedStart.getTime() + 12 * 60 * 60 * 1000);
+  }
+
+  return { start: resolvedStart, end: resolvedEnd };
 }
 
 function formatDateIso(d: Date): string {
@@ -1079,8 +1287,50 @@ function configureGanttEngine() {
           0,
         );
       } else {
-        actualSegStart = seg.startDate;
-        actualSegEnd = seg.endDate;
+        const isFirstSeg = idx === 0;
+        const isLastSeg = idx === segments.length - 1;
+
+        if (
+          isFirstSeg &&
+          taskStartD.getHours() === 12 &&
+          formatDateIso(taskStartD) === seg.startStr
+        ) {
+          actualSegStart = new Date(
+            seg.startDate.getFullYear(),
+            seg.startDate.getMonth(),
+            seg.startDate.getDate(),
+            12,
+            0,
+            0,
+          );
+        } else {
+          actualSegStart = new Date(
+            seg.startDate.getFullYear(),
+            seg.startDate.getMonth(),
+            seg.startDate.getDate(),
+            0,
+            0,
+            0,
+          );
+        }
+
+        const lastDayOfSegStr = formatDateIso(addDays(seg.endDate, -1));
+        if (
+          isLastSeg &&
+          taskEndD.getHours() === 12 &&
+          (formatDateIso(taskEndD) === lastDayOfSegStr || formatDateIso(taskEndD) === seg.endStr)
+        ) {
+          actualSegEnd = new Date(
+            taskEndD.getFullYear(),
+            taskEndD.getMonth(),
+            taskEndD.getDate(),
+            12,
+            0,
+            0,
+          );
+        } else {
+          actualSegEnd = seg.endDate;
+        }
       }
 
       const segStartX = gantt.posFromDate(actualSegStart);
@@ -1128,15 +1378,46 @@ function configureGanttEngine() {
   // Tooltip Template with Segments Breakdown
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (gantt.templates as any).tooltip_text = (start: Date, end: Date, task: DhtmlxGanttTaskItem) => {
+    const rawStart = parseIsoToDate(task.actual_start || task.planned_start) || start;
+    const rawEnd = parseIsoToDate(task.actual_end || task.planned_end) || end;
+
     const text = escapeHtml(task.text || '');
     const projName = escapeHtml(task.project_name || 'TaskFlow Project');
-    const pct = Math.round((task.progress || 0) * 100);
-    const displayEnd = new Date(end.getTime() - 1000 * 60 * 60 * 24);
-    const dateRange = `${formatDate(start)} – ${formatDate(displayEnd)}`;
-    const durationDays = Math.max(
-      1,
-      Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)),
+    const formatTime = (d: Date) => {
+      let h = d.getHours();
+      const m = d.getMinutes().toString().padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${m} ${ampm}`;
+    };
+
+    const isExactTime =
+      rawStart.getHours() !== 0 ||
+      rawStart.getMinutes() !== 0 ||
+      rawEnd.getHours() !== 0 ||
+      rawEnd.getMinutes() !== 0;
+
+    const displayEnd = isExactTime
+      ? new Date(rawEnd.getTime())
+      : new Date(rawEnd.getTime() - 1000 * 60 * 60 * 24);
+
+    const startStr = formatDate(rawStart);
+    const endStr = formatDate(displayEnd);
+
+    let dateRange = '';
+    if (isExactTime) {
+      if (startStr === endStr) {
+        dateRange = `${startStr} (${formatTime(rawStart)} - ${formatTime(rawEnd)})`;
+      } else {
+        dateRange = `${startStr}, ${formatTime(rawStart)} – ${endStr}, ${formatTime(rawEnd)}`;
+      }
+    } else {
+      dateRange = startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+    }
+    const durationDays = Number(
+      Math.max(0.5, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)).toFixed(1),
     );
+    const pct = Math.round((Number(task.progress) || 0) * 100);
 
     if (task.type === 'project') {
       return (
@@ -1178,6 +1459,14 @@ function configureGanttEngine() {
     const statusText = task.status ? task.status.replace(/_/g, ' ') : '—';
     const priorityText = task.priority || '—';
     const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
+    
+    const parseOrFallback = (str?: string) => {
+      if (!str) return '—';
+      const d = parseIsoToDate(str);
+      return d ? formatDate(d) : '—';
+    };
+    const pStartStr = parseOrFallback(task.planned_start);
+    const pEndStr = parseOrFallback(task.planned_end);
 
     let segmentsHtml = '';
     if (task.segments && task.segments.length > 1) {
@@ -1203,7 +1492,8 @@ function configureGanttEngine() {
       (hasSupervisor
         ? `<div class="tooltip-row"><span class="tooltip-k">Combined Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${combinedEffort} hrs</span></div>`
         : `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>`) +
-      `<div class="tooltip-row"><span class="tooltip-k">Overall Span:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">Planned Timeline:</span><span class="tooltip-v text-grey-8">${pStartStr} – ${pEndStr}</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">Scheduled Span:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
       segmentsHtml +
       `<div class="tooltip-row"><span class="tooltip-k">Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
       `</div>` +
@@ -1234,17 +1524,20 @@ function configureGanttEngine() {
             Number(avail.leave_hours) < (avail.daily_working_hours || 8));
 
         if (isHalfDay) {
+          const isSecondHalf =
+            avail.leave_type === 'SECOND_HALF' ||
+            String(avail.leave_type).toUpperCase().includes('SECOND') ||
+            String(avail.leave_type).toUpperCase().includes('2');
           if (activeScale.value === 'hour') {
             const h = date.getHours();
-            const isSecondHalf =
-              avail.leave_type === 'SECOND_HALF' ||
-              String(avail.leave_type).toUpperCase().includes('SECOND') ||
-              String(avail.leave_type).toUpperCase().includes('2');
             if (isSecondHalf) {
               return h >= 14 && h < 18 ? 'gantt-col-leave' : '';
             } else {
               return h >= 10 && h < 14 ? 'gantt-col-leave' : '';
             }
+          }
+          if (activeScale.value === 'day') {
+            return isSecondHalf ? 'gantt-col-leave-second-half' : 'gantt-col-leave-first-half';
           }
           return '';
         }
@@ -1285,17 +1578,20 @@ function configureGanttEngine() {
             Number(avail.leave_hours) < (avail.daily_working_hours || 8));
 
         if (isHalfDay) {
+          const isSecondHalf =
+            avail.leave_type === 'SECOND_HALF' ||
+            String(avail.leave_type).toUpperCase().includes('SECOND') ||
+            String(avail.leave_type).toUpperCase().includes('2');
           if (activeScale.value === 'hour') {
             const h = date.getHours();
-            const isSecondHalf =
-              avail.leave_type === 'SECOND_HALF' ||
-              String(avail.leave_type).toUpperCase().includes('SECOND') ||
-              String(avail.leave_type).toUpperCase().includes('2');
             if (isSecondHalf) {
               return h >= 14 && h < 18 ? 'gantt-scale-leave' : '';
             } else {
               return h >= 10 && h < 14 ? 'gantt-scale-leave' : '';
             }
+          }
+          if (activeScale.value === 'day') {
+            return isSecondHalf ? 'gantt-scale-leave-second-half' : 'gantt-scale-leave-first-half';
           }
           return '';
         }
@@ -1426,17 +1722,25 @@ function updateCustomMarkers() {
           Number(avail.leave_hours) < (avail.daily_working_hours || 8));
 
       if (isHalfDay) {
-        // Half-day / Partial leaves only show vertical markers in hourly scale view
-        if (activeScale.value !== 'hour') return;
+        if (activeScale.value !== 'hour' && activeScale.value !== 'day') return;
 
         const isSecondHalf =
           avail.leave_type === 'SECOND_HALF' ||
           String(avail.leave_type).toUpperCase().includes('SECOND') ||
           String(avail.leave_type).toUpperCase().includes('2');
-        if (isSecondHalf) {
-          d.setHours(14, 0, 0, 0);
+        if (activeScale.value === 'hour') {
+          if (isSecondHalf) {
+            d.setHours(14, 0, 0, 0);
+          } else {
+            d.setHours(10, 0, 0, 0);
+          }
         } else {
-          d.setHours(10, 0, 0, 0);
+          // Day scale: position at 12:00 for second half, 00:00 for first half
+          if (isSecondHalf) {
+            d.setHours(12, 0, 0, 0);
+          } else {
+            d.setHours(0, 0, 0, 0);
+          }
         }
         const halfLabel = isSecondHalf ? '2ND HALF' : '1ST HALF';
         try {
@@ -1745,28 +2049,16 @@ function buildGanttDataset() {
         totalWeightedProgress += prog * dur;
         totalDuration += dur;
 
-        let effectiveStart = tStart;
-        let effectiveEnd = tEnd;
-        if (segments.length > 0) {
-          const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
-          if (plannedStartParsed && formatDateIso(plannedStartParsed) === formatDateIso(tStart)) {
-            effectiveStart = plannedStartParsed;
-          }
-          const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
-          if (
-            plannedEndParsed &&
-            (formatDateIso(plannedEndParsed) === formatDateIso(tEnd) ||
-              formatDateIso(plannedEndParsed) === formatDateIso(addDays(tEnd, -1)))
-          ) {
-            effectiveEnd = plannedEndParsed;
-          }
-        } else {
-          effectiveStart = parseIsoToDate(t.actual_start || t.planned_start) ?? tStart;
-          effectiveEnd = parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd;
-        }
+        const { start: resolvedChildStart, end: resolvedChildEnd } = computeTaskGanttDates(
+          t,
+          tStart,
+          tEnd,
+          segments,
+        );
 
-        const resolvedChildStart = resolveStartDate(effectiveStart) ?? effectiveStart;
-        const resolvedChildEnd = resolveEndDate(effectiveEnd) ?? effectiveEnd;
+        if (!earliestStart || resolvedChildStart < earliestStart)
+          earliestStart = resolvedChildStart;
+        if (!latestEnd || resolvedChildEnd > latestEnd) latestEnd = resolvedChildEnd;
 
         const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
         const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
@@ -1809,6 +2101,13 @@ function buildGanttDataset() {
       const startObj = earliestStart || new Date();
       const endObj = latestEnd || addDays(startObj, 1);
 
+      let pStart = resolveStartDate(startObj) ?? startObj;
+      let pEnd = resolveEndDate(endObj) ?? endObj;
+      if (!isValidDate(pStart)) pStart = new Date();
+      if (!isValidDate(pEnd) || pEnd.getTime() <= pStart.getTime()) {
+        pEnd = new Date(pStart.getTime() + 24 * 60 * 60 * 1000);
+      }
+
       const calculatedProgress =
         totalDuration > 0
           ? totalWeightedProgress / totalDuration / 100
@@ -1827,8 +2126,8 @@ function buildGanttDataset() {
       data.push({
         id: projNodeId,
         text: p.name,
-        start_date: formatGanttDate(resolveStartDate(startObj)!),
-        end_date: formatGanttDate(resolveEndDate(endObj)!),
+        start_date: formatGanttDate(pStart),
+        end_date: formatGanttDate(pEnd),
         progress: Math.min(1, Math.max(0, calculatedProgress)),
         type: 'project',
         open: isProjectOpen,
@@ -1854,28 +2153,12 @@ function buildGanttDataset() {
 
       const p = projectMap.value.get(t.project_id);
 
-      let effectiveStart = tStart;
-      let effectiveEnd = tEnd;
-      if (segments.length > 0) {
-        const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
-        if (plannedStartParsed && formatDateIso(plannedStartParsed) === formatDateIso(tStart)) {
-          effectiveStart = plannedStartParsed;
-        }
-        const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
-        if (
-          plannedEndParsed &&
-          (formatDateIso(plannedEndParsed) === formatDateIso(tEnd) ||
-            formatDateIso(plannedEndParsed) === formatDateIso(addDays(tEnd, -1)))
-        ) {
-          effectiveEnd = plannedEndParsed;
-        }
-      } else {
-        effectiveStart = parseIsoToDate(t.actual_start || t.planned_start) ?? tStart;
-        effectiveEnd = parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd;
-      }
-
-      const resolvedFlatStart = resolveStartDate(effectiveStart) ?? effectiveStart;
-      const resolvedFlatEnd = resolveEndDate(effectiveEnd) ?? effectiveEnd;
+      const { start: resolvedFlatStart, end: resolvedFlatEnd } = computeTaskGanttDates(
+        t,
+        tStart,
+        tEnd,
+        segments,
+      );
 
       const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
       const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
@@ -3080,6 +3363,14 @@ defineExpose({
     border-left: 1px dashed rgba(8, 145, 178, 0.35) !important;
     border-right: 1px dashed rgba(8, 145, 178, 0.35) !important;
   }
+  .gantt-col-leave-first-half {
+    background: linear-gradient(to right, rgba(6, 182, 212, 0.11) 50%, transparent 50%) !important;
+    border-left: 1px dashed rgba(8, 145, 178, 0.35) !important;
+  }
+  .gantt-col-leave-second-half {
+    background: linear-gradient(to right, transparent 50%, rgba(6, 182, 212, 0.11) 50%) !important;
+    border-right: 1px dashed rgba(8, 145, 178, 0.35) !important;
+  }
   .gantt-col-nwd {
     background-color: rgba(148, 163, 184, 0.08) !important;
   }
@@ -3091,6 +3382,16 @@ defineExpose({
   }
   .gantt-scale-leave {
     background-color: rgba(6, 182, 212, 0.15) !important;
+    color: #0e7490 !important;
+    font-weight: 700 !important;
+  }
+  .gantt-scale-leave-first-half {
+    background: linear-gradient(to right, rgba(6, 182, 212, 0.15) 50%, transparent 50%) !important;
+    color: #0e7490 !important;
+    font-weight: 700 !important;
+  }
+  .gantt-scale-leave-second-half {
+    background: linear-gradient(to right, transparent 50%, rgba(6, 182, 212, 0.15) 50%) !important;
     color: #0e7490 !important;
     font-weight: 700 !important;
   }
@@ -3472,6 +3773,22 @@ body.body--dark {
       border-left: 1px dashed rgba(6, 182, 212, 0.45) !important;
       border-right: 1px dashed rgba(6, 182, 212, 0.45) !important;
     }
+    .gantt-col-leave-first-half {
+      background: linear-gradient(
+        to right,
+        rgba(6, 182, 212, 0.18) 50%,
+        transparent 50%
+      ) !important;
+      border-left: 1px dashed rgba(6, 182, 212, 0.45) !important;
+    }
+    .gantt-col-leave-second-half {
+      background: linear-gradient(
+        to right,
+        transparent 50%,
+        rgba(6, 182, 212, 0.18) 50%
+      ) !important;
+      border-right: 1px dashed rgba(6, 182, 212, 0.45) !important;
+    }
     .gantt-col-nwd {
       background-color: rgba(148, 163, 184, 0.1) !important;
     }
@@ -3482,6 +3799,22 @@ body.body--dark {
     }
     .gantt-scale-leave {
       background-color: rgba(6, 182, 212, 0.25) !important;
+      color: #67e8f9 !important;
+    }
+    .gantt-scale-leave-first-half {
+      background: linear-gradient(
+        to right,
+        rgba(6, 182, 212, 0.25) 50%,
+        transparent 50%
+      ) !important;
+      color: #67e8f9 !important;
+    }
+    .gantt-scale-leave-second-half {
+      background: linear-gradient(
+        to right,
+        transparent 50%,
+        rgba(6, 182, 212, 0.25) 50%
+      ) !important;
       color: #67e8f9 !important;
     }
     .gantt-scale-nwd {

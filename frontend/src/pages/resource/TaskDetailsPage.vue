@@ -3628,6 +3628,7 @@ watch(canViewTaskHistory, (canView) => {
   }
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const isCurrentTaskSessionActive = computed(() => {
   return !!task.value && sessionStore.isTaskSessionActive(task.value.task_id);
 });
@@ -3639,6 +3640,7 @@ const stopSessionForm = reactive({
   blockers: '',
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleStartSession(tId: number) {
   if (sessionStore.hasActiveSession && sessionStore.activeTaskId !== tId) {
     Notify.create({
@@ -3666,6 +3668,7 @@ async function handleStartSession(tId: number) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function promptStopSession() {
   if (!sessionStore.hasActiveSession) return;
   const activeId = sessionStore.activeTaskId;

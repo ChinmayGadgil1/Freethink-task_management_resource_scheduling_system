@@ -5,7 +5,7 @@
   >
     <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
       <!-- 1. PAGE HEADER & DATE NAVIGATION -->
-      <div class="row items-center justify-between wrap gap-md">
+      <div class="row items-center wrap gap-md" style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;">
         <div>
           <div
             class="page-title text-h5 text-weight-bold"
@@ -19,7 +19,7 @@
         </div>
 
         <!-- Date Selector & Navigation Controls -->
-        <div class="row items-center gap-xs">
+        <div class="row items-center gap-xs justify-center">
           <q-btn
             round
             flat
@@ -66,7 +66,10 @@
             class="q-px-sm q-ml-xs text-weight-medium"
             @click="goToToday"
           />
+        </div>
 
+        <!-- Actions -->
+        <div class="row items-center gap-xs justify-end">
           <q-btn
             flat
             round
@@ -78,6 +81,28 @@
           >
             <q-tooltip>Refresh</q-tooltip>
           </q-btn>
+          
+          <q-btn
+            v-if="!isCheckedOut && allocations.length > 0"
+            push
+            glossy
+            no-caps
+            label="Submit Today's Logs"
+            icon="fact_check"
+            color="positive"
+            class="q-ml-md text-weight-bold checkout-btn"
+            :loading="loading"
+            @click="submitDailyLogs"
+          />
+          <q-chip
+            v-else-if="isCheckedOut"
+            icon="check_circle"
+            color="positive"
+            text-color="white"
+            class="q-ml-md text-weight-bold shadow-1"
+          >
+            Checked Out
+          </q-chip>
         </div>
       </div>
 
@@ -298,6 +323,14 @@
                       <q-icon name="event" size="15px" color="negative" />
                       <span><b>Deadline:</b> {{ formatDate(item.deadline) }}</span>
                     </div>
+                    <div v-if="item.planned_start" class="row items-center gap-xs">
+                      <q-icon name="flight_takeoff" size="15px" color="amber-8" />
+                      <span><b>Planned Start:</b> {{ formatDateTime(item.planned_start) }}</span>
+                    </div>
+                    <div v-if="item.planned_end" class="row items-center gap-xs">
+                      <q-icon name="flight_land" size="15px" color="amber-8" />
+                      <span><b>Planned End:</b> {{ formatDateTime(item.planned_end) }}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -402,6 +435,7 @@ import { useQuasar } from 'quasar';
 import {
   getDailyAllocationsApi,
   createWorkLogApi,
+  submitDailyLogsApi,
   type DailyAllocationTask,
   type CreateWorkLogPayload,
 } from '@/services/api';
@@ -426,6 +460,24 @@ function formatDate(dateStr?: string | null): string {
   }
 }
 
+function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).format(d);
+  } catch {
+    return String(dateStr);
+  }
+}
+
 function formatLocalDate(d: Date): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -435,6 +487,7 @@ function formatLocalDate(d: Date): string {
 
 const selectedDate = ref<string>(formatLocalDate(new Date()));
 const allocations = ref<DailyAllocationTask[]>([]);
+const isCheckedOut = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
 
@@ -494,12 +547,42 @@ async function loadDailyAllocations() {
   try {
     const res = await getDailyAllocationsApi(selectedDate.value);
     allocations.value = res.allocations || [];
+    isCheckedOut.value = !!res.is_checked_out;
   } catch (err: unknown) {
     console.error('Failed to load daily allocations:', err);
-    error.value = err instanceof Error ? err.message : 'Failed to load daily work allocations';
+    error.value = (err as Error)?.message || 'Failed to load daily work allocations';
   } finally {
     loading.value = false;
   }
+}
+
+async function submitDailyLogs() {
+  $q.dialog({
+    title: 'Submit Today\'s Logs',
+    message: 'Are you sure you want to submit your logs for today? This indicates you have left the office and will trigger a schedule recalculation. You cannot undo this action.',
+    cancel: true,
+    persistent: true,
+  }).onOk(async () => {
+    loading.value = true;
+    try {
+      await submitDailyLogsApi(selectedDate.value);
+      $q.notify({
+        type: 'positive',
+        message: 'Daily logs submitted successfully!',
+        position: 'top',
+      });
+      await loadDailyAllocations();
+    } catch (err: unknown) {
+      console.error('Error submitting daily logs:', err);
+      $q.notify({
+        type: 'negative',
+        message: (err as Error)?.message || 'Failed to submit logs',
+        position: 'top',
+      });
+    } finally {
+      loading.value = false;
+    }
+  });
 }
 
 function openWorkLogDialog(task: DailyAllocationTask) {
@@ -525,7 +608,7 @@ async function handleSaveWorkLog(payload: CreateWorkLogPayload) {
     console.error('Error saving work log:', err);
     $q.notify({
       type: 'negative',
-      message: err instanceof Error ? err.message : 'Failed to record work log',
+      message: (err as Error)?.message || 'Failed to record work log',
       position: 'top',
     });
   } finally {
@@ -607,5 +690,26 @@ onMounted(() => {
 .prio-badge-low {
   background: #f1f5f9;
   color: #475569;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.checkout-btn {
+  animation: pulse-glow 2s infinite;
+  transition: transform 0.2s;
+}
+
+.checkout-btn:hover {
+  transform: scale(1.05);
 }
 </style>

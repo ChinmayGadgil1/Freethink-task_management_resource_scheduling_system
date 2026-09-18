@@ -602,6 +602,25 @@ export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response
     }
 }
 
+export async function submitDailyLogsController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "RESOURCE") {
+            return res.status(403).json({ message: "Only resources can submit daily logs" });
+        }
+
+        const dateStr = z.string().min(1, "Date is required").parse(req.body.date);
+        const { submitDailyLogs } = await import("../services/workLogService.js");
+
+        const result = await submitDailyLogs(req.user.user_id, dateStr);
+        return res.status(200).json(result);
+    } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ message: error.issues[0]?.message || "Validation error", errors: error.issues });
+        }
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
 export async function getDailyAllocationsController(req: AuthRequest, res: Response) {
     try {
         if (req.user?.role !== "RESOURCE") {
@@ -611,8 +630,8 @@ export async function getDailyAllocationsController(req: AuthRequest, res: Respo
         const dateStr = (req.query.date as string) || new Date().toISOString().split("T")[0]!;
         const { getDailyWorkAllocationsForResource } = await import("../services/workLogService.js");
 
-        const allocations = await getDailyWorkAllocationsForResource(req.user.user_id, dateStr);
-        return res.status(200).json({ date: dateStr, allocations });
+        const result = await getDailyWorkAllocationsForResource(req.user.user_id, dateStr);
+        return res.status(200).json({ date: dateStr, allocations: result.allocations, is_checked_out: result.is_checked_out });
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }

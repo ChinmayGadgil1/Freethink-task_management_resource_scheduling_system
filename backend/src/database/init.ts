@@ -241,7 +241,19 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
     `);
     console.log("User leaves table is ready.");
 
-    // 12. Notifications table
+    // 12. Daily Checkouts table
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS daily_checkouts (
+            user_id BIGINT NOT NULL,
+            checkout_date DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, checkout_date),
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    `);
+    console.log("Daily checkouts table is ready.");
+
+    // 13. Notifications table
     await pool.query(`
         CREATE TABLE IF NOT EXISTS notifications (
             notification_id BIGINT AUTO_INCREMENT PRIMARY KEY,

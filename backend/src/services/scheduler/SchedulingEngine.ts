@@ -320,6 +320,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         `
         SELECT
             t.*,
+            p.start_date AS project_start_date,
             p.deadline AS project_deadline,
             GROUP_CONCAT(DISTINCT ta.user_id) AS assigned_resource_ids
         FROM tasks t
@@ -337,15 +338,26 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     );
 
     let projectDeadline: string | null = null;
-    if (taskRows.length > 0 && taskRows[0]?.project_deadline) {
-        projectDeadline = String(taskRows[0].project_deadline).split("T")[0]!;
+    let projectStartDate: Date | null = null;
+    if (taskRows.length > 0) {
+        if (taskRows[0]?.project_deadline) {
+            projectDeadline = String(taskRows[0].project_deadline).split("T")[0]!;
+        }
+        if (taskRows[0]?.project_start_date) {
+            projectStartDate = new Date(taskRows[0].project_start_date);
+        }
     } else {
         const [pRows] = await pool.query<RowDataPacket[]>(
-            `SELECT deadline FROM projects WHERE project_id = ? LIMIT 1`,
+            `SELECT start_date, deadline FROM projects WHERE project_id = ? LIMIT 1`,
             [projectId]
         );
-        if (pRows.length > 0 && pRows[0]?.deadline) {
-            projectDeadline = String(pRows[0].deadline).split("T")[0]!;
+        if (pRows.length > 0) {
+            if (pRows[0]?.deadline) {
+                projectDeadline = String(pRows[0].deadline).split("T")[0]!;
+            }
+            if (pRows[0]?.start_date) {
+                projectStartDate = new Date(pRows[0].start_date);
+            }
         }
     }
 
@@ -416,8 +428,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         throw cycleError;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const baselineDate = projectStartDate ? new Date(projectStartDate) : new Date();
+    baselineDate.setHours(0, 0, 0, 0);
 
     const inDegree = new Map<number, number>();
     const adjList = new Map<number, number[]>();
@@ -444,7 +456,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         if (inDegree.get(task.task_id) === 0) {
             availableTasks.push({
                 ...task,
-                urgency_score: calculateUrgencyScore(task, downstreamCountMap.get(task.task_id) ?? 0, today)
+                urgency_score: calculateUrgencyScore(task, downstreamCountMap.get(task.task_id) ?? 0, baselineDate)
             });
         }
     }
@@ -552,9 +564,23 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         leaveTypes.get(userId)!.set(date, leaveType);
     }
 
-    const resourceSchedule = new Map<number, Map<string, number>>();
-
     const resourceUserIds = Array.from(resourceConfigs.keys());
+
+    const checkedOutDays = new Set<string>();
+
+    if (resourceUserIds.length > 0) {
+        const [checkoutRows] = await pool.query<RowDataPacket[]>(
+            `SELECT user_id, DATE_FORMAT(checkout_date, '%Y-%m-%d') as checkout_date
+             FROM daily_checkouts
+             WHERE user_id IN (?)`,
+            [resourceUserIds]
+        );
+        for (const row of checkoutRows) {
+            checkedOutDays.add(`${row.user_id}_${row.checkout_date}`);
+        }
+    }
+
+    const resourceSchedule = new Map<number, Map<string, number>>();
 
     // Preload existing task allocations from other active projects for these resources
     if (resourceUserIds.length > 0) {
@@ -596,6 +622,9 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     }
 
     const getAvailableHours = (userId: number, date: string): number => {
+        if (checkedOutDays.has(`${userId}_${date}`)) {
+            return 0; // If checked out for the day, capacity is 0
+        }
         return calculateAvailableHours(
             userId,
             date,
@@ -615,7 +644,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
 
     const earliestStarts = new Map<number, Date>();
     for (const task of tasks) {
-        earliestStarts.set(task.task_id, new Date(today));
+        earliestStarts.set(task.task_id, new Date(baselineDate));
     }
 
     const taskUpdates = new Map<number, {
@@ -638,7 +667,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         let plannedStart: string | null = null;
         let plannedEnd: string | null = null;
         
-        let taskEarliestStart = earliestStarts.get(task.task_id) ?? new Date(today);
+        let taskEarliestStart = earliestStarts.get(task.task_id) ?? new Date(baselineDate);
         let taskFinalEnd: Date | null = null;
 
         if (remainingEffort > 0 && resourceIds.length > 0 && task.status !== "UNASSIGNED") {
@@ -805,7 +834,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 const succTask = tasks.find(t => t.task_id === succ)!;
                 availableTasks.push({
                     ...succTask,
-                    urgency_score: calculateUrgencyScore(succTask, downstreamCountMap.get(succ) ?? 0, today)
+                    urgency_score: calculateUrgencyScore(succTask, downstreamCountMap.get(succ) ?? 0, baselineDate)
                 });
             }
         }
@@ -851,7 +880,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 leaves,
                 resourceConfigs,
                 resourceSchedule,
-                today,
+                baselineDate,
                 projectDeadline
             );
 
