@@ -980,6 +980,11 @@
                           ><q-icon name="edit_note" size="18px" color="primary" /></q-item-section
                         ><q-item-section>Update Progress</q-item-section></q-item
                       >
+                      <q-item clickable @click="openAssignTaskMemberDialog(props.row.task_id)"
+                        ><q-item-section avatar
+                          ><q-icon name="person_add" size="18px" color="primary" /></q-item-section
+                        ><q-item-section>Assign Member</q-item-section></q-item
+                      >
                       <q-item clickable @click="openDependencyDialog(props.row)"
                         ><q-item-section avatar
                           ><q-icon
@@ -1567,6 +1572,68 @@
         </q-card>
       </q-dialog>
 
+      <!-- DIALOG: ASSIGN MEMBER / SUPERVISOR TO TASK -->
+      <q-dialog v-model="showAssignTaskMemberDialog">
+        <q-card :dark="$q.dark.isActive" style="min-width: 420px" class="rounded-borders">
+          <q-card-section class="row items-center justify-between">
+            <div class="text-subtitle1 text-weight-bold">Assign Member / Supervisor to Task</div>
+            <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
+          </q-card-section>
+
+          <q-form @submit.prevent="handleAssignTaskMember">
+            <q-card-section class="column q-gutter-md">
+              <q-select
+                v-model="assignTaskMemberForm.user_ids"
+                outlined
+                dense
+                multiple
+                clearable
+                :dark="$q.dark.isActive"
+                :display-value="
+                  assignTaskMemberForm.user_ids.length
+                    ? `${assignTaskMemberForm.user_ids.length} selected`
+                    : ''
+                "
+                label="Assign Member(s)"
+                :options="taskMemberSelectOptions"
+                emit-value
+                map-options
+                hint="Assign any resource in the workspace; they will automatically join this project"
+              />
+
+              <q-select
+                v-model="assignTaskMemberForm.supervisor_id"
+                outlined
+                dense
+                clearable
+                :dark="$q.dark.isActive"
+                label="Supervisor / Reviewer (Optional)"
+                :options="taskSupervisorSelectOptions"
+                emit-value
+                map-options
+                hint="Designate an experienced resource to oversee deliverables (+20% effort overhead)"
+              >
+                <template #prepend>
+                  <q-icon name="verified_user" color="amber-9" />
+                </template>
+              </q-select>
+            </q-card-section>
+
+            <q-card-actions align="right" class="q-pa-md">
+              <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />
+              <q-btn
+                type="submit"
+                unelevated
+                no-caps
+                color="primary"
+                label="Save Assignments"
+                :loading="submittingTaskMember"
+              />
+            </q-card-actions>
+          </q-form>
+        </q-card>
+      </q-dialog>
+
       <!-- DELETE CONFIRMATION DIALOGS -->
       <ConfirmActionDialog
         v-model="showDeleteProjectDialog"
@@ -1679,6 +1746,7 @@ import {
   deleteTaskApi,
   deleteProjectApi,
   assignProjectMemberApi,
+  assignTaskResourceApi,
   removeProjectMemberApi,
   unassignTaskResourceApi,
   addTaskDependencyApi,
@@ -1906,13 +1974,15 @@ const projectPriorityOptions = [
 ];
 
 const createTaskAssigneeOptions = computed(() => {
+  const source =
+    allSystemResources.value.length > 0 ? allSystemResources.value : projectMembersResources.value;
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
-  for (const m of teamMembers.value) {
-    const id = Number(m.id);
+  for (const r of source) {
+    const id = Number(r.user_id);
     if (id && !isNaN(id) && !seen.has(id)) {
       seen.add(id);
-      opts.push({ label: m.name, value: id });
+      opts.push({ label: r.name, value: id });
     }
   }
   return opts;
@@ -1936,17 +2006,123 @@ const availableResourcesToAdd = computed(() => {
 
   for (const r of allSystemResources.value) {
     const id = Number(r.user_id);
-    if (id && !isNaN(id) && !seen.has(id)) {
+    if (id && !isNaN(id) && !seen.has(id) && !currentMemberIds.has(id)) {
       seen.add(id);
       opts.push({
         label: `${r.name} (${r.role || 'Team Member'})`,
         value: id,
-        alreadyMember: currentMemberIds.has(id),
+        alreadyMember: false,
       });
     }
   }
   return opts;
 });
+
+const showAssignTaskMemberDialog = ref(false);
+const submittingTaskMember = ref(false);
+const assignTaskMemberForm = reactive({
+  task_id: null as number | null,
+  user_ids: [] as number[],
+  supervisor_id: null as number | null,
+});
+
+function openAssignTaskMemberDialog(taskId: number) {
+  const currentTask = tasks.value.find((t) => t.task_id === taskId);
+  assignTaskMemberForm.task_id = taskId;
+  assignTaskMemberForm.user_ids = (currentTask?.assigned_resource_ids || []).map(Number);
+  assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id
+    ? Number(currentTask.supervisor_id)
+    : null;
+  showAssignTaskMemberDialog.value = true;
+}
+
+const taskMemberSelectOptions = computed(() => {
+  const source =
+    allSystemResources.value.length > 0 ? allSystemResources.value : projectMembersResources.value;
+  const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
+  const alreadyAssignedIds = (currentTask?.assigned_resource_ids || []).map(Number);
+  const chosenSupId = assignTaskMemberForm.supervisor_id;
+
+  const seen = new Set<number>();
+  const opts: Array<{
+    label: string;
+    value: number;
+    alreadyAssigned: boolean;
+    disable: boolean;
+  }> = [];
+
+  for (const r of source) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      const isAssigned = alreadyAssignedIds.includes(id);
+      const isChosenSupervisor = chosenSupId ? Number(id) === Number(chosenSupId) : false;
+      opts.push({
+        label: r.name + (isChosenSupervisor ? ' (Designated Supervisor)' : ''),
+        value: id,
+        alreadyAssigned: isAssigned,
+        disable: isChosenSupervisor,
+      });
+    }
+  }
+  return opts;
+});
+
+const taskSupervisorSelectOptions = computed(() => {
+  const source =
+    allSystemResources.value.length > 0 ? allSystemResources.value : projectMembersResources.value;
+  const selectedUserIds = assignTaskMemberForm.user_ids || [];
+  const seen = new Set<number>();
+  const opts: Array<{ label: string; value: number }> = [];
+
+  for (const r of source) {
+    const id = Number(r.user_id);
+    if (id && !isNaN(id) && !seen.has(id)) {
+      seen.add(id);
+      if (!selectedUserIds.includes(id)) {
+        opts.push({
+          label: r.name,
+          value: id,
+        });
+      }
+    }
+  }
+  return opts;
+});
+
+async function handleAssignTaskMember() {
+  const currentTaskId = assignTaskMemberForm.task_id;
+  if (!currentTaskId) return;
+
+  const currentTask = tasks.value.find((t) => t.task_id === currentTaskId);
+  const existingAssigneeIds = (currentTask?.assigned_resource_ids || []).map(Number);
+  const newAssigneeIds = assignTaskMemberForm.user_ids;
+  const toAssignIds = newAssigneeIds.filter((id) => !existingAssigneeIds.includes(id));
+  const newSupId = assignTaskMemberForm.supervisor_id;
+  const supervisorChanged =
+    (currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null) !== newSupId;
+
+  submittingTaskMember.value = true;
+  try {
+    for (const userId of toAssignIds) {
+      await assignTaskResourceApi(currentTaskId, userId);
+    }
+    if (supervisorChanged) {
+      await updateTaskApi(currentTaskId, { supervisor_id: newSupId });
+    }
+    $q.notify({
+      type: 'positive',
+      message: 'Task assignments and supervisor saved successfully',
+    });
+    showAssignTaskMemberDialog.value = false;
+    await refreshData();
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to update task assignments';
+    $q.notify({ type: 'negative', message: msg });
+  } finally {
+    submittingTaskMember.value = false;
+  }
+}
 
 const selectedDependencyTaskName = computed(() => {
   if (!selectedDependencyTaskId.value) return '';

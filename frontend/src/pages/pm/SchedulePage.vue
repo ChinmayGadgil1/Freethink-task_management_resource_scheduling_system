@@ -1590,8 +1590,7 @@ function openAssignVerificationFromDetails(task: Task) {
 const createProjectMembers = ref<ResourceUser[]>([]);
 
 const createMemberOptions = computed(() => {
-  const source =
-    createProjectMembers.value.length > 0 ? createProjectMembers.value : resources.value;
+  const source = resources.value;
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
   for (const r of source) {
