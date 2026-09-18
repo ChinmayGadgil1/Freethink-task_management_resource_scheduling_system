@@ -13,7 +13,7 @@
           </div>
         </div>
 
-        <!-- Clean, unified quick action buttons -->
+        <!-- Quick action buttons -->
         <div class="row items-center q-gutter-xs wrap">
           <q-btn
             unelevated
@@ -39,7 +39,7 @@
             icon="calendar_month"
             label="Schedule"
             class="action-btn text-weight-medium"
-            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
             @click="goToSchedule()"
           />
           <q-btn
@@ -48,7 +48,7 @@
             icon="trending_up"
             label="Progress"
             class="action-btn text-weight-medium gt-xs"
-            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
             @click="goToProgress()"
           />
           <q-btn
@@ -80,247 +80,273 @@
 
       <!-- MAIN DASHBOARD BODY -->
       <template v-else>
-        <!-- 02. KEY METRICS STRIP (4 KPI CARDS) -->
+        <!-- 02. REUSABLE STAT CARDS (4 KPI METRICS) -->
         <div class="row q-col-gutter-md">
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card flat bordered class="kpi-card cursor-pointer" @click="goToTaskDetails()">
-              <div class="row items-center justify-between">
-                <span class="kpi-label">Total Tasks</span>
-                <div class="kpi-icon-wrap kpi-blue">
-                  <q-icon name="task_alt" size="18px" />
-                </div>
-              </div>
-              <div class="kpi-value q-mt-xs">{{ tasks.length }}</div>
-              <div class="kpi-meta text-muted">All assigned deliverables</div>
-            </q-card>
+            <StatCard
+              title="Total Tasks"
+              :value="tasks.length"
+              subtitle="All assigned deliverables"
+              icon="task_alt"
+              color="blue"
+              note-class="note-blue"
+              @click="goToTaskDetails()"
+            />
           </div>
 
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="kpi-card cursor-pointer"
+            <StatCard
+              title="In Progress"
+              :value="activeTasksCount"
+              :subtitle="
+                tasks.length
+                  ? `${Math.round((activeTasksCount / tasks.length) * 100)}% active workload`
+                  : 'No active tasks'
+              "
+              icon="sync"
+              color="purple"
+              note-class="note-purple"
               @click="goToTaskDetails(undefined, { status: 'IN_PROGRESS' })"
-            >
-              <div class="row items-center justify-between">
-                <span class="kpi-label">In Progress</span>
-                <div class="kpi-icon-wrap kpi-purple">
-                  <q-icon name="sync" size="18px" />
-                </div>
-              </div>
-              <div class="kpi-value q-mt-xs">{{ activeTasksCount }}</div>
-              <div class="kpi-meta text-muted">
-                {{
-                  tasks.length
-                    ? `${Math.round((activeTasksCount / tasks.length) * 100)}% active workload`
-                    : 'No active tasks'
-                }}
-              </div>
-            </q-card>
+            />
           </div>
 
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="kpi-card cursor-pointer"
+            <StatCard
+              title="Supervised"
+              :value="supervisedTasksCount"
+              subtitle="Deliverables under review"
+              icon="verified_user"
+              color="green"
+              note-class="note-green"
               @click="goToTaskDetails(undefined, { scope: 'supervised' })"
-            >
-              <div class="row items-center justify-between">
-                <span class="kpi-label">Supervised</span>
-                <div class="kpi-icon-wrap kpi-green">
-                  <q-icon name="verified_user" size="18px" />
-                </div>
-              </div>
-              <div class="kpi-value q-mt-xs">{{ supervisedTasksCount }}</div>
-              <div class="kpi-meta text-muted">Deliverables under review</div>
-            </q-card>
+            />
           </div>
 
           <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="kpi-card cursor-pointer"
-              :class="{ 'kpi-card-warning': delayedTasksCount > 0 }"
+            <StatCard
+              title="Delayed"
+              :value="delayedTasksCount"
+              :subtitle="
+                delayedTasksCount > 0
+                  ? `${delayedTasksCount} ${delayedTasksCount === 1 ? 'task needs' : 'tasks need'} attention`
+                  : 'All tasks on schedule'
+              "
+              icon="warning"
+              color="red"
+              note-class="note-red"
+              :negative="delayedTasksCount > 0"
               @click="goToTaskDetails(undefined, { atRisk: 'true' })"
-            >
-              <div class="row items-center justify-between">
-                <span class="kpi-label">Delayed</span>
-                <div
-                  class="kpi-icon-wrap"
-                  :class="delayedTasksCount > 0 ? 'kpi-red' : 'kpi-neutral'"
-                >
-                  <q-icon name="warning" size="18px" />
-                </div>
-              </div>
-              <div class="kpi-value q-mt-xs" :class="{ 'text-negative': delayedTasksCount > 0 }">
-                {{ delayedTasksCount }}
-              </div>
-              <div
-                class="kpi-meta"
-                :class="delayedTasksCount > 0 ? 'text-negative text-weight-bold' : 'text-muted'"
-              >
-                {{
-                  delayedTasksCount > 0
-                    ? `${delayedTasksCount} task${delayedTasksCount === 1 ? '' : 's'} need attention`
-                    : 'All tasks on schedule'
-                }}
-              </div>
-            </q-card>
+            />
           </div>
         </div>
 
-        <!-- 03. MAIN DASHBOARD SPLIT VIEW (2-COLUMN LAYOUT) -->
-        <div class="row q-col-gutter-lg">
-          <!-- LEFT COLUMN: Tasks Across Projects & Attention Items (col-lg-8) -->
-          <div class="col-12 col-lg-8 column q-gutter-y-lg">
-            <!-- Projects Breakdown -->
-            <ProjectsBreakdownCard v-if="projectSummary.length" :projects="projectSummary" />
+        <!-- 03. BALANCED 2-COLUMN SPLIT (EQUAL HEIGHT, ZERO DEAD SPACE) -->
+        <div class="row q-col-gutter-lg q-mt-xs">
+          <!-- LEFT COLUMN: Tasks Across Projects & Attention Items -->
+          <div class="col-12 col-md-7 col-lg-8">
+            <div class="column q-gutter-y-lg">
+              <!-- Projects Breakdown -->
+              <ProjectsBreakdownCard v-if="projectSummary.length" :projects="projectSummary" />
 
-            <!-- Needs Attention Card -->
-            <q-card flat bordered class="content-panel">
-              <div class="panel-header row items-center justify-between q-pa-md">
-                <div>
-                  <div class="panel-title">Tasks Requiring Attention</div>
-                  <div class="panel-subtitle">Overdue and critical deliverables</div>
-                </div>
-                <q-badge
-                  v-if="attentionTasks.length"
-                  color="negative"
-                  outline
-                  :label="`${attentionTasks.length} items`"
-                />
-              </div>
-
-              <q-separator />
-
-              <div v-if="!attentionTasks.length" class="q-pa-lg text-center text-muted">
-                <q-icon name="check_circle" size="34px" color="positive" />
-                <div class="text-body2 q-mt-sm text-main">
-                  You're on track — no tasks need immediate attention.
-                </div>
-              </div>
-
-              <q-list v-else separator class="clean-list">
-                <q-item
-                  v-for="t in attentionTasks"
-                  :key="t.task_id"
-                  clickable
-                  v-ripple
-                  class="attention-item q-py-sm"
-                  @click="goToTaskDetails(t.task_id)"
-                >
-                  <q-item-section avatar>
+              <!-- Tasks Requiring Attention -->
+              <q-card flat bordered class="rounded-borders overflow-hidden">
+                <q-card-section class="q-pa-md row items-center justify-between no-wrap">
+                  <div style="min-width: 0" class="q-pr-sm">
                     <div
-                      class="attention-icon-wrap"
-                      :class="
-                        attentionMeta(t).color === 'negative' ? 'wrap-negative' : 'wrap-warning'
-                      "
+                      class="text-subtitle1 text-weight-bold ellipsis"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
                     >
-                      <q-icon :name="attentionMeta(t).icon" size="18px" />
+                      Tasks Requiring Attention
                     </div>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold text-main">{{ t.title }}</q-item-label>
-                    <q-item-label caption class="text-muted">
-                      {{ t.project_name || `Project #${t.project_id}` }}
-                      <span v-if="t.deadline"> · Due {{ formatDate(t.deadline) }}</span>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-chip
-                      dense
-                      square
-                      :color="attentionMeta(t).color === 'negative' ? 'red-1' : 'orange-1'"
-                      :text-color="
-                        attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
-                      "
-                      class="text-caption text-weight-bold"
+                    <div
+                      class="text-caption ellipsis"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
                     >
-                      {{ attentionMeta(t).label }}
-                    </q-chip>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card>
-          </div>
+                      Overdue and critical deliverables
+                    </div>
+                  </div>
+                  <q-badge
+                    v-if="attentionTasks.length"
+                    color="negative"
+                    outline
+                    :label="`${attentionTasks.length} items`"
+                    class="text-weight-bold col-auto"
+                  />
+                </q-card-section>
 
-          <!-- RIGHT COLUMN: Effort & Workload, Task Distribution, Self-Assigned Tasks (col-lg-4) -->
-          <div class="col-12 col-lg-4 column q-gutter-y-lg">
-            <!-- Effort & Workload -->
-            <WorkloadCard
-              :allocated-hours="workload.expectedEffort"
-              :actual-hours="workload.actualEffort"
-              :remaining-hours="workload.remainingEffort"
-              :assigned-tasks="workload.activeTasks"
-            />
+                <q-separator />
 
-            <!-- Task Status Distribution -->
-            <TaskStatusCard :items="taskStatus" />
-
-            <!-- Self-Assigned Tasks Panel -->
-            <q-card flat bordered class="content-panel">
-              <div class="panel-header row items-center justify-between q-pa-md">
-                <div>
-                  <div class="panel-title">Self-Assigned Tasks</div>
-                  <div class="panel-subtitle">Tasks initiated by you</div>
+                <div v-if="!attentionTasks.length" class="q-pa-lg text-center text-grey-6">
+                  <q-icon name="check_circle" size="34px" color="positive" />
+                  <div
+                    class="text-body2 q-mt-sm"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    You're on track — no tasks need immediate attention.
+                  </div>
                 </div>
-                <q-chip
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  class="text-caption text-weight-bold"
-                >
-                  {{ selfAssignedTasks.length }}
-                </q-chip>
-              </div>
 
-              <q-separator />
-
-              <div v-if="selfAssignedTasks.length === 0" class="q-pa-lg text-center text-muted">
-                <q-icon name="assignment_ind" size="32px" color="grey-5" />
-                <div class="text-body2 q-mt-sm text-main">No self-assigned tasks</div>
-                <div class="text-caption text-muted">Tasks you create will appear here.</div>
-              </div>
-
-              <q-list v-else separator class="clean-list">
-                <q-item
-                  v-for="taskItem in selfAssignedTasks.slice(0, 4)"
-                  :key="taskItem.task_id"
-                  clickable
-                  v-ripple
-                  class="q-py-sm"
-                  @click="goToTaskDetails(taskItem.task_id)"
-                >
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold text-main ellipsis">{{
-                      taskItem.title
-                    }}</q-item-label>
-                    <q-item-label caption class="text-muted ellipsis">
-                      {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <div class="column items-end gap-xs">
+                <q-list v-else separator>
+                  <q-item
+                    v-for="t in attentionTasks"
+                    :key="t.task_id"
+                    clickable
+                    v-ripple
+                    class="q-py-sm cursor-pointer"
+                    @click="goToTaskDetails(t.task_id)"
+                  >
+                    <q-item-section avatar>
+                      <q-avatar
+                        size="32px"
+                        rounded
+                        :color="
+                          attentionMeta(t).color === 'negative'
+                            ? $q.dark.isActive
+                              ? 'red-10'
+                              : 'red-1'
+                            : $q.dark.isActive
+                              ? 'orange-10'
+                              : 'orange-1'
+                        "
+                        :text-color="
+                          attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
+                        "
+                        :icon="attentionMeta(t).icon"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label
+                        class="text-weight-bold ellipsis"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :title="t.title"
+                      >
+                        {{ t.title }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6 ellipsis">
+                        {{ t.project_name || `Project #${t.project_id}` }}
+                        <span v-if="t.deadline"> · Due {{ formatDate(t.deadline) }}</span>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
                       <q-chip
                         dense
                         square
-                        :color="statusColor(taskItem.status)"
-                        :text-color="statusTextColor(taskItem.status)"
+                        :color="
+                          attentionMeta(t).color === 'negative'
+                            ? $q.dark.isActive
+                              ? 'red-10'
+                              : 'red-1'
+                            : $q.dark.isActive
+                              ? 'orange-10'
+                              : 'orange-1'
+                        "
+                        :text-color="
+                          attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
+                        "
                         class="text-caption text-weight-bold"
                       >
-                        {{ taskItem.status.replace('_', ' ') }}
+                        {{ attentionMeta(t).label }}
                       </q-chip>
-                      <div class="text-caption text-weight-bold text-main">
-                        {{ Number(taskItem.progress) || 0 }}%
-                      </div>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-card>
+
+              <!-- Self-Assigned Tasks (Displayed when available to avoid empty blank boxes) -->
+              <q-card
+                v-if="selfAssignedTasks.length > 0"
+                flat
+                bordered
+                class="rounded-borders overflow-hidden"
+              >
+                <q-card-section class="q-pa-md row items-center justify-between no-wrap">
+                  <div style="min-width: 0" class="q-pr-sm">
+                    <div
+                      class="text-subtitle1 text-weight-bold ellipsis"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
+                      Self-Assigned Tasks
                     </div>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card>
+                    <div
+                      class="text-caption ellipsis"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                    >
+                      Tasks initiated by you
+                    </div>
+                  </div>
+                  <q-chip
+                    dense
+                    square
+                    :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    class="text-caption text-weight-bold col-auto"
+                  >
+                    {{ selfAssignedTasks.length }}
+                  </q-chip>
+                </q-card-section>
+
+                <q-separator />
+
+                <q-list separator>
+                  <q-item
+                    v-for="taskItem in selfAssignedTasks.slice(0, 4)"
+                    :key="taskItem.task_id"
+                    clickable
+                    v-ripple
+                    class="q-py-sm cursor-pointer"
+                    @click="goToTaskDetails(taskItem.task_id)"
+                  >
+                    <q-item-section>
+                      <q-item-label
+                        class="text-weight-bold ellipsis"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :title="taskItem.title"
+                      >
+                        {{ taskItem.title }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6 ellipsis">
+                        {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <div class="column items-end gap-xs">
+                        <q-chip
+                          dense
+                          square
+                          :color="statusColor(taskItem.status)"
+                          :text-color="statusTextColor(taskItem.status)"
+                          class="text-caption text-weight-bold"
+                        >
+                          {{ taskItem.status.replace('_', ' ') }}
+                        </q-chip>
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ Number(taskItem.progress) || 0 }}%
+                        </div>
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-card>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Effort & Workload and Task Distribution -->
+          <div class="col-12 col-md-5 col-lg-4">
+            <div class="column q-gutter-y-lg">
+              <!-- Effort & Workload -->
+              <WorkloadCard
+                :allocated-hours="workload.expectedEffort"
+                :actual-hours="workload.actualEffort"
+                :remaining-hours="workload.remainingEffort"
+                :assigned-tasks="workload.activeTasks"
+              />
+
+              <!-- Task Status Distribution -->
+              <TaskStatusCard :items="taskStatus" />
+            </div>
           </div>
         </div>
       </template>
@@ -332,6 +358,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import WorkloadCard from '@/components/resource/WorkloadCard.vue';
 import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
 import ProjectsBreakdownCard, {
@@ -458,156 +485,143 @@ const workload = computed(() => {
 
   const remaining = Math.max(0, formatNumber(expected - actual));
   const consumedPct = expected > 0 ? Math.round((actual / expected) * 100) : 0;
+  const activeTasks = inProgressTasksCount.value;
 
   return {
     expectedEffort: formatNumber(expected),
     actualEffort: formatNumber(actual),
     remainingEffort: remaining,
-    activeTasks: inProgressTasksCount.value,
+    activeTasks,
     consumedPct,
     overEstimate: actual > expected,
   };
 });
 
 const taskStatus = computed(() => {
-  const scheduled = tasks.value.filter((t) => t.status === 'SCHEDULED').length;
-  const inProgress = tasks.value.filter((t) => t.status === 'IN_PROGRESS').length;
-  const completed = tasks.value.filter((t) => t.status === 'COMPLETED').length;
+  const counts: Record<'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED', number> = {
+    SCHEDULED: 0,
+    IN_PROGRESS: 0,
+    COMPLETED: 0,
+  };
+  tasks.value.forEach((t) => {
+    if (t.status === 'SCHEDULED' || t.status === 'IN_PROGRESS' || t.status === 'COMPLETED') {
+      counts[t.status]++;
+    }
+  });
 
   return [
-    { label: 'Scheduled', value: scheduled, color: '#8B6FD8' },
-    { label: 'In Progress', value: inProgress, color: '#3B82F6' },
-    { label: 'Completed', value: completed, color: '#10B981' },
+    { label: 'Scheduled', value: counts.SCHEDULED, color: '#8b6fd8' },
+    { label: 'In Progress', value: counts.IN_PROGRESS, color: '#2e90fa' },
+    { label: 'Completed', value: counts.COMPLETED, color: '#12b76a' },
   ];
 });
 
 const attentionTasks = computed(() => {
   return tasks.value
-    .filter((t) => t.status !== 'COMPLETED' && (isOverdue(t) || t.priority === 'CRITICAL'))
+    .filter((t) => t.status !== 'COMPLETED' && (isOverdue(t) || t.priority === 'HIGH'))
     .slice(0, 5);
+});
+
+const selfAssignedTasks = computed(() => {
+  const myId = currentUserId.value;
+  return tasks.value.filter((t) => {
+    const isCreatedByMe = myId && Number(t.created_by) === myId;
+    const isSupervisorMe = myId && Number(t.supervisor_id) === myId;
+    return isCreatedByMe || isSupervisorMe;
+  });
+});
+
+const projectSummary = computed<ProjectBreakdownRow[]>(() => {
+  const map = new Map<
+    string,
+    { total: number; done: number; deadline: string; delayed: boolean }
+  >();
+  tasks.value.forEach((t) => {
+    const key = t.project_name || `Project #${t.project_id}`;
+    const curr = map.get(key) || {
+      total: 0,
+      done: 0,
+      deadline: t.deadline || '',
+      delayed: false,
+    };
+    curr.total++;
+    if (t.status === 'COMPLETED') curr.done++;
+    if (isOverdue(t) && t.status !== 'COMPLETED') curr.delayed = true;
+    if (t.deadline && (!curr.deadline || new Date(t.deadline) < new Date(curr.deadline))) {
+      curr.deadline = t.deadline;
+    }
+    map.set(key, curr);
+  });
+
+  return Array.from(map.entries()).map(([project, data]) => {
+    const progress = data.total > 0 ? Math.round((data.done / data.total) * 100) : 0;
+    let status: ProjectBreakdownRow['status'] = 'On Track';
+    if (data.delayed) {
+      status = 'Delayed';
+    } else if (progress < 50 && data.deadline && new Date(data.deadline) < new Date()) {
+      status = 'At Risk';
+    }
+
+    return {
+      project,
+      tasks: data.total,
+      status,
+      progress,
+      deadline: data.deadline ? formatDate(data.deadline) : 'No due date',
+    };
+  });
 });
 
 function attentionMeta(t: Task) {
   if (isOverdue(t)) {
-    return {
-      icon: 'warning',
-      color: 'negative',
-      label: 'Overdue',
-    };
+    return { label: 'Overdue', color: 'negative', icon: 'warning' };
   }
-  return {
-    icon: 'priority_high',
-    color: 'deep-orange',
-    label: 'Critical',
-  };
+  return { label: 'High Priority', color: 'warning', icon: 'priority_high' };
 }
 
-const selfAssignedTasks = computed(() => {
-  if (!currentUserId.value) return [];
-  return tasks.value.filter((t) => Number(t.created_by) === currentUserId.value);
-});
+function statusColor(status: string): string {
+  switch (status) {
+    case 'COMPLETED':
+      return $q.dark.isActive ? 'green-10' : 'green-1';
+    case 'IN_PROGRESS':
+      return $q.dark.isActive ? 'blue-10' : 'blue-1';
+    case 'SCHEDULED':
+      return $q.dark.isActive ? 'purple-10' : 'purple-1';
+    case 'ON_HOLD':
+      return $q.dark.isActive ? 'orange-10' : 'orange-1';
+    case 'CANCELLED':
+      return $q.dark.isActive ? 'red-10' : 'red-1';
+    default:
+      return $q.dark.isActive ? 'grey-9' : 'grey-2';
+  }
+}
 
-const projectSummary = computed(() => {
-  const map = new Map<
-    number,
-    {
-      project_id: number;
-      project: string;
-      tasks: number;
-      progressSum: number;
-      hasDelayed: boolean;
-      deadlines: string[];
-    }
-  >();
+function statusTextColor(status: string): string {
+  switch (status) {
+    case 'COMPLETED':
+      return $q.dark.isActive ? 'green-2' : 'positive';
+    case 'IN_PROGRESS':
+      return $q.dark.isActive ? 'blue-2' : 'blue-8';
+    case 'SCHEDULED':
+      return $q.dark.isActive ? 'purple-2' : 'primary';
+    case 'ON_HOLD':
+      return $q.dark.isActive ? 'orange-2' : 'deep-orange';
+    case 'CANCELLED':
+      return $q.dark.isActive ? 'red-2' : 'negative';
+    default:
+      return $q.dark.isActive ? 'grey-4' : 'grey-8';
+  }
+}
 
-  tasks.value.forEach((t) => {
-    const pId = t.project_id;
-    const pName = t.project_name || `Project #${pId}`;
-    if (!map.has(pId)) {
-      map.set(pId, {
-        project_id: pId,
-        project: pName,
-        tasks: 0,
-        progressSum: 0,
-        hasDelayed: false,
-        deadlines: [],
-      });
-    }
-
-    const item = map.get(pId)!;
-    item.tasks += 1;
-    item.progressSum += Number(t.progress) || 0;
-    if (isOverdue(t)) item.hasDelayed = true;
-    if (t.deadline) item.deadlines.push(t.deadline);
+function goToTaskDetails(taskId?: number, queryParams?: Record<string, string>) {
+  const query: Record<string, string> = { ...queryParams };
+  if (taskId) {
+    query.taskId = String(taskId);
+  }
+  void router.push({
+    path: '/app/resource-dashboard/task-details',
+    query,
   });
-
-  return Array.from(map.values()).map((p): ProjectBreakdownRow => ({
-    project: p.project,
-    tasks: p.tasks,
-    progress: Math.round(p.progressSum / (p.tasks || 1)),
-    status: p.hasDelayed ? 'Delayed' : 'On Track',
-    deadline: p.deadlines.length ? formatDate(p.deadlines.sort()[p.deadlines.length - 1]) : 'TBD',
-  }));
-});
-
-function statusColor(status: Task['status']): string {
-  if ($q.dark.isActive) {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'purple-10';
-      case 'IN_PROGRESS':
-        return 'blue-10';
-      case 'COMPLETED':
-        return 'green-10';
-      default:
-        return 'grey-9';
-    }
-  }
-  switch (status) {
-    case 'SCHEDULED':
-      return 'deep-purple-1';
-    case 'IN_PROGRESS':
-      return 'blue-1';
-    case 'COMPLETED':
-      return 'green-1';
-    default:
-      return 'grey-2';
-  }
-}
-
-function statusTextColor(status: Task['status']): string {
-  if ($q.dark.isActive) {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'purple-2';
-      case 'IN_PROGRESS':
-        return 'blue-2';
-      case 'COMPLETED':
-        return 'green-2';
-      default:
-        return 'grey-3';
-    }
-  }
-  switch (status) {
-    case 'SCHEDULED':
-      return 'primary';
-    case 'IN_PROGRESS':
-      return 'blue-8';
-    case 'COMPLETED':
-      return 'green-8';
-    default:
-      return 'grey-8';
-  }
-}
-
-function goToTaskDetails(id?: number, query?: Record<string, string>) {
-  if (id) {
-    void router.push(`/app/resource-dashboard/task-details/${id}`);
-  } else if (query) {
-    void router.push({ path: '/app/resource-dashboard/task-details', query });
-  } else {
-    void router.push('/app/resource-dashboard/task-details');
-  }
 }
 
 function goToSchedule() {
@@ -621,16 +635,13 @@ function goToProgress() {
 
 <style scoped lang="scss">
 .resource-dashboard-page {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .page-title {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.2;
 }
 
 .page-subtitle {
@@ -643,155 +654,5 @@ function goToProgress() {
   border-radius: 8px;
   padding: 6px 14px;
   font-size: 13px;
-}
-
-/* KPI CARDS */
-.kpi-card {
-  padding: 18px 20px;
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #e5e7ec);
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: var(--wo-primary, #8b6fd8);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.05);
-  }
-}
-
-.kpi-card-warning {
-  border-left: 3px solid #f04438;
-}
-
-.kpi-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--wo-text-muted, #64748b);
-}
-
-.kpi-value {
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--wo-text-main, #172033);
-}
-
-.kpi-meta {
-  font-size: 11.5px;
-  margin-top: 6px;
-}
-
-.kpi-icon-wrap {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kpi-purple {
-  background: rgba(139, 111, 216, 0.12);
-  color: #8b6fd8;
-}
-
-.kpi-blue {
-  background: rgba(46, 144, 250, 0.12);
-  color: #2e90fa;
-}
-
-.kpi-green {
-  background: rgba(18, 183, 106, 0.12);
-  color: #12b76a;
-}
-
-.kpi-red {
-  background: rgba(240, 68, 56, 0.12);
-  color: #f04438;
-}
-
-.kpi-neutral {
-  background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
-}
-
-/* PANELS */
-.content-panel {
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #e5e7ec);
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
-  overflow: hidden;
-}
-
-.panel-header {
-  background: transparent;
-}
-
-.panel-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--wo-text-main, #172033);
-  letter-spacing: -0.01em;
-}
-
-.panel-subtitle {
-  font-size: 11.5px;
-  color: var(--wo-text-muted, #64748b);
-  margin-top: 1px;
-}
-
-.clean-list {
-  background: transparent;
-}
-
-.attention-item {
-  transition: background 0.15s ease;
-  &:hover {
-    background: rgba(0, 0, 0, 0.015);
-  }
-}
-
-.attention-icon-wrap {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wrap-negative {
-  background: rgba(240, 68, 56, 0.1);
-  color: #f04438;
-}
-
-.wrap-warning {
-  background: rgba(247, 144, 9, 0.1);
-  color: #f79009;
-}
-
-body.body--dark {
-  .bg-dark-subtle {
-    background: rgba(255, 255, 255, 0.06);
-  }
-  .kpi-card,
-  .content-panel {
-    background: #1e2433;
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-  .kpi-value,
-  .panel-title {
-    color: #f1f5f9;
-  }
-  .kpi-label,
-  .panel-subtitle {
-    color: #94a3b8;
-  }
-  .attention-item:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
 }
 </style>

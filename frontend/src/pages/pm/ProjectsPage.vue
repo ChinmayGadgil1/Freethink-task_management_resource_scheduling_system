@@ -486,7 +486,7 @@
 
               <div class="projects-cards-grid">
                 <q-card
-                  v-for="(project, index) in group.projects"
+                  v-for="project in group.projects"
                   :key="project.project_id"
                   flat
                   bordered
@@ -498,21 +498,32 @@
                   <div
                     class="q-px-md q-pt-md q-pb-sm relative-position overflow-hidden project-card-header"
                   >
-                    <div class="row items-center justify-between no-wrap q-mb-sm">
-                      <q-avatar size="34px" class="project-card-avatar">
-                        <q-icon name="folder" size="18px" />
+                    <div class="row items-center justify-between no-wrap q-mb-xs">
+                      <q-avatar
+                        size="36px"
+                        :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                        class="shadow-1"
+                      >
+                        <q-icon name="folder" size="20px" />
                       </q-avatar>
 
                       <div class="row items-center q-gutter-xs no-wrap">
-                        <span class="priority-frosted-pill">
-                          {{ project.priority || 'Medium' }}
-                        </span>
+                        <q-chip
+                          dense
+                          square
+                          :color="getPriorityChipColor(project.priority)"
+                          :text-color="getPriorityTextColor(project.priority)"
+                          class="text-caption text-weight-bold q-px-sm"
+                        >
+                          {{ (project.priority || 'MEDIUM').toUpperCase() }}
+                        </q-chip>
                         <q-btn
                           flat
                           round
                           dense
                           icon="more_vert"
-                          color="white"
+                          :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
                           size="sm"
                           @click.stop
                         >
@@ -570,7 +581,7 @@
                       {{ project.name }}
                     </div>
                     <div
-                      class="text-caption text-muted project-card-desc"
+                      class="text-caption text-grey-6 project-card-desc"
                       :title="project.description || ''"
                     >
                       {{
@@ -582,41 +593,65 @@
 
                   <!-- Card Body -->
                   <q-card-section class="q-pa-md column justify-between col">
-                    <!-- Dual Pill Info Badges (like Image 4) -->
+                    <!-- Dual Pill Info Badges -->
                     <div class="row q-col-gutter-xs q-mb-md">
                       <div class="col-6">
                         <div
-                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption"
+                          :class="
+                            $q.dark.isActive ? 'bg-dark text-grey-3' : 'bg-grey-1 text-grey-8'
+                          "
+                          style="border: 1px solid rgba(0, 0, 0, 0.07)"
                         >
-                          <q-icon name="assignment" size="13px" color="grey-6" />
+                          <q-icon
+                            name="assignment"
+                            size="13px"
+                            :color="getStatusIconColor(project.status)"
+                          />
                           <div class="ellipsis">
                             <span class="text-grey-6">Status: </span>
-                            <strong class="text-main">{{ formatStatus(project.status) }}</strong>
+                            <strong :class="`text-${getStatusIconColor(project.status)}`">{{
+                              formatStatus(project.status)
+                            }}</strong>
                           </div>
                         </div>
                       </div>
                       <div class="col-6">
                         <div
-                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption text-grey-7 border-subtle bg-subtle"
+                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption"
+                          :class="
+                            $q.dark.isActive ? 'bg-dark text-grey-3' : 'bg-grey-1 text-grey-8'
+                          "
+                          style="border: 1px solid rgba(0, 0, 0, 0.07)"
                           :title="`Due: ${formatDate(project.deadline)}`"
                         >
-                          <q-icon name="event" size="13px" color="grey-6" />
+                          <q-icon
+                            name="event"
+                            size="13px"
+                            :color="
+                              isOverdue(project.deadline, project.status) ? 'negative' : 'grey-6'
+                            "
+                          />
                           <div class="ellipsis">
                             <span class="text-grey-6">Due: </span>
-                            <strong class="text-main">{{ formatDate(project.deadline) }}</strong>
+                            <strong
+                              :class="
+                                isOverdue(project.deadline, project.status)
+                                  ? 'text-negative text-weight-bold'
+                                  : 'text-main'
+                              "
+                              >{{ formatDate(project.deadline) }}</strong
+                            >
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Progress Bar with matching theme color -->
+                    <!-- Progress Bar with soft Quasar theme -->
                     <div class="q-mb-xs">
                       <div class="row items-center justify-between text-caption q-mb-xs">
                         <span class="text-grey-6 text-weight-medium">Progress</span>
-                        <span
-                          class="text-weight-bold"
-                          :style="{ color: getProjectTheme(project, index).accent }"
-                        >
+                        <span class="text-weight-bold text-primary">
                           {{ Number(project.progress) || 0 }}%
                         </span>
                       </div>
@@ -624,8 +659,8 @@
                         rounded
                         size="6px"
                         :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
-                        :style="{ color: getProjectTheme(project, index).accent }"
-                        :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                        color="primary"
+                        :track-color="$q.dark.isActive ? 'grey-9' : 'purple-1'"
                       />
                     </div>
                   </q-card-section>
@@ -1289,70 +1324,58 @@ const projectColumns: QTableColumn<Project>[] = [
   },
 ];
 
-export interface ProjectCardTheme {
-  id: string;
-  name: string;
-  gradient: string;
-  accent: string;
-  bgTint: string;
-  iconName: string;
+function getPriorityChipColor(priority?: string): string {
+  switch ((priority || '').toUpperCase()) {
+    case 'CRITICAL':
+      return $q.dark.isActive ? 'red-10' : 'red-1';
+    case 'HIGH':
+      return $q.dark.isActive ? 'orange-10' : 'orange-1';
+    case 'MEDIUM':
+      return $q.dark.isActive ? 'purple-10' : 'purple-1';
+    case 'LOW':
+      return $q.dark.isActive ? 'teal-10' : 'teal-1';
+    default:
+      return $q.dark.isActive ? 'grey-9' : 'grey-2';
+  }
 }
 
-const PROJECT_THEMES: ProjectCardTheme[] = [
-  {
-    id: 'sky',
-    name: 'Product Blue',
-    gradient: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
-    accent: '#0284c7',
-    bgTint: '#f0f9ff',
-    iconName: 'web',
-  },
-  {
-    id: 'rose',
-    name: 'Rose Pink',
-    gradient: 'linear-gradient(135deg, #db2777 0%, #f43f5e 100%)',
-    accent: '#db2777',
-    bgTint: '#fdf2f8',
-    iconName: 'auto_awesome',
-  },
-  {
-    id: 'amber',
-    name: 'Golden Orange',
-    gradient: 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)',
-    accent: '#ea580c',
-    bgTint: '#fff7ed',
-    iconName: 'diamond',
-  },
-  {
-    id: 'purple',
-    name: 'Lavender Purple',
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-    accent: '#7c3aed',
-    bgTint: '#f5f3ff',
-    iconName: 'groups',
-  },
-  {
-    id: 'emerald',
-    name: 'Emerald Mint',
-    gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-    accent: '#059669',
-    bgTint: '#ecfdf5',
-    iconName: 'spa',
-  },
-  {
-    id: 'indigo',
-    name: 'Indigo Blue',
-    gradient: 'linear-gradient(135deg, #4f46e5 0%, #818cf8 100%)',
-    accent: '#4f46e5',
-    bgTint: '#eef2ff',
-    iconName: 'layers',
-  },
-];
+function getPriorityTextColor(priority?: string): string {
+  switch ((priority || '').toUpperCase()) {
+    case 'CRITICAL':
+      return $q.dark.isActive ? 'red-2' : 'negative';
+    case 'HIGH':
+      return $q.dark.isActive ? 'amber-2' : 'deep-orange-9';
+    case 'MEDIUM':
+      return $q.dark.isActive ? 'purple-2' : 'primary';
+    case 'LOW':
+      return $q.dark.isActive ? 'teal-2' : 'teal-9';
+    default:
+      return $q.dark.isActive ? 'grey-4' : 'grey-8';
+  }
+}
 
-function getProjectTheme(project: Project, index?: number): ProjectCardTheme {
-  const idNum = Number(project.project_id) || (index !== undefined ? index : 0);
-  const themeIndex = Math.abs(idNum) % PROJECT_THEMES.length;
-  return PROJECT_THEMES[themeIndex] || (PROJECT_THEMES[0] as ProjectCardTheme);
+function getStatusIconColor(status?: string): string {
+  switch (status) {
+    case 'COMPLETED':
+      return 'positive';
+    case 'IN_PROGRESS':
+      return 'primary';
+    case 'ON_HOLD':
+      return 'warning';
+    case 'CANCELLED':
+      return 'negative';
+    case 'ARCHIVED':
+      return 'grey-6';
+    default:
+      return 'grey-7';
+  }
+}
+
+function isOverdue(deadline?: string | null, status?: string): boolean {
+  if (status === 'COMPLETED' || status === 'ARCHIVED' || !deadline) return false;
+  const d = new Date(deadline);
+  d.setHours(23, 59, 59, 999);
+  return d < new Date();
 }
 
 function getProjectHealth(project: Project): 'ON_TRACK' | 'AT_RISK' | 'DELAYED' {
@@ -1477,12 +1500,9 @@ const paginatedFilteredProjects = computed(() => {
   return filteredProjects.value.slice(start, start + pagination.value.rowsPerPage);
 });
 
-watch(
-  [searchQuery, statusFilter, healthFilter, startDateFilter, endDateFilter, groupBy],
-  () => {
-    pagination.value.page = 1;
-  },
-);
+watch([searchQuery, statusFilter, healthFilter, startDateFilter, endDateFilter, groupBy], () => {
+  pagination.value.page = 1;
+});
 
 const groupedProjectCards = computed(() => {
   if (groupBy.value === 'Status') {
@@ -1742,15 +1762,20 @@ onMounted(() => {
     border-color 0.22s ease;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-    border-color: var(--wo-primary, #8b6fd8) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(118, 84, 214, 0.12);
+    border-color: var(--q-primary, #7654d6) !important;
   }
 }
 
 .project-card-header {
   background: var(--wo-bg-card-hover, #f8fafc);
   border-bottom: 1px solid var(--wo-border-subtle, #f0f2f5);
+}
+
+.body--dark .project-card-header {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .project-card-avatar {
@@ -1778,18 +1803,6 @@ onMounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   opacity: 0.9;
-}
-
-.priority-frosted-pill {
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(8px);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.02em;
-  border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .custom-scrollbar {

@@ -306,7 +306,7 @@
                       >
                         {{ d.label }}
                       </div>
-                      <div class="text-h6 text-weight-bold" :class="`text-${d.color}`">
+                      <div class="text-h6 text-weight-bold" :style="{ color: d.colorHex }">
                         {{ d.value }}
                       </div>
                     </q-card-section>
@@ -356,69 +356,144 @@
 
         <q-separator />
 
-        <q-list v-if="projectProgress.length" separator :dark="$q.dark.isActive">
-          <q-item
-            v-for="p in projectProgress"
-            :key="p.project"
-            clickable
-            class="q-py-md"
-            @click="
-              router.push({
-                path: '/app/resource-dashboard/task-details',
-                query: { project: p.project },
-              })
-            "
+        <div v-if="projectProgress.length">
+          <q-scroll-area
+            v-if="projectProgress.length > 4"
+            style="height: 320px"
+            :dark="$q.dark.isActive"
           >
-            <q-item-section avatar>
-              <q-avatar
-                size="38px"
-                :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
-                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                icon="folder"
-              />
-            </q-item-section>
-
-            <q-item-section>
-              <q-item-label
-                class="text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                >{{ p.project }}</q-item-label
+            <q-list separator :dark="$q.dark.isActive">
+              <q-item
+                v-for="p in projectProgress"
+                :key="p.project"
+                clickable
+                class="q-py-md"
+                @click="
+                  router.push({
+                    path: '/app/resource-dashboard/task-details',
+                    query: { project: p.project },
+                  })
+                "
               >
-              <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-                {{ p.completed }}/{{ p.tasks }} completed · {{ p.active }} active
-              </q-item-label>
+                <q-item-section avatar>
+                  <q-avatar
+                    size="38px"
+                    :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+                    :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                    icon="folder"
+                  />
+                </q-item-section>
 
-              <q-linear-progress
-                :value="p.progress / 100"
-                color="primary"
-                rounded
-                size="6px"
-                class="q-mt-sm"
-                :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-              />
-            </q-item-section>
+                <q-item-section>
+                  <q-item-label
+                    class="text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >{{ p.project }}</q-item-label
+                  >
+                  <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                    {{ p.completed }}/{{ p.tasks }} completed · {{ p.active }} active
+                  </q-item-label>
 
-            <q-item-section side>
-              <q-chip
-                dense
-                square
-                color="primary"
-                text-color="white"
-                class="text-caption text-weight-bold"
-                >{{ p.progress }}%</q-chip
-              >
-              <div
-                class="text-caption q-mt-xs"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
-              >
-                {{ formatHours(p.expectedEffort) }} est
-              </div>
-              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
-                {{ formatHours(p.actualEffort) }} logged
-              </div>
-            </q-item-section>
-          </q-item>
-        </q-list>
+                  <q-linear-progress
+                    :value="p.progress / 100"
+                    color="primary"
+                    rounded
+                    size="6px"
+                    class="q-mt-sm"
+                    :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                  />
+                </q-item-section>
+
+                <q-item-section side>
+                  <q-chip
+                    dense
+                    square
+                    color="primary"
+                    text-color="white"
+                    class="text-caption text-weight-bold"
+                    >{{ p.progress }}%</q-chip
+                  >
+                  <div
+                    class="text-caption q-mt-xs"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                  >
+                    {{ formatHours(p.expectedEffort) }} est
+                  </div>
+                  <div
+                    class="text-caption"
+                    :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                  >
+                    {{ formatHours(p.actualEffort) }} logged
+                  </div>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-scroll-area>
+
+          <q-list v-else separator :dark="$q.dark.isActive">
+            <q-item
+              v-for="p in projectProgress"
+              :key="p.project"
+              clickable
+              class="q-py-md"
+              @click="
+                router.push({
+                  path: '/app/resource-dashboard/task-details',
+                  query: { project: p.project },
+                })
+              "
+            >
+              <q-item-section avatar>
+                <q-avatar
+                  size="38px"
+                  :color="$q.dark.isActive ? 'purple-10' : 'blue-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                  icon="folder"
+                />
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label
+                  class="text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >{{ p.project }}</q-item-label
+                >
+                <q-item-label caption :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                  {{ p.completed }}/{{ p.tasks }} completed · {{ p.active }} active
+                </q-item-label>
+
+                <q-linear-progress
+                  :value="p.progress / 100"
+                  color="primary"
+                  rounded
+                  size="6px"
+                  class="q-mt-sm"
+                  :track-color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                />
+              </q-item-section>
+
+              <q-item-section side>
+                <q-chip
+                  dense
+                  square
+                  color="primary"
+                  text-color="white"
+                  class="text-caption text-weight-bold"
+                  >{{ p.progress }}%</q-chip
+                >
+                <div
+                  class="text-caption q-mt-xs"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                >
+                  {{ formatHours(p.expectedEffort) }} est
+                </div>
+                <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+                  {{ formatHours(p.actualEffort) }} logged
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
 
         <div
           v-else
@@ -495,7 +570,7 @@
 
       <!-- TASK PROGRESS TABLE -->
       <q-card flat bordered :dark="$q.dark.isActive" class="q-mb-lg rounded-borders">
-        <q-card-section class="row items-center justify-between">
+        <q-card-section class="row items-center justify-between wrap q-col-gutter-sm">
           <div class="row items-center">
             <q-avatar size="36px" color="primary" text-color="white" icon="checklist" />
             <div class="q-ml-sm">
@@ -511,15 +586,36 @@
             </div>
           </div>
 
-          <q-chip
-            dense
-            square
-            color="primary"
-            text-color="white"
-            class="text-caption text-weight-bold"
-          >
-            {{ assignedTasks.length }} tasks
-          </q-chip>
+          <div class="row items-center q-gutter-x-sm">
+            <q-input
+              v-model="tableFilter"
+              dense
+              outlined
+              rounded
+              placeholder="Search tasks..."
+              :dark="$q.dark.isActive"
+              :bg-color="$q.dark.isActive ? 'dark' : 'white'"
+              class="text-caption"
+              style="min-width: 180px"
+            >
+              <template #prepend>
+                <q-icon name="search" size="16px" color="primary" />
+              </template>
+              <template v-if="tableFilter" #append>
+                <q-icon name="close" size="14px" class="cursor-pointer" @click="tableFilter = ''" />
+              </template>
+            </q-input>
+
+            <q-chip
+              dense
+              square
+              color="primary"
+              text-color="white"
+              class="text-caption text-weight-bold"
+            >
+              {{ assignedTasks.length }} tasks
+            </q-chip>
+          </div>
         </q-card-section>
 
         <q-separator />
@@ -530,8 +626,10 @@
           :dark="$q.dark.isActive"
           :rows="taskRows"
           :columns="columns"
+          :filter="tableFilter"
           row-key="task_id"
           :pagination="{ rowsPerPage: 10 }"
+          :rows-per-page-options="[10, 20, 50, 0]"
           @row-click="(_, row) => openTask(row.task_id)"
         >
           <template #body-cell-priority="props">
@@ -648,6 +746,7 @@ const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.user?.user_id);
 
 const tasks = ref<Task[]>([]);
+const tableFilter = ref('');
 
 const loading = ref(true);
 const error = ref('');
@@ -810,36 +909,37 @@ const deadlinePerformance = computed(() => {
     (t) => !t.deadline && t.status !== 'COMPLETED',
   ).length;
 
+  const isDark = $q.dark.isActive;
   return [
     {
       label: 'Overdue',
       value: overdue,
       icon: 'warning',
-      color: 'negative',
+      colorHex: '#8B5CF6',
     },
     {
       label: 'Due ≤ 7 Days',
       value: dueSoon,
       icon: 'schedule',
-      color: 'warning',
+      colorHex: '#7654D6',
     },
     {
       label: 'Upcoming',
       value: upcoming,
       icon: 'event',
-      color: 'primary',
+      colorHex: '#3F7FD5',
     },
     {
       label: 'Completed',
       value: completed,
       icon: 'check_circle',
-      color: 'positive',
+      colorHex: isDark ? '#14B8A6' : '#16A6A1',
     },
     {
       label: 'No Deadline',
       value: noDeadline,
       icon: 'event_busy',
-      color: 'grey-6',
+      colorHex: '#94A3B8',
     },
   ];
 });
@@ -1016,7 +1116,7 @@ function initStatusChart() {
     {
       name: 'Completed',
       value: completedTasksList.length,
-      color: '#32A56B',
+      color: isDark ? '#14B8A6' : '#BEE7E4',
       tasks: completedTasksList,
     },
     {
@@ -1026,9 +1126,16 @@ function initStatusChart() {
       tasks: inProgressTasks,
     },
     { name: 'Scheduled', value: scheduledTasks.length, color: '#3F7FD5', tasks: scheduledTasks },
-    { name: 'Overdue', value: overdueTasks.length, color: '#E05260', tasks: overdueTasks },
+    { name: 'Overdue', value: overdueTasks.length, color: '#8B5CF6', tasks: overdueTasks },
     ...(otherTasks.length > 0
-      ? [{ name: 'Unassigned', value: otherTasks.length, color: '#98A2B3', tasks: otherTasks }]
+      ? [
+          {
+            name: 'Unassigned',
+            value: otherTasks.length,
+            color: isDark ? '#334155' : '#E2E8F0',
+            tasks: otherTasks,
+          },
+        ]
       : []),
   ];
 
@@ -1158,7 +1265,7 @@ function initStatusChart() {
   });
 }
 
-// 2. My Effort Analysis (Grouped Horizontal Bar Chart)
+// 2. My Effort Analysis (Grouped Horizontal Bar Chart matching PM palette)
 function initEffortChart() {
   if (!effortChartRef.value) return;
   effortChart = getOrInitChart(effortChartRef.value);
@@ -1169,6 +1276,7 @@ function initEffortChart() {
   const mutedText = isDark ? '#94A3B8' : '#697386';
   const border = isDark ? '#334155' : '#E6E8ED';
   const gridLine = isDark ? 'rgba(255,255,255,0.06)' : '#F0F2F5';
+  const headroomBarColor = isDark ? '#14B8A6' : '#BEE7E4';
 
   const myTasks = assignedTasks.value;
 
@@ -1218,7 +1326,7 @@ function initEffortChart() {
           </div>
           <div style="display:flex; justify-content:space-between; gap:16px;">
             <span style="color:${mutedText};">Remaining:</span>
-            <strong style="color:#16A6A1;">${remaining}h</strong>
+            <strong style="color:${isDark ? '#14B8A6' : '#16A6A1'};">${remaining}h</strong>
           </div>
         `;
       },
@@ -1230,7 +1338,11 @@ function initEffortChart() {
       itemWidth: 10,
       itemHeight: 10,
       textStyle: { color: mutedText, fontSize: 11 },
-      data: ['Planned Effort', 'Actual Logged', 'Remaining'],
+      data: [
+        { name: 'Planned Effort', itemStyle: { color: '#7654D6' } },
+        { name: 'Actual Logged', itemStyle: { color: '#3F7FD5' } },
+        { name: 'Remaining', itemStyle: { color: headroomBarColor } },
+      ],
     },
     grid: {
       top: '14%',
@@ -1284,7 +1396,7 @@ function initEffortChart() {
         type: 'bar',
         barWidth: 8,
         data: remainingData,
-        itemStyle: { color: '#16A6A1', borderRadius: [0, 3, 3, 0] },
+        itemStyle: { color: headroomBarColor, borderRadius: [0, 3, 3, 0] },
       },
     ],
     graphic:
@@ -1344,7 +1456,7 @@ function initEffortChart() {
   });
 }
 
-// 3. My Task Progress (Horizontal Bar Chart)
+// 3. My Task Progress (Horizontal Bar Chart with PM Theme Colors)
 function initTaskProgressChart() {
   if (!taskProgressChartRef.value) return;
   taskProgressChart = getOrInitChart(taskProgressChartRef.value);
@@ -1380,6 +1492,17 @@ function initTaskProgressChart() {
         const task = progressList[item?.dataIndex ?? 0];
         if (!task) return '';
         const pct = Number(task.progress) || 0;
+        const progressColor =
+          pct === 100
+            ? isDark
+              ? '#14B8A6'
+              : '#16A6A1'
+            : pct > 50
+              ? '#7654D6'
+              : isOverdue(task)
+                ? '#8B5CF6'
+                : '#3F7FD5';
+
         return `
           <div style="font-weight:600; font-size:13px; color:${darkText};">${task.title}</div>
           <div style="font-size:11px; color:${mutedText}; margin-bottom:6px;">${task.project_name || `Project #${task.project_id}`}</div>
@@ -1397,7 +1520,7 @@ function initTaskProgressChart() {
           </div>
           <div style="display:flex; justify-content:space-between; gap:16px; margin-top:4px; padding-top:4px; border-top:1px dashed ${isDark ? '#475569' : '#E2E8F0'};">
             <span style="color:${mutedText};">Progress:</span>
-            <strong style="color:${pct === 100 ? '#32A56B' : isOverdue(task) ? '#E05260' : '#7654D6'}; font-size:13px;">${pct}%</strong>
+            <strong style="color:${progressColor}; font-size:13px;">${pct}%</strong>
           </div>
         `;
       },
@@ -1443,18 +1566,32 @@ function initTaskProgressChart() {
         barWidth: 14,
         data: progressList.map((t) => {
           const val = Number(t.progress) || 0;
-          let barColor = '#3F7FD5';
+          let barGradient: echarts.graphic.LinearGradient;
           if (t.status === 'COMPLETED' || val >= 100) {
-            barColor = '#32A56B';
-          } else if (isOverdue(t)) {
-            barColor = '#E05260';
+            barGradient = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#16A6A1' },
+              { offset: 1, color: isDark ? '#14B8A6' : '#BEE7E4' },
+            ]);
           } else if (val > 50) {
-            barColor = '#7654D6';
+            barGradient = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#7654D6' },
+              { offset: 1, color: '#906FE2' },
+            ]);
+          } else if (isOverdue(t)) {
+            barGradient = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#8B5CF6' },
+              { offset: 1, color: '#A78BFA' },
+            ]);
+          } else {
+            barGradient = new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#3F7FD5' },
+              { offset: 1, color: '#60A5FA' },
+            ]);
           }
           return {
             value: val,
             itemStyle: {
-              color: barColor,
+              color: barGradient,
               borderRadius: [0, 4, 4, 0],
             },
           };
@@ -1526,7 +1663,7 @@ function initTaskProgressChart() {
   });
 }
 
-// 4. Deadline Performance (Urgency Breakdown Chart)
+// 4. Deadline Performance (Vertical Column Bar Chart matching PM Analytics)
 function initDeadlineChart() {
   if (!deadlineChartRef.value) return;
   deadlineChart = getOrInitChart(deadlineChartRef.value);
@@ -1554,19 +1691,54 @@ function initDeadlineChart() {
   const noDeadlineTasks = myTasks.filter((t) => !t.deadline && t.status !== 'COMPLETED');
 
   const categories = [
-    { label: 'Overdue', count: overdueTasks.length, color: '#E05260', tasks: overdueTasks },
-    { label: 'Due ≤ 7 Days', count: dueSoonTasks.length, color: '#F08A24', tasks: dueSoonTasks },
-    { label: 'Upcoming', count: upcomingTasks.length, color: '#3F7FD5', tasks: upcomingTasks },
+    {
+      label: 'Overdue',
+      count: overdueTasks.length,
+      gradient: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#8B5CF6' },
+        { offset: 1, color: '#A78BFA' },
+      ]),
+      textColor: '#8B5CF6',
+      tasks: overdueTasks,
+    },
+    {
+      label: 'Due ≤ 7 Days',
+      count: dueSoonTasks.length,
+      gradient: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#7654D6' },
+        { offset: 1, color: '#906FE2' },
+      ]),
+      textColor: '#7654D6',
+      tasks: dueSoonTasks,
+    },
+    {
+      label: 'Upcoming',
+      count: upcomingTasks.length,
+      gradient: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#3F7FD5' },
+        { offset: 1, color: '#60A5FA' },
+      ]),
+      textColor: '#3F7FD5',
+      tasks: upcomingTasks,
+    },
     {
       label: 'Completed',
       count: completedTasksList.length,
-      color: '#32A56B',
+      gradient: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#16A6A1' },
+        { offset: 1, color: isDark ? '#14B8A6' : '#BEE7E4' },
+      ]),
+      textColor: isDark ? '#14B8A6' : '#16A6A1',
       tasks: completedTasksList,
     },
     {
       label: 'No Deadline',
       count: noDeadlineTasks.length,
-      color: '#98A2B3',
+      gradient: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: '#94A3B8' },
+        { offset: 1, color: '#CBD5E1' },
+      ]),
+      textColor: '#94A3B8',
       tasks: noDeadlineTasks,
     },
   ];
@@ -1597,20 +1769,33 @@ function initDeadlineChart() {
           <div style="font-weight:600; font-size:13px; color:${darkText};">${cat.label}</div>
           <div style="display:flex; justify-content:space-between; gap:16px;">
             <span style="color:${mutedText};">Task Count:</span>
-            <strong style="color:${cat.color}; font-size:13px;">${cat.count} tasks</strong>
+            <strong style="color:${cat.textColor}; font-size:13px;">${cat.count} tasks</strong>
           </div>
           ${previewHtml}
         `;
       },
     },
     grid: {
-      top: '8%',
+      top: '12%',
       left: '3%',
-      right: 65,
-      bottom: '6%',
+      right: '4%',
+      bottom: '10%',
       containLabel: true,
     },
     xAxis: {
+      show: myTasks.length > 0,
+      type: 'category',
+      data: catNames,
+      axisTick: { alignWithLabel: true },
+      axisLine: { lineStyle: { color: border } },
+      axisLabel: {
+        interval: 0,
+        color: darkText,
+        fontSize: 11,
+        fontWeight: 500,
+      },
+    },
+    yAxis: {
       show: myTasks.length > 0,
       type: 'value',
       minInterval: 1,
@@ -1620,38 +1805,24 @@ function initDeadlineChart() {
       axisLabel: { color: mutedText, fontSize: 11 },
       splitLine: { lineStyle: { color: gridLine, type: 'dashed' } },
     },
-    yAxis: {
-      show: myTasks.length > 0,
-      type: 'category',
-      inverse: true,
-      data: catNames,
-      axisTick: { show: false },
-      axisLine: { lineStyle: { color: border } },
-      axisLabel: {
-        interval: 0,
-        color: darkText,
-        fontSize: 11,
-        fontWeight: 500,
-      },
-    },
     series: [
       {
         name: 'Tasks',
         type: 'bar',
-        barWidth: 14,
+        barWidth: 26,
         data: categories.map((c) => ({
           value: c.count,
           itemStyle: {
-            color: c.color,
-            borderRadius: [0, 4, 4, 0],
+            color: c.gradient,
+            borderRadius: [6, 6, 0, 0],
           },
         })),
         label: {
           show: true,
-          position: 'right',
+          position: 'top',
           formatter: (p: unknown) => {
             const v = (p as { value: number })?.value ?? 0;
-            return `${v} ${v === 1 ? 'task' : 'tasks'}`;
+            return v > 0 ? String(v) : '';
           },
           color: darkText,
           fontSize: 11,
