@@ -142,8 +142,8 @@ export function computeWeeklyShiftWorkload(
     let dailyCapacity = 0;
 
     targetResources.forEach((r) => {
-      // Standard working hours: 8h/day on weekdays (Mon-Fri)
-      const resDailyCapacity = day.isWeekend ? 0 : 8;
+      // Dynamic working hours: daily capacity based on user's weekly working schedule
+      const resDailyCapacity = day.isWeekend ? 0 : (calculateResourceWeeklyCapacity(r) || 40) / 5;
       dailyCapacity += resDailyCapacity;
 
       const wl = workloadsMap[r.user_id];

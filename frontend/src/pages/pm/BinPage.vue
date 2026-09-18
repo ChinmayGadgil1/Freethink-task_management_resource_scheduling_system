@@ -452,7 +452,17 @@ async function handleRestoreProject(proj: BinnedProject) {
 async function executeRestoreTask(task: BinnedTask) {
   restoringId.value = `task_${task.task_id}`;
   try {
-    await restoreTaskApi(task.task_id);
+    const res = (await restoreTaskApi(task.task_id)) as unknown as { projectId?: number };
+    const restoredProjectId = res?.projectId || task.project_id;
+
+    // Optimistically update local collections
+    binnedTasks.value = binnedTasks.value.filter((t) => t.task_id !== task.task_id);
+    if (task.project_deleted_at && restoredProjectId) {
+      binnedProjects.value = binnedProjects.value.filter(
+        (p) => Number(p.project_id) !== Number(restoredProjectId),
+      );
+    }
+
     $q.notify({
       type: 'positive',
       message: task.project_deleted_at

@@ -1963,6 +1963,8 @@ function updateDateRangeHeader() {
 function refreshGantt() {
   if (!ganttContainer.value) return;
 
+  const scrollState = typeof gantt.getScrollState === 'function' ? gantt.getScrollState() : null;
+
   applyColumnsConfig();
   applyScaleMode(activeScale.value);
   const dataset = buildGanttDataset();
@@ -1972,6 +1974,14 @@ function refreshGantt() {
   gantt.parse(dataset as any);
   updateCustomMarkers();
   gantt.render();
+
+  if (scrollState && (scrollState.x > 0 || scrollState.y > 0)) {
+    try {
+      gantt.scrollTo(scrollState.x, scrollState.y);
+    } catch {
+      // ignore
+    }
+  }
 
   updateDateRangeHeader();
 }

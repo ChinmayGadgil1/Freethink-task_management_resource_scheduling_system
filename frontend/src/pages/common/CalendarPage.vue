@@ -615,20 +615,18 @@ function validateDate(val: string): boolean | string {
 }
 
 function prevMonth() {
+  const cur = new Date(currentYear.value, currentMonth.value - 1, 1);
+  selectedDate.value = formatDate(cur);
   if (calendarRef.value) {
     calendarRef.value.prev();
-  } else {
-    const cur = new Date(currentYear.value, currentMonth.value - 1, 1);
-    selectedDate.value = formatDate(cur);
   }
 }
 
 function nextMonth() {
+  const cur = new Date(currentYear.value, currentMonth.value + 1, 1);
+  selectedDate.value = formatDate(cur);
   if (calendarRef.value) {
     calendarRef.value.next();
-  } else {
-    const cur = new Date(currentYear.value, currentMonth.value + 1, 1);
-    selectedDate.value = formatDate(cur);
   }
 }
 

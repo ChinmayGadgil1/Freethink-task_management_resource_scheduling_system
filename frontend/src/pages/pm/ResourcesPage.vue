@@ -1427,20 +1427,19 @@ const resourceMap = computed(() => {
         0,
       );
     } else if (workload?.tasks && workload.tasks.length > 0) {
-      // Fallback: active remaining effort (expected - actual)
-      scheduledEffort = workload.tasks.reduce(
-        (sum, t) =>
-          sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
-        0,
-      );
+      // Fallback: active remaining effort from resource workload tasks
+      scheduledEffort = workload.tasks.reduce((sum, t) => {
+        const remEffort = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
+        return sum + remEffort;
+      }, 0);
     } else {
-      // Fallback: local active task remaining effort (excluding completed tasks)
+      // Fallback: local active task remaining effort distributed among co-assignees
       const activeTasks = item.tasks.filter((t) => t.status !== 'COMPLETED');
-      scheduledEffort = activeTasks.reduce(
-        (sum, t) =>
-          sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
-        0,
-      );
+      scheduledEffort = activeTasks.reduce((sum, t) => {
+        const assigneesCount = Math.max(1, (t.assigned_resource_ids || []).length);
+        const remEffort = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
+        return sum + remEffort / assigneesCount;
+      }, 0);
     }
 
     item.totalEffort = Math.round(scheduledEffort * 10) / 10;

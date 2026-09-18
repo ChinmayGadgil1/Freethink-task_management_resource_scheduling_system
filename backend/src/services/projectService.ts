@@ -529,6 +529,15 @@ export async function restoreProjectFromBin(projectId: number, projectManagerId?
             [projectId]
         );
 
+        // Prune any dead dependency links where predecessors no longer exist in the system
+        await connection.query(
+            `DELETE td FROM task_dependencies td
+             INNER JOIN tasks t ON td.task_id = t.task_id
+             WHERE t.project_id = ?
+               AND td.predecessor_task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL)`,
+            [projectId]
+        );
+
         await connection.commit();
         return true;
     } catch (error) {
