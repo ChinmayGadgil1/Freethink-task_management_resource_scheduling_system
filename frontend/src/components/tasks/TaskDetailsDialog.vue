@@ -25,9 +25,6 @@
           <q-chip dense square :class="['status-chip', getTaskStatusClass(task.status)]">
             {{ formatStatus(task.status) }}
           </q-chip>
-          <q-chip dense square color="grey-3" text-color="grey-8" style="font-size: 11px">
-            #{{ task.task_id }}
-          </q-chip>
           <q-chip
             v-if="task.is_deadline_at_risk"
             dense
@@ -79,7 +76,7 @@
           <div class="column">
             <span class="text-caption text-weight-bold">Verifying completed deliverable:</span>
             <span class="text-body2 text-weight-medium">
-              #{{ task.verified_task_id }} {{ task.verified_task_title }}
+              {{ task.verified_task_title }}
             </span>
           </div>
         </div>
@@ -380,9 +377,6 @@
                     style="font-size: 11.5px"
                   >
                     {{ dep.title }}
-                  </span>
-                  <span class="text-caption text-grey-5" style="font-size: 10.5px">
-                    #{{ dep.task_id }}
                   </span>
                   <q-chip
                     v-if="dep.status"

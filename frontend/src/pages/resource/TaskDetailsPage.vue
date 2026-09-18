@@ -939,18 +939,8 @@
           <div class="row items-start justify-between q-col-gutter-lg">
             <!-- Left Column: Chips, Title, Subtitle, Description -->
             <div class="col-12 col-md-7">
-              <!-- Top Row Chips (Task ID, Status, Priority, Risk Badges, Self-assigned) -->
+              <!-- Top Row Chips (Status, Priority, Risk Badges, Self-assigned) -->
               <div class="row items-center q-gutter-xs wrap overflow-hidden q-mb-sm">
-                <q-chip
-                  dense
-                  square
-                  size="sm"
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  :label="`#${task.task_id}`"
-                  class="text-weight-bold"
-                />
-
                 <q-chip
                   dense
                   square
@@ -1046,7 +1036,7 @@
                 <div>
                   <div class="text-caption text-weight-bold">VERIFYING COMPLETED DELIVERABLE:</div>
                   <div class="text-body2 text-weight-bold">
-                    #{{ task.verified_task_id }} {{ task.verified_task_title }}
+                    {{ task.verified_task_title }}
                   </div>
                 </div>
               </div>

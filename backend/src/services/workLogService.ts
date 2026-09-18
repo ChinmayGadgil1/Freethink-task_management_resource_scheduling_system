@@ -390,41 +390,81 @@ export async function submitDailyLogs(userId: number, dateStr: string) {
             );
             const newActualEffort = Number(effortRows[0]?.total_effort || 0);
 
-            // Get the latest log's progress and status
-            const [latestLogRows] = await connection.query<RowDataPacket[]>(
-                `SELECT progress_logged, status, created_at FROM work_logs WHERE task_id = ? ORDER BY created_at DESC LIMIT 1`,
+            // Calculate progress and status across assigned resources:
+            // Since effort is divided equally among co-assignees, each assignee's latest reported progress
+            // contributes their equal share to the overall task progress.
+            const [assigneeRows] = await connection.query<RowDataPacket[]>(
+                `SELECT user_id FROM task_assignments WHERE task_id = ?`,
+                [tId]
+            );
+
+            // Fetch the latest work log for each user who has logged work on this task
+            const [userLatestLogs] = await connection.query<RowDataPacket[]>(
+                `SELECT wl.user_id, wl.progress_logged, wl.status, wl.created_at
+                 FROM work_logs wl
+                 INNER JOIN (
+                     SELECT user_id, MAX(created_at) as max_created
+                     FROM work_logs
+                     WHERE task_id = ?
+                     GROUP BY user_id
+                 ) latest ON wl.user_id = latest.user_id AND wl.created_at = latest.max_created
+                 WHERE wl.task_id = ?`,
+                [tId, tId]
+            );
+
+            const userLogMap = new Map<number, number>();
+            for (const uLog of userLatestLogs) {
+                userLogMap.set(Number(uLog.user_id), Number(uLog.progress_logged));
+            }
+
+            let newProgress = 0;
+            if (assigneeRows.length > 0) {
+                let totalProgressSum = 0;
+                for (const aRow of assigneeRows) {
+                    const uId = Number(aRow.user_id);
+                    const userProgress = userLogMap.get(uId) ?? 0;
+                    totalProgressSum += userProgress;
+                }
+                newProgress = Math.round((totalProgressSum / assigneeRows.length) * 100) / 100;
+            } else if (userLatestLogs.length > 0) {
+                const totalProgressSum = userLatestLogs.reduce((sum, l) => sum + Number(l.progress_logged), 0);
+                newProgress = Math.round((totalProgressSum / userLatestLogs.length) * 100) / 100;
+            }
+
+            newProgress = Math.min(100, Math.max(0, newProgress));
+
+            let newStatus: string;
+            if (newProgress >= 100) {
+                newStatus = "COMPLETED";
+            } else if (newProgress <= 0) {
+                newStatus = assigneeRows.length > 0 ? "SCHEDULED" : "UNASSIGNED";
+            } else {
+                newStatus = "IN_PROGRESS";
+            }
+
+            const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
+            const updateParams: any[] = [newActualEffort, newProgress, newStatus];
+
+            // Check if this task has actual_start set, if not, set it
+            const [taskRows] = await connection.query<RowDataPacket[]>(
+                `SELECT actual_start FROM tasks WHERE task_id = ?`,
                 [tId]
             );
             
-            if (latestLogRows.length > 0) {
-                const latestLog = latestLogRows[0]!;
-                const newProgress = Number(latestLog.progress_logged);
-                const newStatus = String(latestLog.status);
-
-                const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
-                const updateParams: any[] = [newActualEffort, newProgress, newStatus];
-
-                // Check if this task has actual_start set, if not, set it
-                const [taskRows] = await connection.query<RowDataPacket[]>(
-                    `SELECT actual_start FROM tasks WHERE task_id = ?`,
-                    [tId]
-                );
-                
-                if (taskRows.length > 0 && !taskRows[0]?.actual_start) {
-                    updateFields.push("actual_start = NOW()");
-                }
-                
-                if (newStatus === "COMPLETED") {
-                    updateFields.push("actual_end = NOW()");
-                }
-
-                updateParams.push(tId);
-
-                await connection.query(
-                    `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
-                    updateParams
-                );
+            if (taskRows.length > 0 && !taskRows[0]?.actual_start && (newProgress > 0 || newActualEffort > 0)) {
+                updateFields.push("actual_start = NOW()");
             }
+            
+            if (newStatus === "COMPLETED") {
+                updateFields.push("actual_end = NOW()");
+            }
+
+            updateParams.push(tId);
+
+            await connection.query(
+                `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
+                updateParams
+            );
         }
 
         // 2. Find all active projects this user is involved in so we can trigger recalculation
