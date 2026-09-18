@@ -1159,6 +1159,7 @@ import {
   deleteLeaveApi,
   getResourceWorkScheduleApi,
   updateResourceWorkScheduleApi,
+  calculateResourceWeeklyCapacity,
   getHolidaysApi,
   getResourceAvailabilityApi,
 } from '@/services/api';
@@ -1421,13 +1422,12 @@ function onEditProgressChange(val: number | string | null) {
 function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
   if (newStatus === 'COMPLETED') {
     editForm.progress = 100;
-  } else if (newStatus === 'SCHEDULED') {
+  } else if (newStatus === 'SCHEDULED' || newStatus === 'UNASSIGNED') {
     editForm.progress = 0;
-  } else if (
-    newStatus === 'IN_PROGRESS' &&
-    (editForm.progress === 0 || editForm.progress === 100)
-  ) {
-    editForm.progress = 50;
+  } else if (newStatus === 'IN_PROGRESS') {
+    if (editForm.progress <= 0 || editForm.progress >= 100) {
+      editForm.progress = 10;
+    }
   }
 }
 
@@ -1931,24 +1931,37 @@ const totalEffort = computed(() => {
     return Math.round(sum * 10) / 10;
   }
   if (backendWorkload.value?.tasks && backendWorkload.value.tasks.length > 0) {
-    const sum = backendWorkload.value.tasks.reduce(
-      (acc, t) =>
-        acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
-      0,
-    );
+    const sum = backendWorkload.value.tasks.reduce((acc, t) => {
+      const assigneesCount = Math.max(
+        1,
+        t.assigned_resource_ids?.length ||
+          (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
+          1,
+      );
+      const rem = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
+      return acc + rem / assigneesCount;
+    }, 0);
     return Math.round(sum * 10) / 10;
   }
   const activeTasks = resourceTasks.value.filter((t) => t.status !== 'COMPLETED');
-  const sum = activeTasks.reduce(
-    (acc, t) =>
-      acc + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
-    0,
-  );
+  const sum = activeTasks.reduce((acc, t) => {
+    const assigneesCount = Math.max(
+      1,
+      t.assigned_resource_ids?.length ||
+        (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
+        1,
+    );
+    const rem = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
+    return acc + rem / assigneesCount;
+  }, 0);
   return Math.round(sum * 10) / 10;
 });
 
 const utilization = computed(() => {
-  const cap = Math.max(1, weeklyStandardCapacity.value || 40);
+  const cap = Math.max(
+    1,
+    weeklyStandardCapacity.value || calculateResourceWeeklyCapacity(resourceInfo.value),
+  );
   return Math.round((totalEffort.value / cap) * 100);
 });
 

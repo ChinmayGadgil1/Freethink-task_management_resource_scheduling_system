@@ -344,7 +344,7 @@ const defaultActions = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
       iconColor: 'text-purple',
       iconBg: 'bg-purple-1',
       action: () => {
-        void router.push('/pm/dashboard');
+        void router.push('/pm/projects');
       },
     },
     {

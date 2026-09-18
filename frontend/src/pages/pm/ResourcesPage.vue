@@ -1427,17 +1427,34 @@ const resourceMap = computed(() => {
         0,
       );
     } else if (workload?.tasks && workload.tasks.length > 0) {
-      // Fallback: active remaining effort from resource workload tasks
+      // Fallback: active remaining effort from resource workload tasks distributed among co-assignees
       scheduledEffort = workload.tasks.reduce((sum, t) => {
-        const remEffort = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
-        return sum + remEffort;
+        const assigneesCount = Math.max(
+          1,
+          t.assigned_resource_ids?.length ||
+            (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
+            1,
+        );
+        const remEffort = Math.max(
+          0,
+          (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0),
+        );
+        return sum + remEffort / assigneesCount;
       }, 0);
     } else {
       // Fallback: local active task remaining effort distributed among co-assignees
       const activeTasks = item.tasks.filter((t) => t.status !== 'COMPLETED');
       scheduledEffort = activeTasks.reduce((sum, t) => {
-        const assigneesCount = Math.max(1, (t.assigned_resource_ids || []).length);
-        const remEffort = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
+        const assigneesCount = Math.max(
+          1,
+          t.assigned_resource_ids?.length ||
+            (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
+            1,
+        );
+        const remEffort = Math.max(
+          0,
+          (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0),
+        );
         return sum + remEffort / assigneesCount;
       }, 0);
     }

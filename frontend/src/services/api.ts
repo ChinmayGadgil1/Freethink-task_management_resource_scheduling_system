@@ -450,6 +450,8 @@ export interface ResourceWorkloadTask {
   progress: number | string;
   is_schedule_at_risk?: boolean;
   is_deadline_at_risk?: boolean;
+  assigned_resource_ids?: number[];
+  assigned_resources?: Array<{ user_id: number; name?: string; email?: string }>;
 }
 
 export interface ResourceWorkload {

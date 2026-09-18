@@ -34,8 +34,12 @@ const routes: RouteRecordRaw[] = [
 
     children: [
       {
+        path: '',
+        redirect: '/pm/projects',
+      },
+      {
         path: 'dashboard',
-        component: () => import('@/pages/pm/DashboardPage.vue'),
+        redirect: '/pm/projects',
       },
       {
         path: 'projects',

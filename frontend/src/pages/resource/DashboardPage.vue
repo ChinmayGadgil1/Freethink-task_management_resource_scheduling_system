@@ -388,8 +388,8 @@ onMounted(() => {
   void loadDashboardData();
 });
 
-const activeTasksCount = computed(
-  () => tasks.value.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'SCHEDULED').length,
+const inProgressTasksCount = computed(
+  () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
 );
 
 const supervisedTasksCount = computed(
@@ -403,13 +403,14 @@ const delayedTasksCount = computed(
   () => tasks.value.filter((t) => isOverdue(t) && t.status !== 'COMPLETED').length,
 );
 
+const activeTasksCount = computed(() => inProgressTasksCount.value);
 const workload = computed(() => {
   if (workloadData.value) {
     const expected = Number(workloadData.value.total_expected_effort) || 0;
     const actual = Number(workloadData.value.total_actual_effort) || 0;
     const remaining = Math.max(0, formatNumber(expected - actual));
     const consumedPct = expected > 0 ? Math.round((actual / expected) * 100) : 0;
-    const activeTasks = Number(workloadData.value.active_tasks_count) || activeTasksCount.value;
+    const activeTasks = inProgressTasksCount.value;
 
     return {
       expectedEffort: formatNumber(expected),
@@ -425,14 +426,20 @@ const workload = computed(() => {
   let actual = 0;
   const myId = currentUserId.value;
   tasks.value.forEach((t) => {
+    if (t.status === 'COMPLETED') return;
     const isSupervisor = Boolean(myId && Number(t.supervisor_id) === myId);
     const isAssignee =
       t.assigned_resource_ids?.includes(myId as number) ||
       t.assigned_resources?.some((ar) => Number(ar.user_id) === myId);
 
+    const assigneesCount = Math.max(
+      1,
+      t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+    );
+
     if (isAssignee) {
-      expected += Number(t.expected_effort) || 0;
-      actual += Number(t.actual_effort) || 0;
+      expected += (Number(t.expected_effort) || 0) / assigneesCount;
+      actual += (Number(t.actual_effort) || 0) / assigneesCount;
     } else if (isSupervisor) {
       expected += (Number(t.expected_effort) || 0) * 0.2;
       actual += Number(t.actual_effort) || 0;
@@ -446,7 +453,7 @@ const workload = computed(() => {
     expectedEffort: formatNumber(expected),
     actualEffort: formatNumber(actual),
     remainingEffort: remaining,
-    activeTasks: activeTasksCount.value,
+    activeTasks: inProgressTasksCount.value,
     consumedPct,
     overEstimate: actual > expected,
   };

@@ -721,13 +721,17 @@ function getTaskExpectedEffortForMe(t: Task): number {
   const isAssignee =
     t.assigned_resource_ids?.includes(myId as number) ||
     t.assigned_resources?.some((ar) => Number(ar.user_id) === myId);
+  const assigneesCount = Math.max(
+    1,
+    t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+  );
   if (isAssignee) {
-    return Number(t.expected_effort) || 0;
+    return (Number(t.expected_effort) || 0) / assigneesCount;
   }
   if (myId && Number(t.supervisor_id) === myId) {
-    return (Number(t.expected_effort) || 0) * 0.2;
+    return ((Number(t.expected_effort) || 0) * 0.2) / assigneesCount;
   }
-  return Number(t.expected_effort) || 0;
+  return (Number(t.expected_effort) || 0) / assigneesCount;
 }
 
 // Ensure tasks are strictly scoped to the logged-in resource (assigned or supervised)
@@ -754,10 +758,9 @@ const delayedTasks = computed(() => assignedTasks.value.filter(isOverdue).length
 
 const overallProgress = computed(() => {
   if (!assignedTasks.value.length) return 0;
-  return Math.round(
-    assignedTasks.value.reduce((sum, t) => sum + (Number(t.progress) || 0), 0) /
-      assignedTasks.value.length,
-  );
+  const total = assignedTasks.value.reduce((sum, t) => sum + (Number(t.progress) || 0), 0);
+  const avg = Math.round(total / assignedTasks.value.length);
+  return isNaN(avg) ? 0 : Math.max(0, Math.min(100, avg));
 });
 
 const expectedEffort = computed(() =>
@@ -777,11 +780,13 @@ const actualHoursRemaining = computed(() =>
     ),
 );
 
-const effortPercentage = computed(() =>
-  expectedEffort.value
-    ? Math.min(100, Math.round((actualEffort.value / expectedEffort.value) * 100))
-    : 0,
-);
+const effortPercentage = computed(() => {
+  if (!expectedEffort.value || isNaN(expectedEffort.value) || expectedEffort.value <= 0) return 0;
+  const actual = actualEffort.value || 0;
+  if (isNaN(actual) || actual <= 0) return 0;
+  const pct = Math.round((actual / expectedEffort.value) * 100);
+  return isNaN(pct) ? 0 : Math.min(100, Math.max(0, pct));
+});
 
 const deadlinePerformance = computed(() => {
   const overdue = assignedTasks.value.filter(

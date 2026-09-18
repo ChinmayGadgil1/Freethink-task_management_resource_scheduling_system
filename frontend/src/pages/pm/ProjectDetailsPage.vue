@@ -2073,13 +2073,35 @@ const completedTasksCount = computed(
 const inProgressTasksCount = computed(
   () => tasks.value.filter((t) => t.status === 'IN_PROGRESS').length,
 );
-const pendingTasksCount = computed(
-  () => tasks.value.filter((t) => t.status === 'UNASSIGNED' || t.status === 'SCHEDULED').length,
-);
+function isTaskBlockedByPredecessors(task: Task, taskMap: Map<number, Task>): boolean {
+  if (task.status === 'COMPLETED') return false;
+  const tId = Number(task.task_id);
+  const predIds = existingTaskDependencies[tId] || (task.predecessor_task_ids || []).map(Number);
+  if (!predIds || predIds.length === 0) return false;
+  return predIds.some((predId) => {
+    const pred = taskMap.get(predId);
+    return !pred || pred.status !== 'COMPLETED';
+  });
+}
+
 const onHoldTasksCount = computed(() => {
-  return project.status === 'ON_HOLD'
-    ? tasks.value.filter((t) => t.status !== 'COMPLETED').length
-    : 0;
+  if (project.status === 'ON_HOLD') {
+    return tasks.value.filter((t) => t.status !== 'COMPLETED').length;
+  }
+  const taskMap = new Map<number, Task>();
+  tasks.value.forEach((t) => taskMap.set(Number(t.task_id), t));
+  return tasks.value.filter((t) => isTaskBlockedByPredecessors(t, taskMap)).length;
+});
+
+const pendingTasksCount = computed(() => {
+  if (project.status === 'ON_HOLD') return 0;
+  const taskMap = new Map<number, Task>();
+  tasks.value.forEach((t) => taskMap.set(Number(t.task_id), t));
+  return tasks.value.filter(
+    (t) =>
+      (t.status === 'UNASSIGNED' || t.status === 'SCHEDULED') &&
+      !isTaskBlockedByPredecessors(t, taskMap),
+  ).length;
 });
 
 const criticalTasksCount = computed(
@@ -2497,9 +2519,7 @@ function openQuickUpdate(task: Task) {
   showQuickUpdateDialog.value = true;
 }
 
-function onQuickUpdateStatusClick(
-  stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED',
-) {
+function onQuickUpdateStatusClick(stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
   if (!selectedTaskForUpdate.value) return;
   selectedTaskForUpdate.value.status = stVal;
   if (stVal === 'COMPLETED') {
@@ -2507,10 +2527,7 @@ function onQuickUpdateStatusClick(
   } else if (stVal === 'SCHEDULED' || stVal === 'UNASSIGNED') {
     selectedTaskForUpdateProgress.value = 0;
   } else if (stVal === 'IN_PROGRESS') {
-    if (
-      selectedTaskForUpdateProgress.value <= 0 ||
-      selectedTaskForUpdateProgress.value >= 100
-    ) {
+    if (selectedTaskForUpdateProgress.value <= 0 || selectedTaskForUpdateProgress.value >= 100) {
       selectedTaskForUpdateProgress.value = 10;
     }
   }
@@ -2862,8 +2879,7 @@ function exportProjectSummary() {
       ]);
     }
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
