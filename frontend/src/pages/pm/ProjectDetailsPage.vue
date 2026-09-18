@@ -1194,7 +1194,8 @@
         :project-deadline="project.deadline"
         :member-options="createTaskAssigneeOptions"
         :supervisor-options="createTaskAssigneeOptions"
-        :show-dependencies="false"
+        :predecessor-options="createTaskPredecessorOptions"
+        :show-dependencies="true"
         :loading="taskCreating"
         @submit="handleCreateTask"
       />
@@ -1917,6 +1918,13 @@ const createTaskAssigneeOptions = computed(() => {
   return opts;
 });
 
+const createTaskPredecessorOptions = computed(() => {
+  return tasks.value.map((t) => ({
+    label: `${t.title} (#${t.task_id})`,
+    value: Number(t.task_id),
+  }));
+});
+
 const availableResourcesToAdd = computed(() => {
   const currentMemberIds = new Set(teamMembers.value.map((m) => m.id));
   const seen = new Set<number>();
@@ -2489,18 +2497,22 @@ function openQuickUpdate(task: Task) {
   showQuickUpdateDialog.value = true;
 }
 
-function onQuickUpdateStatusClick(stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
+function onQuickUpdateStatusClick(
+  stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED',
+) {
   if (!selectedTaskForUpdate.value) return;
   selectedTaskForUpdate.value.status = stVal;
   if (stVal === 'COMPLETED') {
     selectedTaskForUpdateProgress.value = 100;
-  } else if (stVal === 'SCHEDULED') {
+  } else if (stVal === 'SCHEDULED' || stVal === 'UNASSIGNED') {
     selectedTaskForUpdateProgress.value = 0;
-  } else if (
-    stVal === 'IN_PROGRESS' &&
-    (selectedTaskForUpdateProgress.value === 0 || selectedTaskForUpdateProgress.value === 100)
-  ) {
-    selectedTaskForUpdateProgress.value = 50;
+  } else if (stVal === 'IN_PROGRESS') {
+    if (
+      selectedTaskForUpdateProgress.value <= 0 ||
+      selectedTaskForUpdateProgress.value >= 100
+    ) {
+      selectedTaskForUpdateProgress.value = 10;
+    }
   }
 }
 
@@ -2523,7 +2535,12 @@ async function saveQuickUpdate() {
 
 async function toggleTaskComplete(task: Task) {
   const newStatus = task.status === 'COMPLETED' ? 'IN_PROGRESS' : 'COMPLETED';
-  const newProg = newStatus === 'COMPLETED' ? 100 : 50;
+  const newProg =
+    newStatus === 'COMPLETED'
+      ? 100
+      : Number(task.progress) > 0 && Number(task.progress) < 100
+        ? Number(task.progress)
+        : 10;
   try {
     await updateTaskApi(task.task_id, { status: newStatus, progress: newProg });
     $q.notify({ type: 'positive', message: `Task marked as ${formatStatus(newStatus)}` });
@@ -2617,12 +2634,16 @@ function confirmRemoveProjectMember(member: TeamMember) {
 }
 async function handleExecuteRemoveMember() {
   if (!memberToRemove.value) return;
+  const removedId = memberToRemove.value.id;
   removingMember.value = true;
   try {
-    await removeProjectMemberApi(projectIdParam.value, memberToRemove.value.id);
+    await removeProjectMemberApi(projectIdParam.value, removedId);
     $q.notify({ type: 'positive', message: `Removed ${memberToRemove.value.name}` });
     showRemoveMemberDialog.value = false;
     memberToRemove.value = null;
+    projectMembersResources.value = projectMembersResources.value.filter(
+      (r) => Number(r.user_id) !== Number(removedId),
+    );
     await refreshData();
   } catch {
     $q.notify({ type: 'negative', message: 'Failed to remove member' });

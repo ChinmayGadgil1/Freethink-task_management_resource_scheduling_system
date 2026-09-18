@@ -1931,13 +1931,12 @@ function onEditProgressChange(val: number | string | null) {
 function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
   if (newStatus === 'COMPLETED') {
     editForm.progress = 100;
-  } else if (newStatus === 'SCHEDULED') {
+  } else if (newStatus === 'SCHEDULED' || newStatus === 'UNASSIGNED') {
     editForm.progress = 0;
-  } else if (
-    newStatus === 'IN_PROGRESS' &&
-    (editForm.progress === 0 || editForm.progress === 100)
-  ) {
-    editForm.progress = 50;
+  } else if (newStatus === 'IN_PROGRESS') {
+    if (editForm.progress <= 0 || editForm.progress >= 100) {
+      editForm.progress = 10;
+    }
   }
 }
 

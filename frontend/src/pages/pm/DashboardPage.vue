@@ -1050,7 +1050,6 @@ import {
   type Task,
   type ResourceUser,
   type CreateProjectPayload,
-  type TaskStatus,
   type TaskPriority,
 } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
@@ -1360,7 +1359,7 @@ async function handleCreateTask() {
       title: newTaskForm.title.trim(),
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
-      status: derivedStatus as TaskStatus,
+      status: derivedStatus,
       deadline: newTaskForm.deadline || null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
       assigned_resource_ids: newTaskForm.assigned_resource_ids,

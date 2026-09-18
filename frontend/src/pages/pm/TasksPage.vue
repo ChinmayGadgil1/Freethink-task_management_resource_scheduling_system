@@ -1497,11 +1497,12 @@ const createMemberOptions = computed(() => {
 
 const createPredecessorOptions = computed(() => {
   if (!createForm.project_id) return [];
+  const selectedPid = Number(createForm.project_id);
   return tasks.value
-    .filter((t) => t.project_id === createForm.project_id)
+    .filter((t) => Number(t.project_id) === selectedPid)
     .map((t) => ({
       label: `${t.title} (#${t.task_id})`,
-      value: t.task_id,
+      value: Number(t.task_id),
     }));
 });
 
@@ -1831,7 +1832,13 @@ function getColumnTotalPages(colId: string): number {
 }
 
 function getColumnPage(colId: string): number {
-  return columnPages[colId] ?? 1;
+  const totalPages = getColumnTotalPages(colId);
+  const current = columnPages[colId] ?? 1;
+  if (current > totalPages) {
+    columnPages[colId] = totalPages;
+    return totalPages;
+  }
+  return current;
 }
 
 function setColumnPage(colId: string, page: number): void {
@@ -2144,13 +2151,12 @@ function onEditProgressChange(val: number | string | null) {
 function onEditStatusChange(newStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED') {
   if (newStatus === 'COMPLETED') {
     editForm.progress = 100;
-  } else if (newStatus === 'SCHEDULED') {
+  } else if (newStatus === 'SCHEDULED' || newStatus === 'UNASSIGNED') {
     editForm.progress = 0;
-  } else if (
-    newStatus === 'IN_PROGRESS' &&
-    (editForm.progress === 0 || editForm.progress === 100)
-  ) {
-    editForm.progress = 50;
+  } else if (newStatus === 'IN_PROGRESS') {
+    if (editForm.progress <= 0 || editForm.progress >= 100) {
+      editForm.progress = 10;
+    }
   }
 }
 

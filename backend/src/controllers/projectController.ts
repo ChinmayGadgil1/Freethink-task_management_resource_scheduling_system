@@ -17,6 +17,7 @@ import {
     unarchiveProject
 } from "../services/projectService.js";
 import { getRecentWorkLogsForManager } from "../services/workLogService.js";
+import { recalculate as recalculateSchedule } from "../services/scheduler/SchedulingEngine.js";
 
 const createProjectSchema = z.object({
     name: z.string().min(1, "Project name is required"),
@@ -309,6 +310,20 @@ export async function updateProjectController(
             return res.status(404).json({
                 message: "Project not found"
             });
+        }
+
+        // Trigger Gantt schedule recalculation when project dates, priority, or status change
+        if (
+            parsedData.start_date !== undefined ||
+            parsedData.deadline !== undefined ||
+            parsedData.priority !== undefined ||
+            parsedData.status !== undefined
+        ) {
+            try {
+                await recalculateSchedule(projectId);
+            } catch (scheduleErr) {
+                console.error("Error recalculating schedule on project update:", scheduleErr);
+            }
         }
 
         return res.status(200).json({
