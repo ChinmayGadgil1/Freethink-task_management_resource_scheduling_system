@@ -326,8 +326,10 @@ import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import WorkloadCard from '@/components/resource/WorkloadCard.vue';
 import TaskStatusCard from '@/components/resource/TaskStatusCard.vue';
-import ProjectsBreakdownCard from '@/components/resource/ProjectsBreakdownCard.vue';
-import { formatDate, formatHours, formatNumber } from '@/utils/formatters';
+import ProjectsBreakdownCard, {
+  type ProjectBreakdownRow,
+} from '@/components/resource/ProjectsBreakdownCard.vue';
+import { formatDate, formatNumber } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 import { getTasksApi, getResourceWorkloadApi } from '@/services/api';
 import type { Task, ResourceWorkload } from '@/services/api';
@@ -531,11 +533,11 @@ const projectSummary = computed(() => {
     if (t.deadline) item.deadlines.push(t.deadline);
   });
 
-  return Array.from(map.values()).map((p) => ({
+  return Array.from(map.values()).map((p): ProjectBreakdownRow => ({
     project: p.project,
     tasks: p.tasks,
     progress: Math.round(p.progressSum / (p.tasks || 1)),
-    status: (p.hasDelayed ? 'Delayed' : 'On Track') as 'Delayed' | 'On Track',
+    status: p.hasDelayed ? 'Delayed' : 'On Track',
     deadline: p.deadlines.length ? formatDate(p.deadlines.sort()[p.deadlines.length - 1]) : 'TBD',
   }));
 });
