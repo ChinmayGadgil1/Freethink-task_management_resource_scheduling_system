@@ -48,7 +48,7 @@
         <!-- Header -->
         <div class="q-pa-md row items-center justify-between border-bottom-subtle">
           <div class="row items-center gap-xs">
-            <span class="text-subtitle1 text-weight-bold">Task Alerts & Risks</span>
+            <span class="text-subtitle1 text-weight-bold">Notifications</span>
             <q-badge
               v-if="notificationStore.unreadCount > 0"
               color="negative"
@@ -182,7 +182,7 @@
 
                 <!-- Full Message (No line-clamp) -->
                 <div class="text-caption notification-message">
-                  {{ item.message }}
+                  {{ formatNotificationMessage(item.message) }}
                 </div>
               </q-item-section>
 
@@ -264,7 +264,7 @@
           class="q-py-xs q-px-md row items-center justify-between border-top-subtle text-caption text-grey-5 bg-subtle-footer"
         >
           <span
-            >{{ filteredNotifications.length }} alert{{
+            >{{ filteredNotifications.length }} notification{{
               filteredNotifications.length === 1 ? '' : 's'
             }}</span
           >
@@ -355,6 +355,13 @@ function handleNotificationClick(item: NotificationItem) {
     menuOpen.value = false;
     void router.push(item.link);
   }
+}
+
+function formatNotificationMessage(msg: string): string {
+  if (!msg) return '';
+  return msg
+    .replace('Please review and respond.', 'Please review.')
+    .replace(' and reviewed', '');
 }
 
 function formatTimeAgo(dateStr: string): string {

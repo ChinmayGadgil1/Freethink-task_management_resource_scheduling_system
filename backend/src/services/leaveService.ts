@@ -345,7 +345,7 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
                     userId: pmId,
                     type: "LEAVE_REQUESTED",
                     title: `Leave Requested: ${user.name}`,
-                    message: `${user.name} submitted a leave request for ${rangeStr}. Please review and respond.`,
+                    message: `${user.name} submitted a leave request for ${rangeStr}. Please review.`,
                     link: "/pm/leaves",
                 });
             }

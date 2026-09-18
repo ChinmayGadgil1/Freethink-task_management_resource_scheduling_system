@@ -32,6 +32,16 @@ export async function ensureDeletedAtColumn(): Promise<void> {
     } catch {
         // Column already exists or table not ready
     }
+    try {
+        const pool = getPool();
+        await pool.query(
+            `UPDATE notifications 
+             SET message = REPLACE(REPLACE(message, 'Please review and respond.', 'Please review.'), ' and reviewed', '') 
+             WHERE message LIKE '%Please review and respond.%' OR message LIKE '% and reviewed%'`
+        );
+    } catch {
+        // ignore if fails
+    }
     hasEnsuredDeletedAt = true;
 }
 
@@ -404,7 +414,7 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                     [
                         userId,
                         title,
-                        `${pl.resource_name} has requested leave for ${leaveDate} (${pl.leave_hours}h). Please review and respond.`,
+                        `${pl.resource_name} has requested leave for ${leaveDate} (${pl.leave_hours}h). Please review.`,
                         link
                     ]
                 );
@@ -479,7 +489,9 @@ export async function getUserNotifications(
         user_id: Number(r.user_id),
         type: r.type as NotificationType,
         title: String(r.title),
-        message: String(r.message),
+        message: String(r.message)
+            .replace("Please review and respond.", "Please review.")
+            .replace(" and reviewed", ""),
         link: r.link ? String(r.link) : null,
         is_read: Boolean(r.is_read),
         created_at: r.created_at,
