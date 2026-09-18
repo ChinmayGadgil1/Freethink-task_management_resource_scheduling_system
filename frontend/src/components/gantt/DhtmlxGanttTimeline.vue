@@ -518,6 +518,7 @@ function getMacroDate(d: Date | null, isStart: boolean): Date | null {
  * Determines whether a task allocation on a specific date is on the 'first' half,
  * 'second' half, or 'full' day.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function resolveTaskDateHalf(
   task: Task,
   dateStr: string,
@@ -1404,7 +1405,7 @@ function configureGanttEngine() {
     const startStr = formatDate(rawStart);
     const endStr = formatDate(displayEnd);
 
-    let dateRange = '';
+    let dateRange: string;
     if (isExactTime) {
       if (startStr === endStr) {
         dateRange = `${startStr} (${formatTime(rawStart)} - ${formatTime(rawEnd)})`;
@@ -1460,7 +1461,7 @@ function configureGanttEngine() {
     const priorityText = task.priority || '—';
     const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
     
-    const parseOrFallback = (str?: string) => {
+    const parseOrFallback = (str?: string | null) => {
       if (!str) return '—';
       const d = parseIsoToDate(str);
       return d ? formatDate(d) : '—';

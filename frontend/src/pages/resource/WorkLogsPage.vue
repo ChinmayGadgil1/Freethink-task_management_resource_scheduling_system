@@ -556,32 +556,34 @@ async function loadDailyAllocations() {
   }
 }
 
-async function submitDailyLogs() {
+function submitDailyLogs() {
   $q.dialog({
     title: 'Submit Today\'s Logs',
     message: 'Are you sure you want to submit your logs for today? This indicates you have left the office and will trigger a schedule recalculation. You cannot undo this action.',
     cancel: true,
     persistent: true,
-  }).onOk(async () => {
-    loading.value = true;
-    try {
-      await submitDailyLogsApi(selectedDate.value);
-      $q.notify({
-        type: 'positive',
-        message: 'Daily logs submitted successfully!',
-        position: 'top',
-      });
-      await loadDailyAllocations();
-    } catch (err: unknown) {
-      console.error('Error submitting daily logs:', err);
-      $q.notify({
-        type: 'negative',
-        message: (err as Error)?.message || 'Failed to submit logs',
-        position: 'top',
-      });
-    } finally {
-      loading.value = false;
-    }
+  }).onOk(() => {
+    void (async () => {
+      loading.value = true;
+      try {
+        await submitDailyLogsApi(selectedDate.value);
+        $q.notify({
+          type: 'positive',
+          message: 'Daily logs submitted successfully!',
+          position: 'top',
+        });
+        await loadDailyAllocations();
+      } catch (err: unknown) {
+        console.error('Error submitting daily logs:', err);
+        $q.notify({
+          type: 'negative',
+          message: (err as Error)?.message || 'Failed to submit logs',
+          position: 'top',
+        });
+      } finally {
+        loading.value = false;
+      }
+    })();
   });
 }
 
