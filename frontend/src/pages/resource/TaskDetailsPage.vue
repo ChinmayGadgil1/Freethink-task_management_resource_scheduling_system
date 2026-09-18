@@ -2369,7 +2369,9 @@
               <div class="col-12">
                 <q-select
                   v-model="createForm.priority"
-                  :options="priorityOptions"
+                  :options="createPriorityOptions"
+                  emit-value
+                  map-options
                   label="Priority"
                   outlined
                   dense
@@ -2377,27 +2379,6 @@
                 >
                   <template #prepend>
                     <q-icon name="flag" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-                  </template>
-                </q-select>
-              </div>
-            </div>
-
-            <div class="row q-col-gutter-sm">
-              <div class="col-12">
-                <q-select
-                  v-model="createForm.supervisor_id"
-                  :options="projectMembersForCreate"
-                  label="Supervisor / Reviewer (Optional)"
-                  outlined
-                  dense
-                  clearable
-                  emit-value
-                  map-options
-                  options-dense
-                  hint="Designate an experienced resource to supervise and review deliverables"
-                >
-                  <template #prepend>
-                    <q-icon name="verified_user" color="primary" />
                   </template>
                 </q-select>
               </div>
@@ -2413,16 +2394,16 @@
                   dense
                   stack-label
                   :rules="[
-                    (val) =>
-                      !val ||
-                      !selectedCreateProject?.start_date ||
-                      val >= selectedCreateProject.start_date ||
-                      `Deadline cannot be earlier than project start date (${selectedCreateProject.start_date})`,
-                    (val) =>
-                      !val ||
-                      !selectedCreateProject?.deadline ||
-                      val <= selectedCreateProject.deadline ||
-                      `Deadline cannot be later than project deadline (${selectedCreateProject.deadline})`,
+                    (val) => {
+                      if (!val || !selectedCreateProject?.start_date) return true;
+                      const pStart = String(selectedCreateProject.start_date).split('T')[0] || '';
+                      return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                    },
+                    (val) => {
+                      if (!val || !selectedCreateProject?.deadline) return true;
+                      const pDeadline = String(selectedCreateProject.deadline).split('T')[0] || '';
+                      return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                    },
                   ]"
                 >
                   <template #prepend>
@@ -2509,7 +2490,6 @@ import {
   createWorkLogApi,
   createTaskApi,
   getProjectsApi,
-  getResourcesApi,
   getTasksApi,
   getTaskByIdApi,
   getWorkLogsApi,
@@ -3298,16 +3278,24 @@ watch(
 );
 
 const createProjects = ref<Project[]>([]);
-const projectMembersForCreate = ref<Array<{ label: string; value: number }>>([]);
+
+const createPriorityOptions: Array<{
+  label: string;
+  value: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+}> = [
+  { label: 'Low', value: 'LOW' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'High', value: 'HIGH' },
+  { label: 'Critical', value: 'CRITICAL' },
+];
 
 interface CreateTaskForm {
   project_id: number | null;
   title: string;
   description: string;
-  priority: Task['priority'];
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   deadline: string;
   expected_effort: number;
-  supervisor_id: number | null;
 }
 
 const createForm = ref<CreateTaskForm>({
@@ -3317,39 +3305,7 @@ const createForm = ref<CreateTaskForm>({
   priority: 'MEDIUM',
   deadline: '',
   expected_effort: 0,
-  supervisor_id: null,
 });
-
-watch(
-  () => createForm.value.project_id,
-  async (newProjectId) => {
-    if (!newProjectId) {
-      projectMembersForCreate.value = [];
-      createForm.value.supervisor_id = null;
-      return;
-    }
-    try {
-      const res = await getResourcesApi({ project_id: newProjectId });
-      const seen = new Set<number>();
-      const opts: Array<{ label: string; value: number }> = [];
-      const myId = currentUserId.value;
-      for (const r of res) {
-        const id = Number(r.user_id);
-        if (id && !isNaN(id) && id !== myId && !seen.has(id)) {
-          seen.add(id);
-          opts.push({
-            label: `${r.name || r.email || `User #${r.user_id}`} (${r.role || 'RESOURCE'})`,
-            value: id,
-          });
-        }
-      }
-      projectMembersForCreate.value = opts;
-    } catch (err) {
-      console.warn('Failed to load project members for supervisor select:', err);
-      projectMembersForCreate.value = [];
-    }
-  },
-);
 
 const projectOptionsForCreate = computed(() => {
   const seen = new Set<number>();
@@ -3582,8 +3538,10 @@ const canCreateTask = computed(() => {
   const d = createForm.value.deadline;
   const p = selectedCreateProject.value;
   if (d && p) {
-    if (p.start_date && d < p.start_date) return false;
-    if (p.deadline && d > p.deadline) return false;
+    const pStart = p.start_date ? String(p.start_date).split('T')[0] : null;
+    const pDeadline = p.deadline ? String(p.deadline).split('T')[0] : null;
+    if (pStart && d < pStart) return false;
+    if (pDeadline && d > pDeadline) return false;
   }
   return (
     createForm.value.project_id !== null &&
@@ -3600,9 +3558,7 @@ function resetCreateForm() {
     priority: 'MEDIUM',
     deadline: '',
     expected_effort: 0,
-    supervisor_id: null,
   };
-  projectMembersForCreate.value = [];
 }
 
 const sessionStore = useSessionStore();
@@ -3739,14 +3695,16 @@ async function createTask() {
   creatingTask.value = true;
 
   try {
+    const myUserId = currentUserId.value;
+
     await createTaskApi({
-      project_id: projectId,
+      project_id: Number(projectId),
       title: createForm.value.title.trim(),
       description: createForm.value.description.trim(),
       priority: createForm.value.priority,
       deadline: createForm.value.deadline || null,
       expected_effort: Number(createForm.value.expected_effort),
-      supervisor_id: createForm.value.supervisor_id || undefined,
+      assigned_resource_ids: myUserId ? [myUserId] : undefined,
     });
 
     createDialog.value = false;

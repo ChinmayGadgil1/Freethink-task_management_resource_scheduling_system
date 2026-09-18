@@ -73,6 +73,9 @@ export async function create(req: AuthRequest, res: Response) {
             if (!isMember) {
                 return res.status(403).json({ message: "You can only create tasks in projects you are assigned to" });
             }
+            if (parsed.supervisor_id !== undefined && parsed.supervisor_id !== null) {
+                return res.status(403).json({ message: "Resources cannot assign supervisors to tasks" });
+            }
         }
 
         if (parsed.deadline) {
@@ -82,10 +85,10 @@ export async function create(req: AuthRequest, res: Response) {
             }
         }
 
-        // If self-assigned by a RESOURCE, assign them automatically
+        // If self-assigned by a RESOURCE, force assignment strictly to themselves
         let resourceIds = parsed.assigned_resource_ids;
-        if (userRole === "RESOURCE" && (!resourceIds || resourceIds.length === 0)) {
-            resourceIds = [req.user!.user_id];
+        if (userRole === "RESOURCE") {
+            resourceIds = [userId!];
         }
 
         // Determine status based on assignment presence if not explicitly provided
