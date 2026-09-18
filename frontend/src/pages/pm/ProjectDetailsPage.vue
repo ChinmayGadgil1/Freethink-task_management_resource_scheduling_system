@@ -2068,7 +2068,11 @@ const inProgressTasksCount = computed(
 const pendingTasksCount = computed(
   () => tasks.value.filter((t) => t.status === 'UNASSIGNED' || t.status === 'SCHEDULED').length,
 );
-const onHoldTasksCount = computed(() => 0);
+const onHoldTasksCount = computed(() => {
+  return project.status === 'ON_HOLD'
+    ? tasks.value.filter((t) => t.status !== 'COMPLETED').length
+    : 0;
+});
 
 const criticalTasksCount = computed(
   () => tasks.value.filter((t) => t.priority === 'CRITICAL').length,
@@ -2758,19 +2762,104 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
       assigned_resource_ids: formData ? formData.assigned_resource_ids : [],
       supervisor_id: formData ? formData.supervisor_id || undefined : undefined,
     };
-    await createTaskApi(payload);
-    $q.notify({ type: 'positive', message: 'Task created successfully' });
+    const created = await createTaskApi(payload);
+    const newTaskId = Number(created?.task_id);
+
+    let depErrors = 0;
+    if (newTaskId && formData?.predecessor_task_ids && formData.predecessor_task_ids.length > 0) {
+      for (const predId of formData.predecessor_task_ids) {
+        try {
+          await addTaskDependencyApi(newTaskId, predId);
+        } catch (e) {
+          console.warn('Failed to add dependency on task create:', e);
+          depErrors++;
+        }
+      }
+    }
+
+    if (depErrors > 0) {
+      $q.notify({
+        type: 'warning',
+        message: `Task created, but ${depErrors} dependency/dependencies could not be linked`,
+      });
+    } else {
+      $q.notify({ type: 'positive', message: 'Task created successfully' });
+    }
     showCreateTaskDialog.value = false;
     await refreshData();
-  } catch {
-    $q.notify({ type: 'negative', message: 'Failed to create task' });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to create task';
+    $q.notify({ type: 'negative', message: msg });
   } finally {
     taskCreating.value = false;
   }
 }
 
 function exportProjectSummary() {
-  $q.notify({ type: 'positive', message: 'Project report exported' });
+  try {
+    const rows: string[][] = [];
+    rows.push(['Project Name', `"${project.name.replace(/"/g, '""')}"`]);
+    rows.push(['Project Status', project.status]);
+    rows.push(['Priority', project.priority]);
+    rows.push(['Start Date', project.start_date || 'N/A']);
+    rows.push(['Deadline', project.deadline || 'N/A']);
+    rows.push(['Overall Progress', `${overallProgress.value}%`]);
+    rows.push(['Total Tasks', `${tasks.value.length}`]);
+    rows.push(['Completed Tasks', `${completedTasksCount.value}`]);
+    rows.push(['Active Tasks', `${inProgressTasksCount.value + pendingTasksCount.value}`]);
+    rows.push(['On Hold Tasks', `${onHoldTasksCount.value}`]);
+    rows.push([]);
+    rows.push([
+      'Task ID',
+      'Title',
+      'Status',
+      'Priority',
+      'Progress (%)',
+      'Expected Effort (hrs)',
+      'Actual Effort (hrs)',
+      'Deadline',
+      'Assignees',
+    ]);
+
+    for (const t of tasks.value) {
+      let assigneesStr = 'Unassigned';
+      if (Array.isArray(t.assigned_resources) && t.assigned_resources.length > 0) {
+        assigneesStr = t.assigned_resources.map((r) => r.name).join('; ');
+      } else if (typeof t.assigned_resource_names === 'string' && t.assigned_resource_names) {
+        assigneesStr = t.assigned_resource_names;
+      }
+      rows.push([
+        String(t.task_id),
+        `"${(t.title || '').replace(/"/g, '""')}"`,
+        t.status || 'UNASSIGNED',
+        t.priority || 'MEDIUM',
+        `${t.progress || 0}`,
+        `${t.expected_effort || 0}`,
+        `${t.actual_effort || 0}`,
+        t.deadline ? (t.deadline.split('T')[0] ?? 'N/A') : 'N/A',
+        `"${assigneesStr.replace(/"/g, '""')}"`,
+      ]);
+    }
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    const safeName = project.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    link.setAttribute(
+      'download',
+      `${safeName}_summary_${new Date().toISOString().split('T')[0]}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    $q.notify({ type: 'positive', message: 'Project summary report exported successfully' });
+  } catch (err) {
+    console.error('Failed to export project summary:', err);
+    $q.notify({ type: 'negative', message: 'Failed to export project summary' });
+  }
 }
 
 async function markProjectComplete() {

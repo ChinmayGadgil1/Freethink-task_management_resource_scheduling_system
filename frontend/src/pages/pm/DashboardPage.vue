@@ -1353,12 +1353,14 @@ async function handleCreateTask() {
   if (!newTaskForm.project_id || !newTaskForm.title.trim()) return;
   taskSubmitting.value = true;
   try {
+    const assignees = newTaskForm.assigned_resource_ids || [];
+    const derivedStatus = assignees.length > 0 ? 'SCHEDULED' : 'UNASSIGNED';
     await createTaskApi({
       project_id: newTaskForm.project_id,
       title: newTaskForm.title.trim(),
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
-      status: newTaskForm.status as TaskStatus,
+      status: derivedStatus as TaskStatus,
       deadline: newTaskForm.deadline || null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
       assigned_resource_ids: newTaskForm.assigned_resource_ids,

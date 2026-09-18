@@ -1,4 +1,5 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
+import { useNotificationStore } from '@/stores/notification';
 
 export interface User {
   user_id: number;
@@ -38,6 +39,12 @@ export const useAuthStore = defineStore('auth', {
     },
 
     clearAuth() {
+      try {
+        const notifStore = useNotificationStore();
+        notifStore.stopPolling();
+      } catch {
+        // ignore if not initialized
+      }
       this.token = null;
       this.user = null;
     },
