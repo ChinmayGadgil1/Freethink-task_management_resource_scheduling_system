@@ -311,7 +311,14 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
          - 'SCHEDULED' -> 0% progress */
         if (parsed.progress !== undefined && parsed.status === undefined) {
             if (parsed.progress <= 0) {
-                parsed.status = "SCHEDULED";
+                const assigneesCount = Array.isArray(task.assigned_resources)
+                    ? task.assigned_resources.length
+                    : (task.assigned_resource_ids
+                        ? (Array.isArray(task.assigned_resource_ids)
+                            ? task.assigned_resource_ids.length
+                            : String(task.assigned_resource_ids).split(",").filter(Boolean).length)
+                        : 0);
+                parsed.status = assigneesCount > 0 ? "SCHEDULED" : "UNASSIGNED";
             } else if (parsed.progress >= 100) {
                 parsed.status = "COMPLETED";
             } else {
@@ -320,7 +327,7 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
         } else if (parsed.status !== undefined && parsed.progress === undefined) {
             if (parsed.status === "COMPLETED") {
                 parsed.progress = 100;
-            } else if (parsed.status === "SCHEDULED") {
+            } else if (parsed.status === "SCHEDULED" || parsed.status === "UNASSIGNED") {
                 parsed.progress = 0;
             }
         }

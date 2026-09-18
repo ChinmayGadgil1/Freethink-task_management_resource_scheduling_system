@@ -632,6 +632,40 @@
                 </q-card>
               </div>
             </div>
+
+            <!-- Cards Pagination Toolbar -->
+            <div
+              v-if="groupBy === 'None' && filteredProjects.length > pagination.rowsPerPage"
+              class="row items-center justify-between q-mt-md q-px-xs wrap gap-sm"
+            >
+              <div class="text-caption text-grey-6">
+                Showing {{ (pagination.page - 1) * pagination.rowsPerPage + 1 }} -
+                {{ Math.min(pagination.page * pagination.rowsPerPage, filteredProjects.length) }} of
+                {{ filteredProjects.length }} projects
+              </div>
+              <div class="row items-center q-gutter-sm">
+                <q-select
+                  v-model="pagination.rowsPerPage"
+                  :options="[8, 16, 24]"
+                  dense
+                  outlined
+                  options-dense
+                  :dark="$q.dark.isActive"
+                  style="width: 100px"
+                  label="Per page"
+                />
+                <q-pagination
+                  v-model="pagination.page"
+                  :max="cardTotalPages"
+                  :max-pages="5"
+                  direction-links
+                  boundary-links
+                  color="primary"
+                  dense
+                  size="sm"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -972,7 +1006,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
@@ -1434,6 +1468,22 @@ const filteredProjects = computed(() => {
   });
 });
 
+const cardTotalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredProjects.value.length / (pagination.value.rowsPerPage || 8))),
+);
+
+const paginatedFilteredProjects = computed(() => {
+  const start = (pagination.value.page - 1) * pagination.value.rowsPerPage;
+  return filteredProjects.value.slice(start, start + pagination.value.rowsPerPage);
+});
+
+watch(
+  [searchQuery, statusFilter, healthFilter, startDateFilter, endDateFilter, groupBy],
+  () => {
+    pagination.value.page = 1;
+  },
+);
+
 const groupedProjectCards = computed(() => {
   if (groupBy.value === 'Status') {
     const map = new Map<string, Project[]>();
@@ -1455,7 +1505,7 @@ const groupedProjectCards = computed(() => {
     return Array.from(map.entries()).map(([label, projs]) => ({ label, projects: projs }));
   }
 
-  return [{ label: '', projects: filteredProjects.value }];
+  return [{ label: '', projects: paginatedFilteredProjects.value }];
 });
 
 const activeWorkspaceProjects = computed(() =>

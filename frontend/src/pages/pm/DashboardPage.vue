@@ -1045,6 +1045,7 @@ import {
   createProjectApi,
   createTaskApi,
   assignProjectMemberApi,
+  assignTaskResourceApi,
   createWorkLogApi,
   type Project,
   type Task,
@@ -1389,7 +1390,15 @@ async function handleAllocateResource() {
   allocatingResource.value = true;
   try {
     await assignProjectMemberApi(allocateForm.project_id, allocateForm.user_id);
-    $q.notify({ type: 'positive', message: 'Resource allocated to project' });
+    if (allocateForm.task_id) {
+      await assignTaskResourceApi(allocateForm.task_id, allocateForm.user_id);
+    }
+    $q.notify({
+      type: 'positive',
+      message: allocateForm.task_id
+        ? 'Resource allocated to project and assigned to task'
+        : 'Resource allocated to project',
+    });
     showAllocateResourceModal.value = false;
     await loadDashboardData();
   } catch (err) {
@@ -1440,8 +1449,79 @@ function openGenerateReportDialog() {
 }
 
 function downloadReport() {
-  $q.notify({ type: 'positive', message: 'Dashboard summary report downloaded' });
-  showGenerateReportModal.value = false;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const escapeCsv = (str: string | number | null | undefined) => {
+      const val = str === null || str === undefined ? '' : String(str);
+      return `"${val.replace(/"/g, '""')}"`;
+    };
+
+    const lines: string[] = [];
+    lines.push('=== PM EXECUTIVE DASHBOARD SUMMARY REPORT ===');
+    lines.push(`Generated On,${today}`);
+    lines.push(`Project Manager,${escapeCsv(currentPmName.value)}`);
+    lines.push(`Total Active Projects,${totalProjects.value}`);
+    lines.push(`Active Deliverables,${activeTasks.value}`);
+    lines.push(`Completed Tasks,${completedTasks.value}`);
+    lines.push(`Overdue Tasks,${overdueTasks.value}`);
+    lines.push('');
+
+    lines.push('=== PROJECTS BREAKDOWN ===');
+    lines.push('Project ID,Project Name,Priority,Status,Progress (%),Start Date,Deadline');
+    projects.value.forEach((p) => {
+      lines.push(
+        [
+          p.project_id,
+          escapeCsv(p.name),
+          p.priority || 'MEDIUM',
+          p.status,
+          Math.round(Number(p.progress) || 0),
+          p.start_date || 'N/A',
+          p.deadline || 'N/A',
+        ].join(','),
+      );
+    });
+    lines.push('');
+
+    lines.push('=== DELIVERABLES BREAKDOWN ===');
+    lines.push(
+      'Task ID,Title,Project Name,Priority,Status,Progress (%),Expected Effort (h),Actual Effort (h),Deadline',
+    );
+    tasks.value.forEach((t) => {
+      lines.push(
+        [
+          t.task_id,
+          escapeCsv(t.title),
+          escapeCsv(t.project_name || `Project #${t.project_id}`),
+          t.priority,
+          t.status,
+          Math.round(Number(t.progress) || 0),
+          Number(t.expected_effort) || 0,
+          Number(t.actual_effort) || 0,
+          t.deadline || 'N/A',
+        ].join(','),
+      );
+    });
+
+    const csvContent = lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `pm_dashboard_summary_${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    $q.notify({ type: 'positive', message: 'Dashboard summary report exported successfully' });
+    showGenerateReportModal.value = false;
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Failed to export dashboard report',
+    });
+  }
 }
 
 // Compact Timeline Horizon
