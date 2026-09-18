@@ -240,15 +240,15 @@ const canSubmit = computed(() => {
   );
 });
 
-function formatHours(val: any): string {
+function formatHours(val: unknown): string {
   if (val === null || val === undefined || isNaN(Number(val))) return '0';
   return parseFloat(Number(val).toFixed(2)).toString();
 }
 
 function resetForm(task: Task | null) {
-  const scheduledHours = (task as any)?.scheduled_hours;
-  form.hours_logged =
-    scheduledHours && Number(scheduledHours) > 0 ? Number(scheduledHours) : 1.0;
+  const scheduledHours = (task)
+    ?.scheduled_hours;
+  form.hours_logged = scheduledHours && Number(scheduledHours) > 0 ? Number(scheduledHours) : 1.0;
   // Ensure default is aligned to 0.5
   if (Math.round(form.hours_logged * 10) % 5 !== 0) {
     form.hours_logged = Math.round(form.hours_logged * 2) / 2 || 0.5;

@@ -1316,6 +1316,36 @@
                     </div>
                   </div>
 
+                  <!-- Active Session Toggle Buttons -->
+                  <div v-if="isCurrentTaskSessionActive" class="row q-mb-xs">
+                    <div class="col-12">
+                      <q-btn
+                        unelevated
+                        no-caps
+                        color="negative"
+                        icon="stop"
+                        label="Stop Work Session"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        @click="promptStopSession"
+                      />
+                    </div>
+                  </div>
+                  <div v-else-if="task.status !== 'COMPLETED'" class="row q-mb-xs">
+                    <div class="col-12">
+                      <q-btn
+                        outline
+                        no-caps
+                        color="primary"
+                        icon="play_arrow"
+                        label="Start Work Session"
+                        class="full-width text-weight-bold"
+                        style="border-radius: 8px; height: 40px"
+                        @click="handleStartSession(task.task_id)"
+                      />
+                    </div>
+                  </div>
+
                   <!-- Primary Work Log Action -->
                   <div class="row q-col-gutter-sm">
                     <div class="col-12">

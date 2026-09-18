@@ -1,10 +1,16 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg work-logs-page">
+  <q-page
+    :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
+    class="q-pa-lg work-logs-page"
+  >
     <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
       <!-- 1. PAGE HEADER & DATE NAVIGATION -->
       <div class="row items-center justify-between wrap gap-md">
         <div>
-          <div class="page-title text-h5 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+          <div
+            class="page-title text-h5 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             Daily Work Logs
           </div>
           <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
@@ -79,7 +85,12 @@
       <div class="row q-col-gutter-md">
         <!-- Card 1: Total Allocated Today -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="summary-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <q-card
+            flat
+            bordered
+            class="summary-card"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+          >
             <div class="row items-center justify-between">
               <span class="text-caption text-weight-bold text-grey-6">Scheduled Hours</span>
               <div class="summary-icon-wrap bg-purple-soft text-primary">
@@ -95,7 +106,12 @@
 
         <!-- Card 2: Total Logged Today -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="summary-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <q-card
+            flat
+            bordered
+            class="summary-card"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+          >
             <div class="row items-center justify-between">
               <span class="text-caption text-weight-bold text-grey-6">Logged Today</span>
               <div class="summary-icon-wrap bg-blue-soft text-info">
@@ -106,14 +122,23 @@
               {{ formatHours(totalLoggedHours) }}h
             </div>
             <div class="text-caption text-grey-5 q-mt-xs">
-              {{ totalScheduledHours > 0 ? `${Math.round((totalLoggedHours / totalScheduledHours) * 100)}% of scheduled effort` : 'Recorded work effort' }}
+              {{
+                totalScheduledHours > 0
+                  ? `${Math.round((totalLoggedHours / totalScheduledHours) * 100)}% of scheduled effort`
+                  : 'Recorded work effort'
+              }}
             </div>
           </q-card>
         </div>
 
         <!-- Card 3: Tasks Allocated -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="summary-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <q-card
+            flat
+            bordered
+            class="summary-card"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+          >
             <div class="row items-center justify-between">
               <span class="text-caption text-weight-bold text-grey-6">Tasks Assigned</span>
               <div class="summary-icon-wrap bg-green-soft text-positive">
@@ -129,7 +154,12 @@
 
         <!-- Card 4: Tasks Completed Today -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered class="summary-card" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <q-card
+            flat
+            bordered
+            class="summary-card"
+            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+          >
             <div class="row items-center justify-between">
               <span class="text-caption text-weight-bold text-grey-6">Work Log Count</span>
               <div class="summary-icon-wrap bg-amber-soft text-warning">
@@ -167,12 +197,22 @@
           class="empty-state-card text-center q-pa-xl"
           :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
         >
-          <q-avatar size="64px" color="grey-2" text-color="grey-6" icon="event_available" class="q-mb-md" />
-          <div class="text-h6 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+          <q-avatar
+            size="64px"
+            color="grey-2"
+            text-color="grey-6"
+            icon="event_available"
+            class="q-mb-md"
+          />
+          <div
+            class="text-h6 text-weight-bold"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          >
             No Task Allocations For This Day
           </div>
-          <div class="text-body2 text-grey-6 q-mt-xs" style="max-width: 480px; margin: 0 auto;">
-            There are no tasks scheduled or assigned to you on <b>{{ formattedDateDisplay }}</b>. Use the arrow buttons above to check adjacent days or your schedule.
+          <div class="text-body2 text-grey-6 q-mt-xs" style="max-width: 480px; margin: 0 auto">
+            There are no tasks scheduled or assigned to you on <b>{{ formattedDateDisplay }}</b
+            >. Use the arrow buttons above to check adjacent days or your schedule.
           </div>
           <div class="row justify-center q-mt-md gap-sm">
             <q-btn
@@ -183,13 +223,7 @@
               color="primary"
               @click="router.push('/app/resource-dashboard/schedule')"
             />
-            <q-btn
-              unelevated
-              no-caps
-              label="Go to Today"
-              color="primary"
-              @click="goToToday"
-            />
+            <q-btn unelevated no-caps label="Go to Today" color="primary" @click="goToToday" />
           </div>
         </q-card>
 
@@ -239,7 +273,10 @@
                     {{ item.title }}
                   </div>
 
-                  <div v-if="item.description" class="task-desc text-caption text-grey-6 q-mt-xs ellipsis-2-lines">
+                  <div
+                    v-if="item.description"
+                    class="task-desc text-caption text-grey-6 q-mt-xs ellipsis-2-lines"
+                  >
                     {{ item.description }}
                   </div>
 
@@ -270,7 +307,9 @@
                   <div class="full-width">
                     <div class="row items-center justify-between text-caption q-mb-xs">
                       <span class="text-weight-bold text-grey-7">Progress</span>
-                      <span class="text-weight-bold text-primary">{{ Number(item.progress) || 0 }}%</span>
+                      <span class="text-weight-bold text-primary"
+                        >{{ Number(item.progress) || 0 }}%</span
+                      >
                     </div>
                     <q-linear-progress
                       :value="(Number(item.progress) || 0) / 100"
@@ -307,8 +346,13 @@
               </div>
 
               <!-- Existing Work Logs Submitted on this Date -->
-              <div v-if="item.logs_today && item.logs_today.length > 0" class="q-mt-md q-pt-sm border-top-subtle">
-                <div class="text-caption text-weight-bold text-grey-6 q-mb-xs row items-center gap-xs">
+              <div
+                v-if="item.logs_today && item.logs_today.length > 0"
+                class="q-mt-md q-pt-sm border-top-subtle"
+              >
+                <div
+                  class="text-caption text-weight-bold text-grey-6 q-mb-xs row items-center gap-xs"
+                >
                   <q-icon name="history" size="14px" />
                   <span>Work Recorded Today ({{ item.logs_today.length }})</span>
                 </div>
@@ -320,15 +364,17 @@
                     :class="$q.dark.isActive ? 'bg-grey-10 text-grey-3' : 'bg-grey-1 text-grey-9'"
                   >
                     <div class="row items-center gap-sm">
-                      <q-badge color="primary" text-color="white" :label="`${formatHours(log.hours_logged)}h`" />
+                      <q-badge
+                        color="primary"
+                        text-color="white"
+                        :label="`${formatHours(log.hours_logged)}h`"
+                      />
                       <span class="text-weight-medium">{{ log.notes }}</span>
                       <span v-if="log.blockers" class="text-negative text-caption">
                         (Blocker: {{ log.blockers }})
                       </span>
                     </div>
-                    <div class="text-caption text-grey-5">
-                      Progress: {{ log.progress_logged }}%
-                    </div>
+                    <div class="text-caption text-grey-5">Progress: {{ log.progress_logged }}%</div>
                   </div>
                 </div>
               </div>
@@ -418,10 +464,13 @@ const totalLoggedHours = computed(() => {
 });
 
 const totalLogsCount = computed(() => {
-  return allocations.value.reduce((sum, item) => sum + (item.logs_today ? item.logs_today.length : 0), 0);
+  return allocations.value.reduce(
+    (sum, item) => sum + (item.logs_today ? item.logs_today.length : 0),
+    0,
+  );
 });
 
-function formatHours(val: any): string {
+function formatHours(val: unknown): string {
   if (val === null || val === undefined || isNaN(Number(val))) return '0';
   return parseFloat(Number(val).toFixed(2)).toString();
 }
@@ -445,9 +494,9 @@ async function loadDailyAllocations() {
   try {
     const res = await getDailyAllocationsApi(selectedDate.value);
     allocations.value = res.allocations || [];
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to load daily allocations:', err);
-    error.value = err.message || 'Failed to load daily work allocations';
+    error.value = err instanceof Error ? err.message : 'Failed to load daily work allocations';
   } finally {
     loading.value = false;
   }
@@ -472,11 +521,11 @@ async function handleSaveWorkLog(payload: CreateWorkLogPayload) {
     showWorkLogDialog.value = false;
     // Reload daily allocations to update logged effort & progress
     await loadDailyAllocations();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error saving work log:', err);
     $q.notify({
       type: 'negative',
-      message: err.message || 'Failed to record work log',
+      message: err instanceof Error ? err.message : 'Failed to record work log',
       position: 'top',
     });
   } finally {
