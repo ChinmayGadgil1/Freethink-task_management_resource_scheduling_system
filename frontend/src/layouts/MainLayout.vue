@@ -272,31 +272,6 @@ onUnmounted(() => {
 });
 
 function handleLogout() {
-  if (authStore.user?.role === 'RESOURCE' && sessionStore.hasActiveSession) {
-    $q.dialog({
-      title: 'Active Work Session',
-      message: `You have an active work session (Task #${sessionStore.activeTaskId}). Please end your current session before logging out.`,
-      ok: {
-        label: 'Go to Task',
-        color: 'primary',
-        noCaps: true,
-      },
-      cancel: {
-        label: 'Cancel',
-        flat: true,
-        noCaps: true,
-      },
-      persistent: true,
-    }).onOk(() => {
-      if (sessionStore.activeTaskId) {
-        void router.push(
-          `/app/resource-dashboard/task-details?taskId=${sessionStore.activeTaskId}`,
-        );
-      }
-    });
-    return;
-  }
-
   authStore.clearAuth();
   sessionStore.clearSession();
   sessionStorage.removeItem('user');

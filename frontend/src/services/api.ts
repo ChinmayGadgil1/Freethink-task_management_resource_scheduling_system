@@ -180,6 +180,19 @@ export interface CreateWorkLogPayload {
   log_date: string;
 }
 
+export interface DailyAllocationTask extends Task {
+  scheduled_hours: number;
+  hours_logged_today: number;
+  logs_today: WorkLog[];
+}
+
+export interface DailyAllocationsResponse {
+  date: string;
+  allocations: DailyAllocationTask[];
+}
+
+
+
 export function isTokenExpired(token: string): boolean {
   try {
     const payloadBase64 = token.split('.')[1];
@@ -795,6 +808,20 @@ export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
 
   return data.logs ?? [];
 }
+
+export async function getDailyAllocationsApi(dateStr?: string): Promise<DailyAllocationsResponse> {
+  const query = dateStr ? `?date=${encodeURIComponent(dateStr)}` : '';
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/daily-allocations${query}`);
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch daily allocations');
+  }
+
+  return data;
+}
+
 
 export async function deleteProjectApi(projectId: number): Promise<{ message?: string }> {
   const response = await authenticatedFetch(`${API_BASE_URL}/projects/${projectId}`, {

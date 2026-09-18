@@ -165,6 +165,13 @@ const resourceNavItems: SidebarNavItem[] = [
     bgClass: 'bg-purple-soft',
   },
   {
+    title: 'Work Logs',
+    to: '/app/resource-dashboard/work-logs',
+    icon: 'history_edu',
+    colorClass: 'text-primary',
+    bgClass: 'bg-purple-soft',
+  },
+  {
     title: 'Task Specs',
     to: '/app/resource-dashboard/task-details',
     icon: 'assignment',
@@ -223,9 +230,6 @@ function handleKeydown(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
   themeStore.initTheme();
-  if (authStore.user?.role === 'RESOURCE') {
-    void sessionStore.fetchActiveSession();
-  }
 });
 
 onUnmounted(() => {
@@ -236,29 +240,6 @@ const user = computed(() => authStore.user);
 const userInitial = computed(() => (user.value?.name || 'R').charAt(0).toUpperCase());
 
 function logout() {
-  if (sessionStore.hasActiveSession) {
-    $q.dialog({
-      title: 'Active Work Session',
-      message: `You have an active work session (Task #${sessionStore.activeTaskId}). Please end your current session before logging out.`,
-      ok: {
-        label: 'Go to Task',
-        color: 'primary',
-        noCaps: true,
-      },
-      cancel: {
-        label: 'Cancel',
-        flat: true,
-        noCaps: true,
-      },
-      persistent: true,
-    }).onOk(() => {
-      if (sessionStore.activeTaskId) {
-        void router.push(`/app/resource-dashboard/task-details/${sessionStore.activeTaskId}`);
-      }
-    });
-    return;
-  }
-
   authStore.clearAuth();
   sessionStore.clearSession();
   sessionStorage.removeItem('user');

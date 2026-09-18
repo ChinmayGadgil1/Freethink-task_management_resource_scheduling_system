@@ -400,20 +400,14 @@ export async function moveToBinProject(projectId: number, projectManagerId?: num
             return { success: false, message: "Project not found or unauthorized." };
         }
 
-        // 1. Check for IN_PROGRESS tasks or active timer sessions
+        // 1. Check for IN_PROGRESS tasks
         const [activeTasks] = await connection.query<RowDataPacket[]>(
             `
             SELECT t.task_id, t.title, t.status
             FROM tasks t
             WHERE t.project_id = ?
               AND t.deleted_at IS NULL
-              AND (
-                  t.status = 'IN_PROGRESS'
-                  OR EXISTS (
-                      SELECT 1 FROM task_sessions ts
-                      WHERE ts.task_id = t.task_id AND ts.is_active = TRUE
-                  )
-              )
+              AND t.status = 'IN_PROGRESS'
             FOR UPDATE
             `,
             [projectId]

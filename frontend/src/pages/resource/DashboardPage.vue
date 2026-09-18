@@ -19,15 +19,23 @@
             unelevated
             no-caps
             color="primary"
-            icon="assignment"
-            label="View Tasks"
+            icon="history_edu"
+            label="Daily Work Logs"
             class="action-btn text-weight-bold"
+            @click="router.push('/app/resource-dashboard/work-logs')"
+          />
+          <q-btn
+            flat
+            no-caps
+            icon="assignment"
+            label="Tasks"
+            class="action-btn text-weight-medium"
+            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
             @click="goToTaskDetails()"
           />
           <q-btn
             flat
             no-caps
-            color="primary"
             icon="calendar_month"
             label="Schedule"
             class="action-btn text-weight-medium"
@@ -38,7 +46,7 @@
             flat
             no-caps
             icon="trending_up"
-            label="Log Progress"
+            label="Progress"
             class="action-btn text-weight-medium gt-xs"
             :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
             @click="goToProgress()"

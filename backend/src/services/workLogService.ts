@@ -188,6 +188,101 @@ export async function getWorkLogsByTask(taskId: number) {
     return logs;
 }
 
+export async function getDailyWorkAllocationsForResource(userId: number, dateStr: string) {
+    const pool = getPool();
+
+    // 1. Fetch tasks scheduled or assigned to this resource for dateStr
+    // A task is relevant if:
+    // a) It has a task_schedule on that date for this user
+    // b) Or the user is assigned/supervisor and dateStr falls within planned_start/start_date and planned_end/deadline or status is IN_PROGRESS/SCHEDULED
+    const [tasks] = await pool.query<RowDataPacket[]>(
+        `SELECT
+            t.task_id,
+            t.project_id,
+            p.name as project_name,
+            t.title,
+            t.description,
+            t.priority,
+            t.status,
+            t.deadline,
+            t.planned_start,
+            t.planned_end,
+            t.expected_effort,
+            t.actual_effort,
+            t.progress,
+            t.supervisor_id,
+            (t.supervisor_id = ?) as is_supervisor,
+            COALESCE(MAX(ts.allocated_hours), 0) as scheduled_hours_today
+         FROM tasks t
+         JOIN projects p ON t.project_id = p.project_id
+         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
+         LEFT JOIN task_schedules ts ON t.task_id = ts.task_id AND ts.user_id = ? AND ts.schedule_date = ?
+         WHERE t.deleted_at IS NULL
+           AND p.deleted_at IS NULL
+           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+           AND t.verified_task_id IS NULL
+           AND (
+                -- Scheduled allocation exists for this user on this date
+                ts.schedule_id IS NOT NULL
+                OR
+                -- User is assigned or supervisor and task is active/ongoing
+                ((ta.user_id IS NOT NULL OR t.supervisor_id = ?) AND (
+                    t.status IN ('IN_PROGRESS', 'SCHEDULED')
+                    OR (? BETWEEN DATE(COALESCE(t.planned_start, t.created_at)) AND DATE(COALESCE(t.planned_end, t.deadline, CURDATE())))
+                ))
+           )
+         GROUP BY t.task_id, p.name
+         ORDER BY scheduled_hours_today > 0 DESC,
+                  CASE t.priority
+                      WHEN 'CRITICAL' THEN 1
+                      WHEN 'HIGH' THEN 2
+                      WHEN 'MEDIUM' THEN 3
+                      WHEN 'LOW' THEN 4
+                      ELSE 5
+                  END ASC,
+                  t.title ASC`,
+        [userId, userId, userId, dateStr, userId, dateStr]
+    );
+
+    // 2. Fetch any work logs logged by this user for these tasks on dateStr
+    const taskIds = tasks.map(t => Number(t.task_id));
+    let existingLogsMap = new Map<number, RowDataPacket[]>();
+
+    if (taskIds.length > 0) {
+        const [logs] = await pool.query<RowDataPacket[]>(
+            `SELECT wl.*, u.name as author_name, u.email as author_email
+             FROM work_logs wl
+             JOIN users u ON wl.user_id = u.user_id
+             WHERE wl.user_id = ? AND wl.log_date = ? AND wl.task_id IN (?)
+             ORDER BY wl.created_at DESC`,
+            [userId, dateStr, taskIds]
+        );
+
+        for (const l of logs) {
+            const tId = Number(l.task_id);
+            if (!existingLogsMap.has(tId)) {
+                existingLogsMap.set(tId, []);
+            }
+            existingLogsMap.get(tId)!.push(l);
+        }
+    }
+
+    // 3. Attach logged work & calculate summary
+    const allocations = tasks.map(t => {
+        const tId = Number(t.task_id);
+        const logsForTask = existingLogsMap.get(tId) || [];
+        const totalLoggedToday = logsForTask.reduce((sum, item) => sum + Number(item.hours_logged || 0), 0);
+        return {
+            ...t,
+            scheduled_hours: Number(t.scheduled_hours_today || 0),
+            hours_logged_today: totalLoggedToday,
+            logs_today: logsForTask
+        };
+    });
+
+    return allocations;
+}
+
 export async function getRecentWorkLogsForManager(projectManagerId: number, limit: number = 50) {
     const pool = getPool();
 
@@ -205,6 +300,8 @@ export async function getRecentWorkLogsForManager(projectManagerId: number, limi
 
     return logs;
 }
+
+
 
 export async function startSession(taskId: number, userId: number) {
     const pool = getPool();

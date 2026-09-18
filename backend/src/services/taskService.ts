@@ -1063,10 +1063,6 @@ export async function moveToBinTask(taskId: number, projectManagerId?: number): 
             throw new Error(`CANNOT_DELETE_ACTIVE_TASK: Task "${task.title}" is currently in progress. Please pause or complete it before moving to the bin.`);
         }
 
-        if (Boolean(task.has_active_session)) {
-            throw new Error(`CANNOT_DELETE_ACTIVE_TASK: Task "${task.title}" currently has an active work timer running. Please stop the timer first.`);
-        }
-
         const projectId = Number(task.project_id);
 
         // 2. Soft delete the task

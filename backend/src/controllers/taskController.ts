@@ -562,12 +562,15 @@ export async function assignResource(
 }
 
 const workLogSchema = z.object({
-    hours_logged: z.number().positive(),
+    hours_logged: z.number().positive().refine(
+        (val) => Math.round(val * 10) % 5 === 0,
+        { message: "Hours worked must be in 0.5-hour increments (e.g. 0.5, 1, 1.5, 2)" }
+    ),
     progress_logged: z.number().min(0).max(100),
     status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]),
-    notes: z.string().min(1),
+    notes: z.string().min(1, "Description of work / notes is required"),
     blockers: z.string().nullable().optional(),
-    log_date: z.string()
+    log_date: z.string().min(1, "Work log date is required")
 });
 
 export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response) {
@@ -593,11 +596,28 @@ export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response
         return res.status(201).json({ message: "Work log created successfully", log });
     } catch (error: any) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ message: "Validation error", errors: error.issues });
+            return res.status(400).json({ message: error.issues[0]?.message || "Validation error", errors: error.issues });
         }
         return res.status(500).json({ message: error.message || "Internal server error" });
     }
 }
+
+export async function getDailyAllocationsController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "RESOURCE") {
+            return res.status(403).json({ message: "Only resources can view their daily allocations" });
+        }
+
+        const dateStr = (req.query.date as string) || new Date().toISOString().split("T")[0]!;
+        const { getDailyWorkAllocationsForResource } = await import("../services/workLogService.js");
+
+        const allocations = await getDailyWorkAllocationsForResource(req.user.user_id, dateStr);
+        return res.status(200).json({ date: dateStr, allocations });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
 
 export async function getBottlenecksController(req: AuthRequest, res: Response) {
     try {

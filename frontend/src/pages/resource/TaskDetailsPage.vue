@@ -1316,47 +1316,17 @@
                     </div>
                   </div>
 
-                  <!-- Primary Actions Row -->
+                  <!-- Primary Work Log Action -->
                   <div class="row q-col-gutter-sm">
                     <div class="col-12">
                       <q-btn
-                        v-if="!isCurrentTaskSessionActive"
                         unelevated
-                        no-caps
-                        color="positive"
-                        icon="play_arrow"
-                        label="Start Working Session"
-                        class="full-width text-weight-bold"
-                        style="border-radius: 8px; height: 40px"
-                        :loading="sessionStore.loading"
-                        @click="handleStartSession(task.task_id)"
-                      />
-                      <q-btn
-                        v-else
-                        unelevated
-                        no-caps
-                        color="negative"
-                        icon="stop"
-                        label="Stop & Log Work"
-                        class="full-width text-weight-bold"
-                        style="border-radius: 8px; height: 40px"
-                        :loading="sessionStore.loading"
-                        @click="promptStopSession"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Add Daily Update Action Row -->
-                  <div class="row">
-                    <div class="col-12">
-                      <q-btn
-                        outline
                         no-caps
                         color="primary"
-                        icon="edit_note"
-                        label="Add Daily Update"
+                        icon="history_edu"
+                        label="Add Work Log"
                         class="full-width text-weight-bold"
-                        style="border-radius: 8px; height: 40px"
+                        style="border-radius: 8px; height: 42px"
                         @click="updateDialog = true"
                       />
                     </div>
@@ -1402,47 +1372,18 @@
                     </span>
                   </q-banner>
 
-                  <!-- Supervisor Session Controls -->
+                  <!-- Supervisor Work Log Action -->
                   <div class="row q-col-gutter-sm">
                     <div class="col-12">
                       <q-btn
-                        v-if="!isCurrentTaskSessionActive"
                         unelevated
                         no-caps
                         color="amber-9"
                         text-color="white"
-                        icon="play_arrow"
-                        label="Start Review Session"
+                        icon="history_edu"
+                        label="Log Review Work"
                         class="full-width text-weight-bold"
-                        style="border-radius: 8px; height: 40px"
-                        :loading="sessionStore.loading"
-                        @click="handleStartSession(task.task_id)"
-                      />
-                      <q-btn
-                        v-else
-                        unelevated
-                        no-caps
-                        color="negative"
-                        icon="stop"
-                        label="Stop & Log Review"
-                        class="full-width text-weight-bold"
-                        style="border-radius: 8px; height: 40px"
-                        :loading="sessionStore.loading"
-                        @click="promptStopSession"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-12">
-                      <q-btn
-                        outline
-                        no-caps
-                        color="primary"
-                        icon="edit_note"
-                        label="Log Review Update"
-                        class="full-width text-weight-bold"
-                        style="border-radius: 8px; height: 38px"
+                        style="border-radius: 8px; height: 42px"
                         @click="updateDialog = true"
                       />
                     </div>

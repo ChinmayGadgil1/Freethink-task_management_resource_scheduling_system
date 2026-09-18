@@ -2219,18 +2219,6 @@ async function seed() {
     }
     console.log(`✅ Inserted ${workLogsData.length} work logs.`);
 
-    // 9. Active Task Session for Real-Time Demo
-    console.log("\n⏱️ Creating sample active task session...");
-    const activeTaskId = taskMap["t_sessions"];
-    const activeUserId = userMap["chinmay@freethink.com"];
-    if (activeTaskId && activeUserId) {
-        await pool.query(
-            `INSERT INTO task_sessions (task_id, user_id, start_time, is_active) VALUES (?, ?, NOW(), TRUE)`,
-            [activeTaskId, activeUserId]
-        );
-        console.log("✅ Active task session created for Chinmay Gadgil on Task Sessions engine.");
-    }
-
     // 10. Run SchedulingEngine.recalculate on All Active Projects
     console.log("\n⚙️ Running SchedulingEngine to compute Gantt schedules, capacity allocations, and risk flags across all projects...");
     for (const [key, projectId] of Object.entries(projectMap)) {

@@ -28,12 +28,28 @@
             <q-input
               v-model.number="form.hours_logged"
               type="number"
-              min="0"
+              min="0.5"
               step="0.5"
-              label="Total Hours Worked *"
+              label="Hours Worked * (0.5h steps)"
               outlined
               dense
+              :error="!!hoursError"
+              :error-message="hoursError || undefined"
             />
+            <div class="row items-center gap-xs q-mt-xs">
+              <span class="text-caption text-grey-6">Quick:</span>
+              <q-btn
+                v-for="preset in [0.5, 1, 1.5, 2, 4, 8]"
+                :key="preset"
+                dense
+                outline
+                size="xs"
+                no-caps
+                :label="`${preset}h`"
+                :color="form.hours_logged === preset ? 'primary' : 'grey-7'"
+                @click="form.hours_logged = preset"
+              />
+            </div>
           </div>
 
           <div class="col-12">
@@ -138,9 +154,21 @@ const computedStatus = computed(() => {
   return getStatusFromProgress(form.progress_logged);
 });
 
+const hoursError = computed(() => {
+  const h = Number(form.hours_logged);
+  if (isNaN(h) || h <= 0) {
+    return 'Hours must be greater than 0';
+  }
+  if (Math.round(h * 10) % 5 !== 0) {
+    return 'Hours must be in 0.5-hr increments (e.g. 0.5, 1, 1.5, 2)';
+  }
+  return null;
+});
+
 const canSubmit = computed(() => {
   return (
     props.task !== null &&
+    !hoursError.value &&
     form.log_date !== '' &&
     Number(form.hours_logged) > 0 &&
     Number(form.progress_logged) >= 0 &&
@@ -150,7 +178,7 @@ const canSubmit = computed(() => {
 });
 
 function resetForm(task: Task | null) {
-  form.hours_logged = 0;
+  form.hours_logged = 1.0;
   form.progress_logged = task ? Number(task.progress) || 0 : 0;
   form.status = getStatusFromProgress(form.progress_logged);
   form.notes = '';

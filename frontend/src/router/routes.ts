@@ -128,6 +128,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/common/LeavesPage.vue'),
       },
       {
+        path: 'work-logs',
+        component: () => import('@/pages/resource/WorkLogsPage.vue'),
+      },
+      {
         path: 'progress',
         component: () => import('@/pages/resource/ProgressPage.vue'),
       },
