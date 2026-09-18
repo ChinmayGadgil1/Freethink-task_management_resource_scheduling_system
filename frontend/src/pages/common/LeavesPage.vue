@@ -1066,7 +1066,8 @@ const pendingLeavesCount = computed(() => {
 });
 
 const futureLeavesCount = computed(() => {
-  const todayStr = new Date().toISOString().split('T')[0]!;
+  const d = new Date();
+  const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return leavesList.value.filter((l) => (l.end_date || l.leave_date) >= todayStr).length;
 });
 
@@ -1170,7 +1171,8 @@ function filterByPending() {
 }
 
 function filterByFuture() {
-  const today = new Date().toISOString().split('T')[0]!;
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   filters.startDate = today;
   filters.endDate = '';
   filters.status = undefined;

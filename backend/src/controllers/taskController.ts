@@ -631,10 +631,27 @@ export async function getDailyAllocationsController(req: AuthRequest, res: Respo
         }
 
         const dateStr = (req.query.date as string) || new Date().toISOString().split("T")[0]!;
+        const clientToday = (req.query.today as string) || undefined;
         const { getDailyWorkAllocationsForResource } = await import("../services/workLogService.js");
 
-        const result = await getDailyWorkAllocationsForResource(req.user.user_id, dateStr);
+        const result = await getDailyWorkAllocationsForResource(req.user.user_id, dateStr, clientToday);
         return res.status(200).json({ date: dateStr, allocations: result.allocations, is_checked_out: result.is_checked_out });
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+}
+
+export async function getMyWorkLogsController(req: AuthRequest, res: Response) {
+    try {
+        if (req.user?.role !== "RESOURCE") {
+            return res.status(403).json({ message: "Only resources can view their work logs" });
+        }
+
+        const limit = req.query.limit ? Number(req.query.limit) : 100;
+        const { getMyWorkLogs } = await import("../services/workLogService.js");
+
+        const result = await getMyWorkLogs(req.user.user_id, limit);
+        return res.status(200).json(result);
     } catch (error: any) {
         return res.status(500).json({ message: error.message || "Internal server error" });
     }

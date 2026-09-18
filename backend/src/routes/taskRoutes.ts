@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireRole } from "../middleware/authMiddleware.js";
-import { create, list, getTaskController, update, addDependency, getResourceWorkloadController, checkImpactController, assignResource, addWorkLog, getWorkLogs, getBottlenecksController, deleteTaskController, unassignResourceController, removeTaskDependencyController, startSessionController, stopSessionController, getActiveSessionController, getTaskActiveSessionsController, assignVerificationController, getDailyAllocationsController, submitDailyLogsController } from "../controllers/taskController.js";
+import { create, list, getTaskController, update, addDependency, getResourceWorkloadController, checkImpactController, assignResource, addWorkLog, getWorkLogs, getBottlenecksController, deleteTaskController, unassignResourceController, removeTaskDependencyController, startSessionController, stopSessionController, getActiveSessionController, getTaskActiveSessionsController, assignVerificationController, getDailyAllocationsController, submitDailyLogsController, getMyWorkLogsController } from "../controllers/taskController.js";
 
 const taskRoutes = Router();
 
@@ -11,6 +11,7 @@ taskRoutes.post("/", create);
 taskRoutes.get("/", list);
 taskRoutes.get("/daily-allocations", requireRole("RESOURCE"), getDailyAllocationsController);
 taskRoutes.post("/daily-checkout", requireRole("RESOURCE"), submitDailyLogsController);
+taskRoutes.get("/my-work-logs", requireRole("RESOURCE"), getMyWorkLogsController);
 taskRoutes.get("/session/active", getActiveSessionController);
 taskRoutes.get("/bottlenecks", requireRole("PROJECT_MANAGER"), getBottlenecksController);
 taskRoutes.get("/:id", getTaskController);

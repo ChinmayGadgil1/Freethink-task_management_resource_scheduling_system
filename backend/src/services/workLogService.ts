@@ -237,13 +237,16 @@ export async function getWorkLogsByTask(taskId: number) {
     return logs;
 }
 
-export async function getDailyWorkAllocationsForResource(userId: number, dateStr: string) {
+export async function getDailyWorkAllocationsForResource(userId: number, dateStr: string, clientToday?: string) {
     const pool = getPool();
+    const todayStr = clientToday || new Date().toISOString().split("T")[0]!;
+    const isToday = dateStr === todayStr;
 
     // 1. Fetch tasks scheduled or assigned to this resource for dateStr
     // A task is relevant if:
     // a) It has a task_schedule on that date for this user
-    // b) Or the user is assigned/supervisor and dateStr falls within planned_start/start_date and planned_end/deadline or status is IN_PROGRESS/SCHEDULED
+    // b) Or the user has logged work on this task on this date
+    // c) Or dateStr IS TODAY and the user is assigned/supervisor and the task is active (SCHEDULED or IN_PROGRESS)
     const [tasks] = await pool.query<RowDataPacket[]>(
         `SELECT
             t.task_id,
@@ -270,9 +273,19 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
            AND p.deleted_at IS NULL
            AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
            AND t.verified_task_id IS NULL
-           AND ts.schedule_id IS NOT NULL
+           AND (
+             ta.user_id IS NOT NULL
+             OR t.supervisor_id = ?
+             OR EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)
+           )
+           AND (
+             ts.schedule_id IS NOT NULL
+             OR EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)
+             OR (? = 1 AND t.status IN ('SCHEDULED', 'IN_PROGRESS'))
+           )
          GROUP BY t.task_id, p.name
-         ORDER BY scheduled_hours_today > 0 DESC,
+         ORDER BY (EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)) DESC,
+                  scheduled_hours_today > 0 DESC,
                   CASE t.priority
                       WHEN 'CRITICAL' THEN 1
                       WHEN 'HIGH' THEN 2
@@ -281,30 +294,28 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
                       ELSE 5
                   END ASC,
                   t.title ASC`,
-        [userId, userId, userId, dateStr]
+        [userId, userId, userId, dateStr, userId, userId, dateStr, userId, dateStr, isToday ? 1 : 0, userId, dateStr]
     );
 
-    // 2. Fetch any work logs logged by this user for these tasks on dateStr
-    const taskIds = tasks.map(t => Number(t.task_id));
+    // 2. Fetch all work logs logged by this user on dateStr
+    const [logs] = await pool.query<RowDataPacket[]>(
+        `SELECT wl.*, u.name as author_name, u.email as author_email, t.title as task_title, p.name as project_name
+         FROM work_logs wl
+         JOIN users u ON wl.user_id = u.user_id
+         JOIN tasks t ON wl.task_id = t.task_id
+         JOIN projects p ON t.project_id = p.project_id
+         WHERE wl.user_id = ? AND wl.log_date = ?
+         ORDER BY wl.created_at DESC`,
+        [userId, dateStr]
+    );
+
     let existingLogsMap = new Map<number, RowDataPacket[]>();
-
-    if (taskIds.length > 0) {
-        const [logs] = await pool.query<RowDataPacket[]>(
-            `SELECT wl.*, u.name as author_name, u.email as author_email
-             FROM work_logs wl
-             JOIN users u ON wl.user_id = u.user_id
-             WHERE wl.user_id = ? AND wl.log_date = ? AND wl.task_id IN (?)
-             ORDER BY wl.created_at DESC`,
-            [userId, dateStr, taskIds]
-        );
-
-        for (const l of logs) {
-            const tId = Number(l.task_id);
-            if (!existingLogsMap.has(tId)) {
-                existingLogsMap.set(tId, []);
-            }
-            existingLogsMap.get(tId)!.push(l);
+    for (const l of logs) {
+        const tId = Number(l.task_id);
+        if (!existingLogsMap.has(tId)) {
+            existingLogsMap.set(tId, []);
         }
+        existingLogsMap.get(tId)!.push(l);
     }
 
     // 3. Attach logged work & calculate summary
@@ -330,6 +341,36 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
     return {
         allocations,
         is_checked_out
+    };
+}
+
+export async function getMyWorkLogs(userId: number, limit: number = 100) {
+    const pool = getPool();
+
+    const [logs] = await pool.query<RowDataPacket[]>(
+        `SELECT wl.*, t.title as task_title, t.status as task_status, t.priority as task_priority,
+                p.project_id, p.name as project_name, u.name as author_name, u.email as author_email
+         FROM work_logs wl
+         JOIN tasks t ON wl.task_id = t.task_id
+         JOIN projects p ON t.project_id = p.project_id
+         JOIN users u ON wl.user_id = u.user_id
+         WHERE wl.user_id = ?
+         ORDER BY wl.log_date DESC, wl.created_at DESC
+         LIMIT ?`,
+        [userId, limit]
+    );
+
+    const [stats] = await pool.query<RowDataPacket[]>(
+        `SELECT COALESCE(SUM(hours_logged), 0) as total_hours, COUNT(*) as total_logs
+         FROM work_logs
+         WHERE user_id = ?`,
+        [userId]
+    );
+
+    return {
+        logs,
+        total_hours: Number(stats[0]?.total_hours || 0),
+        total_logs: Number(stats[0]?.total_logs || 0)
     };
 }
 
@@ -448,7 +489,7 @@ export async function stopSession(userId: number, progressLogged: number, notes:
     );
 
     // Call createWorkLog
-    const logDate = endTime.toISOString().split('T')[0]!;
+    const logDate = `${endTime.getFullYear()}-${String(endTime.getMonth() + 1).padStart(2, '0')}-${String(endTime.getDate()).padStart(2, '0')}`;
     
     // Fetch task current status
     const [tasks] = await pool.query<RowDataPacket[]>("SELECT status FROM tasks WHERE task_id = ?", [taskId]);

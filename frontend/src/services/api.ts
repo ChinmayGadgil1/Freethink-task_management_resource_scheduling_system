@@ -192,6 +192,20 @@ export interface DailyAllocationsResponse {
   is_checked_out?: boolean;
 }
 
+export interface MyWorkLogItem extends WorkLog {
+  task_title?: string;
+  task_status?: TaskStatus;
+  task_priority?: TaskPriority;
+  project_id?: number;
+  project_name?: string;
+}
+
+export interface MyWorkLogsResponse {
+  logs: MyWorkLogItem[];
+  total_hours: number;
+  total_logs: number;
+}
+
 export function isTokenExpired(token: string): boolean {
   try {
     const payloadBase64 = token.split('.')[1];
@@ -808,8 +822,14 @@ export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
   return data.logs ?? [];
 }
 
-export async function getDailyAllocationsApi(dateStr?: string): Promise<DailyAllocationsResponse> {
-  const query = dateStr ? `?date=${encodeURIComponent(dateStr)}` : '';
+export async function getDailyAllocationsApi(
+  dateStr?: string,
+  todayStr?: string,
+): Promise<DailyAllocationsResponse> {
+  const params = new URLSearchParams();
+  if (dateStr) params.append('date', dateStr);
+  if (todayStr) params.append('today', todayStr);
+  const query = params.toString() ? `?${params.toString()}` : '';
   const response = await authenticatedFetch(`${API_BASE_URL}/tasks/daily-allocations${query}`);
 
   const data = await response.json();
@@ -831,6 +851,17 @@ export async function submitDailyLogsApi(dateStr: string): Promise<{ message: st
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to submit daily logs');
+  }
+
+  return data;
+}
+
+export async function getMyWorkLogsApi(limit = 100): Promise<MyWorkLogsResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/tasks/my-work-logs?limit=${limit}`);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch work logs');
   }
 
   return data;
