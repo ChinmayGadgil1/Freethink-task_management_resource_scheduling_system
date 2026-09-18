@@ -3,6 +3,111 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { recalculate as recalculateSchedule } from "./scheduler/SchedulingEngine.js";
 import { syncProjectProgress } from "./projectService.js";
 
+/**
+ * Synchronizes a task's actual_effort, progress, and status based on all existing work_logs.
+ * Handles multi-assignee equal effort distribution and status progression.
+ */
+export async function syncTaskProgressAndEffort(taskId: number, existingConnection?: any) {
+    const pool = getPool();
+    const connection = existingConnection || await pool.getConnection();
+    const shouldRelease = !existingConnection;
+
+    try {
+        // 1. Get total effort across ALL logs for this task
+        const [effortRows] = await connection.query(
+            `SELECT COALESCE(SUM(hours_logged), 0) as total_effort FROM work_logs WHERE task_id = ?`,
+            [taskId]
+        );
+        const newActualEffort = Number((effortRows as any[])[0]?.total_effort || 0);
+
+        // 2. Calculate progress and status across assigned resources:
+        // Since effort is divided equally among co-assignees, each assignee's latest reported progress
+        // contributes their equal share to the overall task progress.
+        const [assigneeRows] = await connection.query(
+            `SELECT user_id FROM task_assignments WHERE task_id = ?`,
+            [taskId]
+        );
+
+        // Fetch the latest work log for each user who has logged work on this task
+        const [userLatestLogs] = await connection.query(
+            `SELECT wl.user_id, wl.progress_logged, wl.status, wl.created_at
+             FROM work_logs wl
+             INNER JOIN (
+                 SELECT user_id, MAX(created_at) as max_created
+                 FROM work_logs
+                 WHERE task_id = ?
+                 GROUP BY user_id
+             ) latest ON wl.user_id = latest.user_id AND wl.created_at = latest.max_created
+             WHERE wl.task_id = ?`,
+            [taskId, taskId]
+        );
+
+        const userLogMap = new Map<number, number>();
+        for (const uLog of (userLatestLogs as any[])) {
+            userLogMap.set(Number(uLog.user_id), Number(uLog.progress_logged));
+        }
+
+        let newProgress = 0;
+        const assignees = assigneeRows as any[];
+        const latestLogs = userLatestLogs as any[];
+
+        if (assignees.length > 0) {
+            let totalProgressSum = 0;
+            for (const aRow of assignees) {
+                const uId = Number(aRow.user_id);
+                const userProgress = userLogMap.get(uId) ?? 0;
+                totalProgressSum += userProgress;
+            }
+            newProgress = Math.round((totalProgressSum / assignees.length) * 100) / 100;
+        } else if (latestLogs.length > 0) {
+            const totalProgressSum = latestLogs.reduce((sum: number, l: any) => sum + Number(l.progress_logged), 0);
+            newProgress = Math.round((totalProgressSum / latestLogs.length) * 100) / 100;
+        }
+
+        newProgress = Math.min(100, Math.max(0, newProgress));
+
+        let newStatus: string;
+        if (newProgress >= 100) {
+            newStatus = "COMPLETED";
+        } else if (newProgress <= 0) {
+            newStatus = assignees.length > 0 ? "SCHEDULED" : "UNASSIGNED";
+        } else {
+            newStatus = "IN_PROGRESS";
+        }
+
+        const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
+        const updateParams: any[] = [newActualEffort, newProgress, newStatus];
+
+        // Check if this task has actual_start set, if not, set it
+        const [taskRows] = await connection.query(
+            `SELECT actual_start FROM tasks WHERE task_id = ?`,
+            [taskId]
+        );
+        
+        const tasks = taskRows as any[];
+        if (tasks.length > 0 && !tasks[0]?.actual_start && (newProgress > 0 || newActualEffort > 0)) {
+            updateFields.push("actual_start = NOW()");
+        }
+        
+        if (newStatus === "COMPLETED") {
+            updateFields.push("actual_end = NOW()");
+        }
+
+        updateParams.push(taskId);
+
+        await connection.query(
+            `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
+            updateParams
+        );
+
+        return { newActualEffort, newProgress, newStatus };
+    } finally {
+        if (shouldRelease) {
+            connection.release();
+        }
+    }
+}
+
 export async function createWorkLog(
     taskId: number,
     userId: number,
@@ -19,19 +124,19 @@ export async function createWorkLog(
     try {
         await connection.beginTransaction();
 
-        // Check if task exists and user is assigned OR supervisor
+        // Validate task existence and user assignment/supervisor status
         const [tasks] = await connection.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.project_id, t.expected_effort, t.actual_effort, t.progress, t.status, t.deadline, t.supervisor_id,
-                    GROUP_CONCAT(DISTINCT ta.user_id) as assigned_user_ids
+            `SELECT t.task_id, t.project_id, t.supervisor_id, t.status, t.progress, t.actual_effort,
+                    GROUP_CONCAT(ta.user_id) as assigned_user_ids
              FROM tasks t
              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
-             WHERE t.task_id = ?
+             WHERE t.task_id = ? AND t.deleted_at IS NULL
              GROUP BY t.task_id`,
             [taskId]
         );
 
         if (tasks.length === 0) {
-            throw new Error("Task not found or you are neither assigned to nor supervising this task");
+            throw new Error("Task not found or has been deleted");
         }
 
         const task = tasks[0]!;
@@ -53,10 +158,6 @@ export async function createWorkLog(
             [taskId]
         );
         const isFirstLog = (workLogCountRows[0]?.log_count ?? 0) === 0;
-
-        // Calculate updated effort and progress values
-        const oldActualEffort = Number(task.actual_effort || 0);
-        const newActualEffort = oldActualEffort + Number(hoursLogged);
 
         let newProgress = Number(progressLogged);
         let newStatus: string;
@@ -86,9 +187,15 @@ export async function createWorkLog(
             [taskId, userId, hoursLogged, isSupervisorOnly ? newProgress : progressLogged, newStatus, notes, blockers, logDate]
         );
 
+        // Immediately synchronize the task actual_effort, progress, and status in real-time
+        const syncedTask = await syncTaskProgressAndEffort(taskId, connection);
+
         await connection.commit();
 
-        // Removed recalculateSchedule to allow batch recalculation on daily checkout.
+        // Synchronize project progress immediately so PM dashboards/analytics update in real-time
+        syncProjectProgress(Number(task.project_id)).catch((err) => {
+            console.error(`Error synchronizing project progress for project ${task.project_id}:`, err);
+        });
 
         return {
             log_id: result.insertId,
@@ -96,13 +203,13 @@ export async function createWorkLog(
             user_id: userId,
             hours_logged: hoursLogged,
             progress_logged: progressLogged,
-            status: newStatus,
+            status: syncedTask.newStatus,
             notes,
             blockers,
             log_date: logDate,
-            task_updated_status: newStatus,
-            task_updated_progress: newProgress,
-            task_updated_actual_effort: newActualEffort
+            task_updated_status: syncedTask.newStatus,
+            task_updated_progress: syncedTask.newProgress,
+            task_updated_actual_effort: syncedTask.newActualEffort
         };
     } catch (error) {
         await connection.rollback();
@@ -381,90 +488,7 @@ export async function submitDailyLogs(userId: number, dateStr: string) {
         );
 
         for (const row of logs) {
-            const tId = row.task_id;
-            
-            // Get total effort across ALL logs for this task
-            const [effortRows] = await connection.query<RowDataPacket[]>(
-                `SELECT COALESCE(SUM(hours_logged), 0) as total_effort FROM work_logs WHERE task_id = ?`,
-                [tId]
-            );
-            const newActualEffort = Number(effortRows[0]?.total_effort || 0);
-
-            // Calculate progress and status across assigned resources:
-            // Since effort is divided equally among co-assignees, each assignee's latest reported progress
-            // contributes their equal share to the overall task progress.
-            const [assigneeRows] = await connection.query<RowDataPacket[]>(
-                `SELECT user_id FROM task_assignments WHERE task_id = ?`,
-                [tId]
-            );
-
-            // Fetch the latest work log for each user who has logged work on this task
-            const [userLatestLogs] = await connection.query<RowDataPacket[]>(
-                `SELECT wl.user_id, wl.progress_logged, wl.status, wl.created_at
-                 FROM work_logs wl
-                 INNER JOIN (
-                     SELECT user_id, MAX(created_at) as max_created
-                     FROM work_logs
-                     WHERE task_id = ?
-                     GROUP BY user_id
-                 ) latest ON wl.user_id = latest.user_id AND wl.created_at = latest.max_created
-                 WHERE wl.task_id = ?`,
-                [tId, tId]
-            );
-
-            const userLogMap = new Map<number, number>();
-            for (const uLog of userLatestLogs) {
-                userLogMap.set(Number(uLog.user_id), Number(uLog.progress_logged));
-            }
-
-            let newProgress = 0;
-            if (assigneeRows.length > 0) {
-                let totalProgressSum = 0;
-                for (const aRow of assigneeRows) {
-                    const uId = Number(aRow.user_id);
-                    const userProgress = userLogMap.get(uId) ?? 0;
-                    totalProgressSum += userProgress;
-                }
-                newProgress = Math.round((totalProgressSum / assigneeRows.length) * 100) / 100;
-            } else if (userLatestLogs.length > 0) {
-                const totalProgressSum = userLatestLogs.reduce((sum, l) => sum + Number(l.progress_logged), 0);
-                newProgress = Math.round((totalProgressSum / userLatestLogs.length) * 100) / 100;
-            }
-
-            newProgress = Math.min(100, Math.max(0, newProgress));
-
-            let newStatus: string;
-            if (newProgress >= 100) {
-                newStatus = "COMPLETED";
-            } else if (newProgress <= 0) {
-                newStatus = assigneeRows.length > 0 ? "SCHEDULED" : "UNASSIGNED";
-            } else {
-                newStatus = "IN_PROGRESS";
-            }
-
-            const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
-            const updateParams: any[] = [newActualEffort, newProgress, newStatus];
-
-            // Check if this task has actual_start set, if not, set it
-            const [taskRows] = await connection.query<RowDataPacket[]>(
-                `SELECT actual_start FROM tasks WHERE task_id = ?`,
-                [tId]
-            );
-            
-            if (taskRows.length > 0 && !taskRows[0]?.actual_start && (newProgress > 0 || newActualEffort > 0)) {
-                updateFields.push("actual_start = NOW()");
-            }
-            
-            if (newStatus === "COMPLETED") {
-                updateFields.push("actual_end = NOW()");
-            }
-
-            updateParams.push(tId);
-
-            await connection.query(
-                `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
-                updateParams
-            );
+            await syncTaskProgressAndEffort(row.task_id, connection);
         }
 
         // 2. Find all active projects this user is involved in so we can trigger recalculation
