@@ -194,11 +194,11 @@
           </div>
 
           <!-- GRID VIEW -->
-          <!-- GRID VIEW -->
-          <div v-else-if="viewMode === 'grid'" class="resources-cards-grid">
-            <q-card
-              v-for="res in filteredResources"
-              :key="res.resource_id"
+          <div v-else-if="viewMode === 'grid'" class="column q-gutter-y-md">
+            <div class="resources-cards-grid">
+              <q-card
+                v-for="res in paginatedResources"
+                :key="res.resource_id"
               flat
               bordered
               class="resource-grid-card column justify-between cursor-pointer"
@@ -321,6 +321,45 @@
               </q-card-actions>
             </q-card>
           </div>
+
+          <!-- Cards Pagination Toolbar -->
+          <div
+            v-if="filteredResources.length > cardPagination.rowsPerPage"
+            class="row items-center justify-between q-mt-sm q-px-xs wrap gap-sm"
+          >
+            <div
+              class="text-caption"
+              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+            >
+              Showing {{ (cardPagination.page - 1) * cardPagination.rowsPerPage + 1 }} -
+              {{ Math.min(cardPagination.page * cardPagination.rowsPerPage, filteredResources.length) }} of
+              {{ filteredResources.length }} resources
+            </div>
+            <div class="row items-center q-gutter-sm">
+              <q-select
+                v-model="cardPagination.rowsPerPage"
+                :options="[8, 12, 16, 24]"
+                dense
+                outlined
+                options-dense
+                :dark="$q.dark.isActive"
+                style="width: 105px"
+                label="Per page"
+              />
+              <q-pagination
+                v-model="cardPagination.page"
+                :max="cardTotalPages"
+                :max-pages="5"
+                direction-links
+                boundary-links
+                color="primary"
+                dense
+                size="sm"
+                :dark="$q.dark.isActive"
+              />
+            </div>
+          </div>
+        </div>
 
           <!-- TABLE VIEW -->
           <q-card v-else flat bordered class="table-card">
@@ -1514,6 +1553,24 @@ const filteredResources = computed(() => {
 
     return matchesSearch && matchesStatus;
   });
+});
+
+const cardPagination = ref({
+  page: 1,
+  rowsPerPage: 12,
+});
+
+const cardTotalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredResources.value.length / (cardPagination.value.rowsPerPage || 12))),
+);
+
+const paginatedResources = computed(() => {
+  const start = (cardPagination.value.page - 1) * cardPagination.value.rowsPerPage;
+  return filteredResources.value.slice(start, start + cardPagination.value.rowsPerPage);
+});
+
+watch([searchQuery, projectFilter, statusFilter], () => {
+  cardPagination.value.page = 1;
 });
 
 const projectOptions = computed(() =>

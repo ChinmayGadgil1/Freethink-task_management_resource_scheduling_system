@@ -42,11 +42,20 @@
         self="top right"
         :offset="[0, 10]"
         :dark="$q.dark.isActive"
-        class="notification-dropdown shadow-10"
-        style="width: 480px; max-width: calc(100vw - 20px); border-radius: 16px; overflow: hidden"
+        class="notification-dropdown shadow-10 column no-wrap"
+        style="
+          width: 490px;
+          max-width: calc(100vw - 20px);
+          max-height: calc(100vh - 90px);
+          border-radius: 16px;
+          overflow: hidden;
+        "
       >
         <!-- Header -->
-        <div class="q-pa-md row items-center justify-between border-bottom-subtle">
+        <div
+          class="q-pa-md row items-center justify-between border-bottom-subtle col-auto"
+          style="flex-shrink: 0"
+        >
           <div class="row items-center gap-xs">
             <span class="text-subtitle1 text-weight-bold">Notifications</span>
             <q-badge
@@ -74,7 +83,7 @@
         </div>
 
         <!-- Filter Tabs for Early Completions & Delays -->
-        <div class="border-bottom-subtle">
+        <div class="border-bottom-subtle col-auto" style="flex-shrink: 0">
           <q-tabs
             v-model="filterTab"
             dense
@@ -130,7 +139,10 @@
         </div>
 
         <!-- Notifications List -->
-        <q-scroll-area style="height: 420px; max-height: 65vh">
+        <div
+          class="notification-scroll-container col"
+          :class="$q.dark.isActive ? 'dark-scroll' : 'light-scroll'"
+        >
           <q-list v-if="filteredNotifications.length > 0" separator class="q-pa-none">
             <q-item
               v-for="item in filteredNotifications"
@@ -228,13 +240,16 @@
                 </div>
               </q-item-section>
             </q-item>
+
+            <!-- Bottom spacing so the last notification has comfortable breathing room above the footer -->
+            <div style="height: 12px" />
           </q-list>
 
           <!-- Empty State -->
           <div
             v-else
             class="column items-center justify-center text-center q-pa-xl text-grey-5"
-            style="height: 320px"
+            style="min-height: 240px"
           >
             <q-icon
               :name="filterTab === 'delays' ? 'check_circle' : 'notifications_none'"
@@ -265,11 +280,12 @@
               }}
             </div>
           </div>
-        </q-scroll-area>
+        </div>
 
         <!-- Footer -->
         <div
-          class="q-py-xs q-px-md row items-center justify-between border-top-subtle text-caption text-grey-5 bg-subtle-footer"
+          class="q-py-xs q-px-md row items-center justify-between border-top-subtle text-caption text-grey-5 bg-subtle-footer col-auto"
+          style="flex-shrink: 0"
         >
           <span
             >{{ filteredNotifications.length }} notification{{
@@ -628,9 +644,46 @@ body.body--dark .bg-subtle-footer {
 
 .notification-tabs {
   :deep(.q-tab) {
-    padding: 0 10px;
-    min-height: 40px;
-    font-size: 12.5px;
+    padding: 0 8px;
+    min-height: 38px;
+    font-size: 12px;
+  }
+}
+
+.notification-scroll-container {
+  max-height: min(420px, calc(100vh - 230px));
+  min-height: 140px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 111, 216, 0.4) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(139, 111, 216, 0.3);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(139, 111, 216, 0.6);
+    }
+  }
+}
+
+body.body--dark .notification-scroll-container {
+  scrollbar-color: rgba(168, 85, 247, 0.4) transparent;
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.3);
+
+    &:hover {
+      background: rgba(168, 85, 247, 0.6);
+    }
   }
 }
 
