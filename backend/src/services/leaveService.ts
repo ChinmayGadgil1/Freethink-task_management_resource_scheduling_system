@@ -104,24 +104,7 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
         throw error;
     }
 
-    // PM can only apply leave for resources assigned to projects they manage
-    if (userRole === "PROJECT_MANAGER" && creatorId) {
-        const [pmProjects] = await pool.query<RowDataPacket[]>(
-            `
-            SELECT p.project_id
-            FROM projects p
-            INNER JOIN project_members pm ON p.project_id = pm.project_id
-            WHERE p.project_manager_id = ? AND pm.user_id = ?
-            `,
-            [creatorId, user_id]
-        );
-
-        if (pmProjects.length === 0) {
-            const error = new Error("Access denied. You can only apply leave for resource members assigned to projects you manage.");
-            (error as any).status = 403;
-            throw error;
-        }
-    }
+    // Removed PM restriction: PMs can apply leave for any resource.
 
     const userDailyHours = user.daily_working_hours !== null && user.daily_working_hours !== undefined
         ? Number(user.daily_working_hours)
@@ -453,22 +436,7 @@ export async function approveLeave(identifier: number | string, pmUserId: number
         throw error;
     }
 
-    // Validate PM has authority
-    const [pmProjects] = await pool.query<RowDataPacket[]>(
-        `
-        SELECT p.project_id
-        FROM projects p
-        INNER JOIN project_members pm ON p.project_id = pm.project_id
-        WHERE p.project_manager_id = ? AND pm.user_id = ?
-        `,
-        [pmUserId, userId]
-    );
-
-    if (pmProjects.length === 0) {
-        const error = new Error("Access denied. You can only approve leaves for resources assigned to your projects.");
-        (error as any).status = 403;
-        throw error;
-    }
+    // Removed PM restriction: PMs can approve leaves for any resource.
 
     // Date Validation: leave dates must not have already passed (today <= latestDate)
     const now = new Date();
@@ -609,22 +577,7 @@ export async function rejectLeave(identifier: number | string, pmUserId: number,
     const userId = Number(firstRow.user_id);
     const requestId = firstRow.request_id ? String(firstRow.request_id) : null;
 
-    // Validate PM has authority
-    const [pmProjects] = await pool.query<RowDataPacket[]>(
-        `
-        SELECT p.project_id
-        FROM projects p
-        INNER JOIN project_members pm ON p.project_id = pm.project_id
-        WHERE p.project_manager_id = ? AND pm.user_id = ?
-        `,
-        [pmUserId, userId]
-    );
-
-    if (pmProjects.length === 0) {
-        const error = new Error("Access denied. You can only reject leaves for resources assigned to your projects.");
-        (error as any).status = 403;
-        throw error;
-    }
+    // Removed PM restriction: PMs can reject leaves for any resource.
 
     const hadApproved = rows.some(r => r.status === "APPROVED");
 
@@ -811,15 +764,7 @@ export async function getLeaves(filters: {
         params.push(filters.status);
     }
 
-    if (filters.manager_id !== undefined) {
-        conditions.push(`ul.user_id IN (
-            SELECT DISTINCT pm.user_id 
-            FROM project_members pm
-            INNER JOIN projects p ON pm.project_id = p.project_id
-            WHERE p.project_manager_id = ?
-        )`);
-        params.push(filters.manager_id);
-    }
+    // Removed manager_id filter so PMs can see all leaves system-wide.
 
     if (conditions.length > 0) {
         query += ` WHERE ` + conditions.join(" AND ");
