@@ -398,6 +398,7 @@
         :resources="resources"
         :holidays="holidays"
         :availability="pmAvailabilityList"
+        :global-leaves="globalLeavesList"
         :is-resource-view="assigneeFilter !== 'ALL' || pmAvailabilityList.length > 0"
         title="Gantt Timeline Roadmap"
         @task-click="openTaskDetailsDialog"
@@ -882,6 +883,7 @@ import {
   getResourceScheduleDataApi,
   getResourceAvailabilityApi,
   getResourceWorkScheduleApi,
+  getApprovedLeavesApi,
 } from '@/services/api';
 import type {
   Project,
@@ -892,6 +894,7 @@ import type {
   DailyAvailabilityDTO,
   ResourceScheduleConfig,
   DayOfWeek,
+  LeaveResponseDTO,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -899,6 +902,7 @@ const $q = useQuasar();
 const loading = ref(true);
 const holidays = ref<HolidayItem[]>([]);
 const pmAvailabilityList = ref<DailyAvailabilityDTO[]>([]);
+const globalLeavesList = ref<LeaveResponseDTO[]>([]);
 type MainViewMode = 'card' | 'gantt' | 'table';
 type CardSubMode = 'week' | 'day' | 'month';
 type ScheduleViewMode = 'week' | 'day' | 'month' | 'gantt' | 'table';
@@ -1419,7 +1423,7 @@ const tableColumns: QTableColumn<Task>[] = [
 async function loadData() {
   loading.value = true;
   try {
-    const [tList, pList, rList, hList] = await Promise.all([
+    const [tList, pList, rList, hList, lRes] = await Promise.all([
       projectFilter.value !== 'ALL'
         ? getProjectScheduleDataApi(Number(projectFilter.value))
             .then((res) => res.tasks)
@@ -1428,11 +1432,15 @@ async function loadData() {
       getProjectsApi(),
       getResourcesApi(),
       getHolidaysApi().catch(() => []),
+      getApprovedLeavesApi().catch(() => []),
     ]);
-    tasks.value = (tList || []).filter((t) => !isVerificationTask(t));
+    tasks.value = (tList || []).filter((t: Task) => !isVerificationTask(t));
     projects.value = pList;
     resources.value = rList;
     holidays.value = hList;
+    if (lRes && Array.isArray(lRes)) {
+      globalLeavesList.value = lRes;
+    }
     if (pList.length > 0 && pList[0]) {
       createForm.project_id = pList[0].project_id;
     }

@@ -284,6 +284,7 @@ import type {
   ResourceUser,
   HolidayItem,
   DailyAvailabilityDTO,
+  LeaveResponseDTO,
 } from '@/services/api';
 import { useThemeStore } from '@/stores/theme';
 import { useAuthStore } from '@/stores/auth';
@@ -295,6 +296,7 @@ export interface GanttTimelineProps {
   resources?: ResourceUser[];
   holidays?: HolidayItem[] | Array<{ holiday_date: string; description?: string }>;
   availability?: DailyAvailabilityDTO[];
+  globalLeaves?: LeaveResponseDTO[];
   isResourceView?: boolean;
   title?: string;
   initialScale?: 'hour' | 'day' | 'week' | 'month';
@@ -309,6 +311,8 @@ export interface TaskWorkSegment {
   durationDays: number;
   allocatedHours: number;
   daysCount: number;
+  isFirstHalf?: boolean;
+  isSecondHalf?: boolean;
 }
 
 export interface DhtmlxGanttTaskItem {
@@ -871,10 +875,71 @@ function getTaskWorkSegments(task: Task): {
         }
         const expectedNextDateStr = formatDateIso(addDays(lastDate, 1));
 
-        if (currDateStr === expectedNextDateStr) {
+        const checkHalfDay = (dateStr: string) => {
+          // In Resource View, availabilityMap tells us exactly what THIS resource is doing
+          const avail = availabilityMap.value.get(dateStr);
+          if (avail) {
+            const type = String(avail.leave_type || '').toUpperCase();
+            if (type.includes('FIRST') || type.includes('1') || type.includes('SECOND') || type.includes('2')) {
+              return {
+                isFirst: type.includes('FIRST') || type.includes('1'),
+                isSecond: type.includes('SECOND') || type.includes('2')
+              };
+            }
+            return { isFirst: false, isSecond: false };
+          }
+
+          // In Global View, determine if the task as a whole has a gap
+          if (props.globalLeaves && props.globalLeaves.length > 0) {
+            const assignees = task.assigned_resource_ids || [];
+            if (assignees.length === 0) return { isFirst: false, isSecond: false };
+
+            let worksFirstHalf = false;
+            let worksSecondHalf = false;
+
+            for (const assignee of assignees) {
+              const leave = props.globalLeaves.find((l: LeaveResponseDTO) => l.user_id === assignee && String(l.leave_date).startsWith(dateStr));
+              if (!leave) {
+                worksFirstHalf = true;
+                worksSecondHalf = true;
+              } else {
+                const type = String(leave.leave_type || '').toUpperCase();
+                if (type === 'FULL_DAY') {
+                  // Works neither
+                } else if (type.includes('FIRST') || type.includes('1')) {
+                  // First half LEAVE -> Works SECOND half
+                  worksSecondHalf = true;
+                } else if (type.includes('SECOND') || type.includes('2')) {
+                  // Second half LEAVE -> Works FIRST half
+                  worksFirstHalf = true;
+                } else {
+                  worksFirstHalf = true;
+                  worksSecondHalf = true;
+                }
+              }
+            }
+
+            if (worksSecondHalf && !worksFirstHalf) {
+              return { isFirst: true, isSecond: false }; // First half gap
+            }
+            if (worksFirstHalf && !worksSecondHalf) {
+              return { isFirst: false, isSecond: true }; // Second half gap
+            }
+          }
+
+          return { isFirst: false, isSecond: false };
+        };
+
+        const currHalf = checkHalfDay(currDateStr);
+        const lastHalf = checkHalfDay(lastDateStr);
+
+        const currIsHalf = currHalf.isFirst || currHalf.isSecond;
+        const lastIsHalf = lastHalf.isFirst || lastHalf.isSecond;
+
+        if (currDateStr === expectedNextDateStr && !currIsHalf && !lastIsHalf) {
           currentSegDates.push(currDateStr);
         } else {
-          // Gap detected (weekend, holiday, leave, non-working day)
+          // Gap detected (weekend, holiday, leave, non-working day, or half day break)
           const segStartStr = currentSegDates[0]!;
           const segEndStr = lastDateStr;
           const segStartDate = parseDateLocal(segStartStr);
@@ -885,6 +950,9 @@ function getTaskWorkSegments(task: Task): {
               (sum, d) => sum + (dateMap.get(d) || 0),
               0,
             );
+
+            // The segment inherits the half-day properties of its first day
+            const segHalfProps = checkHalfDay(segStartStr);
 
             segments.push({
               startDate: segStartDate,
@@ -897,6 +965,8 @@ function getTaskWorkSegments(task: Task): {
               ),
               allocatedHours: Math.round(segHours * 10) / 10,
               daysCount: currentSegDates.length,
+              isFirstHalf: segHalfProps.isFirst,
+              isSecondHalf: segHalfProps.isSecond,
             });
           }
           currentSegDates = [currDateStr];
@@ -909,12 +979,62 @@ function getTaskWorkSegments(task: Task): {
       const segEndStr = currentSegDates[currentSegDates.length - 1]!;
       const segStartDate = parseDateLocal(segStartStr);
       const rawSegEnd = parseDateLocal(segEndStr);
+
       if (segStartDate && rawSegEnd) {
         const segEndDate = addDays(rawSegEnd, 1);
-        const segHours = currentSegDates.reduce(
-          (sum, d) => sum + (dateMap.get(d) || 0),
-          0,
-        );
+        const segHours = currentSegDates.reduce((sum, d) => sum + (dateMap.get(d) || 0), 0);
+
+        const checkHalfDay = (dateStr: string) => {
+          const avail = availabilityMap.value.get(dateStr);
+          if (avail) {
+            const type = String(avail.leave_type || '').toUpperCase();
+            if (type.includes('FIRST') || type.includes('1') || type.includes('SECOND') || type.includes('2')) {
+              return {
+                isFirst: type.includes('FIRST') || type.includes('1'),
+                isSecond: type.includes('SECOND') || type.includes('2')
+              };
+            }
+            return { isFirst: false, isSecond: false };
+          }
+
+          if (props.globalLeaves && props.globalLeaves.length > 0) {
+            const assignees = task.assigned_resource_ids || [];
+            if (assignees.length === 0) return { isFirst: false, isSecond: false };
+
+            let worksFirstHalf = false;
+            let worksSecondHalf = false;
+
+            for (const assignee of assignees) {
+              const leave = props.globalLeaves.find((l: LeaveResponseDTO) => l.user_id === assignee && String(l.leave_date).startsWith(dateStr));
+              if (!leave) {
+                worksFirstHalf = true;
+                worksSecondHalf = true;
+              } else {
+                const type = String(leave.leave_type || '').toUpperCase();
+                if (type === 'FULL_DAY') {
+                  // Works neither
+                } else if (type.includes('FIRST') || type.includes('1')) {
+                  worksSecondHalf = true;
+                } else if (type.includes('SECOND') || type.includes('2')) {
+                  worksFirstHalf = true;
+                } else {
+                  worksFirstHalf = true;
+                  worksSecondHalf = true;
+                }
+              }
+            }
+
+            if (worksSecondHalf && !worksFirstHalf) {
+              return { isFirst: true, isSecond: false };
+            }
+            if (worksFirstHalf && !worksSecondHalf) {
+              return { isFirst: false, isSecond: true };
+            }
+          }
+
+          return { isFirst: false, isSecond: false };
+        };
+        const segHalfProps = checkHalfDay(segStartStr);
 
         segments.push({
           startDate: segStartDate,
@@ -927,6 +1047,8 @@ function getTaskWorkSegments(task: Task): {
           ),
           allocatedHours: Math.round(segHours * 10) / 10,
           daysCount: currentSegDates.length,
+          isFirstHalf: segHalfProps.isFirst,
+          isSecondHalf: segHalfProps.isSecond,
         });
       }
     }
@@ -1405,6 +1527,15 @@ function configureGanttEngine() {
       if (activeScale.value === 'hour') {
         let segStartH = 10;
         let segStartM = 0;
+        let segEndH = 18;
+        let segEndM = 0;
+
+        if (seg.isFirstHalf) {
+          segStartH = 14;
+        } else if (seg.isSecondHalf) {
+          segEndH = 14;
+        }
+
         if (idx === 0) {
           const pStart = parseIsoToDate(task.actual_start || task.planned_start) || taskStartD;
           if (
@@ -1413,22 +1544,20 @@ function configureGanttEngine() {
             pStart.getHours() >= 10 &&
             pStart.getHours() < 18
           ) {
-            segStartH = pStart.getHours();
+            segStartH = Math.max(segStartH, pStart.getHours());
             segStartM = pStart.getMinutes();
           }
         }
-        let segEndH = 18;
-        let segEndM = 0;
         if (idx === segments.length - 1) {
           const pEnd = parseIsoToDate(task.actual_end || task.planned_end) || taskEndD;
           if (
             pEnd &&
             (formatDateIso(pEnd) === seg.endStr ||
               formatDateIso(pEnd) === formatDateIso(seg.endDate)) &&
-            pEnd.getHours() >= 10 &&
+            pEnd.getHours() > 10 &&
             pEnd.getHours() <= 18
           ) {
-            segEndH = pEnd.getHours();
+            segEndH = Math.min(segEndH, pEnd.getHours());
             segEndM = pEnd.getMinutes();
           }
         }
@@ -1454,6 +1583,16 @@ function configureGanttEngine() {
 
         actualSegStart = isFirstSeg ? taskStartD : seg.startDate;
         actualSegEnd = isLastSeg ? taskEndD : seg.endDate;
+
+        if (seg.isFirstHalf) {
+          // Leave is first half -> Work is second half -> visually right aligned 50%
+          actualSegStart = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), 12, 0, 0);
+          actualSegEnd = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate() + 1, 0, 0, 0);
+        } else if (seg.isSecondHalf) {
+          // Leave is second half -> Work is first half -> visually left aligned 50%
+          actualSegStart = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), 0, 0, 0);
+          actualSegEnd = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), 12, 0, 0);
+        }
       }
 
       const segStartX = gantt.posFromDate(actualSegStart);

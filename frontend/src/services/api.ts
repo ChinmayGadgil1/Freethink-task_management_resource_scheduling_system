@@ -1545,6 +1545,17 @@ export interface DailyAvailabilityDTO {
   status: AvailabilityStatus;
 }
 
+export interface LeaveResponseDTO {
+  leave_id: number;
+  request_id?: string;
+  user_id: number;
+  user_name?: string;
+  leave_date: string;
+  leave_hours: number;
+  leave_type: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+}
+
 export interface ResourceAvailabilityResponseDTO {
   user_id: number;
   name: string;
@@ -1566,21 +1577,22 @@ export async function getResourceAvailabilityApi(
   startDate?: string,
   endDate?: string,
 ): Promise<ResourceAvailabilityResponseDTO> {
-  const queryParams = new URLSearchParams();
-  if (startDate) queryParams.append('startDate', startDate);
-  if (endDate) queryParams.append('endDate', endDate);
+  const url = new URL(`${API_BASE_URL}/resources/${resourceId}/availability`);
+  if (startDate) url.searchParams.append('startDate', startDate);
+  if (endDate) url.searchParams.append('endDate', endDate);
 
-  const url = `${API_BASE_URL}/resources/${resourceId}/availability${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  const response = await authenticatedFetch(url, {
-    method: 'GET',
-  });
+  const res = await authenticatedFetch(url.toString());
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch resource availability');
+  return data.data;
+}
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch resource availability');
-  }
-
+export async function getApprovedLeavesApi(): Promise<LeaveResponseDTO[]> {
+  const url = new URL(`${API_BASE_URL}/leaves`);
+  url.searchParams.set('status', 'APPROVED');
+  const res = await authenticatedFetch(url.toString());
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch leaves');
   return data.data;
 }
 
