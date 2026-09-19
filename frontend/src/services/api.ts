@@ -175,6 +175,23 @@ export interface WorkLog {
   is_supervisor_log?: boolean; // Whether this log was created by the task supervisor
 }
 
+/** Latest progress snapshot per user — returned alongside logs from GET /tasks/:id/work-logs */
+export interface AssigneeProgress {
+  user_id: number;
+  author_name: string;
+  author_email?: string;
+  progress_logged: number;
+  hours_logged: number;
+  log_date: string;
+  created_at: string;
+}
+
+export interface WorkLogsResponse {
+  logs: WorkLog[];
+  assignee_progress: AssigneeProgress[];
+}
+
+
 export interface CreateWorkLogPayload {
   hours_logged: number;
   progress_logged: number;
@@ -815,7 +832,7 @@ export async function createWorkLogApi(
   return data.log;
 }
 
-export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
+export async function getWorkLogsApi(taskId: number): Promise<WorkLogsResponse> {
   const response = await authenticatedFetch(`${API_BASE_URL}/tasks/${taskId}/work-logs`);
 
   const data = await response.json();
@@ -824,7 +841,10 @@ export async function getWorkLogsApi(taskId: number): Promise<WorkLog[]> {
     throw new Error(data.message || 'Failed to fetch work history');
   }
 
-  return data.logs ?? [];
+  return {
+    logs: data.logs ?? [],
+    assignee_progress: data.assignee_progress ?? [],
+  };
 }
 
 export async function getDailyAllocationsApi(

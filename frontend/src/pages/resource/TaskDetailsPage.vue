@@ -1590,6 +1590,107 @@
                 />
               </div>
 
+              <!-- Per-Assignee Individual Progress Breakdown (only shown when 2+ assignees) -->
+              <div
+                v-if="task.assigned_resources && task.assigned_resources.length > 1"
+                class="q-mb-lg"
+              >
+                <div class="row items-center q-mb-sm">
+                  <q-icon name="group" size="16px" color="primary" class="q-mr-xs" />
+                  <span
+                    class="text-caption text-weight-bold"
+                    :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                  >
+                    Individual Resource Progress
+                  </span>
+                </div>
+
+                <div class="column q-gutter-y-sm">
+                  <div
+                    v-for="resource in task.assigned_resources"
+                    :key="resource.user_id"
+                    class="rounded-borders q-pa-md"
+                    :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
+                    style="border: 1px solid rgba(0,0,0,0.07)"
+                  >
+                    <div class="row items-center justify-between q-mb-xs">
+                      <!-- Resource name & You badge -->
+                      <div class="row items-center q-gutter-xs">
+                        <q-avatar
+                          size="22px"
+                          :color="
+                            Number(resource.user_id) === getCurrentUserId()
+                              ? ($q.dark.isActive ? 'purple-10' : 'purple-1')
+                              : ($q.dark.isActive ? 'teal-10' : 'teal-1')
+                          "
+                          :text-color="
+                            Number(resource.user_id) === getCurrentUserId()
+                              ? ($q.dark.isActive ? 'purple-2' : 'primary')
+                              : ($q.dark.isActive ? 'teal-2' : 'teal-9')
+                          "
+                          class="text-weight-bold"
+                          style="font-size: 10px"
+                        >
+                          {{ getInitials(resource.name, 'U') }}
+                        </q-avatar>
+                        <span
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ resource.name }}
+                        </span>
+                        <q-badge
+                          v-if="Number(resource.user_id) === getCurrentUserId()"
+                          color="primary"
+                          label="You"
+                          class="text-weight-bold"
+                          style="font-size: 9px"
+                        />
+                      </div>
+
+                      <!-- Progress percentage or Not logged yet -->
+                      <span
+                        v-if="assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))"
+                        class="text-caption text-weight-bolder"
+                        :class="
+                          Number(resource.user_id) === getCurrentUserId()
+                            ? 'text-primary'
+                            : ($q.dark.isActive ? 'text-teal-3' : 'text-teal-9')
+                        "
+                      >
+                        {{ assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))!.progress_logged }}%
+                      </span>
+                      <span v-else class="text-caption text-grey-5 text-weight-medium">
+                        Not logged yet
+                      </span>
+                    </div>
+
+                    <!-- Mini progress bar -->
+                    <q-linear-progress
+                      :value="(assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))?.progress_logged ?? 0) / 100"
+                      rounded
+                      size="7px"
+                      :color="Number(resource.user_id) === getCurrentUserId() ? 'primary' : 'teal'"
+                      :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+                    />
+
+                    <!-- Last updated metadata -->
+                    <div
+                      v-if="assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))"
+                      class="row items-center q-mt-xs q-gutter-x-sm"
+                    >
+                      <span class="text-caption text-grey-5">
+                        Last updated: {{ formatHistoryDate(assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))!.log_date) }}
+                      </span>
+                      <span class="text-caption text-grey-5">·</span>
+                      <span class="text-caption text-grey-5">
+                        {{ assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))!.hours_logged }}h logged
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Effort Breakdown KPI Grid (Estimated, Actual, Remaining) -->
               <div class="row q-col-gutter-md">
                 <!-- Estimated Effort -->
@@ -2553,6 +2654,7 @@ import {
   updateTaskApi,
 } from '@/services/api';
 import type {
+  AssigneeProgress,
   CreateWorkLogPayload,
   PredecessorTaskInfo,
   Project,
@@ -2936,6 +3038,7 @@ const loadingCreateProjects = ref(false);
 const updateDialog = ref(false);
 const updateTaskDialog = ref(false);
 const workLogs = ref<WorkLog[]>([]);
+const assigneeProgress = ref<AssigneeProgress[]>([]);
 const historyLoading = ref(false);
 const historyError = ref('');
 const selectedTaskForUpdate = ref<ResourceTask | null>(null);
@@ -3866,6 +3969,7 @@ watch(taskId, async (id) => {
   if (!id) {
     individualTask.value = null;
     workLogs.value = [];
+    assigneeProgress.value = [];
     historyError.value = '';
     stopLiveSync();
     return;
@@ -3885,6 +3989,7 @@ watch(taskId, async (id) => {
     startLiveSync(id);
   } else {
     workLogs.value = [];
+    assigneeProgress.value = [];
     activeCoAssigneeSessions.value = [];
     historyError.value = '';
     stopLiveSync();
@@ -3932,6 +4037,7 @@ async function loadTasks() {
       startLiveSync(task.value.task_id);
     } else {
       workLogs.value = [];
+      assigneeProgress.value = [];
       activeCoAssigneeSessions.value = [];
       historyError.value = '';
       stopLiveSync();
@@ -4027,6 +4133,7 @@ async function saveTaskSpecUpdate(payload: {
 async function loadHistory(currentTaskId: number) {
   if (task.value && !canViewTaskHistory.value) {
     workLogs.value = [];
+    assigneeProgress.value = [];
     activeCoAssigneeSessions.value = [];
     historyError.value = '';
     historyLoading.value = false;
@@ -4037,13 +4144,20 @@ async function loadHistory(currentTaskId: number) {
 
   try {
     // 1. Fetch work logs submitted for this task (includes entries from all co-assigned resources)
-    const logs = await getWorkLogsApi(currentTaskId);
-    workLogs.value = logs || [];
+    const result = await getWorkLogsApi(currentTaskId);
+    workLogs.value = result.logs || [];
+    assigneeProgress.value = result.assignee_progress || [];
 
     // Populate resource names map from authors for co-assignee label resolution
     workLogs.value.forEach((log) => {
       if (log.user_id && log.author_name) {
         resourceNamesMap.value[log.user_id] = log.author_name;
+      }
+    });
+    // Also populate from assigneeProgress so Task Progress tab has names immediately
+    assigneeProgress.value.forEach((ap) => {
+      if (ap.user_id && ap.author_name) {
+        resourceNamesMap.value[ap.user_id] = ap.author_name;
       }
     });
 

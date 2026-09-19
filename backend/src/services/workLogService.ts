@@ -246,7 +246,25 @@ export async function getWorkLogsByTask(taskId: number) {
         [taskId]
     );
 
-    return logs;
+    // Fetch the latest progress snapshot per user — used by the frontend to show per-assignee
+    // individual progress bars in the Task Progress & Effort tab without recalculating from raw logs.
+    const [assigneeProgress] = await pool.query<RowDataPacket[]>(
+        `SELECT wl.user_id, u.name as author_name, u.email as author_email,
+                wl.progress_logged, wl.hours_logged, wl.log_date, wl.created_at
+         FROM work_logs wl
+         JOIN users u ON wl.user_id = u.user_id
+         INNER JOIN (
+             SELECT user_id, MAX(log_id) as max_log_id
+             FROM work_logs
+             WHERE task_id = ?
+             GROUP BY user_id
+         ) latest ON wl.log_id = latest.max_log_id
+         WHERE wl.task_id = ?
+         ORDER BY wl.user_id ASC`,
+        [taskId, taskId]
+    );
+
+    return { logs, assigneeProgress };
 }
 
 export async function getDailyWorkAllocationsForResource(userId: number, dateStr: string, clientToday?: string) {

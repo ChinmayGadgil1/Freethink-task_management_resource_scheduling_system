@@ -719,9 +719,9 @@ export async function getWorkLogs(req: AuthRequest<{ id: string }>, res: Respons
             }
         }
 
-        const logs = await getWorkLogsByTask(taskId);
+        const { logs, assigneeProgress } = await getWorkLogsByTask(taskId);
 
-        return res.status(200).json({ logs });
+        return res.status(200).json({ logs, assignee_progress: assigneeProgress });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message || "Internal server error"

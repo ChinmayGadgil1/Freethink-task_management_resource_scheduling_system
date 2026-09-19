@@ -647,7 +647,7 @@ const loadingLogs = ref(false);
 async function fetchTaskWorkLogs(taskId: number) {
   loadingLogs.value = true;
   try {
-    const logs = await getWorkLogsApi(taskId);
+    const { logs } = await getWorkLogsApi(taskId);
     workLogs.value = logs || [];
   } catch (err) {
     console.error('Failed to load task work logs:', err);
