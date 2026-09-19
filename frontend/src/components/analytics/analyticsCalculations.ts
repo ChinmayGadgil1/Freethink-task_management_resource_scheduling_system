@@ -158,13 +158,14 @@ export function computeWeeklyShiftWorkload(
 
     const allocatedHours = Math.round(dailyAllocated * 10) / 10;
     const capacityHours = Math.round(dailyCapacity * 10) / 10;
-    const utilization =
+    const rawUtil =
       capacityHours > 0
         ? Math.round((allocatedHours / capacityHours) * 100)
         : allocatedHours > 0
           ? 100
           : 0;
-    const isOverloaded = utilization > 85;
+    const utilization = Math.min(100, Math.max(0, rawUtil));
+    const isOverloaded = rawUtil > 85;
 
     return {
       dayLabel: day.dayLabel,
@@ -258,9 +259,10 @@ export function computeResourceMetrics(
     }
 
     const assignedHours = Math.round(scheduledEffort * 10) / 10;
-    const utilization = Math.round((assignedHours / Math.max(1, weeklyCapacity)) * 100);
+    const rawUtil = Math.round((assignedHours / Math.max(1, weeklyCapacity)) * 100);
+    const utilization = Math.min(100, Math.max(0, rawUtil));
     const remainingHeadroom = Math.max(0, weeklyCapacity - assignedHours);
-    const isOverloaded = utilization > 85;
+    const isOverloaded = rawUtil > 85;
     const isEligibleForDispatch = remainingHeadroom >= 4;
 
     totalAssignedHours += assignedHours;
@@ -282,7 +284,9 @@ export function computeResourceMetrics(
   });
 
   const averageUtilization =
-    totalCapacityHours > 0 ? Math.round((totalAssignedHours / totalCapacityHours) * 100) : 0;
+    totalCapacityHours > 0
+      ? Math.min(100, Math.max(0, Math.round((totalAssignedHours / totalCapacityHours) * 100)))
+      : 0;
 
   return {
     items,

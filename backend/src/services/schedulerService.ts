@@ -469,10 +469,10 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
     // Fetch daily allocated hours from task_schedules for this resource
     const [scheduleRows] = await pool.query<RowDataPacket[]>(
         `
-        SELECT ts.schedule_date, ts.task_id, ts.allocated_hours
+        SELECT DATE_FORMAT(ts.schedule_date, '%Y-%m-%d') as schedule_date, ts.task_id, ts.allocated_hours, t.project_id
         FROM task_schedules ts
         JOIN tasks t ON ts.task_id = t.task_id
-        WHERE ts.user_id = ? AND ts.schedule_date >= CURDATE()
+        WHERE ts.user_id = ?
           AND t.deleted_at IS NULL
           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
           AND t.verified_task_id IS NULL
@@ -481,19 +481,58 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         [resourceId]
     );
 
+    // Fetch daily hours logged from work_logs for this resource (actual work completed)
+    const [workLogRows] = await pool.query<RowDataPacket[]>(
+        `
+        SELECT DATE_FORMAT(wl.log_date, '%Y-%m-%d') as log_date, wl.task_id, SUM(wl.hours_logged) as logged_hours, t.project_id
+        FROM work_logs wl
+        JOIN tasks t ON wl.task_id = t.task_id
+        WHERE wl.user_id = ?
+          AND t.deleted_at IS NULL
+          AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
+          AND t.verified_task_id IS NULL
+        GROUP BY DATE_FORMAT(wl.log_date, '%Y-%m-%d'), wl.task_id, t.project_id
+        ORDER BY log_date ASC
+        `,
+        [resourceId]
+    );
+
     const visibleScheduleRows = pmProjectIds
-        ? scheduleRows.filter(s => visibleTaskIds.has(Number(s.task_id)))
+        ? scheduleRows.filter(s => pmProjectIds.has(Number(s.project_id)))
         : scheduleRows;
 
-    const dailyMap = new Map<string, number>();
+    const visibleWorkLogRows = pmProjectIds
+        ? workLogRows.filter(l => pmProjectIds.has(Number(l.project_id)))
+        : workLogRows;
+
+    const scheduleDateMap = new Map<string, number>();
     for (const r of visibleScheduleRows) {
-        const d = String(r.schedule_date).split("T")[0]!;
-        dailyMap.set(d, (dailyMap.get(d) || 0) + Number(r.allocated_hours));
+        const d = String(r.schedule_date);
+        scheduleDateMap.set(d, (scheduleDateMap.get(d) || 0) + Number(r.allocated_hours));
     }
-    const dailyAllocations = Array.from(dailyMap.entries()).map(([date, allocated_hours]) => ({
-        date,
-        allocated_hours
-    }));
+
+    const logDateMap = new Map<string, number>();
+    for (const l of visibleWorkLogRows) {
+        const d = String(l.log_date);
+        logDateMap.set(d, (logDateMap.get(d) || 0) + Number(l.logged_hours));
+    }
+
+    const allDates = new Set([...scheduleDateMap.keys(), ...logDateMap.keys()]);
+    const dailyMap = new Map<string, number>();
+
+    for (const date of allDates) {
+        const logged = logDateMap.get(date) || 0;
+        const scheduled = scheduleDateMap.get(date) || 0;
+        const effectiveHours = Math.max(logged, scheduled);
+        dailyMap.set(date, Math.round(effectiveHours * 100) / 100);
+    }
+
+    const dailyAllocations = Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, allocated_hours]) => ({
+            date,
+            allocated_hours
+        }));
 
     let totalExpectedEffort = 0;
     let totalActualEffort = 0;

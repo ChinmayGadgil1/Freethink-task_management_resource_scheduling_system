@@ -1189,7 +1189,7 @@ function initUtilizationChart() {
       name: isVeryNarrow ? '' : 'Utilization (%)',
       nameTextStyle: { color: theme.mutedText, fontSize: 11 },
       min: 0,
-      max: (value) => Math.max(100, Math.ceil(value.max * 1.15)),
+      max: 100,
       axisLabel: {
         formatter: '{value}%',
         color: theme.mutedText,
