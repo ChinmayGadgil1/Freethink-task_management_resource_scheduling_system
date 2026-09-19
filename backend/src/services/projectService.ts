@@ -106,11 +106,11 @@ export async function syncProjectProgress(projectId: number): Promise<number> {
     const currentStatus = projRows[0]?.status;
     let nextStatus = currentStatus;
 
-    if (currentStatus === "NOT_STARTED" && calculatedProgress > 0) {
-        nextStatus = "IN_PROGRESS";
-    } else if (currentStatus === "IN_PROGRESS" && calculatedProgress >= 100) {
+    if (calculatedProgress >= 100) {
         nextStatus = "COMPLETED";
     } else if (currentStatus === "COMPLETED" && calculatedProgress < 100) {
+        nextStatus = "IN_PROGRESS";
+    } else if (currentStatus === "NOT_STARTED" && calculatedProgress > 0) {
         nextStatus = "IN_PROGRESS";
     }
 
@@ -135,21 +135,23 @@ export async function getProjectsByManager(projectManagerId: number) {
     const [projects] = await pool.query<RowDataPacket[]>(
         `
         SELECT
-            project_id,
-            project_manager_id,
-            name,
-            description,
-            status,
-            priority,
-            start_date,
-            deadline,
-            progress,
-            created_at,
-            updated_at
-        FROM projects
-        WHERE project_manager_id = ?
-          AND deleted_at IS NULL
-        ORDER BY created_at DESC
+            p.project_id,
+            p.project_manager_id,
+            u.name AS project_manager_name,
+            p.name,
+            p.description,
+            p.status,
+            p.priority,
+            p.start_date,
+            p.deadline,
+            p.progress,
+            p.created_at,
+            p.updated_at
+        FROM projects p
+        LEFT JOIN users u ON p.project_manager_id = u.user_id
+        WHERE p.project_manager_id = ?
+          AND p.deleted_at IS NULL
+        ORDER BY p.created_at DESC
         `,
         [projectManagerId]
     );
@@ -165,6 +167,7 @@ export async function getProjectsByMember(userId: number) {
         SELECT
             p.project_id,
             p.project_manager_id,
+            u.name AS project_manager_name,
             p.name,
             p.description,
             p.status,
@@ -175,6 +178,7 @@ export async function getProjectsByMember(userId: number) {
             p.created_at,
             p.updated_at
         FROM projects p
+        LEFT JOIN users u ON p.project_manager_id = u.user_id
         JOIN project_members pm ON p.project_id = pm.project_id
         WHERE pm.user_id = ?
           AND p.deleted_at IS NULL
@@ -192,21 +196,23 @@ export async function getProjectById(projectId: number) {
     const [projects] = await pool.query<RowDataPacket[]>(
         `
         SELECT
-            project_id,
-            project_manager_id,
-            name,
-            description,
-            status,
-            priority,
-            start_date,
-            deadline,
-            progress,
-            deleted_at,
-            created_at,
-            updated_at
-        FROM projects
-        WHERE project_id = ?
-          AND deleted_at IS NULL
+            p.project_id,
+            p.project_manager_id,
+            u.name AS project_manager_name,
+            p.name,
+            p.description,
+            p.status,
+            p.priority,
+            p.start_date,
+            p.deadline,
+            p.progress,
+            p.deleted_at,
+            p.created_at,
+            p.updated_at
+        FROM projects p
+        LEFT JOIN users u ON p.project_manager_id = u.user_id
+        WHERE p.project_id = ?
+          AND p.deleted_at IS NULL
         `,
         [projectId]
     );

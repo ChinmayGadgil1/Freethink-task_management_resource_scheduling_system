@@ -890,21 +890,20 @@
                     {{ getAssigneeMembers(props.row)[0]?.name }}
                   </span>
                 </div>
-                <div
-                  v-else
-                  class="row items-center q-gutter-xs text-caption"
-                  :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
-                >
+                <div class="row items-center no-wrap q-gutter-xs">
                   <q-avatar
-                    size="22px"
-                    color="primary"
-                    text-color="white"
+                    size="24px"
+                    :color="getAssigneeName(props.row) === 'Unassigned' ? ($q.dark.isActive ? 'grey-8' : 'grey-4') : 'primary'"
+                    :text-color="getAssigneeName(props.row) === 'Unassigned' ? ($q.dark.isActive ? 'grey-4' : 'grey-8') : 'white'"
                     class="text-weight-bold"
-                    >{{ getAssigneeName(props.row).charAt(0) }}</q-avatar
+                    >{{ getAssigneeName(props.row) === 'Unassigned' ? '?' : getAssigneeName(props.row).charAt(0) }}</q-avatar
                   >
-                  <span class="ellipsis" style="max-width: 100px">{{
-                    getAssigneeName(props.row)
-                  }}</span>
+                  <span
+                    class="ellipsis"
+                    :class="getAssigneeName(props.row) === 'Unassigned' ? 'text-grey-6 text-italic' : ''"
+                    style="max-width: 100px"
+                    >{{ getAssigneeName(props.row) }}</span
+                  >
                 </div>
               </q-td>
             </template>
@@ -2096,16 +2095,29 @@ async function handleAssignTaskMember() {
 
   const currentTask = tasks.value.find((t) => t.task_id === currentTaskId);
   const existingAssigneeIds = (currentTask?.assigned_resource_ids || []).map(Number);
-  const newAssigneeIds = assignTaskMemberForm.user_ids;
+  const newAssigneeIds = assignTaskMemberForm.user_ids.map(Number);
   const toAssignIds = newAssigneeIds.filter((id) => !existingAssigneeIds.includes(id));
+  const toUnassignIds = existingAssigneeIds.filter((id) => !newAssigneeIds.includes(id));
   const newSupId = assignTaskMemberForm.supervisor_id;
   const supervisorChanged =
     (currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null) !== newSupId;
+
+  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged) {
+    $q.notify({
+      type: 'info',
+      message: 'No changes made to task assignment or supervisor',
+    });
+    showAssignTaskMemberDialog.value = false;
+    return;
+  }
 
   submittingTaskMember.value = true;
   try {
     for (const userId of toAssignIds) {
       await assignTaskResourceApi(currentTaskId, userId);
+    }
+    for (const userId of toUnassignIds) {
+      await unassignTaskResourceApi(currentTaskId, userId);
     }
     if (supervisorChanged) {
       await updateTaskApi(currentTaskId, { supervisor_id: newSupId });
@@ -2511,7 +2523,7 @@ function getAssigneeName(task: Task): string {
       .filter(Boolean);
     if (names.length > 0) return names.join(', ');
   }
-  return currentPmName.value;
+  return 'Unassigned';
 }
 
 function resetTaskFilters() {

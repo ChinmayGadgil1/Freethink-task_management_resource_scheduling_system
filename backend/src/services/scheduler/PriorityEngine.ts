@@ -31,7 +31,13 @@ export function calculateUrgencyScore(task: Task, downstreamCount: number, curre
 
     // 2. Deadline Proximity Bonus
     if (task.deadline) {
-        const deadlineDate = new Date(task.deadline);
+        let deadlineDate: Date;
+        if (typeof task.deadline === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(task.deadline.trim())) {
+            const [y, m, d] = task.deadline.trim().split('-').map(Number);
+            deadlineDate = new Date(y!, m! - 1, d!, 23, 59, 59, 999);
+        } else {
+            deadlineDate = new Date(task.deadline);
+        }
         // Normalize dates to ignore time components when calculating diff in days
         const diffTime = deadlineDate.getTime() - currentDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

@@ -7,7 +7,21 @@
  */
 export function formatDate(date: string | Date | null | undefined, fallback = '-'): string {
   if (!date) return fallback;
-  const d = typeof date === 'string' ? new Date(date) : date;
+  let d: Date;
+  if (typeof date === 'string') {
+    const str = date.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const parts = str.split('-').map(Number);
+      const y = parts[0] ?? 0;
+      const m = parts[1] ?? 1;
+      const day = parts[2] ?? 1;
+      d = new Date(y, m - 1, day);
+    } else {
+      d = new Date(str);
+    }
+  } else {
+    d = date;
+  }
   if (isNaN(d.getTime())) return typeof date === 'string' ? date : fallback;
   return d.toLocaleDateString('en-US', {
     month: 'short',
@@ -21,7 +35,21 @@ export function formatDate(date: string | Date | null | undefined, fallback = '-
  */
 export function formatDateShort(date: string | Date | null | undefined, fallback = '-'): string {
   if (!date) return fallback;
-  const d = typeof date === 'string' ? new Date(date) : date;
+  let d: Date;
+  if (typeof date === 'string') {
+    const str = date.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const parts = str.split('-').map(Number);
+      const y = parts[0] ?? 0;
+      const m = parts[1] ?? 1;
+      const day = parts[2] ?? 1;
+      d = new Date(y, m - 1, day);
+    } else {
+      d = new Date(str);
+    }
+  } else {
+    d = date;
+  }
   if (isNaN(d.getTime())) return typeof date === 'string' ? date : fallback;
   return d.toLocaleDateString('en-US', {
     month: 'short',

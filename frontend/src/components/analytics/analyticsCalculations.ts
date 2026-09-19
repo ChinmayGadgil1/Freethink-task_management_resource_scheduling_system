@@ -772,3 +772,33 @@ export function computeResourcePerformanceData(
 
   return { rows, summary };
 }
+
+/**
+ * Computes overall project efficiency: (plannedEffort / actualEffort) * 100
+ * Safely guards against totalPlanned = 0 or totalActual = 0 to prevent NaN/Infinity.
+ */
+export function calculateProjectEfficiency(tasks: Task[]): {
+  efficiency: number;
+  plannedHours: number;
+  actualHours: number;
+} {
+  const plannedHours = tasks.reduce((sum, t) => sum + (Number(t.expected_effort) || 0), 0);
+  const actualHours = tasks.reduce((sum, t) => sum + (Number(t.actual_effort) || 0), 0);
+
+  let efficiency: number;
+  if (actualHours > 0 && plannedHours > 0) {
+    efficiency = Math.min(200, Math.max(0, Math.round((plannedHours / actualHours) * 100)));
+  } else if (plannedHours === 0 && actualHours === 0) {
+    efficiency = 100;
+  } else if (actualHours === 0 && plannedHours > 0) {
+    efficiency = 100;
+  } else {
+    efficiency = 0;
+  }
+
+  return {
+    efficiency,
+    plannedHours: Math.round(plannedHours * 10) / 10,
+    actualHours: Math.round(actualHours * 10) / 10,
+  };
+}

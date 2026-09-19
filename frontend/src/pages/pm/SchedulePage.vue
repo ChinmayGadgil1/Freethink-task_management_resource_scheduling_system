@@ -854,7 +854,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import DhtmlxGanttTimeline from '@/components/gantt/DhtmlxGanttTimeline.vue';
@@ -1504,8 +1504,17 @@ watch([projectFilter, assigneeFilter], async ([newProj, newAssignee]) => {
   }
 });
 
+function onHolidaysUpdated() {
+  void loadData();
+}
+
 onMounted(() => {
   void loadData();
+  window.addEventListener('holidays-updated', onHolidaysUpdated);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('holidays-updated', onHolidaysUpdated);
 });
 
 const inProgressCount = computed(

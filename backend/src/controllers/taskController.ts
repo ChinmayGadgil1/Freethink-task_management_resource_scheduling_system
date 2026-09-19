@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, moveToBinTask, unassignResource, removeTaskDependency, assignVerificationTask } from "../services/taskService.js";
+import { createTask, getTasksList, getTaskById, assignResourceToTask, addTaskDependency, updateTask, getBottleneckTasks, deleteTask, moveToBinTask, unassignResource, removeTaskDependency, assignVerificationTask, hasPendingVerification } from "../services/taskService.js";
 import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByManager } from "../services/projectService.js";
 import { getResourceWorkload, checkSchedulingImpact } from "../services/schedulingService.js";
 // Work log and task session services for progress tracking and co-assignee updates
@@ -236,7 +236,7 @@ const updateTaskSchema = z.object({
     title: z.string().min(1).optional(),
     description: z.string().nullable().optional(),
     supervisor_id: z.number().int().positive().nullable().optional(),
-    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL", "NONE"]).optional(),
     status: z.enum(["UNASSIGNED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"]).optional(),
     deadline: z.string().nullable().optional(),
     expected_effort: z.number().positive().optional(),
@@ -332,6 +332,15 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
                 parsed.progress = 100;
             } else if (parsed.status === "SCHEDULED" || parsed.status === "UNASSIGNED") {
                 parsed.progress = 0;
+            }
+        }
+
+        if (parsed.status === "COMPLETED") {
+            const verCheck = await hasPendingVerification(taskId);
+            if (verCheck.pending) {
+                return res.status(400).json({
+                    message: `Cannot complete task: Verification task "${verCheck.verificationTaskTitle || 'Verification'}" is still pending.`
+                });
             }
         }
 

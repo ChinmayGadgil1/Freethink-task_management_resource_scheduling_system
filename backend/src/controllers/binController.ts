@@ -95,7 +95,13 @@ export async function restoreTaskController(req: AuthRequest<{ id: string }>, re
             }
         }
 
-        return res.status(200).json({ message: "Task restored successfully", projectId: result.projectId });
+        return res.status(200).json({
+            message: result.projectRestored
+                ? "Task and its parent project restored successfully"
+                : "Task restored successfully",
+            projectId: result.projectId,
+            projectRestored: result.projectRestored || false
+        });
     } catch (error: any) {
         console.error("Restore task error:", error);
         return res.status(500).json({ message: error.message || "Internal server error" });
