@@ -316,7 +316,6 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
            AND (
              ts.schedule_id IS NOT NULL
              OR EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)
-             OR (? = 1 AND t.status IN ('SCHEDULED', 'IN_PROGRESS'))
            )
          GROUP BY t.task_id, p.name
          ORDER BY (EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)) DESC,
@@ -329,7 +328,7 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
                       ELSE 5
                   END ASC,
                   t.title ASC`,
-        [userId, userId, userId, dateStr, userId, userId, dateStr, userId, dateStr, isToday ? 1 : 0, userId, dateStr]
+        [userId, userId, userId, dateStr, userId, userId, dateStr, userId, dateStr, userId, dateStr]
     );
     console.log("DEBUG SCHEDULED HOURS:", tasks.map(t => t.scheduled_hours_today));
 

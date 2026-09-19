@@ -730,14 +730,14 @@ function computeTaskGanttDates(
     }
   }
 
-  if (targetDurationHours !== undefined && targetDurationHours > 0) {
-    effectiveEnd = addWorkingHours(effectiveStart, targetDurationHours);
-  } else if (
+  if (
     plannedEndParsed &&
     isValidDate(plannedEndParsed) &&
     plannedEndParsed.getTime() > effectiveStart.getTime()
   ) {
     effectiveEnd = plannedEndParsed;
+  } else if (targetDurationHours !== undefined && targetDurationHours > 0) {
+    effectiveEnd = addWorkingHours(effectiveStart, targetDurationHours);
   } else if (segments.length > 0) {
     effectiveEnd = new Date(tEnd.getTime());
   } else {
