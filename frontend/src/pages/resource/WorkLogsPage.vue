@@ -3,7 +3,7 @@
     :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
     class="q-pa-lg work-logs-page"
   >
-    <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
+    <div class="q-mx-auto column q-gutter-y-md" style="max-width: 1400px">
       <!-- 1. PAGE HEADER -->
       <div class="row items-center justify-between wrap gap-md">
         <div>
@@ -33,25 +33,25 @@
 
           <q-btn
             v-if="activeTab === 'daily' && isSelectedDateToday && !isCheckedOut && allocations.length > 0"
-            push
-            glossy
+            unelevated
             no-caps
-            label="Submit Today's Logs"
-            icon="fact_check"
             color="positive"
-            class="text-weight-bold checkout-btn"
+            label="Submit Today's Logs"
+            icon="task_alt"
+            class="text-weight-bold"
+            style="border-radius: 8px; height: 36px"
             :loading="loading"
             @click="submitDailyLogs"
           />
-          <q-chip
+          <div
             v-else-if="activeTab === 'daily' && isSelectedDateToday && isCheckedOut"
-            icon="check_circle"
-            color="positive"
-            text-color="white"
-            class="text-weight-bold shadow-1"
+            class="row items-center q-gutter-x-xs text-weight-bold text-caption q-px-md rounded-borders"
+            :class="$q.dark.isActive ? 'bg-green-10 text-green-2' : 'bg-green-1 text-positive'"
+            style="border: 1px solid rgba(16, 185, 129, 0.3); height: 36px"
           >
-            Checked Out
-          </q-chip>
+            <q-icon name="check_circle" size="18px" />
+            <span>Checked Out</span>
+          </div>
         </div>
       </div>
 
@@ -95,9 +95,122 @@
       </div>
 
       <!-- ==================== TAB 1: DAILY ALLOCATIONS ==================== -->
-      <div v-if="activeTab === 'daily'" class="column q-gutter-y-lg">
+      <div v-if="activeTab === 'daily'" class="column q-gutter-y-sm">
+        <!-- Summary Strip For Selected Day -->
+        <div class="row q-col-gutter-x-md q-col-gutter-y-sm">
+          <!-- Card 1: Total Allocated Today -->
+          <div class="col-12 col-sm-6 col-md-3">
+            <q-card
+              flat
+              bordered
+              class="summary-card"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+            >
+              <div class="row items-center justify-between">
+                <span class="text-caption text-weight-bold text-grey-6">Scheduled Hours</span>
+                <div class="summary-icon-wrap bg-purple-soft text-primary">
+                  <q-icon name="event" size="18px" />  
+                </div>
+              </div>
+              <div class="text-h6 text-weight-bolder text-primary q-mt-xs" style="line-height: 1.2">
+                {{ formatHours(totalScheduledHours) }}h
+              </div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
+                {{
+                  totalScheduledHours > 0
+                    ? 'Planned capacity for this day'
+                    : isWeekend
+                      ? 'Weekend — No scheduled shift'
+                      : 'No scheduled slots for this day'
+                }}
+              </div>
+            </q-card>
+          </div>
+
+          <!-- Card 2: Total Logged Today -->
+          <div class="col-12 col-sm-6 col-md-3">
+            <q-card
+              flat
+              bordered
+              class="summary-card"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+            >
+              <div class="row items-center justify-between">
+                <span class="text-caption text-weight-bold text-grey-6">
+                  {{ isSelectedDateFuture ? 'Logged Effort' : isSelectedDateToday ? 'Logged Today' : 'Logged on Date' }}
+                </span>
+                <div class="summary-icon-wrap bg-blue-soft text-info">
+                  <q-icon name="history_edu" size="18px" />
+                </div>
+              </div>
+              <div class="text-h6 text-weight-bolder text-info q-mt-xs" style="line-height: 1.2">
+                {{ formatHours(totalLoggedHours) }}h
+              </div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
+                {{
+                  isSelectedDateFuture
+                    ? 'No advance logs permitted'
+                    : totalScheduledHours > 0
+                      ? `${Math.round((totalLoggedHours / totalScheduledHours) * 100)}% of scheduled effort`
+                      : totalLoggedHours > 0
+                        ? 'Recorded work effort'
+                        : 'No logs submitted for this day yet'
+                }}
+              </div>
+            </q-card>
+          </div>
+
+          <!-- Card 3: Tasks Allocated -->
+          <div class="col-12 col-sm-6 col-md-3">
+            <q-card
+              flat
+              bordered
+              class="summary-card"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+            >
+              <div class="row items-center justify-between">
+                <span class="text-caption text-weight-bold text-grey-6">
+                  {{ isSelectedDateFuture ? 'Scheduled Tasks' : isSelectedDateToday ? 'Active Deliverables' : 'Tasks on Date' }}
+                </span>
+                <div class="summary-icon-wrap bg-green-soft text-positive">
+                  <q-icon name="assignment" size="18px" />
+                </div>
+              </div>
+              <div class="text-h6 text-weight-bolder text-positive q-mt-xs" style="line-height: 1.2">
+                {{ allocations.length }}
+              </div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
+                {{ isSelectedDateFuture ? 'Planned deliverables for this date' : isSelectedDateToday ? 'Tasks available to work on' : 'Deliverables for this date' }}
+              </div>
+            </q-card>
+          </div>
+
+          <!-- Card 4: Work Logs Count -->
+          <div class="col-12 col-sm-6 col-md-3">
+            <q-card
+              flat
+              bordered
+              class="summary-card"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+            >
+              <div class="row items-center justify-between">
+                <span class="text-caption text-weight-bold text-grey-6">Work Log Count</span>
+                <div class="summary-icon-wrap bg-amber-soft text-warning">
+                  <q-icon name="fact_check" size="18px" />
+                </div>
+              </div>
+              <div class="text-h6 text-weight-bolder text-warning q-mt-xs" style="line-height: 1.2">
+                {{ totalLogsCount }}
+              </div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
+                {{ isSelectedDateFuture ? 'Future date — 0 entries' : 'Entries submitted for this day' }}
+              </div>
+            </q-card>
+          </div>
+        </div>
+
         <!-- Date Selector & Navigation Controls -->
-        <div class="row items-center justify-between wrap gap-md">
+        <div class="row items-center justify-between wrap gap-sm" style="margin-top: 20px;">
           <div class="row items-center gap-xs">
             <q-btn
               round
@@ -149,119 +262,6 @@
 
           <div class="text-caption text-grey-6">
             Showing deliverables scheduled or logged for <b>{{ formattedDateDisplay }}</b>
-          </div>
-        </div>
-
-        <!-- Summary Strip For Selected Day -->
-        <div class="row q-col-gutter-md">
-          <!-- Card 1: Total Allocated Today -->
-          <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="summary-card"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            >
-              <div class="row items-center justify-between">
-                <span class="text-caption text-weight-bold text-grey-6">Scheduled Hours</span>
-                <div class="summary-icon-wrap bg-purple-soft text-primary">
-                  <q-icon name="event" size="20px" />  
-                </div>
-              </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-primary">
-                {{ formatHours(totalScheduledHours) }}h
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                {{
-                  totalScheduledHours > 0
-                    ? 'Planned capacity for this day'
-                    : isWeekend
-                      ? 'Weekend — No scheduled shift'
-                      : 'No scheduled slots for this day'
-                }}
-              </div>
-            </q-card>
-          </div>
-
-          <!-- Card 2: Total Logged Today -->
-          <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="summary-card"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            >
-              <div class="row items-center justify-between">
-                <span class="text-caption text-weight-bold text-grey-6">
-                  {{ isSelectedDateFuture ? 'Logged Effort' : isSelectedDateToday ? 'Logged Today' : 'Logged on Date' }}
-                </span>
-                <div class="summary-icon-wrap bg-blue-soft text-info">
-                  <q-icon name="history_edu" size="20px" />
-                </div>
-              </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-info">
-                {{ formatHours(totalLoggedHours) }}h
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                {{
-                  isSelectedDateFuture
-                    ? 'No advance logs permitted'
-                    : totalScheduledHours > 0
-                      ? `${Math.round((totalLoggedHours / totalScheduledHours) * 100)}% of scheduled effort`
-                      : totalLoggedHours > 0
-                        ? 'Recorded work effort'
-                        : 'No logs submitted for this day yet'
-                }}
-              </div>
-            </q-card>
-          </div>
-
-          <!-- Card 3: Tasks Allocated -->
-          <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="summary-card"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            >
-              <div class="row items-center justify-between">
-                <span class="text-caption text-weight-bold text-grey-6">
-                  {{ isSelectedDateFuture ? 'Scheduled Tasks' : isSelectedDateToday ? 'Active Deliverables' : 'Tasks on Date' }}
-                </span>
-                <div class="summary-icon-wrap bg-green-soft text-positive">
-                  <q-icon name="assignment" size="20px" />
-                </div>
-              </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-positive">
-                {{ allocations.length }}
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                {{ isSelectedDateFuture ? 'Planned deliverables for this date' : isSelectedDateToday ? 'Tasks available to work on' : 'Deliverables for this date' }}
-              </div>
-            </q-card>
-          </div>
-
-          <!-- Card 4: Work Logs Count -->
-          <div class="col-12 col-sm-6 col-md-3">
-            <q-card
-              flat
-              bordered
-              class="summary-card"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            >
-              <div class="row items-center justify-between">
-                <span class="text-caption text-weight-bold text-grey-6">Work Log Count</span>
-                <div class="summary-icon-wrap bg-amber-soft text-warning">
-                  <q-icon name="fact_check" size="20px" />
-                </div>
-              </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-warning">
-                {{ totalLogsCount }}
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                {{ isSelectedDateFuture ? 'Future date — 0 entries' : 'Entries submitted for this day' }}
-              </div>
-            </q-card>
           </div>
         </div>
 
@@ -537,9 +537,9 @@
       </div>
 
       <!-- ==================== TAB 2: ALL WORK LOGS HISTORY ==================== -->
-      <div v-else-if="activeTab === 'history'" class="column q-gutter-y-lg">
+      <div v-else-if="activeTab === 'history'" class="column q-gutter-y-sm">
         <!-- History Summary Strip -->
-        <div class="row q-col-gutter-md">
+        <div class="row q-col-gutter-x-md q-col-gutter-y-sm">
           <div class="col-12 col-sm-6 col-md-3">
             <q-card
               flat
@@ -550,13 +550,13 @@
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">Total Hours Logged</span>
                 <div class="summary-icon-wrap bg-purple-soft text-primary">
-                  <q-icon name="timelapse" size="20px" />
+                  <q-icon name="timelapse" size="18px" />
                 </div>
               </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-primary">
+              <div class="text-h6 text-weight-bolder text-primary q-mt-xs" style="line-height: 1.2">
                 {{ formatHours(allLogsStats.total_hours) }}h
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">All-time recorded effort</div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">All-time recorded effort</div>
             </q-card>
           </div>
 
@@ -570,13 +570,13 @@
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">Total Entries</span>
                 <div class="summary-icon-wrap bg-blue-soft text-info">
-                  <q-icon name="format_list_bulleted" size="20px" />
+                  <q-icon name="format_list_bulleted" size="18px" />
                 </div>
               </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-info">
+              <div class="text-h6 text-weight-bolder text-info q-mt-xs" style="line-height: 1.2">
                 {{ allLogsStats.total_logs }}
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Work log updates submitted</div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">Work log updates submitted</div>
             </q-card>
           </div>
 
@@ -590,13 +590,13 @@
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">Tasks Worked On</span>
                 <div class="summary-icon-wrap bg-green-soft text-positive">
-                  <q-icon name="task_alt" size="20px" />
+                  <q-icon name="task_alt" size="18px" />
                 </div>
               </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-positive">
+              <div class="text-h6 text-weight-bolder text-positive q-mt-xs" style="line-height: 1.2">
                 {{ distinctTasksCount }}
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Unique deliverables touched</div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">Unique deliverables touched</div>
             </q-card>
           </div>
 
@@ -610,27 +610,28 @@
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">Average Entry Effort</span>
                 <div class="summary-icon-wrap bg-amber-soft text-warning">
-                  <q-icon name="speed" size="20px" />
+                  <q-icon name="speed" size="18px" />
                 </div>
               </div>
-              <div class="text-h5 text-weight-bold q-mt-xs text-warning">
+              <div class="text-h6 text-weight-bolder text-warning q-mt-xs" style="line-height: 1.2">
                 {{ averageHoursPerEntry }}h
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Average hours per log</div>
+              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">Average hours per log</div>
             </q-card>
           </div>
         </div>
 
         <!-- Filter & Search Bar -->
-        <div class="row items-center justify-between wrap gap-md">
-          <div class="row items-center gap-sm col-12 col-md-7">
+        <div class="row items-center justify-between wrap gap-sm" style="margin-top: 20px;">
+          <div class="row items-center gap-sm col-grow" style="max-width: 680px">
             <q-input
               v-model="searchQuery"
               placeholder="Search by task title, project, notes or blockers..."
               outlined
               dense
               clearable
-              class="col-12 col-sm-8"
+              class="col-grow"
+              style="min-width: 260px"
               :dark="$q.dark.isActive"
             >
               <template #prepend>
@@ -644,12 +645,12 @@
               label="Task Status"
               outlined
               dense
-              class="col-12 col-sm-4"
+              style="width: 170px"
               :dark="$q.dark.isActive"
             />
           </div>
 
-          <div class="row items-center gap-sm">
+          <div class="row items-center">
             <span class="text-caption text-grey-6">
               Showing <b>{{ filteredLogs.length }}</b> of <b>{{ allWorkLogs.length }}</b> entries
             </span>
@@ -1245,15 +1246,19 @@ onMounted(() => {
 }
 
 .summary-card {
-  padding: 16px;
-  border-radius: 12px;
+  padding: 13px 16px;
+  border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  min-height: 98px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .summary-icon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1315,26 +1320,5 @@ onMounted(() => {
 .prio-badge-low {
   background: #f1f5f9;
   color: #475569;
-}
-
-@keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-  }
-}
-
-.checkout-btn {
-  animation: pulse-glow 2s infinite;
-  transition: transform 0.2s;
-}
-
-.checkout-btn:hover {
-  transform: scale(1.05);
 }
 </style>
