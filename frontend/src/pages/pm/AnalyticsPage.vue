@@ -280,13 +280,18 @@
                       <q-icon name="person" size="14px" color="primary" />
                     </template>
                   </q-select>
+                  <q-btn flat round dense icon="chevron_left" size="sm" @click="workloadWeekOffset--" />
                   <q-badge
                     outline
                     :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                     class="q-px-sm q-py-xs text-weight-medium"
                   >
-                    Mon – Sun
+                    {{ workloadWeekOffset === 0 ? 'This Week' : workloadWeekOffset === -1 ? 'Last Week' : workloadWeekOffset === 1 ? 'Next Week' : (workloadWeekOffset > 0 ? `+${workloadWeekOffset} Weeks` : `${workloadWeekOffset} Weeks`) }}
+                    <span v-if="weeklyShiftWorkload && weeklyShiftWorkload.length > 0" class="q-ml-xs text-grey-6" style="font-size: 0.9em;">
+                      ({{ formatDateShort(weeklyShiftWorkload[0]?.dateStr) }} - {{ formatDateShort(weeklyShiftWorkload[6]?.dateStr) }})
+                    </span>
                   </q-badge>
+                  <q-btn flat round dense icon="chevron_right" size="sm" @click="workloadWeekOffset++" />
                 </div>
               </div>
               <div ref="utilizationChartRef" class="echarts-box"></div>
@@ -735,7 +740,7 @@ import {
   computeWeeklyShiftWorkload,
   computeResourcePerformanceData,
 } from '@/components/analytics/analyticsCalculations';
-import { formatHours, getInitials } from '@/utils/formatters';
+import { formatHours, getInitials, formatDateShort } from '@/utils/formatters';
 
 const $q = useQuasar();
 
@@ -750,6 +755,7 @@ const errorMessage = ref<string | null>(null);
 const taskStatusProjectId = ref<number | 'ALL'>('ALL');
 const selectedWorkloadResourceId = ref<number | 'ALL'>('ALL');
 const selectedPerformanceResourceId = ref<number | 'ALL'>('ALL');
+const workloadWeekOffset = ref(0);
 
 type PerformanceMetric = 'COMPLETION_RATE' | 'TASKS_COMPLETED' | 'UTILIZATION' | 'ASSIGNED_EFFORT';
 const selectedPerformanceMetric = ref<PerformanceMetric>('COMPLETION_RATE');
@@ -874,8 +880,13 @@ const weeklyShiftWorkload = computed(() =>
     resourceList.value,
     workloadsMap.value,
     selectedWorkloadResourceId.value,
+    workloadWeekOffset.value
   ),
 );
+
+watch(workloadWeekOffset, () => {
+  initUtilizationChart();
+});
 
 // -------------------------------------------------------------
 // Resource-wise Analytics & Performance Computeds
