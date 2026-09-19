@@ -78,17 +78,23 @@ export async function create(req: AuthRequest, res: Response) {
             }
         }
 
-        if (parsed.deadline) {
-            const deadlineError = validateTaskDeadlineAgainstProject(parsed.deadline, project);
-            if (deadlineError) {
-                return res.status(400).json({ message: deadlineError });
-            }
-        }
-
         // If self-assigned by a RESOURCE, force assignment strictly to themselves
         let resourceIds = parsed.assigned_resource_ids;
         if (userRole === "RESOURCE") {
             resourceIds = [userId!];
+        }
+
+        // Deadline option is only available when at least one member is assigned
+        let taskDeadline = parsed.deadline ?? null;
+        if (!resourceIds || resourceIds.length === 0) {
+            taskDeadline = null;
+        }
+
+        if (taskDeadline) {
+            const deadlineError = validateTaskDeadlineAgainstProject(taskDeadline, project);
+            if (deadlineError) {
+                return res.status(400).json({ message: deadlineError });
+            }
         }
 
         // Determine status based on assignment presence if not explicitly provided
@@ -104,7 +110,7 @@ export async function create(req: AuthRequest, res: Response) {
             parsed.description ?? null,
             parsed.priority,
             taskStatus as any,
-            parsed.deadline ?? null,
+            taskDeadline,
             parsed.expected_effort,
             resourceIds,
             parsed.supervisor_id ?? null

@@ -1616,6 +1616,19 @@
                   <q-icon name="verified_user" color="amber-9" />
                 </template>
               </q-select>
+
+              <!-- Deadline (Only available after at least one member is assigned) -->
+              <q-input
+                v-if="assignTaskMemberForm.user_ids && assignTaskMemberForm.user_ids.length > 0"
+                v-model="assignTaskMemberForm.deadline"
+                outlined
+                dense
+                type="date"
+                label="Deadline (Optional)"
+                stack-label
+                hint="Set target deliverable deadline for assigned members"
+                :dark="$q.dark.isActive"
+              />
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
@@ -2023,6 +2036,7 @@ const assignTaskMemberForm = reactive({
   task_id: null as number | null,
   user_ids: [] as number[],
   supervisor_id: null as number | null,
+  deadline: '',
 });
 
 function openAssignTaskMemberDialog(taskId: number) {
@@ -2032,6 +2046,9 @@ function openAssignTaskMemberDialog(taskId: number) {
   assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id
     ? Number(currentTask.supervisor_id)
     : null;
+  assignTaskMemberForm.deadline = currentTask?.deadline
+    ? currentTask.deadline.split('T')[0] ?? ''
+    : '';
   showAssignTaskMemberDialog.value = true;
 }
 
@@ -2102,10 +2119,14 @@ async function handleAssignTaskMember() {
   const supervisorChanged =
     (currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null) !== newSupId;
 
-  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged) {
+  const origDeadline = currentTask?.deadline ? currentTask.deadline.split('T')[0] ?? '' : '';
+  const newDeadline = newAssigneeIds.length > 0 ? (assignTaskMemberForm.deadline || '') : '';
+  const deadlineChanged = origDeadline !== newDeadline;
+
+  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged && !deadlineChanged) {
     $q.notify({
       type: 'info',
-      message: 'No changes made to task assignment or supervisor',
+      message: 'No changes made to task assignment, supervisor, or deadline',
     });
     showAssignTaskMemberDialog.value = false;
     return;
@@ -2119,14 +2140,19 @@ async function handleAssignTaskMember() {
     for (const userId of toUnassignIds) {
       await unassignTaskResourceApi(currentTaskId, userId);
     }
-    if (supervisorChanged) {
-      await updateTaskApi(currentTaskId, { supervisor_id: newSupId });
+    if (supervisorChanged || deadlineChanged) {
+      const updatePayload: Record<string, unknown> = {};
+      if (supervisorChanged) updatePayload.supervisor_id = newSupId;
+      if (deadlineChanged) updatePayload.deadline = newDeadline || null;
+      await updateTaskApi(currentTaskId, updatePayload);
     }
     $q.notify({
       type: 'positive',
-      message: 'Task assignments and supervisor saved successfully',
+      message: 'Task assignments and deliverable details saved successfully',
     });
     showAssignTaskMemberDialog.value = false;
+    assignTaskMemberForm.user_ids = [];
+    assignTaskMemberForm.deadline = '';
     await refreshData();
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to update task assignments';

@@ -93,145 +93,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Deadline -->
-          <div class="row q-col-gutter-sm">
-            <div class="col-12">
-              <q-input
-                v-model="form.deadline"
-                outlined
-                dense
-                type="date"
-                label="Deadline"
-                stack-label
-                :rules="[
-                  (val) =>
-                    !val ||
-                    !activeProjectDates.startDate ||
-                    val >= activeProjectDates.startDate ||
-                    `Deadline cannot be earlier than project start date (${activeProjectDates.startDate})`,
-                  (val) =>
-                    !val ||
-                    !activeProjectDates.deadline ||
-                    val <= activeProjectDates.deadline ||
-                    `Deadline cannot be later than project deadline (${activeProjectDates.deadline})`,
-                ]"
-              />
-            </div>
-          </div>
-
-          <!-- Assign Members Field -->
-          <div v-if="showAssignees" class="row q-col-gutter-sm">
-            <div class="col-12">
-              <q-select
-                v-model="form.assigned_resource_ids"
-                outlined
-                dense
-                multiple
-                clearable
-                :display-value="
-                  form.assigned_resource_ids.length
-                    ? `${form.assigned_resource_ids.length} member(s) selected`
-                    : ''
-                "
-                label="Assign Member(s) (Optional)"
-                :options="filteredMemberOptions"
-                emit-value
-                map-options
-                :disable="!activeProjectId"
-                :hint="
-                  !activeProjectId
-                    ? 'Select a project first to assign members'
-                    : form.assigned_resource_ids.length
-                      ? 'Task will be created as SCHEDULED'
-                      : 'No members selected — task will be created as UNASSIGNED'
-                "
-              >
-                <template #option="{ itemProps, opt, selected, toggleOption }">
-                  <q-item v-bind="itemProps">
-                    <q-item-section side>
-                      <q-checkbox
-                        :model-value="selected"
-                        color="primary"
-                        @update:model-value="toggleOption(opt)"
-                      />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </div>
-          </div>
-
-          <!-- Supervisor Selection Field -->
-          <div v-if="showSupervisor" class="row q-col-gutter-sm">
-            <div class="col-12">
-              <q-select
-                v-model="form.supervisor_id"
-                outlined
-                dense
-                clearable
-                label="Supervisor / Reviewer (Optional)"
-                :options="filteredSupervisorOptions"
-                emit-value
-                map-options
-                :disable="!activeProjectId"
-                hint="Select a senior resource to oversee progress (cannot be an assigned resource)"
-              >
-                <template #prepend>
-                  <q-icon name="verified_user" color="primary" />
-                </template>
-              </q-select>
-            </div>
-          </div>
-
-          <!-- Dependencies Field -->
-          <div v-if="showDependencies" class="row q-col-gutter-sm">
-            <div class="col-12">
-              <q-select
-                v-model="form.predecessor_task_ids"
-                outlined
-                dense
-                multiple
-                clearable
-                :display-value="
-                  form.predecessor_task_ids.length
-                    ? `${form.predecessor_task_ids.length} dependency/dependencies selected`
-                    : ''
-                "
-                label="Predecessor Dependencies (Optional)"
-                :options="predecessorOptions"
-                emit-value
-                map-options
-                :disable="!activeProjectId"
-                :hint="
-                  !activeProjectId
-                    ? 'Select a project first to choose dependencies'
-                    : 'Select tasks that must be completed before this task'
-                "
-              >
-                <template #option="{ itemProps, opt, selected, toggleOption }">
-                  <q-item v-bind="itemProps">
-                    <q-item-section side>
-                      <q-checkbox
-                        :model-value="selected"
-                        color="primary"
-                        @update:model-value="toggleOption(opt)"
-                      />
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-icon name="account_tree" color="primary" size="18px" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-            </div>
-          </div>
         </q-card-section>
 
         <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -332,24 +193,6 @@ const headerTitle = computed(() => {
   return props.dialogTitle;
 });
 
-const activeProjectId = computed(() => props.fixedProjectId || form.project_id);
-
-const activeProjectDates = computed(() => {
-  if (props.projectStartDate !== null || props.projectDeadline !== null) {
-    return {
-      startDate: props.projectStartDate || null,
-      deadline: props.projectDeadline || null,
-    };
-  }
-  const pid = activeProjectId.value;
-  if (!pid) return { startDate: null, deadline: null };
-  const proj = props.projects.find((p) => p.value === pid);
-  return {
-    startDate: proj?.start_date || null,
-    deadline: proj?.deadline || null,
-  };
-});
-
 const form = reactive<CreateTaskFormData>({
   project_id: null,
   title: '',
@@ -361,21 +204,6 @@ const form = reactive<CreateTaskFormData>({
   deadline: '',
   assigned_resource_ids: [],
   predecessor_task_ids: [],
-});
-
-const filteredMemberOptions = computed(() => {
-  if (!form.supervisor_id) return props.memberOptions;
-  return props.memberOptions.filter((opt) => Number(opt.value) !== Number(form.supervisor_id));
-});
-
-const filteredSupervisorOptions = computed(() => {
-  const baseOptions =
-    props.supervisorOptions && props.supervisorOptions.length > 0
-      ? props.supervisorOptions
-      : props.memberOptions;
-  if (!form.assigned_resource_ids || form.assigned_resource_ids.length === 0) return baseOptions;
-  const assignedSet = new Set(form.assigned_resource_ids.map(Number));
-  return baseOptions.filter((opt) => !assignedSet.has(Number(opt.value)));
 });
 
 function resetForm() {
@@ -405,27 +233,29 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => form.assigned_resource_ids,
+  (newVal) => {
+    if (!newVal || newVal.length === 0) {
+      form.deadline = '';
+    }
+  },
+  { deep: true },
+);
+
 function handleSubmit() {
-  const sanitizedResourceIds = Array.isArray(form.assigned_resource_ids)
-    ? form.assigned_resource_ids
-        .filter((id): id is number => id != null && !isNaN(Number(id)))
-        .map(Number)
-    : [];
-
-  const sanitizedPredecessorIds = Array.isArray(form.predecessor_task_ids)
-    ? form.predecessor_task_ids
-        .filter((id): id is number => id != null && !isNaN(Number(id)))
-        .map(Number)
-    : [];
-
   emit('submit', {
     ...form,
     project_id: props.fixedProjectId ?? form.project_id,
     title: form.title.trim(),
     description: form.description.trim(),
-    supervisor_id: form.supervisor_id ? Number(form.supervisor_id) : null,
-    assigned_resource_ids: sanitizedResourceIds,
-    predecessor_task_ids: sanitizedPredecessorIds,
+    priority: form.priority,
+    status: props.initialStatus || 'UNASSIGNED',
+    expected_effort: Number(form.expected_effort) || 8,
+    deadline: '',
+    supervisor_id: null,
+    assigned_resource_ids: [],
+    predecessor_task_ids: [],
   });
 }
 </script>

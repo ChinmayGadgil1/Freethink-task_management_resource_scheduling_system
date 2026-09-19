@@ -702,34 +702,6 @@
                 :dark="$q.dark.isActive"
                 :rules="[(val) => !!val || 'Project is required']"
               />
-              <q-select
-                v-model="newTaskForm.assigned_resource_ids"
-                :options="resourceOptions"
-                label="Assign Member(s)"
-                outlined
-                dense
-                multiple
-                clearable
-                :dark="$q.dark.isActive"
-                :display-value="
-                  newTaskForm.assigned_resource_ids.length
-                    ? `${newTaskForm.assigned_resource_ids.length} selected`
-                    : ''
-                "
-                emit-value
-                map-options
-              >
-                <template #option="{ itemProps, opt, selected, toggleOption }">
-                  <q-item v-bind="itemProps">
-                    <q-item-section side>
-                      <q-checkbox :model-value="selected" @update:model-value="toggleOption(opt)" />
-                    </q-item-section>
-                    <q-item-section>
-                      <q-item-label>{{ opt.label }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
               <div class="row q-col-gutter-sm">
                 <div class="col-12">
                   <q-input
@@ -774,31 +746,6 @@
                     outlined
                     dense
                     :dark="$q.dark.isActive"
-                  />
-                </div>
-              </div>
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="newTaskForm.deadline"
-                    label="Deadline"
-                    type="date"
-                    outlined
-                    dense
-                    stack-label
-                    :dark="$q.dark.isActive"
-                    :rules="[
-                      (val) =>
-                        !val ||
-                        !selectedProjectForNewTask?.start_date ||
-                        val >= selectedProjectForNewTask.start_date ||
-                        `Deadline cannot be earlier than project start date (${selectedProjectForNewTask.start_date})`,
-                      (val) =>
-                        !val ||
-                        !selectedProjectForNewTask?.deadline ||
-                        val <= selectedProjectForNewTask.deadline ||
-                        `Deadline cannot be later than project deadline (${selectedProjectForNewTask.deadline})`,
-                    ]"
                   />
                 </div>
               </div>
@@ -1246,10 +1193,6 @@ function getPriorityBadgeClass(priority: string) {
   return 'bg-grey-2 text-grey-8';
 }
 
-const selectedProjectForNewTask = computed(
-  () => projects.value.find((p) => p.project_id === newTaskForm.project_id) || null,
-);
-
 const projectOptions = computed(() => {
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
@@ -1353,17 +1296,15 @@ async function handleCreateTask() {
   if (!newTaskForm.project_id || !newTaskForm.title.trim()) return;
   taskSubmitting.value = true;
   try {
-    const assignees = newTaskForm.assigned_resource_ids || [];
-    const derivedStatus = assignees.length > 0 ? 'SCHEDULED' : 'UNASSIGNED';
     await createTaskApi({
       project_id: newTaskForm.project_id,
       title: newTaskForm.title.trim(),
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
-      status: derivedStatus,
-      deadline: newTaskForm.deadline || null,
+      status: 'UNASSIGNED',
+      deadline: null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
-      assigned_resource_ids: newTaskForm.assigned_resource_ids,
+      assigned_resource_ids: [],
     });
     $q.notify({ type: 'positive', message: 'Task created successfully' });
     showAddTaskModal.value = false;

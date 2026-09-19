@@ -742,6 +742,19 @@
                 <q-icon name="verified_user" color="amber-9" />
               </template>
             </q-select>
+
+            <!-- Deadline (Only available after at least one member is selected) -->
+            <q-input
+              v-if="assignTaskMemberForm.user_ids && assignTaskMemberForm.user_ids.length > 0"
+              v-model="assignTaskMemberForm.deadline"
+              outlined
+              dense
+              type="date"
+              label="Deadline (Optional)"
+              stack-label
+              hint="Set target deliverable deadline for assigned members"
+              :dark="$q.dark.isActive"
+            />
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
@@ -980,27 +993,38 @@
 
             <div class="row q-col-gutter-sm">
               <div class="col-12">
-                <q-input
-                  v-model="editForm.deadline"
-                  outlined
-                  dense
-                  type="date"
-                  label="Deadline"
-                  stack-label
-                  :dark="$q.dark.isActive"
-                  :rules="[
-                    (val) =>
-                      !val ||
-                      !editingTaskProject?.start_date ||
-                      val >= editingTaskProject.start_date ||
-                      `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
-                    (val) =>
-                      !val ||
-                      !editingTaskProject?.deadline ||
-                      val <= editingTaskProject.deadline ||
-                      `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
-                  ]"
-                />
+                <div v-if="editingTaskHasAssignees">
+                  <q-input
+                    v-model="editForm.deadline"
+                    outlined
+                    dense
+                    type="date"
+                    label="Deadline (Optional)"
+                    stack-label
+                    hint="Target deadline for assigned members"
+                    :dark="$q.dark.isActive"
+                    :rules="[
+                      (val) =>
+                        !val ||
+                        !editingTaskProject?.start_date ||
+                        val >= editingTaskProject.start_date ||
+                        `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
+                      (val) =>
+                        !val ||
+                        !editingTaskProject?.deadline ||
+                        val <= editingTaskProject.deadline ||
+                        `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
+                    ]"
+                  />
+                </div>
+                <div
+                  v-else
+                  class="q-pa-sm rounded-borders text-caption text-grey-7"
+                  :class="$q.dark.isActive ? 'bg-grey-9 text-grey-4' : 'bg-grey-2 text-grey-7'"
+                >
+                  <q-icon name="info" color="primary" size="16px" class="q-mr-xs" />
+                  Deadlines can only be set once at least one team member is assigned to this deliverable.
+                </div>
               </div>
             </div>
           </q-card-section>
@@ -1331,6 +1355,7 @@ const assignTaskMemberForm = reactive({
   task_id: null as number | null,
   user_ids: [] as number[],
   supervisor_id: null as number | null,
+  deadline: '',
 });
 
 watch(
@@ -1875,6 +1900,9 @@ function openAssignTaskMemberDialog(taskId: number | null) {
   assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id
     ? Number(currentTask.supervisor_id)
     : null;
+  assignTaskMemberForm.deadline = currentTask?.deadline
+    ? currentTask.deadline.split('T')[0] ?? ''
+    : '';
   showAssignTaskMemberDialog.value = true;
 }
 
@@ -1893,10 +1921,14 @@ async function handleAssignTaskMember() {
     : null;
   const supervisorChanged = origSupId !== newSupId;
 
-  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged) {
+  const origDeadline = currentTask?.deadline ? currentTask.deadline.split('T')[0] ?? '' : '';
+  const newDeadline = newAssigneeIds.length > 0 ? (assignTaskMemberForm.deadline || '') : '';
+  const deadlineChanged = origDeadline !== newDeadline;
+
+  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged && !deadlineChanged) {
     $q.notify({
       type: 'info',
-      message: 'No changes made to task assignment or supervisor',
+      message: 'No changes made to task assignment, supervisor, or deadline',
     });
     showAssignTaskMemberDialog.value = false;
     return;
@@ -1911,18 +1943,20 @@ async function handleAssignTaskMember() {
       await unassignTaskResourceApi(currentTaskId, userId);
     }
 
-    if (supervisorChanged) {
-      await updateTaskApi(currentTaskId, {
-        supervisor_id: newSupId,
-      });
+    if (supervisorChanged || deadlineChanged) {
+      const updatePayload: Record<string, unknown> = {};
+      if (supervisorChanged) updatePayload.supervisor_id = newSupId;
+      if (deadlineChanged) updatePayload.deadline = newDeadline || null;
+      await updateTaskApi(currentTaskId, updatePayload);
     }
 
     $q.notify({
       type: 'positive',
-      message: 'Task assignments and supervisor saved successfully',
+      message: 'Task assignments and deliverable details saved successfully',
     });
     showAssignTaskMemberDialog.value = false;
     assignTaskMemberForm.user_ids = [];
+    assignTaskMemberForm.deadline = '';
     await loadData();
     if (selectedTaskDetails.value && selectedTaskDetails.value.task_id === currentTaskId) {
       const updated = tasks.value.find((t) => t.task_id === currentTaskId);
@@ -2136,6 +2170,13 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
   }
 }
 
+const editingTaskHasAssignees = computed(() => {
+  if (!editingTaskId.value) return false;
+  const t = tasks.value.find((item) => item.task_id === editingTaskId.value);
+  if (!t) return false;
+  return Boolean(t.assigned_resource_ids && t.assigned_resource_ids.length > 0);
+});
+
 function openEditModal(task: Task) {
   editingTaskId.value = task.task_id;
   editForm.title = task.title;
@@ -2170,13 +2211,14 @@ async function handleUpdateTask() {
 
   submitting.value = true;
   try {
+    const finalDeadline = editingTaskHasAssignees.value ? (editForm.deadline || null) : null;
     await updateTaskApi(editingTaskId.value, {
       title: editForm.title.trim(),
       status: editForm.status,
       priority: editForm.priority,
       progress: Number(editForm.progress) || 0,
       expected_effort: Number(editForm.expected_effort) || 8,
-      deadline: editForm.deadline || null,
+      deadline: finalDeadline,
       supervisor_id: editForm.supervisor_id ?? null,
     });
 
