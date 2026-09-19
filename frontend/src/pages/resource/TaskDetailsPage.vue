@@ -2348,7 +2348,12 @@
       />
     </div>
 
-    <DailyProgressDialog v-model="updateDialog" :task="task" @save="saveDailyUpdate" />
+    <DailyProgressDialog
+      v-model="updateDialog"
+      :task="task"
+      :resource-progress="currentResourceProgress"
+      @save="saveDailyUpdate"
+    />
 
     <!-- STOP SESSION DIALOG -->
     <q-dialog v-model="showStopSessionDialog" persistent>
@@ -3491,6 +3496,44 @@ const task = computed<Task | null>(() => {
   return tasks.value.find((item) => item.task_id === taskId.value) ?? individualTask.value ?? null;
 });
 
+const currentResourceProgress = computed<number | null>(() => {
+  const currentUserId = getCurrentUserId();
+  if (!currentUserId || !task.value) return null;
+
+  // If supervisor and not an assignee, use task's overall progress
+  if (isSupervisedByMe(task.value) && !isAssignedToMe(task.value)) {
+    return Number(task.value.progress) || 0;
+  }
+
+  // Check assigneeProgress for current user's latest recorded progress
+  const myEntry = assigneeProgress.value.find(
+    (ap) => Number(ap.user_id) === currentUserId
+  );
+  if (myEntry !== undefined) {
+    return Number(myEntry.progress_logged);
+  }
+
+  // Fallback: check workLogs for current user's latest log
+  const myLog = workLogs.value.find(
+    (wl) => Number(wl.user_id) === currentUserId
+  );
+  if (myLog !== undefined) {
+    return Number(myLog.progress_logged);
+  }
+
+  // If multi-assignee task and user has not logged yet, start at 0
+  const assigneesCount =
+    (task.value.assigned_resource_ids && task.value.assigned_resource_ids.length) ||
+    (task.value.assigned_resources && task.value.assigned_resources.length) ||
+    0;
+  if (assigneesCount > 1) {
+    return 0;
+  }
+
+  // Single assignee task: fallback to current task.progress
+  return Number(task.value.progress) || 0;
+});
+
 const incompletePredecessors = computed<PredecessorTaskInfo[]>(() => {
   const currentTask = task.value;
   if (!currentTask) return [];
@@ -3804,7 +3847,9 @@ function promptStopSession() {
   if (!sessionStore.hasActiveSession) return;
   const activeId = sessionStore.activeTaskId;
   const targetTask = tasks.value.find((t) => t.task_id === activeId) || task.value;
-  if (targetTask) {
+  if (currentResourceProgress.value !== null && currentResourceProgress.value !== undefined) {
+    stopSessionForm.progress_logged = currentResourceProgress.value;
+  } else if (targetTask) {
     stopSessionForm.progress_logged = Number(targetTask.progress) || 0;
   } else {
     stopSessionForm.progress_logged = 0;

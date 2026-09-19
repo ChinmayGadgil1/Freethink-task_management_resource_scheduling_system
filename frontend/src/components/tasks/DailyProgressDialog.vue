@@ -130,6 +130,7 @@ import { getStatusFromProgress, getTaskStatusClass, formatStatusLabel } from '@/
 const props = defineProps<{
   modelValue: boolean;
   task: Task | null;
+  resourceProgress?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -183,7 +184,11 @@ const canSubmit = computed(() => {
 
 function resetForm(task: Task | null) {
   form.hours_logged = 1.0;
-  form.progress_logged = task ? Number(task.progress) || 0 : 0;
+  if (props.resourceProgress !== undefined && props.resourceProgress !== null) {
+    form.progress_logged = Number(props.resourceProgress);
+  } else {
+    form.progress_logged = task ? Number(task.progress) || 0 : 0;
+  }
   form.status = getStatusFromProgress(form.progress_logged);
   form.notes = '';
   form.blockers = '';
@@ -191,7 +196,7 @@ function resetForm(task: Task | null) {
 }
 
 watch(
-  () => [props.task, props.modelValue] as const,
+  () => [props.task, props.modelValue, props.resourceProgress] as const,
   ([task, modelValue]) => {
     if (!modelValue) {
       return;

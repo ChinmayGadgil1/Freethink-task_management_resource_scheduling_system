@@ -830,6 +830,7 @@
       :task="selectedTask"
       :default-date="selectedDate"
       :saving="savingLog"
+      :resource-progress="selectedTaskResourceProgress"
       @save="handleSaveWorkLog"
     />
 
@@ -955,6 +956,23 @@ const showWorkLogDialog = ref<boolean>(false);
 const showTaskSelectorDialog = ref<boolean>(false);
 const selectedTask = ref<DailyAllocationTask | null>(null);
 const savingLog = ref<boolean>(false);
+
+const selectedTaskResourceProgress = computed<number | null>(() => {
+  if (!selectedTask.value) return null;
+  const taskId = Number(selectedTask.value.task_id);
+  const myLog = allWorkLogs.value.find((l) => Number(l.task_id) === taskId);
+  if (myLog !== undefined) {
+    return Number(myLog.progress_logged);
+  }
+  const assigneesCount =
+    (selectedTask.value.assigned_resource_ids && selectedTask.value.assigned_resource_ids.length) ||
+    (selectedTask.value.assigned_resources && selectedTask.value.assigned_resources.length) ||
+    0;
+  if (assigneesCount > 1) {
+    return 0;
+  }
+  return Number(selectedTask.value.progress) || 0;
+});
 
 const formattedDateDisplay = computed(() => {
   if (!selectedDate.value) return '';

@@ -188,6 +188,7 @@ const props = withDefaults(
     task: Task | DailyAllocationTask | null;
     defaultDate?: string;
     saving?: boolean;
+    resourceProgress?: number | null;
   }>(),
   {
     defaultDate: '',
@@ -257,7 +258,11 @@ function resetForm(task: Task | null) {
     form.hours_logged = Math.round(form.hours_logged * 2) / 2 || 0.5;
   }
 
-  form.progress_logged = task ? Number(task.progress) || 0 : 0;
+  if (props.resourceProgress !== undefined && props.resourceProgress !== null) {
+    form.progress_logged = Number(props.resourceProgress);
+  } else {
+    form.progress_logged = task ? Number(task.progress) || 0 : 0;
+  }
   form.status = getStatusFromProgress(form.progress_logged);
   form.notes = '';
   form.blockers = '';
@@ -265,7 +270,7 @@ function resetForm(task: Task | null) {
 }
 
 watch(
-  () => [props.task, props.modelValue, props.defaultDate] as const,
+  () => [props.task, props.modelValue, props.defaultDate, props.resourceProgress] as const,
   ([task, modelValue, defaultDate]) => {
     if (!modelValue) return;
     resetForm(task);
