@@ -1321,7 +1321,47 @@
                       />
                     </div>
                   </div>
-                  <div v-else-if="task.status !== 'COMPLETED'" class="row q-mb-xs">
+                  <!-- Blocked by Incomplete Predecessor Alert Banner -->
+                  <div v-if="isTaskBlockedByPredecessors && task.status !== 'COMPLETED'" class="row q-mb-sm">
+                    <div class="col-12">
+                      <q-banner
+                        dense
+                        rounded
+                        class="q-pa-sm"
+                        :style="
+                          $q.dark.isActive
+                            ? 'background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px;'
+                            : 'background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;'
+                        "
+                      >
+                        <template #avatar>
+                          <q-icon
+                            name="lock_clock"
+                            :color="$q.dark.isActive ? 'amber-4' : 'warning'"
+                            size="20px"
+                          />
+                        </template>
+                        <div
+                          class="text-caption text-weight-bold"
+                          :style="$q.dark.isActive ? 'color: #fbbf24;' : 'color: #92400e;'"
+                        >
+                          Prerequisites Incomplete
+                        </div>
+                        <div
+                          class="text-caption q-mt-xs"
+                          :style="
+                            $q.dark.isActive
+                              ? 'color: #fde68a; font-size: 11px; line-height: 1.35;'
+                              : 'color: #b45309; font-size: 11px; line-height: 1.35;'
+                          "
+                        >
+                          {{ predecessorBlockTooltip }}
+                        </div>
+                      </q-banner>
+                    </div>
+                  </div>
+
+                  <div v-if="!isCurrentTaskSessionActive && task.status !== 'COMPLETED'" class="row q-mb-xs">
                     <div class="col-12">
                       <q-btn
                         outline
@@ -1331,8 +1371,13 @@
                         label="Start Work Session"
                         class="full-width text-weight-bold"
                         style="border-radius: 8px; height: 40px"
+                        :disable="isTaskBlockedByPredecessors"
                         @click="handleStartSession(task.task_id)"
-                      />
+                      >
+                        <q-tooltip v-if="isTaskBlockedByPredecessors" class="bg-negative">
+                          {{ predecessorBlockTooltip }}
+                        </q-tooltip>
+                      </q-btn>
                     </div>
                   </div>
 
@@ -1347,8 +1392,13 @@
                         label="Add Work Log"
                         class="full-width text-weight-bold"
                         style="border-radius: 8px; height: 42px"
+                        :disable="isTaskBlockedByPredecessors"
                         @click="updateDialog = true"
-                      />
+                      >
+                        <q-tooltip v-if="isTaskBlockedByPredecessors" class="bg-negative">
+                          {{ predecessorBlockTooltip }}
+                        </q-tooltip>
+                      </q-btn>
                     </div>
                   </div>
 
@@ -3330,6 +3380,35 @@ const task = computed<Task | null>(() => {
   if (!hasTaskId.value) return null;
 
   return tasks.value.find((item) => item.task_id === taskId.value) ?? individualTask.value ?? null;
+});
+
+const incompletePredecessors = computed<PredecessorTaskInfo[]>(() => {
+  const currentTask = task.value;
+  if (!currentTask) return [];
+
+  const predsFromMap = taskPredecessorsMap.value.get(Number(currentTask.task_id)) || [];
+  const rawPreds: PredecessorTaskInfo[] =
+    predsFromMap.length > 0
+      ? predsFromMap
+      : Array.isArray(currentTask.predecessors)
+        ? currentTask.predecessors
+        : [];
+
+  return rawPreds.filter((p) => p.status !== 'COMPLETED');
+});
+
+const isTaskBlockedByPredecessors = computed<boolean>(() => {
+  return incompletePredecessors.value.length > 0;
+});
+
+const predecessorBlockTooltip = computed<string>(() => {
+  if (!isTaskBlockedByPredecessors.value) return '';
+  const first = incompletePredecessors.value[0];
+  const count = incompletePredecessors.value.length;
+  if (count === 1 && first) {
+    return `Blocked: Prerequisite "${first.title}" must be completed first.`;
+  }
+  return `Blocked: ${count} prerequisite tasks must be 100% completed first.`;
 });
 
 const projectOptions = computed(() => {
