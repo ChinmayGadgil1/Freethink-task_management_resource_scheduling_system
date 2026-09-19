@@ -880,17 +880,15 @@
                     </q-tooltip>
                   </q-badge>
                   <span
-                    v-if="
-                      getAssigneeMembers(props.row).length === 1 && getAssigneeMembers(props.row)[0]
-                    "
+                    v-if="getAssigneeMembers(props.row).length"
                     class="text-caption text-weight-medium q-ml-xs ellipsis"
-                    style="max-width: 90px"
+                    style="max-width: 180px"
                     :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
                   >
-                    {{ getAssigneeMembers(props.row)[0]?.name }}
+                    {{ getAssigneeName(props.row) }}
                   </span>
                 </div>
-                <div class="row items-center no-wrap q-gutter-xs">
+                <div v-else class="row items-center no-wrap q-gutter-xs">
                   <q-avatar
                     size="24px"
                     :color="getAssigneeName(props.row) === 'Unassigned' ? ($q.dark.isActive ? 'grey-8' : 'grey-4') : 'primary'"
@@ -3023,7 +3021,7 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
     const created = await createTaskApi(payload);
     const newTaskId = Number(created?.task_id);
 
-    let depFailures: string[] = [];
+    const depFailures: string[] = [];
     if (newTaskId && formData?.predecessor_task_ids && formData.predecessor_task_ids.length > 0) {
       for (const predId of formData.predecessor_task_ids) {
         try {
