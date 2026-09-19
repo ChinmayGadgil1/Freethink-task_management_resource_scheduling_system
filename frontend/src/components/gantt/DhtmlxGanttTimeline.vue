@@ -1782,6 +1782,13 @@ function updateCustomMarkers() {
 // Scale Configuration (Day, Week, Month)
 // ----------------------------------------------------
 function applyScaleMode(scale: 'hour' | 'day' | 'week' | 'month') {
+  let timelineWidth = 800; // fallback
+  if (ganttContainer.value) {
+    const totalWidth = ganttContainer.value.clientWidth;
+    const gridWidth = gantt.config.grid_width || (showExtraColumns.value ? 540 : 250);
+    timelineWidth = Math.max(300, totalWidth - gridWidth);
+  }
+
   if (scale === 'hour') {
     gantt.config.scale_height = 50;
     gantt.config.min_column_width = 30;
@@ -1791,7 +1798,7 @@ function applyScaleMode(scale: 'hour' | 'day' | 'week' | 'month') {
     ];
   } else if (scale === 'day') {
     gantt.config.scale_height = 50;
-    gantt.config.min_column_width = 46;
+    gantt.config.min_column_width = Math.max(46, Math.floor((timelineWidth - 20) / 7)); // -20 for scrollbar buffer
     gantt.config.scales = [
       {
         unit: 'month',
@@ -2265,6 +2272,8 @@ function refreshGantt() {
     } catch {
       // ignore
     }
+  } else {
+    scrollToToday();
   }
 
   updateDateRangeHeader();
