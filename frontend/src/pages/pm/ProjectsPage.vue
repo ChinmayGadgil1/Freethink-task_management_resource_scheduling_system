@@ -705,146 +705,207 @@
         </div>
 
         <!-- TABLE VIEW -->
-        <q-table
-          v-else
-          v-model:selected="selectedProjects"
-          flat
-          :dark="$q.dark.isActive"
-          :rows="filteredProjects"
-          :columns="projectColumns"
-          row-key="project_id"
-          selection="multiple"
-          :loading="loading"
-          :pagination="pagination"
-          :rows-per-page-options="[8, 16, 24]"
-          no-data-label="No projects found"
-        >
-          <template #body-cell-project="props">
-            <q-td :props="props">
-              <div
-                class="row items-center q-gutter-xs cursor-pointer"
-                @click="goToProject(props.row.project_id)"
-              >
-                <q-avatar size="26px" color="purple-1" text-color="primary">
-                  <q-icon name="folder" size="14px" />
-                </q-avatar>
-                <span class="text-weight-bold">{{ props.row.name }}</span>
+        <div v-else class="q-pa-md">
+          <!-- BULK ACTIONS TOOLBAR -->
+          <transition
+            appear
+            enter-active-class="animated fadeInDown"
+            leave-active-class="animated fadeOutUp"
+          >
+            <div
+              v-if="selectedProjects.length > 0"
+              class="row items-center justify-between q-pa-sm q-mb-sm rounded-borders"
+              :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-purple-1 text-primary'"
+              style="border: 1px solid var(--q-primary);"
+            >
+              <div class="row items-center q-gutter-sm">
+                <q-icon name="check_circle" color="primary" size="20px" />
+                <span class="text-weight-bold">{{ selectedProjects.length }} project(s) selected</span>
               </div>
-            </q-td>
-          </template>
-
-          <template #body-cell-owner="props">
-            <q-td :props="props">
               <div class="row items-center q-gutter-xs">
-                <q-avatar size="24px" color="primary" text-color="white" class="text-caption">
-                  {{ currentPmName.charAt(0).toUpperCase() }}
-                </q-avatar>
-                <span>{{ currentPmName }}</span>
-              </div>
-            </q-td>
-          </template>
-
-          <template #body-cell-status="props">
-            <q-td :props="props">
-              <q-chip
-                dense
-                square
-                :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-                :text-color="$q.dark.isActive ? 'white' : 'dark'"
-              >
-                {{ formatStatus(props.row.status) }}
-              </q-chip>
-            </q-td>
-          </template>
-
-          <template #body-cell-health="props">
-            <q-td :props="props">
-              <q-chip
-                dense
-                square
-                :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-              >
-                {{ getHealthLabel(props.row) }}
-              </q-chip>
-            </q-td>
-          </template>
-
-          <template #body-cell-progress="props">
-            <q-td :props="props">
-              <div class="row items-center q-gutter-xs" style="min-width: 120px">
-                <q-linear-progress
-                  rounded
-                  size="6px"
-                  :value="Math.min(100, Math.max(0, Number(props.row.progress) || 0)) / 100"
-                  color="primary"
-                  class="col"
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  icon="archive"
+                  label="Bulk Archive"
+                  :loading="bulkActionLoading"
+                  @click="handleBulkArchive"
                 />
-                <span class="text-caption text-weight-bold"
-                  >{{ Number(props.row.progress) || 0 }}%</span
-                >
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  icon="delete"
+                  color="negative"
+                  label="Bulk Move to Bin"
+                  :loading="bulkActionLoading"
+                  @click="handleBulkDelete"
+                />
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  icon="file_download"
+                  label="Bulk Export (JSON)"
+                  @click="handleBulkExport"
+                />
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  icon="close"
+                  label="Clear"
+                  @click="selectedProjects = []"
+                />
               </div>
-            </q-td>
-          </template>
+            </div>
+          </transition>
 
-          <template #body-cell-start_date="props">
-            <q-td :props="props">{{ formatDate(props.row.start_date) }}</q-td>
-          </template>
+          <q-table
+            v-model:selected="selectedProjects"
+            flat
+            :dark="$q.dark.isActive"
+            :rows="filteredProjects"
+            :columns="projectColumns"
+            row-key="project_id"
+            selection="multiple"
+            :loading="loading"
+            :pagination="pagination"
+            :rows-per-page-options="[8, 16, 24]"
+            no-data-label="No projects found"
+          >
+            <template #body-cell-project="props">
+              <q-td :props="props">
+                <div
+                  class="row items-center q-gutter-xs cursor-pointer"
+                  @click="goToProject(props.row.project_id)"
+                >
+                  <q-avatar size="26px" color="purple-1" text-color="primary">
+                    <q-icon name="folder" size="14px" />
+                  </q-avatar>
+                  <span class="text-weight-bold">{{ props.row.name }}</span>
+                </div>
+              </q-td>
+            </template>
 
-          <template #body-cell-deadline="props">
-            <q-td :props="props">{{ formatDate(props.row.deadline) }}</q-td>
-          </template>
+            <template #body-cell-owner="props">
+              <q-td :props="props">
+                <div class="row items-center q-gutter-xs">
+                  <q-avatar size="24px" color="primary" text-color="white" class="text-caption">
+                    {{ (props.row.project_manager_name || currentPmName).charAt(0).toUpperCase() }}
+                  </q-avatar>
+                  <span>{{ props.row.project_manager_name || currentPmName }}</span>
+                </div>
+              </q-td>
+            </template>
 
-          <template #body-cell-actions="props">
-            <q-td :props="props" auto-width>
-              <q-btn flat round dense icon="more_horiz" color="grey-6">
-                <q-menu auto-close>
-                  <q-list style="min-width: 150px">
-                    <q-item clickable @click="goToProject(props.row.project_id)">
-                      <q-item-section avatar
-                        ><q-icon name="visibility" color="primary"
-                      /></q-item-section>
-                      <q-item-section>View Details</q-item-section>
-                    </q-item>
-                    <q-item
-                      v-if="props.row.status === 'COMPLETED'"
-                      clickable
-                      class="text-primary"
-                      @click="confirmArchiveProject(props.row)"
-                    >
-                      <q-item-section avatar
-                        ><q-icon name="archive" color="primary"
-                      /></q-item-section>
-                      <q-item-section>Archive Project</q-item-section>
-                    </q-item>
-                    <q-item
-                      v-if="props.row.status === 'ARCHIVED'"
-                      clickable
-                      class="text-primary"
-                      @click="confirmUnarchiveProject(props.row)"
-                    >
-                      <q-item-section avatar
-                        ><q-icon name="unarchive" color="primary"
-                      /></q-item-section>
-                      <q-item-section>Unarchive Project</q-item-section>
-                    </q-item>
-                    <q-separator />
-                    <q-item
-                      clickable
-                      class="text-negative"
-                      @click="confirmDeleteProject(props.row)"
-                    >
-                      <q-item-section avatar
-                        ><q-icon name="delete" color="negative"
-                      /></q-item-section>
-                      <q-item-section>Delete Project</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
-            </q-td>
-          </template>
-        </q-table>
+            <template #body-cell-status="props">
+              <q-td :props="props">
+                <q-chip
+                  dense
+                  square
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
+                  :text-color="$q.dark.isActive ? 'white' : 'dark'"
+                >
+                  {{ formatStatus(props.row.status) }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template #body-cell-health="props">
+              <q-td :props="props">
+                <q-chip
+                  dense
+                  square
+                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                >
+                  {{ getHealthLabel(props.row) }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template #body-cell-progress="props">
+              <q-td :props="props">
+                <div class="row items-center q-gutter-xs" style="min-width: 120px">
+                  <q-linear-progress
+                    rounded
+                    size="6px"
+                    :value="Math.min(100, Math.max(0, Number(props.row.progress) || 0)) / 100"
+                    color="primary"
+                    class="col"
+                  />
+                  <span class="text-caption text-weight-bold text-grey-7" style="font-size: 11px">
+                    {{ Math.round(Number(props.row.progress) || 0) }}%
+                  </span>
+                </div>
+              </q-td>
+            </template>
+
+            <template #body-cell-start_date="props">
+              <q-td :props="props">
+                <span class="text-caption text-grey-8">{{ formatDate(props.row.start_date) }}</span>
+              </q-td>
+            </template>
+
+            <template #body-cell-deadline="props">
+              <q-td :props="props">
+                <span class="text-caption text-grey-8">{{ formatDate(props.row.deadline) }}</span>
+              </q-td>
+            </template>
+
+            <template #body-cell-actions="props">
+              <q-td :props="props" align="right">
+                <q-btn flat round dense icon="more_horiz" color="grey-6">
+                  <q-menu auto-close>
+                    <q-list style="min-width: 150px">
+                      <q-item clickable @click="goToProject(props.row.project_id)">
+                        <q-item-section avatar
+                          ><q-icon name="visibility" color="primary"
+                        /></q-item-section>
+                        <q-item-section>View Details</q-item-section>
+                      </q-item>
+                      <q-item
+                        v-if="props.row.status === 'COMPLETED'"
+                        clickable
+                        class="text-primary"
+                        @click="confirmArchiveProject(props.row)"
+                      >
+                        <q-item-section avatar
+                          ><q-icon name="archive" color="primary"
+                        /></q-item-section>
+                        <q-item-section>Archive Project</q-item-section>
+                      </q-item>
+                      <q-item
+                        v-if="props.row.status === 'ARCHIVED'"
+                        clickable
+                        class="text-primary"
+                        @click="confirmUnarchiveProject(props.row)"
+                      >
+                        <q-item-section avatar
+                          ><q-icon name="unarchive" color="primary"
+                        /></q-item-section>
+                        <q-item-section>Unarchive Project</q-item-section>
+                      </q-item>
+                      <q-separator />
+                      <q-item
+                        clickable
+                        class="text-negative"
+                        @click="confirmDeleteProject(props.row)"
+                      >
+                        <q-item-section avatar
+                          ><q-icon name="delete" color="negative"
+                        /></q-item-section>
+                        <q-item-section>Delete Project</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </q-td>
+            </template>
+          </q-table>
+        </div>
       </q-card>
     </div>
 
@@ -1217,6 +1278,86 @@ const groupBy = ref('None');
 const viewMode = ref<'cards' | 'table'>('cards');
 
 const selectedProjects = ref<Project[]>([]);
+const bulkActionLoading = ref(false);
+
+async function handleBulkArchive() {
+  if (selectedProjects.value.length === 0) return;
+  bulkActionLoading.value = true;
+  try {
+    let successCount = 0;
+    for (const p of selectedProjects.value) {
+      await archiveProjectApi(p.project_id);
+      successCount++;
+    }
+    $q.notify({
+      type: 'positive',
+      message: `Successfully archived ${successCount} project(s)`,
+    });
+    selectedProjects.value = [];
+    await loadProjects();
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to archive selected projects',
+    });
+  } finally {
+    bulkActionLoading.value = false;
+  }
+}
+
+function handleBulkDelete() {
+  if (selectedProjects.value.length === 0) return;
+  $q.dialog({
+    title: 'Bulk Move to Recycle Bin',
+    message: `Are you sure you want to move ${selectedProjects.value.length} project(s) to the Recycle Bin?`,
+    cancel: true,
+    persistent: true,
+  }).onOk(() => {
+    void (async () => {
+      bulkActionLoading.value = true;
+      try {
+        let successCount = 0;
+        for (const p of selectedProjects.value) {
+          await deleteProjectApi(p.project_id);
+          successCount++;
+        }
+        $q.notify({
+          type: 'positive',
+          message: `Successfully moved ${successCount} project(s) to Recycle Bin`,
+        });
+        selectedProjects.value = [];
+        await loadProjects();
+      } catch (error: unknown) {
+        $q.notify({
+          type: 'negative',
+          message: error instanceof Error ? error.message : 'Failed to move projects to Recycle Bin',
+        });
+      } finally {
+        bulkActionLoading.value = false;
+      }
+    })();
+  });
+}
+
+function handleBulkExport() {
+  if (selectedProjects.value.length === 0) return;
+  const dataStr =
+    'data:text/json;charset=utf-8,' +
+    encodeURIComponent(JSON.stringify(selectedProjects.value, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute('href', dataStr);
+  downloadAnchor.setAttribute(
+    'download',
+    `projects_export_${new Date().toISOString().slice(0, 10)}.json`,
+  );
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${selectedProjects.value.length} project(s)`,
+  });
+}
 
 const pagination = ref({
   page: 1,
@@ -1283,7 +1424,7 @@ const projectColumns: QTableColumn<Project>[] = [
   {
     name: 'owner',
     label: 'Owner',
-    field: () => currentPmName.value,
+    field: (row) => (row as Project & { project_manager_name?: string }).project_manager_name || currentPmName.value,
     align: 'left',
   },
   {

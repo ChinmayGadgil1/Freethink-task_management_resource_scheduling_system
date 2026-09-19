@@ -1129,10 +1129,22 @@ export async function getBinnedTasks(projectManagerId: number) {
     return tasks;
 }
 
+export async function hasPendingVerification(taskId: number): Promise<{ pending: boolean; verificationTaskTitle?: string }> {
+    const pool = getPool();
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT task_id, title, status FROM tasks WHERE verified_task_id = ? AND task_type = 'VERIFICATION' AND deleted_at IS NULL AND status != 'COMPLETED'`,
+        [taskId]
+    );
+    if (rows.length > 0) {
+        return { pending: true, verificationTaskTitle: rows[0]?.title };
+    }
+    return { pending: false };
+}
+
 /**
  * Restore a task from the bin
  */
-export async function restoreTaskFromBin(taskId: number, projectManagerId?: number): Promise<{ success: boolean; projectId?: number; error?: string }> {
+export async function restoreTaskFromBin(taskId: number, projectManagerId?: number): Promise<{ success: boolean; projectId?: number; projectRestored?: boolean; error?: string }> {
     const pool = getPool();
     const connection = await pool.getConnection();
 
@@ -1161,9 +1173,10 @@ export async function restoreTaskFromBin(taskId: number, projectManagerId?: numb
 
         const task = taskRows[0]!;
         const projectId = Number(task.project_id);
+        const wasProjectDeleted = task.project_deleted_at !== null;
 
-        // Safeguard: If parent project is still binned, restore parent project as well or alert
-        if (task.project_deleted_at !== null) {
+        // Safeguard: If parent project is still binned, restore parent project as well
+        if (wasProjectDeleted) {
             await connection.query("UPDATE projects SET deleted_at = NULL WHERE project_id = ?", [projectId]);
         }
 
@@ -1191,7 +1204,7 @@ export async function restoreTaskFromBin(taskId: number, projectManagerId?: numb
             console.error("Failed to recalculate project schedule in restoreTaskFromBin:", schedErr);
         }
 
-        return { success: true, projectId };
+        return { success: true, projectId, projectRestored: wasProjectDeleted };
     } catch (error) {
         await connection.rollback();
         throw error;

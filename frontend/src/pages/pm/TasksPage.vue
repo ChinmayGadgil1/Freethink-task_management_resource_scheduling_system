@@ -925,7 +925,7 @@
                   outlined
                   dense
                   label="Priority"
-                  :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                  :options="editForm.priority === 'NONE' || (selectedTaskDetails?.task_type === 'VERIFICATION') ? ['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] : ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
                   :dark="$q.dark.isActive"
                 />
               </div>
@@ -1868,8 +1868,10 @@ function getProjectName(projectId: number): string {
 function openAssignTaskMemberDialog(taskId: number | null) {
   const selectedId = taskId || (tasks.value[0]?.task_id ?? null);
   assignTaskMemberForm.task_id = selectedId;
-  assignTaskMemberForm.user_ids = [];
   const currentTask = tasks.value.find((t) => t.task_id === selectedId);
+  assignTaskMemberForm.user_ids = currentTask?.assigned_resource_ids
+    ? [...currentTask.assigned_resource_ids].map(Number)
+    : [];
   assignTaskMemberForm.supervisor_id = currentTask?.supervisor_id
     ? Number(currentTask.supervisor_id)
     : null;
@@ -1880,10 +1882,10 @@ async function handleAssignTaskMember() {
   if (!assignTaskMemberForm.task_id) return;
   const currentTaskId = assignTaskMemberForm.task_id;
   const currentTask = tasks.value.find((t) => t.task_id === currentTaskId);
-  const alreadyAssignedIds = currentTask?.assigned_resource_ids || [];
-  const toAssignIds = (assignTaskMemberForm.user_ids || []).filter(
-    (id) => !alreadyAssignedIds.includes(id),
-  );
+  const alreadyAssignedIds = (currentTask?.assigned_resource_ids || []).map(Number);
+  const newAssigneeIds = (assignTaskMemberForm.user_ids || []).map(Number);
+  const toAssignIds = newAssigneeIds.filter((id) => !alreadyAssignedIds.includes(id));
+  const toUnassignIds = alreadyAssignedIds.filter((id) => !newAssigneeIds.includes(id));
 
   const origSupId = currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null;
   const newSupId = assignTaskMemberForm.supervisor_id
@@ -1891,7 +1893,7 @@ async function handleAssignTaskMember() {
     : null;
   const supervisorChanged = origSupId !== newSupId;
 
-  if (toAssignIds.length === 0 && !supervisorChanged) {
+  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged) {
     $q.notify({
       type: 'info',
       message: 'No changes made to task assignment or supervisor',
@@ -1904,6 +1906,9 @@ async function handleAssignTaskMember() {
   try {
     for (const userId of toAssignIds) {
       await assignTaskResourceApi(currentTaskId, userId);
+    }
+    for (const userId of toUnassignIds) {
+      await unassignTaskResourceApi(currentTaskId, userId);
     }
 
     if (supervisorChanged) {

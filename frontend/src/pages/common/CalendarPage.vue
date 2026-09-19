@@ -738,6 +738,7 @@ async function saveHoliday() {
 
     holidayDialog.value.show = false;
     await loadHolidays();
+    window.dispatchEvent(new CustomEvent('holidays-updated'));
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
@@ -786,6 +787,7 @@ async function executeDeleteHoliday() {
     });
     deleteDialog.value.show = false;
     await loadHolidays();
+    window.dispatchEvent(new CustomEvent('holidays-updated'));
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',

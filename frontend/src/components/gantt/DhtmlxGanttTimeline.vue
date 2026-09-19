@@ -459,6 +459,12 @@ function parseIsoToDate(val: string | Date | undefined | null): Date | null {
   const str = String(val).trim();
   if (!str || str === 'null' || str === 'undefined' || str.startsWith('0000')) return null;
 
+  // If it's a date-only string like YYYY-MM-DD, parse locally first to avoid UTC midnight drift
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const local = parseDateLocal(str);
+    if (isValidDate(local)) return local;
+  }
+
   // Try native parse first for exact datetime
   const d = new Date(str.replace(' ', 'T'));
   if (isValidDate(d)) return d;
