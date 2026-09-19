@@ -793,9 +793,9 @@
               <q-td :props="props">
                 <div class="row items-center q-gutter-xs">
                   <q-avatar size="24px" color="primary" text-color="white" class="text-caption">
-                    {{ (props.row.project_manager_name || currentPmName).charAt(0).toUpperCase() }}
+                    {{ (props.row.project_manager_name || '—').charAt(0).toUpperCase() }}
                   </q-avatar>
-                  <span>{{ props.row.project_manager_name || currentPmName }}</span>
+                  <span>{{ props.row.project_manager_name || '—' }}</span>
                 </div>
               </q-td>
             </template>
@@ -1424,7 +1424,7 @@ const projectColumns: QTableColumn<Project>[] = [
   {
     name: 'owner',
     label: 'Owner',
-    field: (row) => (row as Project & { project_manager_name?: string }).project_manager_name || currentPmName.value,
+    field: (row) => (row as Project & { project_manager_name?: string }).project_manager_name || '—',
     align: 'left',
   },
   {

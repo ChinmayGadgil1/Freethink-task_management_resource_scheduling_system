@@ -2741,8 +2741,10 @@ function onQuickUpdateStatusClick(stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRE
   } else if (stVal === 'SCHEDULED' || stVal === 'UNASSIGNED') {
     selectedTaskForUpdateProgress.value = 0;
   } else if (stVal === 'IN_PROGRESS') {
+    // Restore existing saved progress; only fall back to 10 if task truly has no progress yet
+    const savedProgress = getTaskProgressNumber(selectedTaskForUpdate.value.progress);
     if (selectedTaskForUpdateProgress.value <= 0 || selectedTaskForUpdateProgress.value >= 100) {
-      selectedTaskForUpdateProgress.value = 10;
+      selectedTaskForUpdateProgress.value = savedProgress > 0 && savedProgress < 100 ? savedProgress : 10;
     }
   }
 }
@@ -2876,6 +2878,10 @@ async function handleExecuteRemoveMember() {
       (r) => Number(r.user_id) !== Number(removedId),
     );
     await refreshData();
+    // Also remove the member from any open assignment form to keep dropdowns fresh
+    assignTaskMemberForm.user_ids = assignTaskMemberForm.user_ids.filter(
+      (id) => Number(id) !== Number(removedId),
+    );
   } catch {
     $q.notify({ type: 'negative', message: 'Failed to remove member' });
   } finally {
@@ -3017,22 +3023,24 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
     const created = await createTaskApi(payload);
     const newTaskId = Number(created?.task_id);
 
-    let depErrors = 0;
+    let depFailures: string[] = [];
     if (newTaskId && formData?.predecessor_task_ids && formData.predecessor_task_ids.length > 0) {
       for (const predId of formData.predecessor_task_ids) {
         try {
           await addTaskDependencyApi(newTaskId, predId);
         } catch (e) {
-          console.warn('Failed to add dependency on task create:', e);
-          depErrors++;
+          const msg = e instanceof Error ? e.message : `Could not link predecessor #${predId}`;
+          depFailures.push(msg);
         }
       }
     }
 
-    if (depErrors > 0) {
+    if (depFailures.length > 0) {
       $q.notify({
         type: 'warning',
-        message: `Task created, but ${depErrors} dependency/dependencies could not be linked`,
+        message: `Task created, but ${depFailures.length} dependency link${depFailures.length > 1 ? 's' : ''} could not be added`,
+        caption: depFailures.join(' · '),
+        timeout: 6000,
       });
     } else {
       $q.notify({ type: 'positive', message: 'Task created successfully' });

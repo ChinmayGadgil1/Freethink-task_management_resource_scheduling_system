@@ -542,7 +542,7 @@ function confirmPermanentDeleteTask(task: BinnedTask) {
   confirmDialog.value = {
     open: true,
     title: 'Permanently Delete Task?',
-    message: `Are you sure you want to permanently erase "${task.title}"? All logs and schedule history will be purged.`,
+    message: `Are you sure you want to permanently erase "${task.title}"? All assignments, dependencies, work logs, and schedule history will be purged. This action cannot be undone.`,
     actionLabel: 'Delete Forever',
     loading: false,
     onConfirm: () => {

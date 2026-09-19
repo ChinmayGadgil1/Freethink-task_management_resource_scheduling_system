@@ -749,6 +749,24 @@
                   />
                 </div>
               </div>
+              <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-select
+                    v-model="newTaskForm.assigned_resource_ids"
+                    :options="taskAssigneeOptions"
+                    label="Assign Team Members (Optional)"
+                    outlined
+                    dense
+                    multiple
+                    emit-value
+                    map-options
+                    use-chips
+                    clearable
+                    :dark="$q.dark.isActive"
+                    :hint="newTaskForm.assigned_resource_ids.length > 0 ? 'Task will be created as Scheduled' : 'No assignees — task will be Unassigned'"
+                  />
+                </div>
+              </div>
 
               <div class="row justify-end q-mt-md q-gutter-sm">
                 <q-btn flat label="Cancel" v-close-popup />
@@ -1233,6 +1251,9 @@ const allTaskOptions = computed(() =>
   })),
 );
 
+// Assignee options for the Add Task dialog — all resources (PM can assign anyone)
+const taskAssigneeOptions = computed(() => resourceOptions.value);
+
 function goToProjects() {
   void router.push('/pm/projects');
 }
@@ -1296,15 +1317,16 @@ async function handleCreateTask() {
   if (!newTaskForm.project_id || !newTaskForm.title.trim()) return;
   taskSubmitting.value = true;
   try {
+    const hasAssignees = newTaskForm.assigned_resource_ids.length > 0;
     await createTaskApi({
       project_id: newTaskForm.project_id,
       title: newTaskForm.title.trim(),
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
-      status: 'UNASSIGNED',
+      status: hasAssignees ? 'SCHEDULED' : 'UNASSIGNED',
       deadline: null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
-      assigned_resource_ids: [],
+      assigned_resource_ids: newTaskForm.assigned_resource_ids,
     });
     $q.notify({ type: 'positive', message: 'Task created successfully' });
     showAddTaskModal.value = false;

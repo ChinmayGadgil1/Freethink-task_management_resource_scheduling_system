@@ -425,7 +425,9 @@ const projectMap = computed(() => {
   return map;
 });
 
-const validGanttTasks = computed(() => (props.tasks || []).filter((t) => !isVerificationTask(t)));
+const validGanttTasks = computed(() =>
+  (props.tasks || []).filter((t) => !isVerificationTask(t) && t.status !== 'UNASSIGNED'),
+);
 const totalCount = computed(() => validGanttTasks.value.length);
 const visibleCount = ref(0);
 const showExtraColumns = ref(false); // Collapsed/compact by default (only TASK & PROJECT visible)
