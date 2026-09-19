@@ -4,6 +4,7 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 export type NotificationType =
     | "EARLY_COMPLETION"
     | "POSSIBLE_DELAY"
+    | "EFFORT_ALERT"
     | "LEAVE_REQUESTED"
     | "LEAVE_APPROVED"
     | "LEAVE_REJECTED"
@@ -130,8 +131,6 @@ function evaluatePossibleDelay(t: {
     deadline: string | null;
     planned_start: any;
     planned_end: any;
-    expected_effort: number;
-    actual_effort: number;
     progress: number;
     is_deadline_at_risk: boolean;
     is_schedule_at_risk: boolean;
@@ -141,8 +140,6 @@ function evaluatePossibleDelay(t: {
     }
 
     const progress = Number(t.progress) || 0;
-    const actualEffort = Number(t.actual_effort) || 0;
-    const expectedEffort = Number(t.expected_effort) || 0;
     const isAtRisk = Boolean(t.is_deadline_at_risk || t.is_schedule_at_risk);
     const cleanDeadline = t.deadline ? (t.deadline.includes("T") ? t.deadline.split("T")[0]! : t.deadline) : null;
 
@@ -170,25 +167,7 @@ function evaluatePossibleDelay(t: {
         };
     }
 
-    // 3. Effort overrun / budget risk
-    if (expectedEffort > 0) {
-        const effortRatio = actualEffort / expectedEffort;
-        if (actualEffort > expectedEffort && progress < 100) {
-            const overrun = Number((actualEffort - expectedEffort).toFixed(1));
-            return {
-                isDelay: true,
-                reason: `Effort budget exceeded by ${overrun}h (${actualEffort}h logged of ${expectedEffort}h) with ${progress}% completion.`
-            };
-        }
-        if (effortRatio >= 0.85 && progress < 50) {
-            return {
-                isDelay: true,
-                reason: `Task consumed ${Math.round(effortRatio * 100)}% of effort budget (${actualEffort}h / ${expectedEffort}h) with only ${progress}% completion.`
-            };
-        }
-    }
-
-    // 4. Timeline pacing lag (significantly into scheduled timeline with minimal progress)
+    // 3. Timeline pacing lag (significantly into scheduled timeline with minimal progress)
     if (t.planned_start && (t.planned_end || cleanDeadline)) {
         const startDate = new Date(t.planned_start).getTime();
         const endDate = new Date(t.planned_end || cleanDeadline).getTime();
@@ -209,6 +188,42 @@ function evaluatePossibleDelay(t: {
     }
 
     return { isDelay: false, reason: "" };
+}
+
+function evaluateEffortOverrun(t: {
+    status: string;
+    expected_effort: number;
+    actual_effort: number;
+    progress: number;
+}): { isOverrun: boolean; title: string; reason: string } {
+    if (t.status !== "IN_PROGRESS" && t.status !== "SCHEDULED") {
+        return { isOverrun: false, title: "", reason: "" };
+    }
+
+    const progress = Number(t.progress) || 0;
+    const actualEffort = Number(t.actual_effort) || 0;
+    const expectedEffort = Number(t.expected_effort) || 0;
+
+    if (expectedEffort > 0) {
+        const effortRatio = actualEffort / expectedEffort;
+        if (actualEffort > expectedEffort && progress < 100) {
+            const overrun = Number((actualEffort - expectedEffort).toFixed(1));
+            return {
+                isOverrun: true,
+                title: "Alert: Effort Budget Exceeded",
+                reason: `Effort budget exceeded by ${overrun}h (${actualEffort}h logged of ${expectedEffort}h) with ${progress}% completion.`
+            };
+        }
+        if (effortRatio >= 0.85 && progress < 50) {
+            return {
+                isOverrun: true,
+                title: "Alert: High Effort Consumption",
+                reason: `Task consumed ${Math.round(effortRatio * 100)}% of effort budget (${actualEffort}h / ${expectedEffort}h) with only ${progress}% completion.`
+            };
+        }
+    }
+
+    return { isOverrun: false, title: "", reason: "" };
 }
 
 /**
@@ -281,13 +296,45 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                     [userId, link]
                 );
             }
+
+            // Case C: Effort Budget Alert
+            const effortCheck = evaluateEffortOverrun(t as any);
+            if (effortCheck.isOverrun) {
+                const notifTitle = `${effortCheck.title}: ${title}`;
+                const [exists] = await pool.query<RowDataPacket[]>(
+                    `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EFFORT_ALERT' AND (link = ? OR title = ?)`,
+                    [userId, link, notifTitle]
+                );
+
+                if (exists.length === 0) {
+                    await pool.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES (?, 'EFFORT_ALERT', ?, ?, ?, FALSE, NOW())`,
+                        [userId, notifTitle, effortCheck.reason, link]
+                    );
+                }
+            } else {
+                // If task is no longer over budget, remove any stale unread EFFORT_ALERT for this task
+                await pool.query(
+                    `DELETE FROM notifications WHERE user_id = ? AND type = 'EFFORT_ALERT' AND link = ? AND is_read = FALSE`,
+                    [userId, link]
+                );
+            }
+
+            // Clean up any legacy unread effort overrun alerts that were previously stored under POSSIBLE_DELAY
+            await pool.query(
+                `DELETE FROM notifications 
+                 WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ? AND is_read = FALSE
+                   AND (message LIKE '%Effort budget exceeded%' OR message LIKE '%of effort budget%')`,
+                [userId, link]
+            );
         }
     } else {
         // Project Manager: inspect non-deleted project tasks
         const [tasks] = await pool.query<RowDataPacket[]>(
             `SELECT t.task_id, t.title, t.status, t.deadline, t.planned_start, t.planned_end, t.actual_start, t.actual_end,
                     t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
-             FROM tasks t
+              FROM tasks t
              JOIN projects p ON t.project_id = p.project_id
              WHERE p.project_manager_id = ? AND t.deleted_at IS NULL AND p.deleted_at IS NULL
              ORDER BY t.created_at DESC
@@ -341,6 +388,38 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                     [userId, link]
                 );
             }
+
+            // Case C: Effort Budget Alert
+            const effortCheck = evaluateEffortOverrun(t as any);
+            if (effortCheck.isOverrun) {
+                const notifTitle = `${effortCheck.title}: ${title}`;
+                const [exists] = await pool.query<RowDataPacket[]>(
+                    `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'EFFORT_ALERT' AND (link = ? OR title = ?)`,
+                    [userId, link, notifTitle]
+                );
+
+                if (exists.length === 0) {
+                    await pool.query(
+                        `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
+                         VALUES (?, 'EFFORT_ALERT', ?, ?, ?, FALSE, NOW())`,
+                        [userId, notifTitle, effortCheck.reason, link]
+                    );
+                }
+            } else {
+                // If task is no longer over budget, remove any stale unread EFFORT_ALERT for this task
+                await pool.query(
+                    `DELETE FROM notifications WHERE user_id = ? AND type = 'EFFORT_ALERT' AND link = ? AND is_read = FALSE`,
+                    [userId, link]
+                );
+            }
+
+            // Clean up any legacy unread effort overrun alerts that were previously stored under POSSIBLE_DELAY
+            await pool.query(
+                `DELETE FROM notifications 
+                 WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ? AND is_read = FALSE
+                   AND (message LIKE '%Effort budget exceeded%' OR message LIKE '%of effort budget%')`,
+                [userId, link]
+            );
         }
     }
 
@@ -445,6 +524,7 @@ export async function getUserNotifications(
           AND type IN (
             'EARLY_COMPLETION',
             'POSSIBLE_DELAY',
+            'EFFORT_ALERT',
             'LEAVE_REQUESTED',
             'LEAVE_APPROVED',
             'LEAVE_REJECTED',
@@ -473,6 +553,7 @@ export async function getUserNotifications(
            AND type IN (
              'EARLY_COMPLETION',
              'POSSIBLE_DELAY',
+             'EFFORT_ALERT',
              'LEAVE_REQUESTED',
              'LEAVE_APPROVED',
              'LEAVE_REJECTED',
@@ -528,6 +609,7 @@ export async function markAllNotificationsAsRead(userId: number): Promise<number
            AND type IN (
              'EARLY_COMPLETION',
              'POSSIBLE_DELAY',
+             'EFFORT_ALERT',
              'LEAVE_REQUESTED',
              'LEAVE_APPROVED',
              'LEAVE_REJECTED',

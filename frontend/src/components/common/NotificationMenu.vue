@@ -93,6 +93,14 @@
                 </q-badge>
               </div>
             </q-tab>
+            <q-tab name="alerts">
+              <div class="row items-center no-wrap q-gutter-x-xs">
+                <span>Alerts</span>
+                <q-badge v-if="alertCount > 0" color="red-8" rounded size="xs">
+                  {{ alertCount }}
+                </q-badge>
+              </div>
+            </q-tab>
             <q-tab name="delays">
               <div class="row items-center no-wrap q-gutter-x-xs">
                 <span>Delays</span>
@@ -288,7 +296,7 @@ const router = useRouter();
 const notificationStore = useNotificationStore();
 
 const menuOpen = ref(false);
-const filterTab = ref<'all' | 'tasks' | 'delays' | 'early' | 'leaves' | 'unread'>('all');
+const filterTab = ref<'all' | 'tasks' | 'alerts' | 'delays' | 'early' | 'leaves' | 'unread'>('all');
 
 onMounted(() => {
   notificationStore.startPolling();
@@ -304,6 +312,11 @@ const taskCount = computed(() => {
       (n.type === 'TASK_VERIFICATION' || n.type === 'TASK_CREATED' || n.type === 'TASK_ASSIGNED') &&
       !n.is_read,
   ).length;
+});
+
+const alertCount = computed(() => {
+  return notificationStore.notifications.filter((n) => n.type === 'EFFORT_ALERT' && !n.is_read)
+    .length;
 });
 
 const delayCount = computed(() => {
@@ -327,6 +340,9 @@ const filteredNotifications = computed(() => {
       (n) =>
         n.type === 'TASK_VERIFICATION' || n.type === 'TASK_CREATED' || n.type === 'TASK_ASSIGNED',
     );
+  }
+  if (filterTab.value === 'alerts') {
+    return notificationStore.notifications.filter((n) => n.type === 'EFFORT_ALERT');
   }
   if (filterTab.value === 'delays') {
     return notificationStore.notifications.filter((n) => n.type === 'POSSIBLE_DELAY');
@@ -436,6 +452,13 @@ function getTypeMeta(type: string): TypeMeta {
       textColor: 'blue-8',
     };
   }
+  if (type === 'EFFORT_ALERT') {
+    return {
+      icon: 'error_outline',
+      bgColor: 'red-1',
+      textColor: 'red-9',
+    };
+  }
   // POSSIBLE_DELAY
   return {
     icon: 'warning',
@@ -454,6 +477,8 @@ function getBadgeLabel(type: string): string {
       return 'TASK ASSIGNED';
     case 'EARLY_COMPLETION':
       return 'EARLY COMPLETION';
+    case 'EFFORT_ALERT':
+      return 'ALERT';
     case 'POSSIBLE_DELAY':
       return 'POSSIBLE DELAY';
     case 'LEAVE_REQUESTED':
@@ -477,6 +502,7 @@ function getBadgeColor(type: string, isDark: boolean): string {
     case 'EARLY_COMPLETION':
     case 'LEAVE_APPROVED':
       return isDark ? 'green-10' : 'green-1';
+    case 'EFFORT_ALERT':
     case 'LEAVE_REJECTED':
       return isDark ? 'red-10' : 'red-1';
     case 'LEAVE_REQUESTED':
@@ -497,6 +523,7 @@ function getBadgeTextColor(type: string, isDark: boolean): string {
     case 'EARLY_COMPLETION':
     case 'LEAVE_APPROVED':
       return isDark ? 'green-3' : 'green-9';
+    case 'EFFORT_ALERT':
     case 'LEAVE_REJECTED':
       return isDark ? 'red-3' : 'red-9';
     case 'LEAVE_REQUESTED':
