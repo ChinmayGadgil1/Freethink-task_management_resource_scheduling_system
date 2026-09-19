@@ -152,6 +152,18 @@ export async function createWorkLog(
 
         const isSupervisorOnly = isSupervisor && !isAssigned;
 
+        // Check if predecessor tasks are 100% complete
+        const [incompletePredecessors] = await connection.query<RowDataPacket[]>(
+            `SELECT p.title 
+             FROM task_dependencies td
+             JOIN tasks p ON td.predecessor_task_id = p.task_id
+             WHERE td.task_id = ? AND p.status != 'COMPLETED'`,
+            [taskId]
+        );
+        if (incompletePredecessors.length > 0) {
+            throw new Error("Cannot log work: Predecessor tasks must be 100% complete first.");
+        }
+
         // Count previous work logs to detect if this is the first work log
         const [workLogCountRows] = await connection.query<RowDataPacket[]>(
             `SELECT COUNT(*) as log_count FROM work_logs WHERE task_id = ?`,
@@ -264,7 +276,12 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
             t.progress,
             t.supervisor_id,
             (t.supervisor_id = ?) as is_supervisor,
-            COALESCE(MAX(ts.allocated_hours), 0) as scheduled_hours_today
+            COALESCE(MAX(ts.allocated_hours), 0) as scheduled_hours_today,
+            EXISTS (
+                SELECT 1 FROM task_dependencies td 
+                JOIN tasks p_task ON td.predecessor_task_id = p_task.task_id 
+                WHERE td.task_id = t.task_id AND p_task.status != 'COMPLETED'
+            ) as is_blocked
          FROM tasks t
          JOIN projects p ON t.project_id = p.project_id
          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
@@ -296,6 +313,7 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
                   t.title ASC`,
         [userId, userId, userId, dateStr, userId, userId, dateStr, userId, dateStr, isToday ? 1 : 0, userId, dateStr]
     );
+    console.log("DEBUG SCHEDULED HOURS:", tasks.map(t => t.scheduled_hours_today));
 
     // 2. Fetch all work logs logged by this user on dateStr
     const [logs] = await pool.query<RowDataPacket[]>(
@@ -411,6 +429,18 @@ export async function startSession(taskId: number, userId: number) {
 
         if (tasks.length === 0) {
             throw new Error("Cannot start session: You are neither assigned to nor supervising this task");
+        }
+
+        // Check if predecessor tasks are 100% complete
+        const [incompletePredecessors] = await connection.query<RowDataPacket[]>(
+            `SELECT p.title 
+             FROM task_dependencies td
+             JOIN tasks p ON td.predecessor_task_id = p.task_id
+             WHERE td.task_id = ? AND p.status != 'COMPLETED'`,
+            [taskId]
+        );
+        if (incompletePredecessors.length > 0) {
+            throw new Error("Cannot start session: Predecessor tasks must be 100% complete first.");
         }
 
         // Ensure user has no other active sessions

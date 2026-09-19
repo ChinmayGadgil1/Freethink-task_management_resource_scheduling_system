@@ -165,7 +165,7 @@
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">Scheduled Hours</span>
                 <div class="summary-icon-wrap bg-purple-soft text-primary">
-                  <q-icon name="event_upcoming" size="20px" />
+                  <q-icon name="event" size="20px" />  
                 </div>
               </div>
               <div class="text-h5 text-weight-bold q-mt-xs text-primary">
@@ -466,8 +466,11 @@
                         label="Add Work Log"
                         color="primary"
                         class="text-weight-bold q-px-md"
+                        :disable="item.is_blocked"
                         @click="openWorkLogDialog(item)"
-                      />
+                      >
+                        <q-tooltip v-if="item.is_blocked" class="bg-negative">Blocked: Predecessor tasks must be completed first.</q-tooltip>
+                      </q-btn>
                       <q-chip
                         v-else
                         dense
@@ -1073,7 +1076,7 @@ function openWorkLogDialog(task: DailyAllocationTask) {
 // Available active tasks for quick logging
 const availableTasksForLogging = computed(() => {
   return allocations.value.filter(
-    (t) => t.status !== 'COMPLETED',
+    (t) => t.status !== 'COMPLETED' && !t.is_blocked,
   );
 });
 

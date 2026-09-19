@@ -184,6 +184,7 @@ export interface DailyAllocationTask extends Task {
   scheduled_hours: number;
   hours_logged_today: number;
   logs_today: WorkLog[];
+  is_blocked?: boolean;
 }
 
 export interface DailyAllocationsResponse {
