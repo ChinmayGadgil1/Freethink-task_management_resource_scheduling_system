@@ -157,7 +157,7 @@ export async function createWorkLog(
             `SELECT p.title 
              FROM task_dependencies td
              JOIN tasks p ON td.predecessor_task_id = p.task_id
-             WHERE td.task_id = ? AND p.status != 'COMPLETED'`,
+             WHERE td.task_id = ? AND p.status != 'COMPLETED' AND p.deleted_at IS NULL`,
             [taskId]
         );
         if (incompletePredecessors.length > 0) {
@@ -280,7 +280,7 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
             EXISTS (
                 SELECT 1 FROM task_dependencies td 
                 JOIN tasks p_task ON td.predecessor_task_id = p_task.task_id 
-                WHERE td.task_id = t.task_id AND p_task.status != 'COMPLETED'
+                WHERE td.task_id = t.task_id AND p_task.status != 'COMPLETED' AND p_task.deleted_at IS NULL
             ) as is_blocked
          FROM tasks t
          JOIN projects p ON t.project_id = p.project_id
@@ -436,7 +436,7 @@ export async function startSession(taskId: number, userId: number) {
             `SELECT p.title 
              FROM task_dependencies td
              JOIN tasks p ON td.predecessor_task_id = p.task_id
-             WHERE td.task_id = ? AND p.status != 'COMPLETED'`,
+             WHERE td.task_id = ? AND p.status != 'COMPLETED' AND p.deleted_at IS NULL`,
             [taskId]
         );
         if (incompletePredecessors.length > 0) {
