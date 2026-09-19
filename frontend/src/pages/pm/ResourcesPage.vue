@@ -509,6 +509,28 @@
               </q-td>
             </template>
 
+            <template #body-cell-effort="props">
+              <q-td :props="props" class="text-center">
+                <span
+                  v-if="props.row.supervisor_id"
+                  class="text-purple-7 text-weight-bold"
+                  :title="`Base Effort: ${props.row.expected_effort}h + Supervisor: ${(Number(props.row.expected_effort) * 0.2).toFixed(1)}h`"
+                >
+                  {{ (Number(props.row.expected_effort || 0) * 1.2).toFixed(1) }}h <span class="text-caption text-grey-6">({{ props.row.expected_effort }}+{{ (Number(props.row.expected_effort || 0) * 0.2).toFixed(1) }})</span>
+                </span>
+                <span
+                  v-else-if="(props.row.assigned_resource_ids?.length || 1) > 1"
+                  class="text-primary text-weight-medium"
+                  :title="`Total: ${props.row.expected_effort}h (${(Number(props.row.expected_effort) / props.row.assigned_resource_ids.length).toFixed(1)}h each across ${props.row.assigned_resource_ids.length} assignees)`"
+                >
+                  {{ props.row.expected_effort }}h <span class="text-caption text-grey-6">(${(Number(props.row.expected_effort) / props.row.assigned_resource_ids.length).toFixed(1)}h ea)</span>
+                </span>
+                <span v-else>
+                  {{ props.row.expected_effort || 0 }}h
+                </span>
+              </q-td>
+            </template>
+
             <template #body-cell-deadline="props">
               <q-td :props="props" class="date-cell">
                 {{ formatDate(props.row.deadline) }}
@@ -1429,17 +1451,19 @@ const resourceMap = computed(() => {
     } else if (workload?.tasks && workload.tasks.length > 0) {
       // Fallback: active remaining effort from resource workload tasks distributed among co-assignees
       scheduledEffort = workload.tasks.reduce((sum, t) => {
+        const hasAssigneesCount = Boolean((t as unknown as { assignees_count?: number }).assignees_count);
         const assigneesCount = Math.max(
           1,
           t.assigned_resource_ids?.length ||
             (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
+            (t as unknown as { assignees_count?: number }).assignees_count ||
             1,
         );
         const remEffort = Math.max(
           0,
           (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0),
         );
-        return sum + remEffort / assigneesCount;
+        return sum + (hasAssigneesCount ? remEffort : remEffort / assigneesCount);
       }, 0);
     } else {
       // Fallback: local active task remaining effort distributed among co-assignees

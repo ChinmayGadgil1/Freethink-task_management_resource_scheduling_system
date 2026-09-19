@@ -30,6 +30,10 @@ export interface TaskWorkload {
     planned_start: string | null;
     planned_end: string | null;
     expected_effort: number;
+    total_task_effort?: number;
+    assignees_count?: number;
+    supervisor_effort?: number;
+    is_supervised?: boolean;
     actual_effort: number;
     progress: number;
     is_schedule_at_risk: boolean;
@@ -155,6 +159,13 @@ export async function getProjectSchedule(projectId: number) {
             isOverrun
         );
 
+        const assignees = assignmentMap.get(Number(t.task_id)) || [];
+        const assigneesCount = Math.max(1, assignees.length || (t.assigned_resource_ids ? String(t.assigned_resource_ids).split(",").length : 1));
+        const hasSupervisor = Boolean(t.supervisor_id);
+        const supervisorEffort = hasSupervisor ? Number((expected * 0.2).toFixed(2)) : 0;
+        const totalDeliverableEffort = Number((expected + supervisorEffort).toFixed(2));
+        const effortPerAssignee = Number((expected / assigneesCount).toFixed(2));
+
         return {
             task_id: Number(t.task_id),
             project_id: Number(t.project_id),
@@ -171,6 +182,10 @@ export async function getProjectSchedule(projectId: number) {
             actual_start: t.actual_start ? parseAndFormatDatetime(t.actual_start) : null,
             actual_end: t.actual_end ? parseAndFormatDatetime(t.actual_end) : null,
             expected_effort: expected,
+            effort_per_assignee: effortPerAssignee,
+            assignees_count: assigneesCount,
+            supervisor_effort: supervisorEffort,
+            total_expected_effort: totalDeliverableEffort,
             actual_effort: actual,
             progress: Number(t.progress || 0),
             is_schedule_at_risk: Boolean(t.is_schedule_at_risk),
@@ -178,7 +193,7 @@ export async function getProjectSchedule(projectId: number) {
             assigned_resource_ids: t.assigned_resource_ids
                 ? String(t.assigned_resource_ids).split(",").map(Number)
                 : [],
-            assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
+            assigned_resources: assignees,
             assigned_resource_names: (assignmentMap.get(Number(t.task_id)) || []).map(a => a.name),
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
@@ -232,7 +247,7 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
     }
     const resource = userRows[0]!;
 
-    // 2. Fetch all tasks assigned to this resource (with project info & dependency links)
+    // 2. Fetch all tasks assigned to or supervised by this resource (with project info & dependency links)
     const [tasks] = await pool.query<RowDataPacket[]>(
         `SELECT t.*,
                 p.name as project_name,
@@ -242,18 +257,18 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
                 GROUP_CONCAT(DISTINCT td.predecessor_task_id) as predecessor_task_ids
          FROM tasks t
          JOIN projects p ON t.project_id = p.project_id
-         JOIN task_assignments ta ON t.task_id = ta.task_id
+         LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
          LEFT JOIN users u_sup ON t.supervisor_id = u_sup.user_id
          LEFT JOIN task_assignments ta_all ON t.task_id = ta_all.task_id
          LEFT JOIN task_dependencies td ON t.task_id = td.task_id
-         WHERE ta.user_id = ?
+         WHERE (ta.user_id = ? OR t.supervisor_id = ?)
            AND t.deleted_at IS NULL
            AND p.deleted_at IS NULL
            AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
            AND t.verified_task_id IS NULL
          GROUP BY t.task_id
          ORDER BY t.planned_start ASC, t.created_at ASC`,
-        [resourceId]
+        [resourceId, resourceId]
     );
 
     // If pmProjectIds is provided, strictly filter to tasks belonging to PM-controlled projects (skip others entirely)
@@ -336,7 +351,18 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
         const projectId = Number(t.project_id);
         const expected = Number(t.expected_effort || 0);
         const actual = Number(t.actual_effort || 0);
-        const isOverrun = actual > expected;
+        const isSupervised = Number(t.supervisor_id) === resourceId;
+        const assignees = assignmentMap.get(Number(t.task_id)) || [];
+        const assigneesCount = Math.max(1, assignees.length || (t.assigned_resource_ids ? String(t.assigned_resource_ids).split(",").length : 1));
+
+        let resourceExpected = expected;
+        if (isSupervised) {
+            resourceExpected = Number((expected * 0.20).toFixed(2));
+        } else {
+            resourceExpected = Number((expected / assigneesCount).toFixed(2));
+        }
+
+        const isOverrun = actual > resourceExpected;
         const isBehindSchedule = !['COMPLETED'].includes(t.status) && (
             (t.deadline && String(t.deadline).split("T")[0]! < todayStr) ||
             isOverrun
@@ -349,7 +375,8 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
             supervisor_id: t.supervisor_id ? Number(t.supervisor_id) : null,
             supervisor_name: t.supervisor_name || null,
             supervisor_email: t.supervisor_email || null,
-            title: t.title,
+            is_supervised: isSupervised,
+            title: isSupervised ? `🛡️ [Review] ${t.title}` : t.title,
             description: t.description,
             priority: t.priority,
             status: t.status,
@@ -358,7 +385,10 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
             planned_end: t.planned_end ? parseAndFormatDatetime(t.planned_end) : null,
             actual_start: t.actual_start ? parseAndFormatDatetime(t.actual_start) : null,
             actual_end: t.actual_end ? parseAndFormatDatetime(t.actual_end) : null,
-            expected_effort: expected,
+            expected_effort: resourceExpected,
+            total_task_effort: expected,
+            assignees_count: assigneesCount,
+            supervisor_effort: Number((expected * 0.20).toFixed(2)),
             actual_effort: actual,
             progress: Number(t.progress || 0),
             is_schedule_at_risk: Boolean(t.is_schedule_at_risk),
@@ -366,7 +396,7 @@ export async function getResourceSchedule(resourceId: number, pmProjectIds?: Set
             assigned_resource_ids: t.assigned_resource_ids
                 ? String(t.assigned_resource_ids).split(",").map(Number)
                 : [resourceId],
-            assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
+            assigned_resources: assignees,
             assigned_resource_names: (assignmentMap.get(Number(t.task_id)) || []).map(a => a.name),
             predecessor_task_ids: t.predecessor_task_ids
                 ? String(t.predecessor_task_ids).split(",").map(Number)
@@ -410,7 +440,8 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
     // Fetch active/scheduled tasks assigned to the resource
     const [tasks] = await pool.query<RowDataPacket[]>(
         `
-        SELECT t.*, p.name as project_name
+        SELECT t.*, p.name as project_name,
+               (SELECT COUNT(*) FROM task_assignments ta_cnt WHERE ta_cnt.task_id = t.task_id) as assignees_count
         FROM tasks t
         JOIN projects p ON t.project_id = p.project_id
         JOIN task_assignments ta ON t.task_id = ta.task_id
@@ -429,6 +460,22 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         : tasks;
 
     const visibleTaskIds = new Set(visibleTasks.map(t => Number(t.task_id)));
+
+    // Fetch actual logged hours by this user for their assigned tasks
+    const assignedTaskIds = visibleTasks.map(t => Number(t.task_id));
+    const userActualMap = new Map<number, number>();
+    if (assignedTaskIds.length > 0) {
+        const [userLogs] = await pool.query<RowDataPacket[]>(
+            `SELECT task_id, SUM(hours_logged) as total_user_hours
+             FROM work_logs
+             WHERE user_id = ? AND task_id IN (?)
+             GROUP BY task_id`,
+            [resourceId, assignedTaskIds]
+        );
+        for (const l of userLogs) {
+            userActualMap.set(Number(l.task_id), Number(l.total_user_hours || 0));
+        }
+    }
 
     // Fetch active/scheduled tasks supervised by the resource (20% effort)
     const [supervisedTasks] = await pool.query<RowDataPacket[]>(
@@ -539,8 +586,13 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
     const taskDetails: TaskWorkload[] = [];
 
     for (const row of visibleTasks) {
-        totalExpectedEffort += Number(row.expected_effort);
-        totalActualEffort += Number(row.actual_effort);
+        const assigneesCount = Math.max(1, Number(row.assignees_count || 1));
+        const rawExpected = Number(row.expected_effort);
+        const expectedShare = Number((rawExpected / assigneesCount).toFixed(2));
+        const userActual = userActualMap.get(Number(row.task_id)) || 0;
+
+        totalExpectedEffort += expectedShare;
+        totalActualEffort += userActual;
         const projectId = Number(row.project_id);
 
         taskDetails.push({
@@ -553,8 +605,10 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
             deadline: row.deadline ? String(row.deadline).split("T")[0]! : null,
             planned_start: row.planned_start ? parseAndFormatDatetime(row.planned_start) : null,
             planned_end: row.planned_end ? parseAndFormatDatetime(row.planned_end) : null,
-            expected_effort: Number(row.expected_effort),
-            actual_effort: Number(row.actual_effort),
+            expected_effort: expectedShare,
+            total_task_effort: rawExpected,
+            assignees_count: assigneesCount,
+            actual_effort: userActual,
             progress: Number(row.progress),
             is_schedule_at_risk: Boolean(row.is_schedule_at_risk),
             is_deadline_at_risk: Boolean(row.is_deadline_at_risk),
@@ -581,6 +635,9 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
             planned_start: row.planned_start ? parseAndFormatDatetime(row.planned_start) : null,
             planned_end: row.planned_end ? parseAndFormatDatetime(row.planned_end) : null,
             expected_effort: supEffort,
+            total_task_effort: Number(row.expected_effort),
+            supervisor_effort: supEffort,
+            is_supervised: true,
             actual_effort: supActual,
             progress: Number(row.progress),
             is_schedule_at_risk: Boolean(row.is_schedule_at_risk),

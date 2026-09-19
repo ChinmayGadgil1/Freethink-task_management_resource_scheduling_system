@@ -143,6 +143,40 @@
               no-data-label="No tasks currently assigned to this resource"
               :pagination="{ rowsPerPage: 10 }"
             >
+              <template #body-cell-title="props">
+                <q-td :props="props">
+                  <span
+                    v-if="props.row.supervisor_id === resourceId && (!props.row.assigned_resource_ids || !props.row.assigned_resource_ids.includes(resourceId))"
+                    class="text-amber-9 text-weight-bold"
+                  >
+                    🛡️ [Review] {{ props.row.title }}
+                  </span>
+                  <span v-else>{{ props.row.title }}</span>
+                </q-td>
+              </template>
+
+              <template #body-cell-effort="props">
+                <q-td :props="props" class="text-center">
+                  <span
+                    v-if="props.row.supervisor_id === resourceId && (!props.row.assigned_resource_ids || !props.row.assigned_resource_ids.includes(resourceId))"
+                    class="text-amber-9 text-weight-bold"
+                    :title="`Supervisor review effort: 20% of ${props.row.expected_effort}h`"
+                  >
+                    🛡️ {{ (Number(props.row.expected_effort || 0) * 0.2).toFixed(1) }}h (20%)
+                  </span>
+                  <span
+                    v-else-if="(props.row.assigned_resource_ids?.length || 1) > 1"
+                    class="text-primary text-weight-medium"
+                    :title="`Divided share: ${(Number(props.row.expected_effort || 0) / props.row.assigned_resource_ids.length).toFixed(1)}h each across ${props.row.assigned_resource_ids.length} resources`"
+                  >
+                    {{ (Number(props.row.expected_effort || 0) / props.row.assigned_resource_ids.length).toFixed(1) }}h <span class="text-caption text-grey-6">(1/{{ props.row.assigned_resource_ids.length }})</span>
+                  </span>
+                  <span v-else>
+                    {{ Number(props.row.expected_effort || 0) }}h
+                  </span>
+                </q-td>
+              </template>
+
               <template #body-cell-status="props">
                 <q-td :props="props">
                   <q-chip
@@ -1825,7 +1859,17 @@ const taskColumns: QTableColumn<Task>[] = [
   {
     name: 'effort',
     label: 'Effort (Hrs)',
-    field: (t) => Number(t.expected_effort) || 0,
+    field: (t) => {
+      const id = resourceId.value;
+      const isSup =
+        Number(t.supervisor_id) === id &&
+        (!t.assigned_resource_ids || !t.assigned_resource_ids.includes(id));
+      if (isSup) {
+        return Number(((Number(t.expected_effort) || 0) * 0.2).toFixed(1));
+      }
+      const assigneesCount = Math.max(1, t.assigned_resource_ids?.length || 1);
+      return Number(((Number(t.expected_effort) || 0) / assigneesCount).toFixed(1));
+    },
     align: 'center',
   },
   { name: 'progress', label: 'Progress', field: (t) => Number(t.progress) || 0, align: 'left' },
@@ -1904,7 +1948,9 @@ onMounted(() => {
 const resourceTasks = computed(() => {
   const id = resourceId.value;
   return allTasks.value.filter(
-    (t) => t.assigned_resource_ids && t.assigned_resource_ids.includes(id),
+    (t) =>
+      (t.assigned_resource_ids && t.assigned_resource_ids.includes(id)) ||
+      Number(t.supervisor_id) === id,
   );
 });
 

@@ -153,6 +153,10 @@ export interface Task {
   pacing?: TaskPacing;
   schedules?: TaskScheduleItem[];
   is_external?: boolean;
+  is_supervised?: boolean;
+  supervisor_effort?: number;
+  total_task_effort?: number;
+  assignees_count?: number;
 }
 
 export interface WorkLog {

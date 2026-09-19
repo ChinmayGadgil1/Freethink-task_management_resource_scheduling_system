@@ -317,6 +317,7 @@ export interface DhtmlxGanttTaskItem {
   start_date: string | Date;
   end_date: string | Date;
   duration?: number;
+  duration_hours?: number;
   progress?: number;
   parent?: string | number;
   type?: 'project' | 'task' | 'milestone';
@@ -330,6 +331,10 @@ export interface DhtmlxGanttTaskItem {
   supervisor_name?: string | null;
   is_supervised?: boolean;
   expected_effort?: number;
+  total_expected_effort?: number;
+  base_expected_effort?: number;
+  assignees_count?: number;
+  effort_per_assignee?: number;
   actual_effort?: number;
   supervisor_effort?: number;
   task_count?: number;
@@ -500,6 +505,50 @@ function snapToGanttWorkTime(d: Date | null): Date | null {
   return next;
 }
 
+function addWorkingHours(startDate: Date, hours: number): Date {
+  const result = new Date(startDate.getTime());
+  while (result.getDay() === 0 || result.getDay() === 6) {
+    result.setDate(result.getDate() + 1);
+    result.setHours(10, 0, 0, 0);
+  }
+  if (result.getHours() < 10) {
+    result.setHours(10, 0, 0, 0);
+  } else if (result.getHours() >= 18) {
+    result.setDate(result.getDate() + 1);
+    result.setHours(10, 0, 0, 0);
+    while (result.getDay() === 0 || result.getDay() === 6) {
+      result.setDate(result.getDate() + 1);
+    }
+  }
+
+  let remainingHours = hours;
+  while (remainingHours > 0) {
+    while (result.getDay() === 0 || result.getDay() === 6) {
+      result.setDate(result.getDate() + 1);
+      result.setHours(10, 0, 0, 0);
+    }
+
+    const currentHourDecimal =
+      result.getHours() + result.getMinutes() / 60 + result.getSeconds() / 3600;
+    const hoursLeftToday = Math.max(0, 18 - currentHourDecimal);
+
+    if (remainingHours <= hoursLeftToday) {
+      const finishDecimal = currentHourDecimal + remainingHours;
+      const h = Math.floor(finishDecimal);
+      const m = Math.floor((finishDecimal - h) * 60);
+      const s = Math.round(((finishDecimal - h) * 60 - m) * 60);
+      result.setHours(h, m, s, 0);
+      remainingHours = 0;
+    } else {
+      remainingHours -= hoursLeftToday;
+      result.setDate(result.getDate() + 1);
+      result.setHours(10, 0, 0, 0);
+    }
+  }
+
+  return result;
+}
+
 function getMacroDate(d: Date | null, isStart: boolean): Date | null {
   if (!d) return null;
   const next = new Date(d.getTime());
@@ -665,26 +714,34 @@ function computeTaskGanttDates(
   tStart: Date,
   tEnd: Date,
   segments: TaskWorkSegment[],
+  targetDurationHours?: number,
 ): { start: Date; end: Date } {
-  let effectiveStart = tStart;
-  let effectiveEnd = tEnd;
+  let effectiveStart = new Date(tStart.getTime());
+  let effectiveEnd: Date;
 
-  if (segments.length > 0) {
-    const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
-    if (plannedStartParsed && formatDateIso(plannedStartParsed) === formatDateIso(tStart)) {
-      effectiveStart = plannedStartParsed;
-    }
-    const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
-    if (
-      plannedEndParsed &&
-      (formatDateIso(plannedEndParsed) === formatDateIso(tEnd) ||
-        formatDateIso(plannedEndParsed) === formatDateIso(addDays(tEnd, -1)))
-    ) {
-      effectiveEnd = plannedEndParsed;
-    }
+  const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
+  const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
+
+  if (plannedStartParsed && isValidDate(plannedStartParsed)) {
+    effectiveStart = plannedStartParsed;
   } else {
-    effectiveStart = parseIsoToDate(t.actual_start || t.planned_start) ?? tStart;
-    effectiveEnd = parseIsoToDate(t.actual_end || t.planned_end) ?? tEnd;
+    if (effectiveStart.getHours() === 0 && effectiveStart.getMinutes() === 0) {
+      effectiveStart.setHours(10, 0, 0, 0);
+    }
+  }
+
+  if (targetDurationHours !== undefined && targetDurationHours > 0) {
+    effectiveEnd = addWorkingHours(effectiveStart, targetDurationHours);
+  } else if (
+    plannedEndParsed &&
+    isValidDate(plannedEndParsed) &&
+    plannedEndParsed.getTime() > effectiveStart.getTime()
+  ) {
+    effectiveEnd = plannedEndParsed;
+  } else if (segments.length > 0) {
+    effectiveEnd = new Date(tEnd.getTime());
+  } else {
+    effectiveEnd = addWorkingHours(effectiveStart, Number(t.expected_effort) || 8);
   }
 
   const resolveStart = (d: Date | null) => {
@@ -701,6 +758,9 @@ function computeTaskGanttDates(
       if (d.getHours() === 0 && d.getMinutes() === 0) {
         const prevDay = addDays(d, -1);
         return new Date(prevDay.getFullYear(), prevDay.getMonth(), prevDay.getDate(), 18, 0, 0);
+      }
+      if (d.getHours() === 18 && d.getMinutes() === 0) {
+        return new Date(d.getTime());
       }
       return snapToGanttWorkTime(d);
     }
@@ -781,73 +841,80 @@ function getTaskWorkSegments(task: Task): {
     });
 
   if (validSchedules.length > 0) {
+    // Aggregate by date: for concurrent assignees on the same date,
+    // the working duration on that date is max(assignee_allocations).
+    // Summing max allocations across distinct working dates gives the true working duration.
+    const dateMap = new Map<string, number>();
+    for (const s of validSchedules) {
+      const dStr = String(s.schedule_date).split('T')[0]!;
+      const hrs = Number(s.allocated_hours) || 0;
+      dateMap.set(dStr, Math.max(dateMap.get(dStr) || 0, hrs));
+    }
+
+    const sortedDates = Array.from(dateMap.keys()).sort();
     const segments: TaskWorkSegment[] = [];
-    let currentSegSchedules: typeof validSchedules = [];
+    let currentSegDates: string[] = [];
 
-    for (let i = 0; i < validSchedules.length; i++) {
-      const curr = validSchedules[i]!;
-      const currDateStr = String(curr.schedule_date).split('T')[0]!;
-      const currDateParsed = parseDateLocal(currDateStr);
-      if (!currDateParsed) continue; // skip unreadable schedule_date rows
+    for (let i = 0; i < sortedDates.length; i++) {
+      const currDateStr = sortedDates[i]!;
+      const currDate = parseDateLocal(currDateStr);
+      if (!currDate) continue;
 
-      if (currentSegSchedules.length === 0) {
-        currentSegSchedules.push(curr);
+      if (currentSegDates.length === 0) {
+        currentSegDates.push(currDateStr);
       } else {
-        const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
-        const lastDateStr = String(lastInSeg.schedule_date).split('T')[0]!;
+        const lastDateStr = currentSegDates[currentSegDates.length - 1]!;
         const lastDate = parseDateLocal(lastDateStr);
         if (!lastDate) {
-          currentSegSchedules = [curr];
+          currentSegDates = [currDateStr];
           continue;
         }
         const expectedNextDateStr = formatDateIso(addDays(lastDate, 1));
 
         if (currDateStr === expectedNextDateStr) {
-          // Contiguous working day
-          currentSegSchedules.push(curr);
+          currentSegDates.push(currDateStr);
         } else {
           // Gap detected (weekend, holiday, leave, non-working day)
-          const segStartStr = String(currentSegSchedules[0]!.schedule_date).split('T')[0]!;
-          const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
+          const segStartStr = currentSegDates[0]!;
+          const segEndStr = lastDateStr;
           const segStartDate = parseDateLocal(segStartStr);
           const rawSegEnd = parseDateLocal(segEndStr);
-          if (!segStartDate || !rawSegEnd) {
-            currentSegSchedules = [curr];
-            continue;
+          if (segStartDate && rawSegEnd) {
+            const segEndDate = addDays(rawSegEnd, 1);
+            const segHours = currentSegDates.reduce(
+              (sum, d) => sum + (dateMap.get(d) || 0),
+              0,
+            );
+
+            segments.push({
+              startDate: segStartDate,
+              endDate: segEndDate,
+              startStr: segStartStr,
+              endStr: segEndStr,
+              durationDays: Math.max(
+                1,
+                Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
+              ),
+              allocatedHours: Math.round(segHours * 10) / 10,
+              daysCount: currentSegDates.length,
+            });
           }
-          const segEndDate = addDays(rawSegEnd, 1);
-          const segHours = currentSegSchedules.reduce(
-            (sum, s) => sum + Number(s.allocated_hours),
-            0,
-          );
-
-          segments.push({
-            startDate: segStartDate,
-            endDate: segEndDate,
-            startStr: segStartStr,
-            endStr: segEndStr,
-            durationDays: Math.max(
-              1,
-              Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
-            ),
-            allocatedHours: Math.round(segHours * 10) / 10,
-            daysCount: currentSegSchedules.length,
-          });
-
-          currentSegSchedules = [curr];
+          currentSegDates = [currDateStr];
         }
       }
     }
 
-    if (currentSegSchedules.length > 0) {
-      const segStartStr = String(currentSegSchedules[0]!.schedule_date).split('T')[0]!;
-      const lastInSeg = currentSegSchedules[currentSegSchedules.length - 1]!;
-      const segEndStr = String(lastInSeg.schedule_date).split('T')[0]!;
+    if (currentSegDates.length > 0) {
+      const segStartStr = currentSegDates[0]!;
+      const segEndStr = currentSegDates[currentSegDates.length - 1]!;
       const segStartDate = parseDateLocal(segStartStr);
       const rawSegEnd = parseDateLocal(segEndStr);
       if (segStartDate && rawSegEnd) {
         const segEndDate = addDays(rawSegEnd, 1);
-        const segHours = currentSegSchedules.reduce((sum, s) => sum + Number(s.allocated_hours), 0);
+        const segHours = currentSegDates.reduce(
+          (sum, d) => sum + (dateMap.get(d) || 0),
+          0,
+        );
 
         segments.push({
           startDate: segStartDate,
@@ -859,7 +926,7 @@ function getTaskWorkSegments(task: Task): {
             Math.round((segEndDate.getTime() - segStartDate.getTime()) / (24 * 60 * 60 * 1000)),
           ),
           allocatedHours: Math.round(segHours * 10) / 10,
-          daysCount: currentSegSchedules.length,
+          daysCount: currentSegDates.length,
         });
       }
     }
@@ -876,7 +943,6 @@ function getTaskWorkSegments(task: Task): {
         totalHours: Math.round(totalHours * 10) / 10,
       };
     }
-    // all schedule rows had bad dates — fall through to date-field fallback
   }
 
   // Fallback: No schedule allocations yet (e.g. unassigned or pending recalculation)
@@ -895,7 +961,20 @@ function getTaskWorkSegments(task: Task): {
     1,
     Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)),
   );
-  const fallbackHours = Number(task.expected_effort) || 0;
+
+  // If multiple assignees, fallback working duration is divided by assignee count
+  const rawAssignees = (task as unknown as Record<string, unknown>).assigned_resource_ids;
+  let numAssignees = 1;
+  if (Array.isArray(rawAssignees)) {
+    numAssignees = Math.max(1, rawAssignees.length);
+  } else if (typeof rawAssignees === 'string' && rawAssignees.trim()) {
+    numAssignees = Math.max(
+      1,
+      rawAssignees.split(',').filter((s) => s.trim().length > 0).length,
+    );
+  }
+  const totalEffort = Number(task.expected_effort) || 0;
+  const fallbackHours = Number((totalEffort / numAssignees).toFixed(2));
 
   const singleSegment: TaskWorkSegment = {
     startDate,
@@ -952,18 +1031,38 @@ function applyColumnsConfig() {
           `<div class="gantt-col-task is-supervised-task" title="Supervised Deliverable (Review: ${supH}h / 20%)">` +
           `<span class="task-icon-supervisor">🛡️</span>` +
           `<span class="task-title ellipsis text-weight-bold" style="color: #b45309;">${text}</span>` +
-          `<span class="task-count-pill" style="background: rgba(245, 158, 11, 0.2); color: #b45309; margin-left: 4px;">🛡️ ${supH}h (20%)</span>` +
+          `<span class="task-count-pill" style="background: rgba(245, 158, 11, 0.2); color: #b45309; margin-left: auto;">🛡️ ${supH}h (20%)</span>` +
           `</div>`
         );
       }
-      const baseH = Number(task.expected_effort || task.total_hours || 0);
+      const baseH = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
       let effortTag = '';
-      if (task.supervisor_name || task.supervisor_id) {
-        const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
-        const totalReq = Number((baseH + supH).toFixed(1));
-        effortTag = `<span class="task-count-pill" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; margin-left: 4px;" title="Required Effort: ${totalReq}h (${baseH}h resource + ${supH}h supervisor)">${totalReq}h (${baseH}+${supH})</span>`;
-      } else if (baseH > 0) {
-        effortTag = `<span class="task-count-pill" style="background: #f1f5f9; color: #475569; margin-left: 4px;" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+      const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
+      const assigneesCount = Number(task.assignees_count || 1);
+      const isResourceMode = Boolean(props.isResourceView);
+
+      if (isResourceMode) {
+        if (assigneesCount > 1) {
+          const share = Number(task.expected_effort || (baseH / assigneesCount).toFixed(1));
+          effortTag = `<span class="task-count-pill" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; margin-left: auto;" title="Your Share: ${share}h (1/${assigneesCount} of ${baseH}h total)">${share}h (1/${assigneesCount})</span>`;
+        } else if (baseH > 0) {
+          effortTag = `<span class="task-count-pill" style="background: #f1f5f9; color: #475569; margin-left: auto;" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+        }
+      } else {
+        // Project View
+        if (hasSupervisor) {
+          const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
+          const totalReq = Number(task.total_expected_effort ?? (baseH + supH).toFixed(1));
+          const splitLabel = assigneesCount > 1
+            ? `${baseH}h dev [${assigneesCount} members] + ${supH}h sup`
+            : `${baseH}h dev + ${supH}h sup`;
+          effortTag = `<span class="task-count-pill" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; margin-left: auto;" title="Total Required: ${totalReq}h (${splitLabel})">${totalReq}h (${baseH}+${supH})</span>`;
+        } else if (assigneesCount > 1) {
+          const share = Number((baseH / assigneesCount).toFixed(1));
+          effortTag = `<span class="task-count-pill" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; margin-left: auto;" title="Total: ${baseH}h (${share}h each across ${assigneesCount} members)">${baseH}h (${share}h ea)</span>`;
+        } else if (baseH > 0) {
+          effortTag = `<span class="task-count-pill" style="background: #f1f5f9; color: #475569; margin-left: auto;" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+        }
       }
       return (
         `<div class="gantt-col-task" title="${text}">` +
@@ -1040,13 +1139,33 @@ function applyColumnsConfig() {
         }
         if (task.is_supervised) {
           const supH = Number(task.supervisor_effort || 0);
-          return `<span class="effort-badge sup-effort-badge" title="Supervisor Oversight: ${supH}h">🛡️ ${supH}h (20%)</span>`;
+          return `<span class="effort-badge sup-effort-badge" title="Supervisor Oversight: ${supH}h (20%)">🛡️ ${supH}h (20%)</span>`;
         }
-        const baseH = Number(task.expected_effort || task.total_hours || 0);
-        if (task.supervisor_name || task.supervisor_id) {
+        const baseH = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
+        const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
+        const assigneesCount = Number(task.assignees_count || 1);
+        const isResourceMode = Boolean(props.isResourceView);
+
+        if (isResourceMode) {
+          if (assigneesCount > 1) {
+            const share = Number(task.expected_effort || (baseH / assigneesCount).toFixed(1));
+            return `<span class="effort-badge" style="background: rgba(59, 130, 246, 0.12); color: #2563eb;" title="Your Assigned Share: ${share}h (Total task effort: ${baseH}h across ${assigneesCount} resources)"><b>${share}h</b> <span class="text-caption text-grey-6">(1/${assigneesCount})</span></span>`;
+          }
+          return `<span class="effort-badge" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+        }
+
+        // Project View
+        if (hasSupervisor) {
           const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
-          const totalReq = Number((baseH + supH).toFixed(1));
-          return `<span class="effort-badge combined-effort-badge" title="Total Required: ${totalReq}h (${baseH}h assignee + ${supH}h supervisor)"><b>${totalReq}h</b> <span class="sup-split">(${baseH}+${supH})</span></span>`;
+          const totalReq = Number(task.total_expected_effort ?? (baseH + supH).toFixed(1));
+          const splitTitle = assigneesCount > 1
+            ? `Total Required: ${totalReq}h (${baseH}h dev divided among ${assigneesCount} assignees + ${supH}h supervisor)`
+            : `Total Required: ${totalReq}h (${baseH}h assignee + ${supH}h supervisor)`;
+          return `<span class="effort-badge combined-effort-badge" title="${splitTitle}"><b>${totalReq}h</b> <span class="sup-split">(${baseH}+${supH})</span></span>`;
+        }
+        if (assigneesCount > 1) {
+          const share = Number((baseH / assigneesCount).toFixed(1));
+          return `<span class="effort-badge" title="Total: ${baseH}h (${share}h each across ${assigneesCount} assignees)"><b>${baseH}h</b> <span class="text-caption text-grey-6">(${share}h ea)</span></span>`;
         }
         return `<span class="effort-badge" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
       },
@@ -1060,10 +1179,22 @@ function applyColumnsConfig() {
       max_width: 80,
       resize: true,
       template: (task: DhtmlxGanttTaskItem) => {
-        const dur = Math.max(1, Math.round(Number(task.duration) || 1));
         const isProj = task.type === 'project';
-        const daysLabel = dur === 1 ? '1 day' : `${dur} days`;
-        return `<span class="duration-badge ${isProj ? 'project-dur-badge' : ''}" title="Duration: ${daysLabel}">${dur}d</span>`;
+        if (isProj) {
+          const dur = Math.max(1, Math.round(Number(task.duration) || 1));
+          return `<span class="duration-badge project-dur-badge" title="Project Duration: ${dur} days">${dur}d</span>`;
+        }
+        const hours =
+          task.duration_hours !== undefined
+            ? task.duration_hours
+            : (Number(task.duration) || 1) * 8;
+        if (hours < 8) {
+          const formattedH = Number(hours.toFixed(1));
+          return `<span class="duration-badge" title="Duration: ${formattedH} working hours (${(hours / 8).toFixed(2)}d)">${formattedH}h</span>`;
+        }
+        const days = Number((hours / 8).toFixed(1));
+        const daysDisplay = days === Math.round(days) ? `${Math.round(days)}d` : `${days}d`;
+        return `<span class="duration-badge" title="Duration: ${daysDisplay} (${hours} working hours)">${daysDisplay}</span>`;
       },
     },
   ];
@@ -1212,18 +1343,36 @@ function configureGanttEngine() {
     }
 
     const segments = task.segments || [];
-    const baseEffort = Number(task.expected_effort || task.total_hours || 0);
+    const baseEffort = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
     const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
-    const combinedEffort = Number((baseEffort + supEffort).toFixed(1));
+    const combinedEffort = Number(task.total_expected_effort ?? (baseEffort + supEffort).toFixed(1));
     const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
     const supervisorLabel =
       task.supervisor_name ||
       (task.supervisor_id ? `Supervisor #${task.supervisor_id}` : 'Supervisor');
-    const effortText = hasSupervisor
-      ? ` · ${combinedEffort}h [${baseEffort}h + ${supEffort}h 🛡️ ${escapeHtml(supervisorLabel)}]`
-      : baseEffort > 0
-        ? ` · ${baseEffort}h`
-        : '';
+    const assigneesCount = Number(task.assignees_count || 1);
+    const isResourceMode = Boolean(props.isResourceView);
+
+    let effortText = '';
+    if (isResourceMode) {
+      if (task.is_supervised) {
+        effortText = ` · 🛡️ ${supEffort}h (20% review)`;
+      } else if (assigneesCount > 1) {
+        const share = Number(task.effort_per_assignee || task.expected_effort || (baseEffort / assigneesCount).toFixed(1));
+        effortText = ` · ${share}h (1/${assigneesCount} of ${baseEffort}h)`;
+      } else if (baseEffort > 0) {
+        effortText = ` · ${baseEffort}h`;
+      }
+    } else {
+      if (hasSupervisor) {
+        effortText = ` · ${combinedEffort}h [${baseEffort}h + ${supEffort}h 🛡️ ${escapeHtml(supervisorLabel)}]`;
+      } else if (assigneesCount > 1) {
+        const share = Number(task.effort_per_assignee || (baseEffort / assigneesCount).toFixed(1));
+        effortText = ` · ${baseEffort}h (${share}h ea)`;
+      } else if (baseEffort > 0) {
+        effortText = ` · ${baseEffort}h`;
+      }
+    }
 
     if (segments.length === 0) {
       const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
@@ -1255,8 +1404,9 @@ function configureGanttEngine() {
 
       if (activeScale.value === 'hour') {
         let segStartH = 10;
+        let segStartM = 0;
         if (idx === 0) {
-          const pStart = parseIsoToDate(task.actual_start || task.planned_start);
+          const pStart = parseIsoToDate(task.actual_start || task.planned_start) || taskStartD;
           if (
             pStart &&
             formatDateIso(pStart) === seg.startStr &&
@@ -1264,11 +1414,13 @@ function configureGanttEngine() {
             pStart.getHours() < 18
           ) {
             segStartH = pStart.getHours();
+            segStartM = pStart.getMinutes();
           }
         }
         let segEndH = 18;
+        let segEndM = 0;
         if (idx === segments.length - 1) {
-          const pEnd = parseIsoToDate(task.actual_end || task.planned_end);
+          const pEnd = parseIsoToDate(task.actual_end || task.planned_end) || taskEndD;
           if (
             pEnd &&
             (formatDateIso(pEnd) === seg.endStr ||
@@ -1277,6 +1429,7 @@ function configureGanttEngine() {
             pEnd.getHours() <= 18
           ) {
             segEndH = pEnd.getHours();
+            segEndM = pEnd.getMinutes();
           }
         }
         actualSegStart = new Date(
@@ -1284,7 +1437,7 @@ function configureGanttEngine() {
           seg.startDate.getMonth(),
           seg.startDate.getDate(),
           segStartH,
-          0,
+          segStartM,
           0,
         );
         actualSegEnd = new Date(
@@ -1292,54 +1445,15 @@ function configureGanttEngine() {
           addDays(seg.endDate, -1).getMonth(),
           addDays(seg.endDate, -1).getDate(),
           segEndH,
-          0,
+          segEndM,
           0,
         );
       } else {
         const isFirstSeg = idx === 0;
         const isLastSeg = idx === segments.length - 1;
 
-        if (
-          isFirstSeg &&
-          taskStartD.getHours() === 12 &&
-          formatDateIso(taskStartD) === seg.startStr
-        ) {
-          actualSegStart = new Date(
-            seg.startDate.getFullYear(),
-            seg.startDate.getMonth(),
-            seg.startDate.getDate(),
-            12,
-            0,
-            0,
-          );
-        } else {
-          actualSegStart = new Date(
-            seg.startDate.getFullYear(),
-            seg.startDate.getMonth(),
-            seg.startDate.getDate(),
-            0,
-            0,
-            0,
-          );
-        }
-
-        const lastDayOfSegStr = formatDateIso(addDays(seg.endDate, -1));
-        if (
-          isLastSeg &&
-          taskEndD.getHours() === 12 &&
-          (formatDateIso(taskEndD) === lastDayOfSegStr || formatDateIso(taskEndD) === seg.endStr)
-        ) {
-          actualSegEnd = new Date(
-            taskEndD.getFullYear(),
-            taskEndD.getMonth(),
-            taskEndD.getDate(),
-            12,
-            0,
-            0,
-          );
-        } else {
-          actualSegEnd = seg.endDate;
-        }
+        actualSegStart = isFirstSeg ? taskStartD : seg.startDate;
+        actualSegEnd = isLastSeg ? taskEndD : seg.endDate;
       }
 
       const segStartX = gantt.posFromDate(actualSegStart);
@@ -1349,8 +1463,9 @@ function configureGanttEngine() {
       const segWidth = Math.min(rawSegWidth, Math.max(12, taskTotalWidth - segLeft));
 
       const isMulti = segments.length > 1;
+      const targetEffort = isResourceMode ? (task.expected_effort || baseEffort) : combinedEffort;
       const segLabel = isMulti
-        ? `${text} [Part ${idx + 1}/${segments.length}: ${seg.allocatedHours}h / ${combinedEffort}h req]`
+        ? `${text} [Part ${idx + 1}/${segments.length}: ${seg.allocatedHours}h / ${targetEffort}h req]`
         : `${text}${task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : ''}${effortText}`;
 
       return (
@@ -1423,9 +1538,8 @@ function configureGanttEngine() {
     } else {
       dateRange = startStr === endStr ? startStr : `${startStr} – ${endStr}`;
     }
-    const durationDays = Number(
-      Math.max(0.5, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)).toFixed(1),
-    );
+    const rawDurDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    const durationDays = Number(Math.max(0.1, rawDurDays).toFixed(2));
     const pct = Math.round((Number(task.progress) || 0) * 100);
 
     if (task.type === 'project') {
@@ -1462,9 +1576,10 @@ function configureGanttEngine() {
       : task.supervisor_id
         ? `Supervisor #${task.supervisor_id}`
         : null;
-    const baseEffort = Number(task.expected_effort || task.total_hours || 0);
+    const baseEffort = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
     const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
-    const combinedEffort = Number((baseEffort + supEffort).toFixed(1));
+    const combinedEffort = Number(task.total_expected_effort ?? (baseEffort + supEffort).toFixed(1));
+    const assigneesCount = Number(task.assignees_count || 1);
     const statusText = task.status ? task.status.replace(/_/g, ' ') : '—';
     const priorityText = task.priority || '—';
     const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
@@ -1488,21 +1603,27 @@ function configureGanttEngine() {
       segmentsHtml = `<div class="tooltip-row column items-start"><span class="tooltip-k q-mb-xs">Work Segments (${task.segments.length}):</span><div class="tooltip-segments-list">${segsList}</div></div>`;
     }
 
+    const assigneeDetail = task.is_supervised
+      ? 'Supervisor Oversight (Review)'
+      : assigneesCount > 1
+        ? `${assignee} (${baseEffort}h total · ${task.effort_per_assignee || (baseEffort / assigneesCount).toFixed(1)}h each)`
+        : `${assignee} (${baseEffort}h)`;
+
     return (
       `<div class="gantt-tooltip-card">` +
       `<div class="tooltip-header"><div class="tooltip-title">${task.is_supervised ? '🛡️ ' : ''}${text}</div><div class="tooltip-project-tag">${projName}</div></div>` +
       `<div class="tooltip-body">` +
       `<div class="tooltip-row"><span class="tooltip-k">Status:</span><span class="tooltip-v">${statusText}</span></div>` +
       `<div class="tooltip-row"><span class="tooltip-k">Priority:</span><span class="tooltip-v">${priorityText}</span></div>` +
-      `<div class="tooltip-row"><span class="tooltip-k">Assignee:</span><span class="tooltip-v">${assignee} (${baseEffort}h)</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">${task.is_supervised ? 'Role' : 'Assignee'}:</span><span class="tooltip-v">${assigneeDetail}</span></div>` +
       (hasSupervisor && supName
         ? `<div class="tooltip-row"><span class="tooltip-k">Supervisor (20%):</span><span class="tooltip-v text-amber-9 font-weight-bold">🛡️ ${supName} (${supEffort}h)</span></div>`
         : '') +
       (hasSupervisor
-        ? `<div class="tooltip-row"><span class="tooltip-k">Combined Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${combinedEffort} hrs</span></div>`
+        ? `<div class="tooltip-row"><span class="tooltip-k">Combined Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${combinedEffort} hrs (${baseEffort}h dev + ${supEffort}h sup)</span></div>`
         : `<div class="tooltip-row"><span class="tooltip-k">Scheduled Effort:</span><span class="tooltip-v text-purple-7 font-weight-bold">${totalHoursText}</span></div>`) +
       `<div class="tooltip-row"><span class="tooltip-k">Planned Timeline:</span><span class="tooltip-v text-grey-8">${pStartStr} – ${pEndStr}</span></div>` +
-      `<div class="tooltip-row"><span class="tooltip-k">Scheduled Span:</span><span class="tooltip-v">${dateRange} (${durationDays}d)</span></div>` +
+      `<div class="tooltip-row"><span class="tooltip-k">Scheduled Span:</span><span class="tooltip-v">${dateRange} (${task.duration_hours !== undefined && task.duration_hours < 8 ? `${Number(task.duration_hours.toFixed(1))}h / ${durationDays}d` : `${durationDays}d`})</span></div>` +
       segmentsHtml +
       `<div class="tooltip-row"><span class="tooltip-k">Progress:</span><div class="tooltip-progress-box"><div class="tooltip-bar"><div class="fill" style="width: ${pct}%"></div></div><span>${pct}%</span></div></div>` +
       `</div>` +
@@ -2065,17 +2186,6 @@ function buildGanttDataset() {
         totalWeightedProgress += prog * dur;
         totalDuration += dur;
 
-        const { start: resolvedChildStart, end: resolvedChildEnd } = computeTaskGanttDates(
-          t,
-          tStart,
-          tEnd,
-          segments,
-        );
-
-        if (!earliestStart || resolvedChildStart < earliestStart)
-          earliestStart = resolvedChildStart;
-        if (!latestEnd || resolvedChildEnd > latestEnd) latestEnd = resolvedChildEnd;
-
         const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
         const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
         const supName = resolveSupervisorName(t);
@@ -2083,13 +2193,38 @@ function buildGanttDataset() {
         const isSupervisedByMe = Boolean(myId && supId === myId && !assignedIds.includes(myId));
         const resolvedAssigneeName = resolveAssigneeName(t);
         const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
-        const supervisorEffort = Number((baseExpectedEffort * 0.2).toFixed(1));
+        const supervisorEffort = supId ? Number((baseExpectedEffort * 0.2).toFixed(1)) : 0;
+        const totalReq = supId ? Number((baseExpectedEffort + supervisorEffort).toFixed(1)) : baseExpectedEffort;
+        const assigneesCount = Math.max(1, assignedIds.length || 1);
+        const effortPerAssignee = Number((baseExpectedEffort / assigneesCount).toFixed(2));
+
+        const displayExpectedEffort = props.isResourceView
+          ? (isSupervisedByMe ? supervisorEffort : effortPerAssignee)
+          : totalReq;
+
+        const targetDurationHours = props.isResourceView
+          ? displayExpectedEffort
+          : (supId ? Number((effortPerAssignee + supervisorEffort).toFixed(2)) : effortPerAssignee);
+
+        const { start: resolvedChildStart, end: resolvedChildEnd } = computeTaskGanttDates(
+          t,
+          tStart,
+          tEnd,
+          segments,
+          targetDurationHours,
+        );
+
+        if (!earliestStart || resolvedChildStart < earliestStart)
+          earliestStart = resolvedChildStart;
+        if (!latestEnd || resolvedChildEnd > latestEnd) latestEnd = resolvedChildEnd;
 
         childTaskDataItems.push({
           id: t.task_id,
           text: t.title,
           start_date: formatGanttDate(resolvedChildStart),
           end_date: formatGanttDate(resolvedChildEnd),
+          duration: Number((targetDurationHours / 8).toFixed(2)),
+          duration_hours: targetDurationHours,
           progress: (Number(t.progress) || 0) / 100,
           parent: `proj_${p.project_id}`,
           priority: t.priority,
@@ -2099,7 +2234,11 @@ function buildGanttDataset() {
           supervisor_id: supId,
           supervisor_name: supName,
           is_supervised: isSupervisedByMe,
-          expected_effort: baseExpectedEffort,
+          expected_effort: displayExpectedEffort,
+          total_expected_effort: totalReq,
+          base_expected_effort: baseExpectedEffort,
+          assignees_count: assigneesCount,
+          effort_per_assignee: effortPerAssignee,
           actual_effort: Number(t.actual_effort || 0),
           supervisor_effort: supervisorEffort,
           type: 'task',
@@ -2169,27 +2308,43 @@ function buildGanttDataset() {
 
       const p = projectMap.value.get(t.project_id);
 
+      const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
+      const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
+      const supName = resolveSupervisorName(t);
+      const assignedIds = parseResourceIds(t.assigned_resource_ids);
+      const isSupervisedByMe = Boolean(
+        t.is_supervised || (myId && supId === myId && !assignedIds.includes(myId))
+      );
+      const resolvedAssigneeName = resolveAssigneeName(t);
+      const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
+      const supervisorEffort = supId ? Number((baseExpectedEffort * 0.2).toFixed(1)) : 0;
+      const assigneesCount = Math.max(1, assignedIds.length || 1);
+      const effortPerAssignee = Number((baseExpectedEffort / assigneesCount).toFixed(2));
+      const totalReq = supId ? Number((baseExpectedEffort + supervisorEffort).toFixed(1)) : baseExpectedEffort;
+
+      const displayExpectedEffort = props.isResourceView
+        ? (isSupervisedByMe ? supervisorEffort : effortPerAssignee)
+        : totalReq;
+
+      const targetDurationHours = props.isResourceView
+        ? displayExpectedEffort
+        : (supId ? Number((effortPerAssignee + supervisorEffort).toFixed(2)) : effortPerAssignee);
+
       const { start: resolvedFlatStart, end: resolvedFlatEnd } = computeTaskGanttDates(
         t,
         tStart,
         tEnd,
         segments,
+        targetDurationHours,
       );
-
-      const myId = authStore.user?.user_id ? Number(authStore.user.user_id) : null;
-      const supId = t.supervisor_id ? Number(t.supervisor_id) : null;
-      const supName = resolveSupervisorName(t);
-      const assignedIds = parseResourceIds(t.assigned_resource_ids);
-      const isSupervisedByMe = Boolean(myId && supId === myId && !assignedIds.includes(myId));
-      const resolvedAssigneeName = resolveAssigneeName(t);
-      const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
-      const supervisorEffort = Number((baseExpectedEffort * 0.2).toFixed(1));
 
       data.push({
         id: t.task_id,
         text: t.title,
         start_date: formatGanttDate(resolvedFlatStart),
         end_date: formatGanttDate(resolvedFlatEnd),
+        duration: Number((targetDurationHours / 8).toFixed(2)),
+        duration_hours: targetDurationHours,
         progress: (Number(t.progress) || 0) / 100,
         priority: t.priority,
         status: t.status,
@@ -2198,7 +2353,11 @@ function buildGanttDataset() {
         supervisor_id: supId,
         supervisor_name: supName,
         is_supervised: isSupervisedByMe,
-        expected_effort: baseExpectedEffort,
+        expected_effort: displayExpectedEffort,
+        total_expected_effort: totalReq,
+        base_expected_effort: baseExpectedEffort,
+        assignees_count: assigneesCount,
+        effort_per_assignee: effortPerAssignee,
         actual_effort: Number(t.actual_effort || 0),
         supervisor_effort: supervisorEffort,
         type: 'task',
@@ -2937,6 +3096,21 @@ defineExpose({
       font-size: 12px;
       color: #334155;
       font-weight: 500;
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task-count-pill {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+      margin-left: auto;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
   }
 
@@ -3677,6 +3851,9 @@ body.body--dark {
     .gantt-col-task {
       .task-title {
         color: #cbd5e1;
+      }
+      .task-count-pill {
+        white-space: nowrap;
       }
     }
 

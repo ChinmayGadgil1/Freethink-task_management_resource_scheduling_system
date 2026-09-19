@@ -1618,6 +1618,12 @@
                           <span class="text-caption text-weight-bold">hrs</span>
                         </div>
                         <div
+                          v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 1"
+                          class="text-caption text-weight-medium text-primary q-mt-xs"
+                        >
+                          ({{ (Number(task.expected_effort || 0) / task.assigned_resource_ids.length).toFixed(1) }}h each across {{ task.assigned_resource_ids.length }} members)
+                        </div>
+                        <div
                           v-if="task.supervisor_id"
                           class="text-caption text-weight-medium text-amber-9 q-mt-xs"
                         >

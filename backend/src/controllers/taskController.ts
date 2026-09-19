@@ -352,12 +352,13 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
 
         await updateTask(taskId, parsed);
 
-        // Hook SchedulingEngine.recalculate when priority, effort, deadline, or status updates
+        // Hook SchedulingEngine.recalculate when priority, effort, deadline, status, or supervisor updates
         if (
             parsed.priority !== undefined ||
             parsed.expected_effort !== undefined ||
             parsed.deadline !== undefined ||
-            parsed.status !== undefined
+            parsed.status !== undefined ||
+            parsed.supervisor_id !== undefined
         ) {
             try {
                 await recalculateSchedule(task.project_id);

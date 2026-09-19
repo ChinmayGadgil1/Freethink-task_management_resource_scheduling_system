@@ -150,18 +150,35 @@ export function canCompleteBy(
     earliestStart?: Date
 ): boolean {
     const resourceIds = taskResources.get(task.task_id) ?? [];
+    const taskSupervisorId = task.supervisor_id ? Number(task.supervisor_id) : null;
 
-    let remainingEffort = Math.max(
-        0,
-        Number(task.expected_effort) - Number(task.actual_effort)
-    );
-
-    if (remainingEffort <= 0) {
+    if (task.status === "COMPLETED") {
         return true;
     }
 
     if (resourceIds.length === 0) {
         return false;
+    }
+
+    const N = resourceIds.length;
+    const sharePerAssignee = Number((Number(task.expected_effort) / N).toFixed(2));
+    const actualPerAssignee = Number((Number(task.actual_effort) / N).toFixed(2));
+
+    const remainingPerResource = new Map<number, number>();
+    let totalAssigneeRem = 0;
+    for (const uid of resourceIds) {
+        const rem = Math.max(0, Number((sharePerAssignee - actualPerAssignee).toFixed(2)));
+        remainingPerResource.set(uid, rem);
+        totalAssigneeRem = Number((totalAssigneeRem + rem).toFixed(2));
+    }
+
+    let supRemaining = 0;
+    if (taskSupervisorId) {
+        supRemaining = Number((Number(task.expected_effort) * 0.20).toFixed(2));
+    }
+
+    if (totalAssigneeRem <= 0 && supRemaining <= 0) {
+        return true;
     }
 
     const riskSchedule = new Map<number, Map<string, number>>();
@@ -176,19 +193,42 @@ export function canCompleteBy(
 
     const endDate = parseDateLocal(targetDate);
 
-    while (
-        currentDate <= endDate &&
-        remainingEffort > 0
-    ) {
+    while (currentDate <= endDate && (totalAssigneeRem > 0 || supRemaining > 0)) {
         const date = formatDateLocal(currentDate);
 
-        for (const userId of resourceIds) {
-            if (remainingEffort <= 0) {
-                break;
-            }
+        // Schedule assignees up to their target share
+        if (totalAssigneeRem > 0) {
+            for (const userId of resourceIds) {
+                const userRem = remainingPerResource.get(userId) ?? 0;
+                if (userRem <= 0) continue;
 
+                const availableHours = calculateAvailableHours(
+                    userId,
+                    date,
+                    resourceConfigs,
+                    holidays,
+                    leaves,
+                    riskSchedule
+                );
+
+                if (availableHours <= 0) continue;
+
+                const hoursToAllocate = Math.min(availableHours, userRem);
+                if (!riskSchedule.has(userId)) {
+                    riskSchedule.set(userId, new Map());
+                }
+                const userSchedule = riskSchedule.get(userId)!;
+                userSchedule.set(date, (userSchedule.get(date) ?? 0) + hoursToAllocate);
+
+                remainingPerResource.set(userId, Number((userRem - hoursToAllocate).toFixed(2)));
+                totalAssigneeRem = Number((totalAssigneeRem - hoursToAllocate).toFixed(2));
+            }
+        }
+
+        // Once assignees are complete, schedule supervisor review
+        if (totalAssigneeRem <= 0 && supRemaining > 0 && taskSupervisorId) {
             const availableHours = calculateAvailableHours(
-                userId,
+                taskSupervisorId,
                 date,
                 resourceConfigs,
                 holidays,
@@ -196,35 +236,22 @@ export function canCompleteBy(
                 riskSchedule
             );
 
-            if (availableHours <= 0) {
-                continue;
+            if (availableHours > 0) {
+                const hoursToAllocate = Math.min(availableHours, supRemaining);
+                if (!riskSchedule.has(taskSupervisorId)) {
+                    riskSchedule.set(taskSupervisorId, new Map());
+                }
+                const userSchedule = riskSchedule.get(taskSupervisorId)!;
+                userSchedule.set(date, (userSchedule.get(date) ?? 0) + hoursToAllocate);
+
+                supRemaining = Number((supRemaining - hoursToAllocate).toFixed(2));
             }
-
-            const hoursToAllocate = Math.min(
-                availableHours,
-                remainingEffort
-            );
-
-            if (!riskSchedule.has(userId)) {
-                riskSchedule.set(userId, new Map());
-            }
-
-            const userSchedule = riskSchedule.get(userId)!;
-
-            userSchedule.set(
-                date,
-                (userSchedule.get(date) ?? 0) + hoursToAllocate
-            );
-
-            remainingEffort -= hoursToAllocate;
         }
 
-        currentDate.setDate(
-            currentDate.getDate() + 1
-        );
+        currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return remainingEffort <= 0;
+    return totalAssigneeRem <= 0 && supRemaining <= 0;
 }
 
 export function calculateRisks(
@@ -378,6 +405,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     const tasks: Task[] = taskRows.map(row => ({
         task_id: Number(row.task_id),
         project_id: Number(row.project_id),
+        supervisor_id: row.supervisor_id ? Number(row.supervisor_id) : null,
         title: String(row.title),
         description: row.description ?? null,
         priority: row.priority,
@@ -440,12 +468,15 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     }
 
     for (const dep of dependencies) {
-        if (inDegree.has(dep.task_id) && inDegree.has(dep.predecessor_task_id)) {
-            adjList.get(dep.predecessor_task_id)!.push(dep.task_id);
-            inDegree.set(dep.task_id, inDegree.get(dep.task_id)! + 1);
-        }
+        const currentInDegree = inDegree.get(dep.task_id) ?? 0;
+        inDegree.set(dep.task_id, currentInDegree + 1);
+
+        const currentAdj = adjList.get(dep.predecessor_task_id) ?? [];
+        currentAdj.push(dep.task_id);
+        adjList.set(dep.predecessor_task_id, currentAdj);
     }
 
+    // Precalculate downstream dependency counts (transitive fan-out) for all tasks
     const downstreamCountMap = new Map<number, number>();
     for (const task of tasks) {
         downstreamCountMap.set(task.task_id, getDownstreamDependencyCount(task.task_id, dependencies));
@@ -469,7 +500,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         `
     );
 
-    // Fetch leave dates for resources involved in this project
+    // Fetch leave dates for resources involved in this project (including task supervisors)
     const [leaveRows] = await pool.query<RowDataPacket[]>(
         `
         SELECT
@@ -493,14 +524,20 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             JOIN projects p ON pm.project_id = p.project_id
             WHERE pm.project_id = ?
               AND p.deleted_at IS NULL
+            UNION
+            SELECT DISTINCT t.supervisor_id AS user_id
+            FROM tasks t
+            WHERE t.project_id = ?
+              AND t.supervisor_id IS NOT NULL
+              AND t.deleted_at IS NULL
         ) project_resources
             ON ul.user_id = project_resources.user_id
         WHERE ul.status = 'APPROVED'
         `,
-        [projectId, projectId]
+        [projectId, projectId, projectId]
     );
 
-    // Fetch non_working_days and daily_working_hours for resources involved in this project
+    // Fetch non_working_days and daily_working_hours for resources involved in this project (including supervisors)
     const [userRows] = await pool.query<RowDataPacket[]>(
         `
         SELECT
@@ -523,10 +560,16 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             JOIN projects p ON pm.project_id = p.project_id
             WHERE pm.project_id = ?
               AND p.deleted_at IS NULL
+            UNION
+            SELECT DISTINCT t.supervisor_id AS user_id
+            FROM tasks t
+            WHERE t.project_id = ?
+              AND t.supervisor_id IS NOT NULL
+              AND t.deleted_at IS NULL
         ) project_resources
             ON u.user_id = project_resources.user_id
         `,
-        [projectId, projectId]
+        [projectId, projectId, projectId]
     );
 
     const resourceConfigs = new Map<number, ResourceScheduleConfig>();
@@ -659,10 +702,24 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         const task = availableTasks.shift()!;
         
         const resourceIds = taskResources.get(task.task_id) ?? [];
-        let remainingEffort = Math.max(
-            0,
-            Number(task.expected_effort) - Number(task.actual_effort)
-        );
+        const taskSupervisorId = task.supervisor_id ? Number(task.supervisor_id) : null;
+        const N = resourceIds.length;
+
+        const sharePerAssignee = N > 0 ? Number((Number(task.expected_effort) / N).toFixed(2)) : 0;
+        const actualPerAssignee = N > 0 ? Number((Number(task.actual_effort) / N).toFixed(2)) : 0;
+
+        const remainingEffortPerResource = new Map<number, number>();
+        let totalAssigneeRemaining = 0;
+        for (const uid of resourceIds) {
+            const rem = Math.max(0, Number((sharePerAssignee - actualPerAssignee).toFixed(2)));
+            remainingEffortPerResource.set(uid, rem);
+            totalAssigneeRemaining = Number((totalAssigneeRemaining + rem).toFixed(2));
+        }
+
+        let supervisorRemaining = 0;
+        if (taskSupervisorId) {
+            supervisorRemaining = Number((Number(task.expected_effort) * 0.20).toFixed(2));
+        }
 
         let plannedStart: string | null = null;
         let plannedEnd: string | null = null;
@@ -670,7 +727,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         let taskEarliestStart = earliestStarts.get(task.task_id) ?? new Date(baselineDate);
         let taskFinalEnd: Date | null = null;
 
-        if (remainingEffort > 0 && resourceIds.length > 0 && task.status !== "UNASSIGNED") {
+        if ((totalAssigneeRemaining > 0 || supervisorRemaining > 0) && resourceIds.length > 0 && task.status !== "UNASSIGNED") {
             let currentDate = new Date(taskEarliestStart);
             currentDate.setHours(0, 0, 0, 0);
 
@@ -679,96 +736,180 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 initialAllocationsForRisk.set(uid, new Map(datesMap));
             }
 
-            while (remainingEffort > 0) {
+            // For multi-resource tasks, find the earliest working day where all assignees have capacity to work concurrently
+            if (resourceIds.length > 1) {
+                let checkDate = new Date(currentDate);
+                let daysChecked = 0;
+                while (daysChecked < 10) {
+                    const dStr = formatDateLocal(checkDate);
+                    if (checkDate.getDay() !== 0 && checkDate.getDay() !== 6 && !holidays.has(dStr)) {
+                        const allAvailable = resourceIds.every(uid => {
+                            const avail = getAvailableHours(uid, dStr);
+                            const already = resourceSchedule.get(uid)?.get(dStr) ?? 0;
+                            return (avail - already) > 0;
+                        });
+                        if (allAvailable) {
+                            currentDate = checkDate;
+                            break;
+                        }
+                    }
+                    checkDate.setDate(checkDate.getDate() + 1);
+                    daysChecked++;
+                }
+            }
+
+            // Phase 1: Schedule assignees concurrently up to their target share
+            while (totalAssigneeRemaining > 0) {
                 const date = formatDateLocal(currentDate);
                 let dependencyHourOffset = 0;
                 if (date === formatDateLocal(taskEarliestStart)) {
                     dependencyHourOffset = Math.max(0, taskEarliestStart.getHours() - 10 + taskEarliestStart.getMinutes() / 60);
                 }
 
-                let dailyCapacity = 0;
+                let allocatedAnyToday = false;
 
                 for (const userId of resourceIds) {
-                    const avail = getAvailableHours(userId, date);
-                    const userSched = resourceSchedule.get(userId);
-                    const alreadySched = userSched?.get(date) ?? 0;
-                    const extraLost = Math.max(0, dependencyHourOffset - alreadySched);
-                    dailyCapacity += Math.max(0, avail - extraLost);
-                }
+                    const userRemaining = remainingEffortPerResource.get(userId) ?? 0;
+                    if (userRemaining <= 0) {
+                        continue;
+                    }
 
-                if (dailyCapacity > 0) {
-                    let hoursRemainingToday = Math.min(
-                        remainingEffort,
-                        dailyCapacity
+                    const availableHours = getAvailableHours(userId, date);
+                    const userSchedMap = resourceSchedule.get(userId);
+                    const alreadyScheduled = userSchedMap?.get(date) ?? 0;
+                    const extraLost = Math.max(0, dependencyHourOffset - alreadyScheduled);
+                    const effectiveAvailableHours = Math.max(0, availableHours - extraLost);
+
+                    if (effectiveAvailableHours <= 0) {
+                        continue;
+                    }
+
+                    const hoursToAllocate = Number(Math.min(
+                        effectiveAvailableHours,
+                        userRemaining
+                    ).toFixed(2));
+
+                    if (hoursToAllocate <= 0) {
+                        continue;
+                    }
+
+                    if (!resourceSchedule.has(userId)) {
+                        resourceSchedule.set(userId, new Map());
+                    }
+
+                    const userSchedule = resourceSchedule.get(userId)!;
+                    const userLeaveType = leaveTypes.get(userId)?.get(date);
+                    let leaveStartOffset = 0;
+                    if (userLeaveType === 'FIRST_HALF') {
+                        leaveStartOffset = 4;
+                    }
+                    const startHourOffset = Math.max(alreadyScheduled, dependencyHourOffset, leaveStartOffset);
+                    const endHourOffset = Number((startHourOffset + hoursToAllocate).toFixed(2));
+                    
+                    const currentStartTime = formatDateTimeLocal(currentDate, startHourOffset);
+                    const currentEndTime = formatDateTimeLocal(currentDate, endHourOffset);
+
+                    if (plannedStart === null || currentStartTime < plannedStart) {
+                        plannedStart = currentStartTime;
+                    }
+                    if (plannedEnd === null || currentEndTime > plannedEnd) {
+                        plannedEnd = currentEndTime;
+                    }
+
+                    userSchedule.set(
+                        date,
+                        Number((startHourOffset + hoursToAllocate).toFixed(2))
                     );
 
-                    for (const userId of resourceIds) {
-                        if (hoursRemainingToday <= 0) {
-                            break;
-                        }
+                    taskScheduleEntries.push({
+                        task_id: task.task_id,
+                        user_id: userId,
+                        schedule_date: date,
+                        allocated_hours: hoursToAllocate
+                    });
 
-                        const availableHours = getAvailableHours(userId, date);
-                        const userSchedMap = resourceSchedule.get(userId);
-                        const alreadyScheduled = userSchedMap?.get(date) ?? 0;
-                        const extraLost = Math.max(0, dependencyHourOffset - alreadyScheduled);
-                        const effectiveAvailableHours = Math.max(0, availableHours - extraLost);
+                    remainingEffortPerResource.set(userId, Number((userRemaining - hoursToAllocate).toFixed(2)));
+                    totalAssigneeRemaining = Number((totalAssigneeRemaining - hoursToAllocate).toFixed(2));
+                    allocatedAnyToday = true;
+                }
 
-                        if (effectiveAvailableHours <= 0) {
-                            continue;
-                        }
-
-                        const hoursToAllocate = Number(Math.min(
-                            effectiveAvailableHours,
-                            hoursRemainingToday
-                        ).toFixed(2));
-
-                        if (!resourceSchedule.has(userId)) {
-                            resourceSchedule.set(userId, new Map());
-                        }
-
-                        const userSchedule = resourceSchedule.get(userId)!;
-                        const userLeaveType = leaveTypes.get(userId)?.get(date);
-                        let leaveStartOffset = 0;
-                        if (userLeaveType === 'FIRST_HALF') {
-                            leaveStartOffset = 4;
-                        }
-                        const startHourOffset = Math.max(alreadyScheduled, dependencyHourOffset, leaveStartOffset);
-                        const endHourOffset = Number((startHourOffset + hoursToAllocate).toFixed(2));
-                        
-                        const currentStartTime = formatDateTimeLocal(currentDate, startHourOffset);
-                        const currentEndTime = formatDateTimeLocal(currentDate, endHourOffset);
-
-                        if (plannedStart === null || currentStartTime < plannedStart) {
-                            plannedStart = currentStartTime;
-                        }
-                        if (plannedEnd === null || currentEndTime > plannedEnd) {
-                            plannedEnd = currentEndTime;
-                        }
-
-                        userSchedule.set(
-                            date,
-                            Number((startHourOffset + hoursToAllocate).toFixed(2))
-                        );
-
-                        taskScheduleEntries.push({
-                            task_id: task.task_id,
-                            user_id: userId,
-                            schedule_date: date,
-                            allocated_hours: hoursToAllocate
-                        });
-
-                        hoursRemainingToday = Number((hoursRemainingToday - hoursToAllocate).toFixed(2));
-                        remainingEffort = Number((remainingEffort - hoursToAllocate).toFixed(2));
-                    }
-
-                    if (plannedEnd) {
-                        taskFinalEnd = new Date(plannedEnd.replace(' ', 'T'));
-                    } else {
-                        taskFinalEnd = new Date(currentDate);
-                    }
+                if (allocatedAnyToday && plannedEnd) {
+                    taskFinalEnd = new Date(plannedEnd.replace(' ', 'T'));
                 }
 
                 currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            // Phase 2: Schedule supervisor review (20% of base effort)
+            if (taskSupervisorId && supervisorRemaining > 0) {
+                let supDate = taskFinalEnd ? new Date(taskFinalEnd) : new Date(taskEarliestStart);
+                let supHourOffset = Math.max(0, supDate.getHours() - 10 + supDate.getMinutes() / 60);
+                if (supHourOffset >= 8) {
+                    supDate.setDate(supDate.getDate() + 1);
+                    supHourOffset = 0;
+                }
+                supDate.setHours(0, 0, 0, 0);
+
+                while (supervisorRemaining > 0) {
+                    const dateStr = formatDateLocal(supDate);
+                    const availableHours = getAvailableHours(taskSupervisorId, dateStr);
+                    const userSchedMap = resourceSchedule.get(taskSupervisorId);
+                    const alreadyScheduled = userSchedMap?.get(dateStr) ?? 0;
+                    const extraLost = Math.max(0, supHourOffset - alreadyScheduled);
+                    const effectiveAvailableHours = Math.max(0, availableHours - extraLost);
+
+                    if (effectiveAvailableHours > 0) {
+                        const hoursToAllocate = Number(Math.min(
+                            effectiveAvailableHours,
+                            supervisorRemaining
+                        ).toFixed(2));
+
+                        if (hoursToAllocate > 0) {
+                            if (!resourceSchedule.has(taskSupervisorId)) {
+                                resourceSchedule.set(taskSupervisorId, new Map());
+                            }
+
+                            const userSchedule = resourceSchedule.get(taskSupervisorId)!;
+                            const userLeaveType = leaveTypes.get(taskSupervisorId)?.get(dateStr);
+                            let leaveStartOffset = 0;
+                            if (userLeaveType === 'FIRST_HALF') {
+                                leaveStartOffset = 4;
+                            }
+                            const startHourOffset = Math.max(alreadyScheduled, supHourOffset, leaveStartOffset);
+                            const endHourOffset = Number((startHourOffset + hoursToAllocate).toFixed(2));
+
+                            const currentStartTime = formatDateTimeLocal(supDate, startHourOffset);
+                            const currentEndTime = formatDateTimeLocal(supDate, endHourOffset);
+
+                            if (plannedStart === null || currentStartTime < plannedStart) {
+                                plannedStart = currentStartTime;
+                            }
+                            if (plannedEnd === null || currentEndTime > plannedEnd) {
+                                plannedEnd = currentEndTime;
+                            }
+
+                            userSchedule.set(
+                                dateStr,
+                                Number((startHourOffset + hoursToAllocate).toFixed(2))
+                            );
+
+                            taskScheduleEntries.push({
+                                task_id: task.task_id,
+                                user_id: taskSupervisorId,
+                                schedule_date: dateStr,
+                                allocated_hours: hoursToAllocate
+                            });
+
+                            supervisorRemaining = Number((supervisorRemaining - hoursToAllocate).toFixed(2));
+                            if (plannedEnd) {
+                                taskFinalEnd = new Date(plannedEnd.replace(' ', 'T'));
+                            }
+                        }
+                    }
+
+                    supHourOffset = 0;
+                    supDate.setDate(supDate.getDate() + 1);
+                }
             }
 
             const risks = calculateRisks(
