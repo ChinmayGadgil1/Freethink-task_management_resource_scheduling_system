@@ -16,10 +16,7 @@
         >
           Progress Submission History
         </div>
-        <div
-          class="text-body2 q-mt-xs"
-          :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'"
-        >
+        <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-3' : 'text-dark'">
           This report shows timestamped progress submissions recorded through work logs submitted by
           assigned resources. Direct PM progress edits are not historically tracked.
         </div>
@@ -249,6 +246,7 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from './PrintReportLayout.vue';
+import { extractDateOnly } from './reportCalculations';
 
 const props = defineProps<{
   feedLogs: ProgressFeedLog[];
@@ -301,18 +299,22 @@ function resetFilters() {
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '—';
-  try {
-    return dateStr.split('T')[0]!;
-  } catch {
-    return dateStr;
-  }
+  const d = extractDateOnly(dateStr);
+  return d || dateStr;
 }
 
 function formatTime(dateTimeStr?: string): string {
-  if (!dateTimeStr || !dateTimeStr.includes('T')) return '';
+  if (!dateTimeStr) return '';
   try {
-    const timePart = dateTimeStr.split('T')[1];
-    return timePart ? timePart.substring(0, 5) : '';
+    if (dateTimeStr.includes('T')) {
+      const timePart = dateTimeStr.split('T')[1];
+      return timePart ? timePart.substring(0, 5) : '';
+    }
+    if (dateTimeStr.includes(' ')) {
+      const timePart = dateTimeStr.split(' ')[1];
+      return timePart ? timePart.substring(0, 5) : '';
+    }
+    return '';
   } catch {
     return '';
   }
@@ -330,20 +332,18 @@ const filteredLogs = computed(() => {
   }
 
   if (startDateFilter.value) {
-    const startMs = new Date(startDateFilter.value).getTime();
     list = list.filter((l) => {
-      const dateStr = l.log_date || l.created_at;
+      const dateStr = extractDateOnly(l.log_date || l.created_at);
       if (!dateStr) return false;
-      return new Date(dateStr.split('T')[0]!).getTime() >= startMs;
+      return dateStr >= startDateFilter.value;
     });
   }
 
   if (endDateFilter.value) {
-    const endMs = new Date(endDateFilter.value).getTime();
     list = list.filter((l) => {
-      const dateStr = l.log_date || l.created_at;
+      const dateStr = extractDateOnly(l.log_date || l.created_at);
       if (!dateStr) return false;
-      return new Date(dateStr.split('T')[0]!).getTime() <= endMs;
+      return dateStr <= endDateFilter.value;
     });
   }
 

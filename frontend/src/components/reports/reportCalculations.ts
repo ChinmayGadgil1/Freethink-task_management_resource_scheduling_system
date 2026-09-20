@@ -6,6 +6,17 @@ import {
 } from '@/components/analytics/analyticsCalculations';
 import { isVerificationTask } from '@/utils/taskHelpers';
 
+/**
+ * Safely extracts a clean 'YYYY-MM-DD' date string from any ISO, datetime, or date representation.
+ */
+export function extractDateOnly(dateStr?: string | null): string | null {
+  if (!dateStr) return null;
+  const trimmed = String(dateStr).trim();
+  if (!trimmed) return null;
+  const part = trimmed.split('T')[0]!.split(' ')[0]!;
+  return part || null;
+}
+
 // --- Report 1: Project Progress ---
 export interface ProjectProgressReportRow {
   projectId: number;
@@ -68,8 +79,8 @@ export function computeProjectProgressReport(
       name: p.name,
       status: p.status,
       priority: p.priority,
-      startDate: p.start_date ? p.start_date.split('T')[0]! : '—',
-      deadline: p.deadline ? p.deadline.split('T')[0]! : '—',
+      startDate: extractDateOnly(p.start_date) || '—',
+      deadline: extractDateOnly(p.deadline) || '—',
       progress: Math.round(Number(p.progress) || 0),
       totalTasks,
       completedTasks,
@@ -155,15 +166,11 @@ export function computeTaskCompletionReport(
     const actualEffort = Math.round((Number(t.actual_effort) || 0) * 10) / 10;
     const effortVariance = Math.round((actualEffort - expectedEffort) * 10) / 10;
 
-    const completionDate = t.actual_end
-      ? t.actual_end.split('T')[0]!
-      : t.updated_at
-        ? t.updated_at.split('T')[0]!
-        : '—';
+    const completionDate = extractDateOnly(t.actual_end) || extractDateOnly(t.updated_at) || '—';
 
     let onTimeStatus: 'On Time' | 'Late' | 'No Deadline' = 'No Deadline';
-    if (t.deadline && completionDate !== '—') {
-      const dline = t.deadline.split('T')[0]!;
+    const dline = extractDateOnly(t.deadline);
+    if (dline && completionDate !== '—') {
       if (completionDate <= dline) {
         onTimeStatus = 'On Time';
         onTimeCount++;
@@ -174,7 +181,7 @@ export function computeTaskCompletionReport(
     }
 
     let turnaroundDays: number | null = null;
-    const startDateStr = t.actual_start || t.planned_start || t.created_at;
+    const startDateStr = extractDateOnly(t.actual_start || t.planned_start || t.created_at);
     if (startDateStr && completionDate !== '—') {
       const sMs = new Date(startDateStr).getTime();
       const eMs = new Date(completionDate).getTime();
@@ -188,7 +195,9 @@ export function computeTaskCompletionReport(
     let assignedResources = 'Unassigned';
     if (Array.isArray(t.assigned_resources) && t.assigned_resources.length > 0) {
       assignedResources = t.assigned_resources
-        .map((r) => r.name || `User #${r.user_id}`)
+        .map((r) =>
+          typeof r === 'object' && r !== null ? r.name || `User #${r.user_id}` : String(r),
+        )
         .join(', ');
     } else if (Array.isArray(t.assigned_resource_names) && t.assigned_resource_names.length > 0) {
       assignedResources = t.assigned_resource_names.join(', ');
@@ -272,7 +281,7 @@ export function computeDelayedTasksReport(
     if (isVerificationTask(t)) return;
     if (t.status === 'COMPLETED') return;
 
-    const deadlineStr = t.deadline ? t.deadline.split('T')[0]! : null;
+    const deadlineStr = extractDateOnly(t.deadline);
     const isPastDeadline = Boolean(deadlineStr && deadlineStr < todayStr);
 
     const expected = Number(t.expected_effort) || 0;
@@ -303,10 +312,8 @@ export function computeDelayedTasksReport(
       const dMs = new Date(deadlineStr).getTime();
       daysOverdue = Math.max(0, Math.round((nowMs - dMs) / (1000 * 60 * 60 * 24)));
     } else if (t.planned_end && deadlineStr) {
-      const pEndStr = t.planned_end.includes('T')
-        ? t.planned_end.split('T')[0]!
-        : t.planned_end.split(' ')[0]!;
-      if (pEndStr > deadlineStr) {
+      const pEndStr = extractDateOnly(t.planned_end);
+      if (pEndStr && pEndStr > deadlineStr) {
         const pMs = new Date(pEndStr).getTime();
         const dMs = new Date(deadlineStr).getTime();
         daysOverdue = Math.max(0, Math.round((pMs - dMs) / (1000 * 60 * 60 * 24)));
@@ -315,7 +322,11 @@ export function computeDelayedTasksReport(
 
     let assignees = 'Unassigned';
     if (Array.isArray(t.assigned_resources) && t.assigned_resources.length > 0) {
-      assignees = t.assigned_resources.map((r) => r.name || `User #${r.user_id}`).join(', ');
+      assignees = t.assigned_resources
+        .map((r) =>
+          typeof r === 'object' && r !== null ? r.name || `User #${r.user_id}` : String(r),
+        )
+        .join(', ');
     } else if (Array.isArray(t.assigned_resource_names) && t.assigned_resource_names.length > 0) {
       assignees = t.assigned_resource_names.join(', ');
     }
@@ -327,7 +338,7 @@ export function computeDelayedTasksReport(
       projectName: projectMap.get(t.project_id) || `Project #${t.project_id}`,
       assignees,
       deadline: deadlineStr || '—',
-      plannedEnd: t.planned_end ? t.planned_end.split('T')[0]!.split(' ')[0]! : '—',
+      plannedEnd: extractDateOnly(t.planned_end) || '—',
       daysOverdue,
       expectedEffort: expected,
       actualEffort: actual,
@@ -378,6 +389,7 @@ export function computeResourceWorkloadReport(
     if (selectedProjectId && selectedProjectId !== 'ALL') {
       assignedTasksCount = tasks.filter(
         (t) =>
+          !isVerificationTask(t) &&
           t.project_id === selectedProjectId &&
           t.status !== 'COMPLETED' &&
           (t.assigned_resource_ids?.includes(item.resourceId) ||
@@ -386,6 +398,7 @@ export function computeResourceWorkloadReport(
     } else {
       assignedTasksCount = tasks.filter(
         (t) =>
+          !isVerificationTask(t) &&
           t.status !== 'COMPLETED' &&
           (t.assigned_resource_ids?.includes(item.resourceId) ||
             t.assigned_resources?.some((ar) => ar.user_id === item.resourceId)),
@@ -510,18 +523,16 @@ export function computeDeadlineVarianceReport(
 
   tasks.forEach((t) => {
     if (isVerificationTask(t)) return;
-    if (!t.deadline) return;
+    const deadlineStr = extractDateOnly(t.deadline);
+    if (!deadlineStr) return;
 
-    const deadlineStr = t.deadline.split('T')[0]!;
     const deadlineMs = new Date(deadlineStr).getTime();
 
     let comparisonDateStr: string | null = null;
     if (t.status === 'COMPLETED' && t.actual_end) {
-      comparisonDateStr = t.actual_end.split('T')[0]!;
+      comparisonDateStr = extractDateOnly(t.actual_end);
     } else if (t.planned_end) {
-      comparisonDateStr = t.planned_end.includes('T')
-        ? t.planned_end.split('T')[0]!
-        : t.planned_end.split(' ')[0]!;
+      comparisonDateStr = extractDateOnly(t.planned_end);
     }
 
     if (!comparisonDateStr) return;
@@ -548,8 +559,8 @@ export function computeDeadlineVarianceReport(
       projectId: t.project_id,
       projectName: projectMap.get(t.project_id) || `Project #${t.project_id}`,
       deadline: deadlineStr,
-      plannedEnd: t.planned_end ? t.planned_end.split('T')[0]!.split(' ')[0]! : '—',
-      actualEnd: t.actual_end ? t.actual_end.split('T')[0]! : '—',
+      plannedEnd: extractDateOnly(t.planned_end) || '—',
+      actualEnd: extractDateOnly(t.actual_end) || '—',
       status: t.status,
       varianceDays,
       category,
@@ -586,25 +597,25 @@ export function computeScheduleSnapshotReport(
   return tasks
     .filter((t) => !isVerificationTask(t))
     .map((t) => {
-    let scheduleHealth = 'On Schedule';
-    if (t.status === 'COMPLETED') {
-      scheduleHealth = 'Completed';
-    } else if (t.is_deadline_at_risk) {
-      scheduleHealth = 'Deadline Slipping';
-    } else if (t.is_schedule_at_risk) {
-      scheduleHealth = 'Schedule At Risk';
-    }
+      let scheduleHealth = 'On Schedule';
+      if (t.status === 'COMPLETED') {
+        scheduleHealth = 'Completed';
+      } else if (t.is_deadline_at_risk) {
+        scheduleHealth = 'Deadline Slipping';
+      } else if (t.is_schedule_at_risk) {
+        scheduleHealth = 'Schedule At Risk';
+      }
 
-    return {
-      taskId: t.task_id,
-      title: t.title,
-      projectId: t.project_id,
-      projectName: projectMap.get(t.project_id) || `Project #${t.project_id}`,
-      plannedStart: t.planned_start ? t.planned_start.split('T')[0]!.split(' ')[0]! : '—',
-      plannedEnd: t.planned_end ? t.planned_end.split('T')[0]!.split(' ')[0]! : '—',
-      deadline: t.deadline ? t.deadline.split('T')[0]! : '—',
-      status: t.status,
-      scheduleHealth,
-    };
-  });
+      return {
+        taskId: t.task_id,
+        title: t.title,
+        projectId: t.project_id,
+        projectName: projectMap.get(t.project_id) || `Project #${t.project_id}`,
+        plannedStart: extractDateOnly(t.planned_start) || '—',
+        plannedEnd: extractDateOnly(t.planned_end) || '—',
+        deadline: extractDateOnly(t.deadline) || '—',
+        status: t.status,
+        scheduleHealth,
+      };
+    });
 }

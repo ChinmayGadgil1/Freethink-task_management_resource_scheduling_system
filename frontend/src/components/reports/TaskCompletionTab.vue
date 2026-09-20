@@ -449,7 +449,7 @@ const columns: QTableProps['columns'] = [
     sortable: true,
   },
   {
-    name: 'effort',
+    name: 'effortVariance',
     label: 'Actual / Planned Effort',
     field: 'actualEffort',
     align: 'right',

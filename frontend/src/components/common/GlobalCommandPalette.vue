@@ -408,6 +408,18 @@ const defaultActions = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
       },
     },
     {
+      id: 'act-pm-reports',
+      category: 'Navigation',
+      title: 'Project & Resource Reports',
+      subtitle: 'Audit progress, completion, workload, and schedule variance reports',
+      icon: 'assessment',
+      iconColor: 'text-purple',
+      iconBg: 'bg-purple-1',
+      action: () => {
+        void router.push('/pm/reports');
+      },
+    },
+    {
       id: 'act-pm-leaves',
       category: 'Navigation',
       title: 'Leave Approvals & Calendar',

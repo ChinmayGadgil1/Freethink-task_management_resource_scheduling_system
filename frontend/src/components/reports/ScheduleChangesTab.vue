@@ -8,7 +8,11 @@
         :class="$q.dark.isActive ? 'bg-amber-10 text-white' : 'bg-amber-1 text-dark border-amber'"
       >
         <template #avatar>
-          <q-icon name="history_toggle_off" :color="$q.dark.isActive ? 'amber-2' : 'amber-9'" size="32px" />
+          <q-icon
+            name="history_toggle_off"
+            :color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
+            size="32px"
+          />
         </template>
         <div
           class="text-subtitle1 text-weight-bold"
@@ -22,10 +26,7 @@
           audit histories (such as previous start/end dates, modification timestamps, or editor
           credentials).
         </div>
-        <div
-          class="text-caption q-mt-xs"
-          :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
-        >
+        <div class="text-caption q-mt-xs" :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'">
           Schedule version delta tracking will become available once automated schedule audit
           logging is introduced into the backend. Below is the
           <strong>Current Schedule Baseline Snapshot</strong> reflecting all active and completed
