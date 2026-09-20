@@ -330,6 +330,87 @@
                   </q-item>
                 </q-list>
               </q-card>
+
+              <!-- Supervised Tasks (Tasks you oversee & review, separated from self-initiated tasks) -->
+              <q-card
+                v-if="supervisedTasks.length > 0"
+                flat
+                bordered
+                class="rounded-borders overflow-hidden"
+              >
+                <q-card-section class="q-pa-md row items-center justify-between no-wrap">
+                  <div style="min-width: 0" class="q-pr-sm">
+                    <div
+                      class="text-subtitle1 text-weight-bold ellipsis row items-center gap-xs"
+                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                    >
+                      <q-icon name="verified_user" size="20px" color="amber-9" class="q-mr-xs" />
+                      <span>Supervised Tasks</span>
+                    </div>
+                    <div
+                      class="text-caption ellipsis"
+                      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+                    >
+                      Deliverables you oversee &amp; review
+                    </div>
+                  </div>
+                  <q-chip
+                    dense
+                    square
+                    :color="$q.dark.isActive ? 'amber-10' : 'amber-1'"
+                    :text-color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
+                    class="text-caption text-weight-bold col-auto"
+                  >
+                    {{ supervisedTasks.length }}
+                  </q-chip>
+                </q-card-section>
+
+                <q-separator />
+
+                <q-list separator>
+                  <q-item
+                    v-for="taskItem in supervisedTasks.slice(0, 4)"
+                    :key="taskItem.task_id"
+                    clickable
+                    v-ripple
+                    class="q-py-sm cursor-pointer"
+                    @click="goToTaskDetails(taskItem.task_id)"
+                  >
+                    <q-item-section>
+                      <q-item-label
+                        class="text-weight-bold ellipsis"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :title="taskItem.title"
+                      >
+                        {{ taskItem.title }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6 ellipsis">
+                        {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
+                        <span v-if="taskItem.created_by_name"> · Assigned by {{ taskItem.created_by_name }}</span>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <div class="column items-end gap-xs">
+                        <q-chip
+                          dense
+                          square
+                          :color="statusColor(taskItem.status)"
+                          :text-color="statusTextColor(taskItem.status)"
+                          class="text-caption text-weight-bold"
+                        >
+                          {{ taskItem.status.replace('_', ' ') }}
+                        </q-chip>
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        >
+                          {{ Number(taskItem.progress) || 0 }}%
+                        </div>
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-card>
             </div>
           </div>
 
@@ -524,11 +605,16 @@ const attentionTasks = computed(() => {
 
 const selfAssignedTasks = computed(() => {
   const myId = currentUserId.value;
-  return tasks.value.filter((t) => {
-    const isCreatedByMe = myId && Number(t.created_by) === myId;
-    const isSupervisorMe = myId && Number(t.supervisor_id) === myId;
-    return isCreatedByMe || isSupervisorMe;
-  });
+  if (!myId) return [];
+  return tasks.value.filter((t) => Number(t.created_by) === myId);
+});
+
+const supervisedTasks = computed(() => {
+  const myId = currentUserId.value;
+  if (!myId) return [];
+  return tasks.value.filter(
+    (t) => Number(t.supervisor_id) === myId && Number(t.created_by) !== myId,
+  );
 });
 
 const projectSummary = computed<ProjectBreakdownRow[]>(() => {

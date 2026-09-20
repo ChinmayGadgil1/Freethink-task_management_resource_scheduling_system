@@ -66,9 +66,17 @@ export async function syncTaskProgressAndEffort(taskId: number, existingConnecti
 
         newProgress = Math.min(100, Math.max(0, newProgress));
 
+        // Check if there is an active pending verification deliverable
+        const [pendingVerificationRows] = await connection.query(
+            `SELECT task_id, title FROM tasks WHERE verified_task_id = ? AND task_type = 'VERIFICATION' AND deleted_at IS NULL AND status != 'COMPLETED' LIMIT 1`,
+            [taskId]
+        );
+        const hasPendingVerification = (pendingVerificationRows as any[]).length > 0;
+
         let newStatus: string;
         if (newProgress >= 100) {
-            newStatus = "COMPLETED";
+            // Cannot mark COMPLETED if verification deliverable is still pending review
+            newStatus = hasPendingVerification ? "IN_PROGRESS" : "COMPLETED";
         } else if (newProgress <= 0) {
             newStatus = assignees.length > 0 ? "SCHEDULED" : "UNASSIGNED";
         } else {
@@ -91,6 +99,8 @@ export async function syncTaskProgressAndEffort(taskId: number, existingConnecti
         
         if (newStatus === "COMPLETED") {
             updateFields.push("actual_end = NOW()");
+        } else {
+            updateFields.push("actual_end = NULL");
         }
 
         updateParams.push(taskId);
@@ -99,6 +109,16 @@ export async function syncTaskProgressAndEffort(taskId: number, existingConnecti
             `UPDATE tasks SET ${updateFields.join(", ")} WHERE task_id = ?`,
             updateParams
         );
+
+        // If this was a verification task and it just completed, re-sync the parent verified task
+        const [currentTaskRows] = await connection.query(
+            `SELECT task_type, verified_task_id FROM tasks WHERE task_id = ?`,
+            [taskId]
+        );
+        const currentTask = (currentTaskRows as any[])[0];
+        if (currentTask?.task_type === "VERIFICATION" && currentTask?.verified_task_id && newStatus === "COMPLETED") {
+            await syncTaskProgressAndEffort(Number(currentTask.verified_task_id), connection);
+        }
 
         return { newActualEffort, newProgress, newStatus };
     } finally {
@@ -171,6 +191,13 @@ export async function createWorkLog(
         );
         const isFirstLog = (workLogCountRows[0]?.log_count ?? 0) === 0;
 
+        // Check if there is an active pending verification deliverable
+        const [pendingVerificationRows] = await connection.query<RowDataPacket[]>(
+            `SELECT task_id, title FROM tasks WHERE verified_task_id = ? AND task_type = 'VERIFICATION' AND deleted_at IS NULL AND status != 'COMPLETED' LIMIT 1`,
+            [taskId]
+        );
+        const hasPendingVerification = (pendingVerificationRows as any[]).length > 0;
+
         let newProgress = Number(progressLogged);
         let newStatus: string;
 
@@ -181,12 +208,12 @@ export async function createWorkLog(
         } else {
             /* BACKEND STATUS SYNCHRONIZATION FOR ASSIGNEES:
              0% progress     -> 'SCHEDULED' (planned / not started)
-             100% progress   -> 'COMPLETED' (all work finished)
+             100% progress   -> 'COMPLETED' (all work finished), unless verification is pending
              1% - 99% progress -> 'IN_PROGRESS' (work actively ongoing) */
             if (newProgress <= 0) {
                 newStatus = "SCHEDULED";
             } else if (newProgress >= 100) {
-                newStatus = "COMPLETED";
+                newStatus = hasPendingVerification ? "IN_PROGRESS" : "COMPLETED";
             } else {
                 newStatus = "IN_PROGRESS";
             }

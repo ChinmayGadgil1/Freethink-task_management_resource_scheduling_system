@@ -361,6 +361,16 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
 
         await updateTask(taskId, parsed);
 
+        // If this task was a verification task and was just completed, re-sync the parent deliverable
+        if (task.task_type === "VERIFICATION" && task.verified_task_id && parsed.status === "COMPLETED") {
+            try {
+                const { syncTaskProgressAndEffort } = await import("../services/workLogService.js");
+                await syncTaskProgressAndEffort(Number(task.verified_task_id));
+            } catch (syncErr) {
+                console.error("Error syncing parent verified task upon verification completion:", syncErr);
+            }
+        }
+
         // Hook SchedulingEngine.recalculate when priority, effort, deadline, status, or supervisor updates
         if (
             parsed.priority !== undefined ||
