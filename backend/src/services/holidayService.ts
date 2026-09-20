@@ -29,7 +29,7 @@ export async function recalculateActiveProjects(): Promise<void> {
  */
 export function formatDateKey(dateInput: Date | string): string {
     if (typeof dateInput === "string") {
-        return dateInput.includes("T") ? dateInput.split("T")[0]! : dateInput;
+        return dateInput.split(/[T ]/)[0]!;
     }
     const year = dateInput.getFullYear();
     const month = String(dateInput.getMonth() + 1).padStart(2, "0");

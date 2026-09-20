@@ -7,7 +7,7 @@ const taskRoutes = Router();
 // Apply authenticate middleware to all task endpoints
 taskRoutes.use(authenticate);
 
-taskRoutes.post("/", create);
+taskRoutes.post("/", requireRole("PROJECT_MANAGER", "RESOURCE"), create);
 taskRoutes.get("/", list);
 taskRoutes.get("/daily-allocations", requireRole("RESOURCE"), getDailyAllocationsController);
 taskRoutes.post("/daily-checkout", requireRole("RESOURCE"), submitDailyLogsController);
@@ -19,7 +19,7 @@ taskRoutes.put("/:id", update);
 taskRoutes.patch("/:id", update);
 taskRoutes.delete("/:id", requireRole("PROJECT_MANAGER"), deleteTaskController);
 taskRoutes.post("/:id/assign", requireRole("PROJECT_MANAGER"), assignResource);
-taskRoutes.post("/:id/assign-verification", assignVerificationController);
+taskRoutes.post("/:id/assign-verification", requireRole("PROJECT_MANAGER", "RESOURCE"), assignVerificationController);
 taskRoutes.delete("/:id/assignees/:userId", requireRole("PROJECT_MANAGER"), unassignResourceController);
 taskRoutes.post("/:id/dependencies", requireRole("PROJECT_MANAGER"), addDependency);
 taskRoutes.delete("/:id/dependencies/:predecessorId", requireRole("PROJECT_MANAGER"), removeTaskDependencyController);

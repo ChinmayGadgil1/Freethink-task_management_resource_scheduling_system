@@ -11,21 +11,24 @@ import {
     archiveProjectController,
     unarchiveProjectController
 } from "../controllers/projectController.js";
-import { authenticate } from "../middleware/authMiddleware.js";
+import { authenticate, requireRole } from "../middleware/authMiddleware.js";
 
 const projectRoutes = Router();
 
-projectRoutes.post("/", authenticate, create);
-projectRoutes.get("/", authenticate, getProjects);
-projectRoutes.get("/feed/progress", authenticate, getGlobalProgressFeedController);
+// Apply authenticate middleware to all project endpoints
+projectRoutes.use(authenticate);
 
-projectRoutes.post("/:project_id/members", authenticate, assignResource);
-projectRoutes.delete("/:id/members/:userId", authenticate, removeProjectMemberController);
+projectRoutes.post("/", requireRole("PROJECT_MANAGER"), create);
+projectRoutes.get("/", getProjects);
+projectRoutes.get("/feed/progress", requireRole("PROJECT_MANAGER"), getGlobalProgressFeedController);
 
-projectRoutes.get("/:id", authenticate, getProjectByIdController);
-projectRoutes.patch("/:id", authenticate, updateProjectController);
-projectRoutes.delete("/:id", authenticate, deleteProjectController);
-projectRoutes.post("/:id/archive", authenticate, archiveProjectController);
-projectRoutes.post("/:id/unarchive", authenticate, unarchiveProjectController);
+projectRoutes.post("/:project_id/members", requireRole("PROJECT_MANAGER"), assignResource);
+projectRoutes.delete("/:id/members/:userId", requireRole("PROJECT_MANAGER"), removeProjectMemberController);
+
+projectRoutes.get("/:id", getProjectByIdController);
+projectRoutes.patch("/:id", requireRole("PROJECT_MANAGER"), updateProjectController);
+projectRoutes.delete("/:id", requireRole("PROJECT_MANAGER"), deleteProjectController);
+projectRoutes.post("/:id/archive", requireRole("PROJECT_MANAGER"), archiveProjectController);
+projectRoutes.post("/:id/unarchive", requireRole("PROJECT_MANAGER"), unarchiveProjectController);
 
 export default projectRoutes;

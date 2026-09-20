@@ -119,7 +119,7 @@ export async function login(req: Request, res: Response) {
         }
 
         if (error.message === "USER_INACTIVE") {
-            return res.status(402).json({
+            return res.status(403).json({
                 message: "User account is inactive"
             });
         }
