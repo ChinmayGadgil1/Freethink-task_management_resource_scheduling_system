@@ -1561,7 +1561,7 @@ const overdueCount = computed(() => tasks.value.filter((t) => isTaskOverdue(t)).
 
 const filteredTasks = computed(() => {
   return tasks.value.filter((t) => {
-    const q = searchQuery.value.trim().toLowerCase();
+    const q = (searchQuery.value || '').trim().toLowerCase();
     const pName = getProjectName(t.project_id).toLowerCase();
     const matchesSearch =
       !q ||

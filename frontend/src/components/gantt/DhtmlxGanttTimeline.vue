@@ -2244,7 +2244,7 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
 // Data Transformation (Project Hierarchy & Finish-to-Start Links)
 // ----------------------------------------------------
 function buildGanttDataset() {
-  const query = internalSearchQuery.value.trim().toLowerCase();
+  const query = (internalSearchQuery.value || '').trim().toLowerCase();
 
   const filteredTasks = validGanttTasks.value.filter((t) => {
     if (query) {

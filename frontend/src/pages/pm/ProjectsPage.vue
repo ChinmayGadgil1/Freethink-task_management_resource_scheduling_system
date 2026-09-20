@@ -1601,7 +1601,7 @@ function getHealthLabel(project: Project) {
 }
 
 const filteredProjects = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase();
+  const query = (searchQuery.value || '').trim().toLowerCase();
 
   return projects.value.filter((project) => {
     const matchesSearch =
@@ -1619,13 +1619,13 @@ const filteredProjects = computed(() => {
     const matchesHealth = healthFilter.value === 'ALL' || health === healthFilter.value;
 
     let matchesStartDate = true;
-    if (startDateFilter.value && project.start_date) {
-      matchesStartDate = new Date(project.start_date) >= new Date(startDateFilter.value);
+    if (startDateFilter.value) {
+      matchesStartDate = project.start_date ? new Date(project.start_date) >= new Date(startDateFilter.value) : false;
     }
 
     let matchesEndDate = true;
-    if (endDateFilter.value && project.deadline) {
-      matchesEndDate = new Date(project.deadline) <= new Date(endDateFilter.value);
+    if (endDateFilter.value) {
+      matchesEndDate = project.deadline ? new Date(project.deadline) <= new Date(endDateFilter.value) : false;
     }
 
     return matchesSearch && matchesStatus && matchesHealth && matchesStartDate && matchesEndDate;

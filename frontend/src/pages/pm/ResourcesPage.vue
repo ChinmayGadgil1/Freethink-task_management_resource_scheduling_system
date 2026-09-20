@@ -1590,7 +1590,7 @@ const totalEffortHours = computed(() =>
 
 const filteredResources = computed(() => {
   return resourceMap.value.filter((r) => {
-    const q = searchQuery.value.trim().toLowerCase();
+    const q = (searchQuery.value || '').trim().toLowerCase();
     const matchesSearch =
       !q || r.name.toLowerCase().includes(q) || String(r.resource_id).includes(q);
 

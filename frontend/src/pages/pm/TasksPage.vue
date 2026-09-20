@@ -1804,7 +1804,7 @@ const scheduledCount = computed(
 
 const filteredTasks = computed(() => {
   return tasks.value.filter((t) => {
-    const q = searchQuery.value.trim().toLowerCase();
+    const q = (searchQuery.value || '').trim().toLowerCase();
     const matchesSearch =
       !q ||
       t.title.toLowerCase().includes(q) ||
