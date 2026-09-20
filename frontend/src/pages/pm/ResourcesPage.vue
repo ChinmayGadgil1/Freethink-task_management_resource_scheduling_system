@@ -1512,32 +1512,42 @@ const resourceMap = computed(() => {
     }
     item.projectNames = Array.from(names);
 
+    // Helper to get current calendar week dates (Monday through Sunday)
+    const now = new Date();
+    const distToMon = (now.getDay() + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distToMon);
+    monday.setHours(0, 0, 0, 0);
+    const currentWeekDates = new Set<string>();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      currentWeekDates.add(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+      );
+    }
+
     // Compute weekly scheduled workload effort from backend schedule engine
     const workload = resourceWorkloadsMap.value[item.resource_id];
     let scheduledEffort: number;
 
     if (workload?.daily_allocations && workload.daily_allocations.length > 0) {
-      // Sum scheduled hours from active schedule dates (backend filters >= CURDATE())
-      scheduledEffort = workload.daily_allocations.reduce(
+      // Sum scheduled hours strictly for the current calendar week
+      const currentWeekAllocations = workload.daily_allocations.filter((d) =>
+        currentWeekDates.has(d.date),
+      );
+      scheduledEffort = currentWeekAllocations.reduce(
         (sum, d) => sum + (Number(d.allocated_hours) || 0),
         0,
       );
     } else if (workload?.tasks && workload.tasks.length > 0) {
-      // Fallback: active remaining effort from resource workload tasks distributed among co-assignees
+      // Fallback: active remaining effort from resource workload tasks (backend expected_effort already proportioned)
       scheduledEffort = workload.tasks.reduce((sum, t) => {
-        const hasAssigneesCount = Boolean((t as unknown as { assignees_count?: number }).assignees_count);
-        const assigneesCount = Math.max(
-          1,
-          t.assigned_resource_ids?.length ||
-            (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
-            (t as unknown as { assignees_count?: number }).assignees_count ||
-            1,
-        );
         const remEffort = Math.max(
           0,
           (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0),
         );
-        return sum + (hasAssigneesCount ? remEffort : remEffort / assigneesCount);
+        return sum + remEffort;
       }, 0);
     } else {
       // Fallback: local active task remaining effort distributed among co-assignees

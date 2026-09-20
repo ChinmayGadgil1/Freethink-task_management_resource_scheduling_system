@@ -2000,11 +2000,28 @@ const completedTasksCount = computed(
 );
 
 const totalEffort = computed(() => {
+  const now = new Date();
+  const distToMon = (now.getDay() + 6) % 7;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - distToMon);
+  monday.setHours(0, 0, 0, 0);
+  const currentWeekDates = new Set<string>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    currentWeekDates.add(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+    );
+  }
+
   if (
     backendWorkload.value?.daily_allocations &&
     backendWorkload.value.daily_allocations.length > 0
   ) {
-    const sum = backendWorkload.value.daily_allocations.reduce(
+    const thisWeekAllocations = backendWorkload.value.daily_allocations.filter((d) =>
+      currentWeekDates.has(d.date),
+    );
+    const sum = thisWeekAllocations.reduce(
       (acc, d) => acc + (Number(d.allocated_hours) || 0),
       0,
     );
@@ -2012,14 +2029,8 @@ const totalEffort = computed(() => {
   }
   if (backendWorkload.value?.tasks && backendWorkload.value.tasks.length > 0) {
     const sum = backendWorkload.value.tasks.reduce((acc, t) => {
-      const assigneesCount = Math.max(
-        1,
-        t.assigned_resource_ids?.length ||
-          (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
-          1,
-      );
       const rem = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
-      return acc + rem / assigneesCount;
+      return acc + rem;
     }, 0);
     return Math.round(sum * 10) / 10;
   }
