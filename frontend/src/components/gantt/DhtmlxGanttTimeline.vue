@@ -285,6 +285,7 @@ import type {
   HolidayItem,
   DailyAvailabilityDTO,
   LeaveResponseDTO,
+  TaskScheduleItem,
 } from '@/services/api';
 import { useThemeStore } from '@/stores/theme';
 import { useAuthStore } from '@/stores/auth';
@@ -1607,8 +1608,36 @@ function configureGanttEngine() {
         ? `${text} [Part ${idx + 1}/${segments.length}: ${seg.allocatedHours}h / ${targetEffort}h req]`
         : `${text}${task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : ''}${effortText}`;
 
+      let breakdownStr = '';
+      const originalTask = props.tasks.find((t) => t.task_id === task.id);
+      const schedules = originalTask?.schedules || [];
+      if (schedules.length > 0) {
+        const segResourceMap = new Map<string, number>();
+        const segStartStr = formatDateIso(seg.startDate);
+        const segEndStr = formatDateIso(addDays(seg.endDate, -1));
+        
+        schedules.forEach((s: TaskScheduleItem) => {
+          if (!s.schedule_date || !s.allocated_hours || Number(s.allocated_hours) === 0) return;
+          const dStr = (typeof s.schedule_date === 'string' ? s.schedule_date.split('T')[0] : s.schedule_date) || '';
+          const sDate = parseIsoToDate(dStr);
+          if (sDate) {
+             const compareDateStr = formatDateIso(sDate);
+             if (compareDateStr >= segStartStr && compareDateStr <= segEndStr) {
+               const rName = s.resource_name || 'Resource';
+               segResourceMap.set(rName, (segResourceMap.get(rName) || 0) + Number(s.allocated_hours));
+             }
+          }
+        });
+        if (segResourceMap.size > 0) {
+          const bd = Array.from(segResourceMap.entries())
+            .map(([r, h]) => `${r}: ${h}h`)
+            .join(' | ');
+          breakdownStr = `\nBreakdown: ${bd}`;
+        }
+      }
+
       return (
-        `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: ${segLeft}px; width: ${segWidth}px;" title="Work Segment ${idx + 1}/${segments.length}: ${seg.allocatedHours}h (${formatDate(seg.startDate)} – ${formatDate(addDays(seg.endDate, -1))})">` +
+        `<div class="gantt-segment-pill ${pClass} ${sClass}" style="left: ${segLeft}px; width: ${segWidth}px;" title="Work Segment ${idx + 1}/${segments.length}: ${seg.allocatedHours}h (${formatDate(seg.startDate)} – ${formatDate(addDays(seg.endDate, -1))})${breakdownStr}">` +
         `<div class="segment-progress-fill" style="width: ${pct}%;"></div>` +
         `<span class="segment-pct-badge">${pct}%</span>` +
         `<span class="segment-title ellipsis">${segLabel}</span>` +
@@ -1721,7 +1750,7 @@ function configureGanttEngine() {
     const assigneesCount = Number(task.assignees_count || 1);
     const statusText = task.status ? task.status.replace(/_/g, ' ') : '—';
     const priorityText = task.priority || '—';
-    const totalHoursText = task.total_hours ? `${task.total_hours} hrs scheduled` : '—';
+    const totalHoursText = baseEffort ? `${baseEffort} hrs` : (task.total_hours ? `${task.total_hours} hrs` : '—');
     
     const parseOrFallback = (str?: string | null) => {
       if (!str) return '—';
@@ -1732,9 +1761,35 @@ function configureGanttEngine() {
     const pEndStr = parseOrFallback(task.planned_end);
 
     let segmentsHtml = '';
-    if (task.segments && task.segments.length > 1) {
+    const originalTask = props.tasks.find((t) => t.task_id === task.id);
+    const schedules = originalTask?.schedules || [];
+    
+    if (schedules.length > 0) {
+      const resourceMap = new Map<string, { date: string, hours: number }[]>();
+      
+      schedules.forEach((s: TaskScheduleItem) => {
+        if (!s.schedule_date || !s.allocated_hours || Number(s.allocated_hours) === 0) return;
+        const rName = s.resource_name || 'Resource';
+        if (!resourceMap.has(rName)) resourceMap.set(rName, []);
+        const dStr = (typeof s.schedule_date === 'string' ? s.schedule_date.split('T')[0] : s.schedule_date) || '';
+        const d = parseIsoToDate(dStr);
+        resourceMap.get(rName)!.push({
+          date: d ? formatDate(d) : dStr,
+          hours: Number(s.allocated_hours)
+        });
+      });
+
+      if (resourceMap.size > 0) {
+        let schedulesList = '';
+        resourceMap.forEach((days, rName) => {
+          const daysText = days.map(day => `${day.date} (${day.hours}h)`).join(', ');
+          schedulesList += `<div class="tooltip-seg-item"><strong>${escapeHtml(rName)}:</strong> ${daysText}</div>`;
+        });
+        segmentsHtml = `<div class="tooltip-row column items-start"><span class="tooltip-k q-mb-xs">Resource Schedules:</span><div class="tooltip-segments-list">${schedulesList}</div></div>`;
+      }
+    } else if (task.segments && task.segments.length > 1) {
       const segsList = task.segments
-        .map((s) => {
+        .map((s: TaskWorkSegment) => {
           const sEnd = new Date(s.endDate.getTime() - 1000 * 60 * 60 * 24);
           return `<div class="tooltip-seg-item">${formatDate(s.startDate)} – ${formatDate(sEnd)} (${s.allocatedHours}h)</div>`;
         })
@@ -2508,6 +2563,8 @@ function buildGanttDataset() {
         planned_end: t.planned_end,
         actual_start: t.actual_start,
         actual_end: t.actual_end,
+        schedules: t.schedules,
+        assigned_resources: t.assigned_resources,
       });
     });
   }
@@ -3774,17 +3831,22 @@ defineExpose({
 
       .tooltip-row {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         font-size: 11.5px;
+        gap: 8px;
 
         .tooltip-k {
           color: #64748b;
           font-weight: 500;
+          flex-shrink: 0;
         }
         .tooltip-v {
           color: #1e293b;
           font-weight: 600;
+          text-align: right;
+          white-space: normal;
+          word-break: break-word;
         }
 
         .tooltip-progress-box {
@@ -3819,6 +3881,8 @@ defineExpose({
 
         .tooltip-seg-item {
           padding: 1px 0;
+          white-space: normal;
+          word-break: break-word;
         }
       }
     }
