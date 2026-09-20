@@ -1240,6 +1240,7 @@ export async function deleteTask(taskId: number, projectManagerId?: number): Pro
 
         const projectId = Number(rows[0]!.project_id);
 
+        await connection.query("UPDATE tasks SET verified_task_id = NULL WHERE task_id = ? OR verified_task_id = ?", [taskId, taskId]);
         await connection.query("DELETE FROM task_schedules WHERE task_id = ?", [taskId]);
         await connection.query(
             "DELETE FROM task_dependencies WHERE task_id = ? OR predecessor_task_id = ?",

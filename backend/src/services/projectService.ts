@@ -625,6 +625,7 @@ export async function deleteProject(projectId: number, projectManagerId?: number
 
         if (tasks.length > 0) {
             const taskIds = tasks.map(t => t.task_id);
+            await connection.query("UPDATE tasks SET verified_task_id = NULL WHERE project_id = ?", [projectId]);
             await connection.query("DELETE FROM task_schedules WHERE task_id IN (?)", [taskIds]);
             await connection.query(
                 "DELETE FROM task_dependencies WHERE task_id IN (?) OR predecessor_task_id IN (?)",
