@@ -1898,7 +1898,28 @@ interface Milestone {
   totalTasks: number;
 }
 
-const milestones = ref<Milestone[]>([]);
+const milestones = computed<Milestone[]>(() => {
+  return tasks.value
+    .filter((task) => task.planned_start || task.actual_start || task.start_date || task.deadline)
+    .map((task) => {
+      const progress = getTaskProgressNumber(task.progress);
+      const status: Milestone['status'] =
+        task.status === 'COMPLETED'
+          ? 'COMPLETED'
+          : task.status === 'IN_PROGRESS'
+            ? 'IN_PROGRESS'
+            : 'UPCOMING';
+      return {
+        id: task.task_id,
+        name: task.title,
+        status,
+        dueDate: formatDate(task.deadline),
+        progress,
+        completedTasks: task.status === 'COMPLETED' ? 1 : 0,
+        totalTasks: 1,
+      };
+    });
+});
 
 interface ActivityLog {
   id: number;
@@ -2622,37 +2643,12 @@ async function loadProjectTasks() {
   try {
     const fetchedTasks = await getTasksApi(projectIdParam.value);
     tasks.value = fetchedTasks ?? [];
-    updateDerivedMilestones();
   } catch (error) {
     console.error('Failed to load tasks:', error);
     tasks.value = [];
-    updateDerivedMilestones();
   } finally {
     tasksLoading.value = false;
   }
-}
-
-function updateDerivedMilestones() {
-  milestones.value = tasks.value
-    .filter((task) => task.planned_start || task.actual_start || task.start_date || task.deadline)
-    .map((task) => {
-      const progress = getTaskProgressNumber(task.progress);
-      const status: Milestone['status'] =
-        task.status === 'COMPLETED'
-          ? 'COMPLETED'
-          : task.status === 'IN_PROGRESS'
-            ? 'IN_PROGRESS'
-            : 'UPCOMING';
-      return {
-        id: task.task_id,
-        name: task.title,
-        status,
-        dueDate: formatDate(task.deadline),
-        progress,
-        completedTasks: task.status === 'COMPLETED' ? 1 : 0,
-        totalTasks: 1,
-      };
-    });
 }
 
 function formatRelativeTime(date: string | undefined): string {

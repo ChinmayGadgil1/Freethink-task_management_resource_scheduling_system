@@ -1435,7 +1435,7 @@ async function handleLogProgressSubmit() {
       progress_logged: logProgressForm.progress_logged,
       status: computedStatus,
       notes: logProgressForm.notes,
-      log_date: new Date().toISOString().slice(0, 10),
+      log_date: getLocalDateIso(),
     });
     $q.notify({ type: 'positive', message: 'Progress logged successfully' });
     showLogProgressModal.value = false;
@@ -1456,7 +1456,7 @@ function openGenerateReportDialog() {
 
 function downloadReport() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateIso();
     const escapeCsv = (str: string | number | null | undefined) => {
       const val = str === null || str === undefined ? '' : String(str);
       return `"${val.replace(/"/g, '""')}"`;
@@ -1531,17 +1531,37 @@ function downloadReport() {
 }
 
 // Compact Timeline Horizon
+function getLocalDateIso(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDateMs(dateStr: string): number {
+  if (!dateStr) return Date.now();
+  const cleanStr = dateStr.includes('T') ? (dateStr.split('T')[0] ?? dateStr) : dateStr;
+  const parts = cleanStr.split('-').map(Number);
+  const p0 = parts[0];
+  const p1 = parts[1];
+  const p2 = parts[2];
+  if (p0 === undefined || p1 === undefined || p2 === undefined || isNaN(p0) || isNaN(p1) || isNaN(p2)) {
+    return new Date(cleanStr).getTime();
+  }
+  return new Date(p0, p1 - 1, p2).getTime();
+}
+
 const timelineDays = computed(() => {
   const result: { key: string; label: number; weekday: string; isToday: boolean }[] = [];
   const start = new Date();
   start.setDate(start.getDate() - 2);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateIso();
 
   for (let i = 0; i < 14; i++) {
     const cur = new Date(start);
     cur.setDate(start.getDate() + i);
-    const key = cur.toISOString().slice(0, 10);
+    const key = getLocalDateIso(cur);
     const label = cur.getDate();
     const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'narrow' }).format(cur);
 
@@ -1563,8 +1583,8 @@ const positionedTimelineRows = computed(() => {
   const days = timelineDays.value;
   if (!days.length) return [];
 
-  const firstDayMs = new Date(days[0]!.key).getTime();
-  const lastDayMs = new Date(days[days.length - 1]!.key).getTime();
+  const firstDayMs = parseLocalDateMs(days[0]!.key);
+  const lastDayMs = parseLocalDateMs(days[days.length - 1]!.key);
   const totalRangeMs = Math.max(1, lastDayMs - firstDayMs);
 
   return tasks.value.slice(0, 8).map((t) => {
@@ -1576,8 +1596,8 @@ const positionedTimelineRows = computed(() => {
         ? t.deadline.slice(0, 10)
         : days[days.length - 1]!.key;
 
-    const startMs = new Date(startStr).getTime();
-    const endMs = new Date(endStr).getTime();
+    const startMs = parseLocalDateMs(startStr);
+    const endMs = parseLocalDateMs(endStr);
 
     const left = Math.max(0, Math.min(100, ((startMs - firstDayMs) / totalRangeMs) * 100));
     const right = Math.max(0, Math.min(100, ((endMs - firstDayMs) / totalRangeMs) * 100));

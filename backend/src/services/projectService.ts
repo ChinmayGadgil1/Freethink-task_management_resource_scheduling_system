@@ -12,6 +12,14 @@ export async function createProject(
     startDate: string | null,
     deadline: string | null
 ) {
+    if (startDate && deadline) {
+        const startIso = startDate.includes("T") ? startDate.split("T")[0]! : startDate;
+        const deadlineIso = deadline.includes("T") ? deadline.split("T")[0]! : deadline;
+        if (startIso > deadlineIso) {
+            throw new Error(`INVALID_PROJECT_DATES: Project start date (${startIso}) cannot be later than deadline (${deadlineIso})`);
+        }
+    }
+
     const pool = getPool();
 
     const [result] = await pool.query<ResultSetHeader>(
@@ -339,6 +347,14 @@ export async function updateProject(
     startDate: string | null,
     deadline: string | null
 ) {
+    if (startDate && deadline) {
+        const startIso = startDate.includes("T") ? startDate.split("T")[0]! : startDate;
+        const deadlineIso = deadline.includes("T") ? deadline.split("T")[0]! : deadline;
+        if (startIso > deadlineIso) {
+            throw new Error(`INVALID_PROJECT_DATES: Project start date (${startIso}) cannot be later than deadline (${deadlineIso})`);
+        }
+    }
+
     const pool = getPool();
 
     const [result] = await pool.query<ResultSetHeader>(
