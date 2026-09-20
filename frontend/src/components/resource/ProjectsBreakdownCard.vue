@@ -72,7 +72,7 @@
                 size="6px"
                 rounded
                 :color="getProgressColor(row.status)"
-                track-color="grey-3"
+                :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
               />
             </div>
             <span
@@ -127,13 +127,23 @@ function goToProjectTasks(projectName: string) {
 }
 
 function getStatusChipColor(status: ProjectBreakdownRow['status']) {
+  const isDark = $q.dark.isActive;
   if (status === 'Delayed') {
-    return { bg: 'red-1', text: 'negative' };
+    return {
+      bg: isDark ? 'red-10' : 'red-1',
+      text: isDark ? 'red-2' : 'negative',
+    };
   }
   if (status === 'At Risk') {
-    return { bg: 'orange-1', text: 'deep-orange' };
+    return {
+      bg: isDark ? 'orange-10' : 'orange-1',
+      text: isDark ? 'orange-2' : 'deep-orange',
+    };
   }
-  return { bg: 'green-1', text: 'positive' };
+  return {
+    bg: isDark ? 'green-10' : 'green-1',
+    text: isDark ? 'green-2' : 'positive',
+  };
 }
 
 function getProgressColor(status: ProjectBreakdownRow['status']): string {
@@ -143,13 +153,24 @@ function getProgressColor(status: ProjectBreakdownRow['status']): string {
 }
 
 function getProjectTheme(idx: number): { bg: string; color: string } {
-  const themes = [
-    { bg: 'purple-1', color: 'primary' },
-    { bg: 'blue-1', color: 'blue-8' },
-    { bg: 'orange-1', color: 'orange-9' },
-    { bg: 'teal-1', color: 'teal-8' },
-  ];
-  return themes[idx % themes.length] ?? { bg: 'purple-1', color: 'primary' };
+  const isDark = $q.dark.isActive;
+  const themes = isDark
+    ? [
+        { bg: 'purple-10', color: 'purple-2' },
+        { bg: 'blue-10', color: 'blue-2' },
+        { bg: 'orange-10', color: 'orange-2' },
+        { bg: 'teal-10', color: 'teal-2' },
+      ]
+    : [
+        { bg: 'purple-1', color: 'primary' },
+        { bg: 'blue-1', color: 'blue-8' },
+        { bg: 'orange-1', color: 'orange-9' },
+        { bg: 'teal-1', color: 'teal-8' },
+      ];
+  return (
+    themes[idx % themes.length] ??
+    (isDark ? { bg: 'purple-10', color: 'purple-2' } : { bg: 'purple-1', color: 'primary' })
+  );
 }
 
 function getProjectIcon(idx: number): string {

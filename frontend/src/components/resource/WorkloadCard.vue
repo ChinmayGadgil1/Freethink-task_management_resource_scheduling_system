@@ -16,11 +16,11 @@
         <q-chip
           dense
           square
-          color="deep-purple-1"
-          text-color="primary"
+          :color="consumedPct > 100 ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'purple-10' : 'deep-purple-1')"
+          :text-color="consumedPct > 100 ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'purple-2' : 'primary')"
           class="text-caption text-weight-bold"
         >
-          Allocated Effort
+          {{ consumedPct > 100 ? 'Effort Overload' : 'Allocated Effort' }}
         </q-chip>
       </div>
 
@@ -37,7 +37,12 @@
 
         <div class="q-mt-xs">
           <div class="row justify-between items-center text-caption q-mb-xs">
-            <span class="text-grey-7 text-weight-medium">Effort consumed</span>
+            <span
+              class="text-weight-medium"
+              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+            >
+              Effort consumed
+            </span>
             <span
               class="text-weight-bolder"
               :class="consumedPct > 100 ? 'text-negative' : 'text-primary'"
@@ -50,7 +55,7 @@
             size="8px"
             rounded
             :color="consumedPct > 100 ? 'negative' : 'primary'"
-            track-color="grey-3"
+            :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
           />
         </div>
       </div>
@@ -112,7 +117,7 @@ const router = useRouter();
 
 const consumedPct = computed(() =>
   props.allocatedHours
-    ? Math.min(100, Math.round((props.actualHours / props.allocatedHours) * 100))
+    ? Math.round((props.actualHours / props.allocatedHours) * 100)
     : 0,
 );
 

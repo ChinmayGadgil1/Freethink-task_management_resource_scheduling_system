@@ -165,12 +165,14 @@
                       Overdue and critical deliverables
                     </div>
                   </div>
-                  <q-badge
+                  <q-chip
                     v-if="attentionTasks.length"
-                    color="negative"
-                    outline
+                    dense
+                    square
+                    :color="$q.dark.isActive ? 'red-10' : 'red-1'"
+                    :text-color="$q.dark.isActive ? 'red-2' : 'negative'"
                     :label="`${attentionTasks.length} items`"
-                    class="text-weight-bold col-auto"
+                    class="text-caption text-weight-bold col-auto"
                   />
                 </q-card-section>
 
@@ -199,18 +201,8 @@
                       <q-avatar
                         size="32px"
                         rounded
-                        :color="
-                          attentionMeta(t).color === 'negative'
-                            ? $q.dark.isActive
-                              ? 'red-10'
-                              : 'red-1'
-                            : $q.dark.isActive
-                              ? 'orange-10'
-                              : 'orange-1'
-                        "
-                        :text-color="
-                          attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
-                        "
+                        :color="attentionColor(attentionMeta(t).color).bg"
+                        :text-color="attentionColor(attentionMeta(t).color).text"
                         :icon="attentionMeta(t).icon"
                       />
                     </q-item-section>
@@ -231,18 +223,8 @@
                       <q-chip
                         dense
                         square
-                        :color="
-                          attentionMeta(t).color === 'negative'
-                            ? $q.dark.isActive
-                              ? 'red-10'
-                              : 'red-1'
-                            : $q.dark.isActive
-                              ? 'orange-10'
-                              : 'orange-1'
-                        "
-                        :text-color="
-                          attentionMeta(t).color === 'negative' ? 'negative' : 'deep-orange'
-                        "
+                        :color="attentionColor(attentionMeta(t).color).bg"
+                        :text-color="attentionColor(attentionMeta(t).color).text"
                         class="text-caption text-weight-bold"
                       >
                         {{ attentionMeta(t).label }}
@@ -663,6 +645,20 @@ function attentionMeta(t: Task) {
     return { label: 'Overdue', color: 'negative', icon: 'warning' };
   }
   return { label: 'High Priority', color: 'warning', icon: 'priority_high' };
+}
+
+function attentionColor(color: string): { bg: string; text: string } {
+  const isDark = $q.dark.isActive;
+  if (color === 'negative') {
+    return {
+      bg: isDark ? 'red-10' : 'red-1',
+      text: isDark ? 'red-2' : 'negative',
+    };
+  }
+  return {
+    bg: isDark ? 'orange-10' : 'orange-1',
+    text: isDark ? 'orange-2' : 'deep-orange',
+  };
 }
 
 function statusColor(status: string): string {

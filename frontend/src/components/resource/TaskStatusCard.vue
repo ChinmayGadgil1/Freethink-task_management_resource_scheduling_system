@@ -27,7 +27,10 @@
       <!-- Segmented distribution bar -->
       <div
         class="row no-wrap overflow-hidden rounded-borders q-mb-md"
-        style="height: 10px; background: rgba(0, 0, 0, 0.06)"
+        :style="{
+          height: '10px',
+          background: $q.dark.isActive ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+        }"
       >
         <div
           v-for="item in items"
