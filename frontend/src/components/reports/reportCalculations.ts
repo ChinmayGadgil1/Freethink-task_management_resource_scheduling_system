@@ -357,17 +357,18 @@ export function computeDelayedTasksReport(
   };
 }
 
-// --- Report 4: Resource Workload ---
+// --- Report 4: Resource Workload & Utilization ---
 export interface ResourceWorkloadReportRow {
   resourceId: number;
   name: string;
   role: string;
   assignedTasksCount: number;
   scheduledEffort: number;
+  loggedHours: number;
   weeklyCapacity: number;
   availableHeadroom: number;
   workloadPercent: number;
-  status: 'Normal' | 'Overloaded' | 'Underutilized';
+  status: 'Optimal' | 'Normal' | 'Overloaded' | 'Underutilized';
 }
 
 export function computeResourceWorkloadReport(
@@ -379,34 +380,50 @@ export function computeResourceWorkloadReport(
   rows: ResourceWorkloadReportRow[];
   totalCapacity: number;
   totalScheduled: number;
+  totalLogged: number;
   totalHeadroom: number;
+  averageUtilization: number;
+  optimalCount: number;
   overloadedCount: number;
+  underutilizedCount: number;
 } {
   const metrics = computeResourceMetrics(resources, workloadsMap, tasks, selectedProjectId);
 
   const rows: ResourceWorkloadReportRow[] = metrics.items.map((item) => {
-    let assignedTasksCount: number;
+    let userTasks: Task[];
+
     if (selectedProjectId && selectedProjectId !== 'ALL') {
-      assignedTasksCount = tasks.filter(
+      userTasks = tasks.filter(
         (t) =>
           !isVerificationTask(t) &&
           t.project_id === selectedProjectId &&
-          t.status !== 'COMPLETED' &&
           (t.assigned_resource_ids?.includes(item.resourceId) ||
             t.assigned_resources?.some((ar) => ar.user_id === item.resourceId)),
-      ).length;
+      );
     } else {
-      assignedTasksCount = tasks.filter(
+      userTasks = tasks.filter(
         (t) =>
           !isVerificationTask(t) &&
-          t.status !== 'COMPLETED' &&
           (t.assigned_resource_ids?.includes(item.resourceId) ||
             t.assigned_resources?.some((ar) => ar.user_id === item.resourceId)),
-      ).length;
+      );
     }
 
-    const status: 'Normal' | 'Overloaded' | 'Underutilized' =
-      item.utilization > 85 ? 'Overloaded' : item.utilization < 50 ? 'Underutilized' : 'Normal';
+    const assignedTasksCount = userTasks.filter((t) => t.status !== 'COMPLETED').length;
+
+    const loggedHours =
+      Math.round(
+        userTasks.reduce((sum, t) => {
+          const count = Math.max(
+            1,
+            t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+          );
+          return sum + (Number(t.actual_effort) || 0) / count;
+        }, 0) * 10,
+      ) / 10;
+
+    const status: 'Optimal' | 'Overloaded' | 'Underutilized' =
+      item.utilization > 85 ? 'Overloaded' : item.utilization < 50 ? 'Underutilized' : 'Optimal';
 
     return {
       resourceId: item.resourceId,
@@ -414,6 +431,7 @@ export function computeResourceWorkloadReport(
       role: item.role,
       assignedTasksCount,
       scheduledEffort: item.assignedHours,
+      loggedHours,
       weeklyCapacity: item.weeklyCapacity,
       availableHeadroom: item.remainingHeadroom,
       workloadPercent: item.utilization,
@@ -423,15 +441,24 @@ export function computeResourceWorkloadReport(
 
   const totalCapacity = rows.reduce((acc, r) => acc + r.weeklyCapacity, 0);
   const totalScheduled = rows.reduce((acc, r) => acc + r.scheduledEffort, 0);
+  const totalLogged = rows.reduce((acc, r) => acc + r.loggedHours, 0);
   const totalHeadroom = rows.reduce((acc, r) => acc + r.availableHeadroom, 0);
   const overloadedCount = rows.filter((r) => r.status === 'Overloaded').length;
+  const optimalCount = rows.filter((r) => r.status === 'Optimal' || r.status === 'Normal').length;
+  const underutilizedCount = rows.filter((r) => r.status === 'Underutilized').length;
+  const totalUtilization = rows.reduce((acc, r) => acc + r.workloadPercent, 0);
+  const averageUtilization = rows.length > 0 ? Math.round(totalUtilization / rows.length) : 0;
 
   return {
     rows,
     totalCapacity,
     totalScheduled: Math.round(totalScheduled * 10) / 10,
+    totalLogged: Math.round(totalLogged * 10) / 10,
     totalHeadroom: Math.round(totalHeadroom * 10) / 10,
+    averageUtilization,
+    optimalCount,
     overloadedCount,
+    underutilizedCount,
   };
 }
 

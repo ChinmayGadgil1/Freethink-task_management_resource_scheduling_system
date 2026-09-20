@@ -93,11 +93,10 @@
             <q-tab name="project-progress" icon="analytics" label="Project Progress" no-caps />
             <q-tab name="task-completion" icon="task_alt" label="Task Completion" no-caps />
             <q-tab name="delayed-tasks" icon="warning_amber" label="Delayed Tasks" no-caps />
-            <q-tab name="resource-workload" icon="people" label="Resource Workload" no-caps />
             <q-tab
-              name="resource-utilization"
-              icon="pie_chart"
-              label="Resource Utilization"
+              name="resource-workload"
+              icon="people"
+              label="Resource Workload & Utilization"
               no-caps
             />
             <q-tab name="deadline-variance" icon="timelapse" label="Deadline Variance" no-caps />
@@ -143,22 +142,13 @@
               />
             </q-tab-panel>
 
-            <!-- 4. Resource Workload Tab -->
+            <!-- 4. Resource Workload & Utilization Tab -->
             <q-tab-panel name="resource-workload" class="q-pa-md">
               <ResourceWorkloadTab
                 :resources="resourceList"
                 :workloads-map="workloadsMap"
                 :tasks="taskList"
                 :projects="projectList"
-              />
-            </q-tab-panel>
-
-            <!-- 5. Resource Utilization Tab -->
-            <q-tab-panel name="resource-utilization" class="q-pa-md">
-              <ResourceUtilizationTab
-                :resources="resourceList"
-                :tasks="taskList"
-                :workloads-map="workloadsMap"
               />
             </q-tab-panel>
 
@@ -215,7 +205,6 @@ import ProjectProgressTab from '@/components/reports/ProjectProgressTab.vue';
 import TaskCompletionTab from '@/components/reports/TaskCompletionTab.vue';
 import DelayedTasksTab from '@/components/reports/DelayedTasksTab.vue';
 import ResourceWorkloadTab from '@/components/reports/ResourceWorkloadTab.vue';
-import ResourceUtilizationTab from '@/components/reports/ResourceUtilizationTab.vue';
 import DeadlineVarianceTab from '@/components/reports/DeadlineVarianceTab.vue';
 import ScheduleChangesTab from '@/components/reports/ScheduleChangesTab.vue';
 import ProgressHistoryTab from '@/components/reports/ProgressHistoryTab.vue';

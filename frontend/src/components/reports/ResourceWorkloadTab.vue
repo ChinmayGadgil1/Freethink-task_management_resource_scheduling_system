@@ -14,7 +14,7 @@
             map-options
             :options="resourceOptions"
             label="Filter by Resource"
-            style="min-width: 200px"
+            style="min-width: 180px"
             :dark="$q.dark.isActive"
           />
 
@@ -27,15 +27,20 @@
             map-options
             :options="projectOptions"
             label="Scope by Project"
-            style="min-width: 200px"
+            style="min-width: 180px"
             :dark="$q.dark.isActive"
           />
 
-          <q-toggle
-            v-model="overloadOnly"
-            label="Overloaded (>85%) Only"
-            color="negative"
+          <q-select
+            v-model="selectedBand"
+            outlined
             dense
+            options-dense
+            emit-value
+            map-options
+            :options="bandOptions"
+            label="Utilization Band"
+            style="min-width: 190px"
             :dark="$q.dark.isActive"
           />
 
@@ -58,6 +63,7 @@
 
       <!-- KPI Metric Cards -->
       <div class="row q-col-gutter-md">
+        <!-- 1. Total Capacity -->
         <div class="col-12 col-sm-6 col-md-3">
           <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
             <q-card-section class="q-pa-md">
@@ -70,6 +76,7 @@
           </q-card>
         </div>
 
+        <!-- 2. Scheduled Effort & Logged Hours -->
         <div class="col-12 col-sm-6 col-md-3">
           <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
             <q-card-section class="q-pa-md">
@@ -77,11 +84,14 @@
               <div class="text-h4 text-weight-bold text-teal q-mt-xs">
                 {{ reportData.totalScheduled }}h
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Committed to active tasks</div>
+              <div class="text-caption text-grey-5 q-mt-xs">
+                {{ reportData.totalLogged }}h actual logged effort
+              </div>
             </q-card-section>
           </q-card>
         </div>
 
+        <!-- 3. Available Headroom -->
         <div class="col-12 col-sm-6 col-md-3">
           <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
             <q-card-section class="q-pa-md">
@@ -89,22 +99,27 @@
               <div class="text-h4 text-weight-bold text-positive q-mt-xs">
                 {{ reportData.totalHeadroom }}h
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Unallocated resource headroom</div>
+              <div class="text-caption text-grey-5 q-mt-xs">Unallocated capacity buffer</div>
             </q-card-section>
           </q-card>
         </div>
 
+        <!-- 4. Avg Team Utilization & Band Breakdown -->
         <div class="col-12 col-sm-6 col-md-3">
           <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
             <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">OVERLOADED RESOURCES</div>
+              <div class="text-caption text-weight-medium text-grey-6">AVG TEAM UTILIZATION</div>
               <div
                 class="text-h4 text-weight-bold q-mt-xs"
-                :class="reportData.overloadedCount > 0 ? 'text-negative' : 'text-positive'"
+                :class="reportData.overloadedCount > 0 ? 'text-negative' : 'text-primary'"
               >
-                {{ reportData.overloadedCount }}
+                {{ reportData.averageUtilization }}%
               </div>
-              <div class="text-caption text-grey-5 q-mt-xs">>85% threshold breached</div>
+              <div class="text-caption text-grey-5 q-mt-xs">
+                {{ reportData.optimalCount }} Optimal ·
+                {{ reportData.overloadedCount }} Overloaded ·
+                {{ reportData.underutilizedCount }} Under
+              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -133,7 +148,7 @@
 
           <!-- Workload Progress & % -->
           <template #body-cell-workloadPercent="props">
-            <q-td :props="props" style="min-width: 140px">
+            <q-td :props="props" style="min-width: 150px">
               <div class="row items-center justify-between text-caption q-mb-xs">
                 <span class="text-weight-bold">{{ props.row.workloadPercent }}%</span>
                 <span class="text-grey-5"
@@ -145,9 +160,9 @@
                 size="8px"
                 :value="props.row.workloadPercent / 100"
                 :color="
-                  props.row.workloadPercent > 85
+                  props.row.status === 'Overloaded'
                     ? 'negative'
-                    : props.row.workloadPercent < 50
+                    : props.row.status === 'Underutilized'
                       ? 'grey-6'
                       : 'positive'
                 "
@@ -155,7 +170,25 @@
             </q-td>
           </template>
 
-          <!-- Status -->
+          <!-- Actual Effort Logged -->
+          <template #body-cell-loggedHours="props">
+            <q-td :props="props" align="right">
+              <span class="text-weight-medium">{{ props.row.loggedHours }}h</span>
+            </q-td>
+          </template>
+
+          <!-- Headroom Buffer -->
+          <template #body-cell-availableHeadroom="props">
+            <q-td :props="props" align="right">
+              <span
+                :class="props.row.availableHeadroom < 0 ? 'text-negative text-weight-bold' : 'text-positive text-weight-medium'"
+              >
+                {{ props.row.availableHeadroom }}h
+              </span>
+            </q-td>
+          </template>
+
+          <!-- Status / Band -->
           <template #body-cell-status="props">
             <q-td :props="props" align="center">
               <q-badge
@@ -179,7 +212,7 @@
 
     <!-- Standalone Print-only Report Document -->
     <PrintReportLayout
-      title="Resource Workload Report"
+      title="Resource Workload & Utilization Report"
       :filters="printFilters"
       :summary-metrics="printMetrics"
       :notes="printNotes"
@@ -187,13 +220,14 @@
       <table class="print-table">
         <thead>
           <tr>
-            <th style="width: 25%">Team Member</th>
-            <th style="width: 15%">Role</th>
-            <th style="width: 12%; text-align: center">Active Tasks</th>
-            <th style="width: 12%; text-align: right">Scheduled Effort</th>
-            <th style="width: 12%; text-align: right">Weekly Capacity</th>
-            <th style="width: 12%; text-align: right">Available Headroom</th>
-            <th style="width: 12%; text-align: center">Status</th>
+            <th style="width: 22%">Team Member</th>
+            <th style="width: 14%">Role</th>
+            <th style="width: 10%; text-align: center">Active Tasks</th>
+            <th style="width: 11%; text-align: right">Scheduled Effort</th>
+            <th style="width: 11%; text-align: right">Actual Logged</th>
+            <th style="width: 11%; text-align: right">Weekly Capacity</th>
+            <th style="width: 10%; text-align: right">Headroom</th>
+            <th style="width: 11%; text-align: center">Utilization & Band</th>
           </tr>
         </thead>
         <tbody>
@@ -205,6 +239,7 @@
             <td>{{ r.role }}</td>
             <td style="text-align: center">{{ r.assignedTasksCount }}</td>
             <td style="text-align: right">{{ r.scheduledEffort }} hrs</td>
+            <td style="text-align: right">{{ r.loggedHours }} hrs</td>
             <td style="text-align: right">{{ r.weeklyCapacity }} hrs</td>
             <td style="text-align: right">
               <span
@@ -229,8 +264,8 @@
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
-            <td colspan="7" style="text-align: center; padding: 16px; color: #6b7280">
-              No resource workload records match the selected filter criteria.
+            <td colspan="8" style="text-align: center; padding: 16px; color: #6b7280">
+              No resource records match the selected filter criteria.
             </td>
           </tr>
         </tbody>
@@ -261,7 +296,14 @@ const props = defineProps<{
 
 const selectedResourceId = ref<number | 'ALL'>('ALL');
 const selectedProjectId = ref<number | 'ALL'>('ALL');
-const overloadOnly = ref<boolean>(false);
+const selectedBand = ref<string>('ALL');
+
+const bandOptions = [
+  { label: 'All Utilization Bands', value: 'ALL' },
+  { label: 'Optimal (50% – 85%)', value: 'Optimal' },
+  { label: 'Overloaded (>85%)', value: 'Overloaded' },
+  { label: 'Underutilized (<50%)', value: 'Underutilized' },
+];
 
 const initialPagination = {
   sortBy: 'workloadPercent',
@@ -291,7 +333,9 @@ const projectOptions = computed(() => [
 
 const hasActiveFilters = computed(() => {
   return (
-    selectedResourceId.value !== 'ALL' || selectedProjectId.value !== 'ALL' || overloadOnly.value
+    selectedResourceId.value !== 'ALL' ||
+    selectedProjectId.value !== 'ALL' ||
+    selectedBand.value !== 'ALL'
   );
 });
 
@@ -300,8 +344,16 @@ const filteredRows = computed<ResourceWorkloadReportRow[]>(() => {
     if (selectedResourceId.value !== 'ALL' && row.resourceId !== selectedResourceId.value) {
       return false;
     }
-    if (overloadOnly.value && row.status !== 'Overloaded') {
-      return false;
+    if (selectedBand.value !== 'ALL') {
+      if (selectedBand.value === 'Optimal' && row.status !== 'Optimal' && row.status !== 'Normal') {
+        return false;
+      }
+      if (selectedBand.value === 'Overloaded' && row.status !== 'Overloaded') {
+        return false;
+      }
+      if (selectedBand.value === 'Underutilized' && row.status !== 'Underutilized') {
+        return false;
+      }
     }
     return true;
   });
@@ -310,7 +362,7 @@ const filteredRows = computed<ResourceWorkloadReportRow[]>(() => {
 function resetFilters() {
   selectedResourceId.value = 'ALL';
   selectedProjectId.value = 'ALL';
-  overloadOnly.value = false;
+  selectedBand.value = 'ALL';
 }
 
 const selectedResourceName = computed(() => {
@@ -325,13 +377,15 @@ const selectedProjectName = computed(() => {
   return found ? found.name : `Project #${selectedProjectId.value}`;
 });
 
+const selectedBandLabel = computed(() => {
+  const found = bandOptions.find((b) => b.value === selectedBand.value);
+  return found ? found.label : selectedBand.value;
+});
+
 const printFilters = computed<ReportFilterMeta[]>(() => [
   { label: 'Resource Target', value: selectedResourceName.value },
   { label: 'Project Scope', value: selectedProjectName.value },
-  {
-    label: 'Overload Filter',
-    value: overloadOnly.value ? 'Overloaded (>85%) Only' : 'All Workload Bands',
-  },
+  { label: 'Utilization Band', value: selectedBandLabel.value },
   { label: 'Active Team Count', value: `${filteredRows.value.length} members` },
 ]);
 
@@ -346,13 +400,25 @@ const printMetrics = computed<SummaryMetricMeta[]>(() => [
     label: 'Scheduled Effort',
     value: `${reportData.value.totalScheduled}h`,
     color: 'info',
-    helper: 'Total assigned workload',
+    helper: 'Committed active task workload',
+  },
+  {
+    label: 'Actual Effort Logged',
+    value: `${reportData.value.totalLogged}h`,
+    color: 'teal',
+    helper: 'Accumulated tracked time',
   },
   {
     label: 'Available Headroom',
     value: `${reportData.value.totalHeadroom}h`,
     color: 'positive',
     helper: 'Buffer for new task dispatch',
+  },
+  {
+    label: 'Avg Utilization',
+    value: `${reportData.value.averageUtilization}%`,
+    color: 'primary',
+    helper: `${reportData.value.optimalCount} Optimal · ${reportData.value.underutilizedCount} Under`,
   },
   {
     label: 'Overloaded Members',
@@ -365,7 +431,8 @@ const printMetrics = computed<SummaryMetricMeta[]>(() => [
 const printNotes = [
   'Team capacity threshold is established at 85%. Allocations exceeding 85% are classified as Overloaded.',
   'Available headroom reflects uncommitted weekly capacity hours (Weekly Capacity - Scheduled Effort).',
-  'Underutilized resources maintain allocations below 50% of nominal weekly capacity.',
+  'Underutilized resources maintain allocations below 50% of nominal weekly capacity (Optimal: 50%–85%).',
+  'Actual logged effort aggregates recorded work across active project assignments.',
 ];
 
 const columns: QTableProps['columns'] = [
@@ -379,9 +446,16 @@ const columns: QTableProps['columns'] = [
   },
   {
     name: 'workloadPercent',
-    label: 'Workload & Capacity',
+    label: 'Workload & Allocation',
     field: 'workloadPercent',
     align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'loggedHours',
+    label: 'Actual Effort',
+    field: 'loggedHours',
+    align: 'right',
     sortable: true,
   },
   {

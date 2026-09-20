@@ -282,11 +282,10 @@ Because the underlying browser automation driver (Playwright win32_x64) encounte
 | 1 | **Project Progress Report** | `ProjectProgressTab.vue` | Summary KPIs (Active Projects, Avg Progress %, On Track, Slipping), detailed QTable with progress bars, priority chips, effort variance | Project, Status |
 | 2 | **Task Completion Report** | `TaskCompletionTab.vue` | Summary KPIs (Completed Tasks, Completion Rate %, Avg Turnaround Days), QTable with completion dates, effort variance, On Time/Late badges | Project, Resource, Date Range (`actual_end`) |
 | 3 | **Delayed Task Report** | `DelayedTasksTab.vue` | Unified single delayed/at-risk definition (`status !== 'COMPLETED'` & overdue or risk flags or overrun), summary alert, days overdue, overrun hours | Project, Resource, Delay Type |
-| 4 | **Resource Workload Report** | `ResourceWorkloadTab.vue` | Reuses 85% overload threshold and `computeResourceMetrics`, KPIs (Total Capacity, Scheduled Effort, Available Headroom, Overloaded Count) | Resource, Project, Overload Only |
-| 5 | **Resource Utilization Report** | `ResourceUtilizationTab.vue` | Reuses exact Analytics page utilization semantics (`computeResourcePerformanceData`), bands: Optimal (50-85%), Overloaded (>85%), Underutilized (<50%) | Resource, Utilization Band |
-| 6 | **Deadline Variance Report** | `DeadlineVarianceTab.vue` | Summary KPIs (Ahead, On Time, Delayed counts), QTable showing `actual_end - deadline` (completed) and `planned_end - deadline` (active) with variance days | Project, Resource, Variance Category |
-| 7 | **Schedule Change Report** | `ScheduleChangesTab.vue` | Transparent limitation notice explaining lack of historical schedule version tables, displaying live Current Schedule Baseline Snapshot table | Project, Resource |
-| 8 | **Progress History Report** | `ProgressHistoryTab.vue` | Informational banner regarding work log submissions vs direct edits, QTable showing timestamped submissions from `GET /api/projects/feed/progress` | Project, Resource/Author, Date Range |
+| 4 | **Resource Workload & Utilization Report** | `ResourceWorkloadTab.vue` | Consolidated workload & capacity (85% overload threshold, available headroom) and utilization semantics (Optimal 50-85%, Overloaded >85%, Underutilized <50%, actual logged hours) | Resource, Project, Utilization Band |
+| 5 | **Deadline Variance Report** | `DeadlineVarianceTab.vue` | Summary KPIs (Ahead, On Time, Delayed counts), QTable showing `actual_end - deadline` (completed) and `planned_end - deadline` (active) with variance days | Project, Resource, Variance Category |
+| 6 | **Schedule Change Report** | `ScheduleChangesTab.vue` | Transparent limitation notice explaining lack of historical schedule version tables, displaying live Current Schedule Baseline Snapshot table | Project, Resource |
+| 7 | **Progress History Report** | `ProgressHistoryTab.vue` | Informational banner regarding work log submissions vs direct edits, QTable showing timestamped submissions from `GET /api/projects/feed/progress` | Project, Resource/Author, Date Range |
 
 ### 2. Backend & DB Preservation
 - Zero backend logic or endpoints modified.
