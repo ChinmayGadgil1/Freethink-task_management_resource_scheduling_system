@@ -672,9 +672,13 @@ export async function removeProjectMember(projectId: number, userId: number): Pr
         if (assignedTasks.length > 0) {
             const taskIds = assignedTasks.map(t => Number(t.task_id));
 
-            // Delete task assignments
+            // Delete task assignments and task schedules for this user
             await connection.query(
                 "DELETE FROM task_assignments WHERE task_id IN (?) AND user_id = ?",
+                [taskIds, userId]
+            );
+            await connection.query(
+                "DELETE FROM task_schedules WHERE task_id IN (?) AND user_id = ?",
                 [taskIds, userId]
             );
 
