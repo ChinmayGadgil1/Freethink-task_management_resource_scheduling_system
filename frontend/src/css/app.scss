@@ -849,3 +849,188 @@ body.body--dark {
 .kanban-column-footer {
   flex-shrink: 0 !important;
 }
+
+// =============================================================================
+// Standalone Professional Print Stylesheet
+// =============================================================================
+
+.print-only-report {
+  display: none !important;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 14mm 10mm;
+  }
+
+  // 1. Hide all application layout, navigation, chrome, sidebars, headers, floating widgets
+  header,
+  aside,
+  footer,
+  .q-header,
+  .q-drawer,
+  .q-drawer-container,
+  .q-tabs,
+  .reports-nav-tabs,
+  .q-btn,
+  .screen-only,
+  .q-banner:not(.print-banner),
+  .q-separator:not(.print-separator),
+  .q-menu,
+  .q-dialog,
+  .q-tooltip,
+  .q-notifications,
+  .q-loading-bar {
+    display: none !important;
+  }
+
+  // 2. Reset Quasar layout constraints so print document flows naturally across multiple pages
+  html,
+  body,
+  #q-app,
+  .q-layout,
+  .q-page-container,
+  .q-page,
+  .reports-page,
+  .reports-page-wrapper,
+  .reports-content,
+  .q-card,
+  .q-tab-panels,
+  .q-tab-panel {
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  // Force dark mode styles off during printing
+  body.body--dark,
+  body.body--dark #q-app,
+  body.body--dark .q-layout,
+  body.body--dark .q-page {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  // 3. Standalone Print Report Container
+  .print-only-report {
+    display: block !important;
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+    padding: 0 0 20px 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  // 4. Tables with proper page breaks and repeated headers
+  table.print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    margin-top: 10px !important;
+    margin-bottom: 16px !important;
+    font-size: 11px !important;
+
+    thead {
+      display: table-header-group !important;
+    }
+
+    tbody {
+      page-break-inside: auto !important;
+    }
+
+    tr {
+      page-break-inside: avoid !important;
+      page-break-after: auto !important;
+    }
+
+    th {
+      background-color: #f3f4f6 !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
+      padding: 7px 8px !important;
+      border: 1px solid #d1d5db !important;
+      text-align: left !important;
+      white-space: nowrap !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    td {
+      padding: 6px 8px !important;
+      border: 1px solid #e5e7eb !important;
+      color: #1f2937 !important;
+      vertical-align: top !important;
+      background-color: #ffffff !important;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f9fafb !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+
+  // Visual status chips & progress bars for print
+  .print-badge {
+    display: inline-block !important;
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    border-radius: 4px !important;
+    border: 1px solid #9ca3af !important;
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+
+    &.badge-positive {
+      border-color: #059669 !important;
+      color: #065f46 !important;
+      background-color: #ecfdf5 !important;
+    }
+    &.badge-warning {
+      border-color: #d97706 !important;
+      color: #92400e !important;
+      background-color: #fffbeb !important;
+    }
+    &.badge-negative {
+      border-color: #dc2626 !important;
+      color: #991b1b !important;
+      background-color: #fef2f2 !important;
+    }
+    &.badge-info {
+      border-color: #2563eb !important;
+      color: #1e40af !important;
+      background-color: #eff6ff !important;
+    }
+  }
+
+  .print-progress-bar {
+    width: 100% !important;
+    height: 6px !important;
+    background-color: #e5e7eb !important;
+    border-radius: 3px !important;
+    overflow: hidden !important;
+    margin-top: 3px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+
+    .print-progress-fill {
+      height: 100% !important;
+      background-color: #4f46e5 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+}
