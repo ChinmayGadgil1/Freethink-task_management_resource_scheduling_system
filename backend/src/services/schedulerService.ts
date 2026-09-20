@@ -493,9 +493,10 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         [resourceId]
     );
 
-    const visibleSupervisedTasks = pmProjectIds
+    const visibleSupervisedTasks = (pmProjectIds
         ? supervisedTasks.filter(t => pmProjectIds.has(Number(t.project_id)))
-        : supervisedTasks;
+        : supervisedTasks
+    ).filter(t => !assignedTaskIds.includes(Number(t.task_id)));
 
     // Fetch supervisor actual logged hours from work_logs
     const supTaskIds = visibleSupervisedTasks.map(t => Number(t.task_id));
