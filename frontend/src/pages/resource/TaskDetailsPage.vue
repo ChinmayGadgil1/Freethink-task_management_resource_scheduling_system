@@ -2788,6 +2788,12 @@ type TaskLike = {
 };
 
 function getCurrentUserId(): number | null {
+  if (authStore.user?.user_id) {
+    return Number(authStore.user.user_id);
+  }
+  if (authStore.currentUser?.user_id) {
+    return Number(authStore.currentUser.user_id);
+  }
   const u = (authStore.user || authStore.currentUser) as UserLike | null;
   if (u) {
     const id = u.user_id ?? u.id ?? u.userId;
@@ -2874,6 +2880,9 @@ function getCreatedByResourceName(item: Task | ResourceTask | null | undefined):
 function isSelfAssigned(item: Task | ResourceTask | null | undefined): boolean {
   if (!item) return false;
   const t = item as TaskLike;
+  if (t.created_by_role === 'PROJECT_MANAGER') {
+    return false;
+  }
   if (typeof t.isSelfAssigned === 'boolean') {
     return t.isSelfAssigned;
   }

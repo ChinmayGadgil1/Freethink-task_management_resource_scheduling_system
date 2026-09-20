@@ -1120,6 +1120,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import type { QTableColumn } from 'quasar';
 import StatCard from '@/components/dashboard/StatCard.vue';
@@ -1144,6 +1145,7 @@ import {
 import type { Project, ResourceUser, Task, TaskPriority, TaskStatus } from '@/services/api';
 
 const $q = useQuasar();
+const route = useRoute();
 
 const loading = ref(true);
 const viewMode = ref<'board' | 'table'>('board');
@@ -1795,12 +1797,39 @@ async function loadData() {
     if (pList.length > 0 && pList[0] && !createForm.project_id) {
       createForm.project_id = pList[0].project_id;
     }
+    checkDeepLinkTask();
   } catch (error) {
     console.error('Failed to fetch tasks/projects/resources from backend:', error);
   } finally {
     loading.value = false;
   }
 }
+
+function checkDeepLinkTask() {
+  const taskIdParam = route.query.taskId;
+  if (!taskIdParam) return;
+  const targetId = Number(taskIdParam);
+  if (!targetId || isNaN(targetId)) return;
+  const found = tasks.value.find((t) => Number(t.task_id) === targetId);
+  if (found) {
+    if (projectFilter.value !== 'ALL' && projectFilter.value !== found.project_id) {
+      projectFilter.value = 'ALL';
+    }
+    if (statusFilter.value !== 'ALL' && statusFilter.value !== found.status) {
+      statusFilter.value = 'ALL';
+    }
+    openTaskDetails(found);
+  }
+}
+
+watch(
+  () => route.query.taskId,
+  (newTaskId) => {
+    if (newTaskId && tasks.value.length > 0) {
+      checkDeepLinkTask();
+    }
+  }
+);
 
 onMounted(() => {
   void loadData();

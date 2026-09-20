@@ -152,25 +152,6 @@
     <div class="gantt-legend-row row items-center justify-between q-px-md q-py-xs wrap gap-sm">
       <!-- Left: Timeline Line & Shading Guide -->
       <div class="legend-guide-list row items-center q-gutter-x-md text-caption wrap">
-        <span class="legend-label text-weight-bold">Timeline Guide:</span>
-
-        <!-- Today Indicator -->
-        <div
-          class="legend-item row items-center no-wrap"
-          title="Current calendar date (Purple solid vertical line)"
-        >
-          <span class="legend-line-sample sample-today q-mr-xs"></span>
-          <span class="text-purple-9 text-weight-medium">Today</span>
-        </div>
-
-        <!-- Holiday Indicator (Both PM and Resource) -->
-        <div
-          class="legend-item row items-center no-wrap"
-          title="Company Holiday (Amber-Gold dashed vertical line & highlight in Day view)"
-        >
-          <span class="legend-line-sample sample-holiday q-mr-xs"></span>
-          <span class="text-amber-9 text-weight-bold">Holiday</span>
-        </div>
 
         <!-- Leave Indicator -->
         <div
