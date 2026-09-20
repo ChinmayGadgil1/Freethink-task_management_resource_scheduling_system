@@ -223,6 +223,17 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
     const activeLeaves = existingLeaves.filter(e => e.status !== "REJECTED");
     for (const item of leavesToCreate) {
         const existingForDate = activeLeaves.filter(e => String(e.leave_date) === item.leave_date);
+        const totalExistingHours = existingForDate.reduce(
+            (sum, e) => sum + (Number(e.leave_hours) || (e.leave_type === 'FULL_DAY' ? maxDailyHours : maxDailyHours / 2)),
+            0
+        );
+
+        if (totalExistingHours + item.leave_hours > maxDailyHours) {
+            const error = new Error(`Cannot apply leave on ${item.leave_date}: total leave hours would exceed daily working capacity (${maxDailyHours}h).`);
+            (error as any).status = 409;
+            throw error;
+        }
+
         for (const exist of existingForDate) {
             const existType = exist.leave_type || 'FULL_DAY';
             if (existType === 'FULL_DAY') {
