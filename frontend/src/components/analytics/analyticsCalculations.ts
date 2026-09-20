@@ -224,11 +224,14 @@ export function computeResourceMetrics(
       );
 
       scheduledEffort = userProjectTasks.reduce(
-        (sum, t) =>
-          sum +
-          (t.status === 'COMPLETED'
-            ? 0
-            : Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0))),
+        (sum, t) => {
+          const count = Math.max(
+            1,
+            t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+          );
+          const rem = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
+          return sum + (t.status === 'COMPLETED' ? 0 : rem / count);
+        },
         0,
       );
     } else {
@@ -665,18 +668,39 @@ export function computeResourcePerformanceData(
       assignedTasks > 0 ? Math.round((completedTasks / assignedTasks) * 100) : null;
 
     const plannedEffort =
-      Math.round(userTasks.reduce((sum, t) => sum + (Number(t.expected_effort) || 0), 0) * 10) / 10;
+      Math.round(
+        userTasks.reduce((sum, t) => {
+          const count = Math.max(
+            1,
+            t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+          );
+          return sum + (Number(t.expected_effort) || 0) / count;
+        }, 0) * 10,
+      ) / 10;
     const actualEffort =
-      Math.round(userTasks.reduce((sum, t) => sum + (Number(t.actual_effort) || 0), 0) * 10) / 10;
+      Math.round(
+        userTasks.reduce((sum, t) => {
+          const count = Math.max(
+            1,
+            t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+          );
+          return sum + (Number(t.actual_effort) || 0) / count;
+        }, 0) * 10,
+      ) / 10;
     const remainingEffort =
       Math.round(
         userTasks
           .filter((t) => t.status !== 'COMPLETED')
-          .reduce(
-            (sum, t) =>
-              sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
-            0,
-          ) * 10,
+          .reduce((sum, t) => {
+            const count = Math.max(
+              1,
+              t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+            );
+            return (
+              sum +
+              Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)) / count
+            );
+          }, 0) * 10,
       ) / 10;
 
     const metric = metricMap.get(r.user_id);
