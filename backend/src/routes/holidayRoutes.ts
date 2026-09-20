@@ -4,6 +4,7 @@ import {
     getHolidayById,
     createHoliday,
     batchCreateHolidaysController,
+    batchDeleteHolidaysController,
     updateHoliday,
     deleteHoliday
 } from "../controllers/holidayController.js";
@@ -20,6 +21,8 @@ holidayRoutes.get("/:id", getHolidayById);
 
 // Manage holidays (Controller ensures only PM can execute)
 holidayRoutes.post("/batch", batchCreateHolidaysController);
+holidayRoutes.post("/batch-delete", batchDeleteHolidaysController);
+holidayRoutes.delete("/batch", batchDeleteHolidaysController);
 holidayRoutes.post("/", createHoliday);
 holidayRoutes.put("/:id", updateHoliday);
 holidayRoutes.patch("/:id", updateHoliday);

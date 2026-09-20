@@ -198,3 +198,42 @@ export async function batchCreateHolidaysController(req: AuthRequest, res: Respo
         });
     }
 }
+
+/**
+ * POST /api/holidays/batch-delete
+ * Batch delete holidays (Project Manager only)
+ */
+export async function batchDeleteHolidaysController(req: AuthRequest, res: Response): Promise<void> {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            res.status(403).json({
+                success: false,
+                message: "Access denied. Only Project Managers can delete holidays."
+            });
+            return;
+        }
+
+        const { holiday_ids } = req.body;
+        if (!Array.isArray(holiday_ids) || holiday_ids.length === 0) {
+            res.status(400).json({
+                success: false,
+                message: "A non-empty array of holiday_ids is required."
+            });
+            return;
+        }
+
+        const deletedCount = await holidayService.batchDeleteHolidays(holiday_ids);
+        res.status(200).json({
+            success: true,
+            message: `Successfully deleted ${deletedCount} holiday(s).`,
+            data: { deletedCount }
+        });
+    } catch (error: any) {
+        console.error("Error batch deleting holidays:", error);
+        res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Failed to batch delete holidays."
+        });
+    }
+}
+

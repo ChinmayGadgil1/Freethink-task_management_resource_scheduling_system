@@ -1,23 +1,23 @@
 <template>
   <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
     <div class="q-mx-auto" style="max-width: 1400px">
-      <!-- 1. PAGE HEADER & COMPACT METRICS -->
-      <div class="row items-center justify-between q-mb-md wrap q-col-gutter-md">
-        <!-- Left: Title & Subtitle -->
-        <div>
-          <div
-            class="page-title text-h5 text-weight-bold"
-            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-          >
-            Company Calendar
-          </div>
-          <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-            Track official organization holidays, weekends, and team working schedule
-          </div>
+      <!-- 1. PAGE TITLE & SUBTITLE -->
+      <div class="q-mb-md">
+        <div
+          class="page-title text-h5 text-weight-bold"
+          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+        >
+          Company Calendar
         </div>
+        <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+          Track official organization holidays, weekends, and team working schedule
+        </div>
+      </div>
 
-        <!-- Right: Compact Metrics & Main Actions -->
-        <div class="row items-center q-gutter-sm wrap">
+      <!-- 2. TOOLBAR: METRICS (LEFT) & CONTROLS (RIGHT) -->
+      <div class="row items-center justify-between full-width q-mb-md wrap q-col-gutter-sm">
+        <!-- Left: Summary Badges -->
+        <div class="row items-center q-gutter-sm">
           <!-- Compact Summary Badge 1: Total Holidays -->
           <q-card
             flat
@@ -65,9 +65,10 @@
               }}</span>
             </div>
           </q-card>
+        </div>
 
-          <q-separator vertical inset class="gt-xs q-mx-xs" />
-
+        <!-- Right: Action Buttons Pushed to Right -->
+        <div class="row items-center q-gutter-sm wrap">
           <!-- View mode toggle: Month Grid vs List -->
           <q-btn-toggle
             v-model="viewMode"
@@ -106,6 +107,19 @@
             no-caps
             class="text-weight-bold rounded-borders"
             @click="openAddHolidayDialog()"
+          />
+
+          <!-- Delete Multiple Button (PM Only) -->
+          <q-btn
+            v-if="isProjectManager && holidays.length > 0"
+            color="negative"
+            outline
+            icon="delete_sweep"
+            label="Delete Multiple"
+            unelevated
+            no-caps
+            class="text-weight-bold rounded-borders"
+            @click="switchToListViewForBatchDelete()"
           />
 
           <!-- Refresh Button -->
@@ -322,7 +336,45 @@
           :pagination="{ rowsPerPage: 15 }"
           :dark="$q.dark.isActive"
           no-data-label="No holidays scheduled yet."
+          :selection="isProjectManager ? 'multiple' : 'none'"
+          v-model:selected="selectedHolidays"
         >
+          <template v-if="isProjectManager && selectedHolidays.length > 0" #top>
+            <div
+              class="row full-width items-center justify-between q-py-sm q-px-md rounded-borders"
+              :class="$q.dark.isActive ? 'bg-grey-9 text-red-3' : 'bg-red-1 text-negative'"
+            >
+              <div class="row items-center q-gutter-sm">
+                <q-chip color="negative" text-color="white" dense class="text-weight-bold">
+                  {{ selectedHolidays.length }} selected
+                </q-chip>
+                <span class="text-caption text-weight-medium">
+                  Holidays selected for bulk removal
+                </span>
+              </div>
+              <div class="row items-center q-gutter-sm">
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  label="Clear Selection"
+                  color="grey-7"
+                  @click="selectedHolidays = []"
+                />
+                <q-btn
+                  unelevated
+                  dense
+                  no-caps
+                  icon="delete_sweep"
+                  color="negative"
+                  :label="`Delete Selected (${selectedHolidays.length})`"
+                  class="q-px-sm text-weight-bold"
+                  @click="openBatchDeleteDialog()"
+                />
+              </div>
+            </div>
+          </template>
+
           <template #body-cell-holiday_date="props">
             <q-td :props="props">
               <div class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
@@ -628,6 +680,54 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- 7. BATCH DELETE CONFIRMATION MODAL -->
+    <q-dialog v-model="batchDeleteDialog.show">
+      <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw">
+        <q-card-section class="row items-center q-pb-none">
+          <q-avatar icon="delete_sweep" color="red-1" text-color="negative" size="38px" />
+          <div class="text-subtitle1 text-weight-bold q-ml-md">
+            Delete {{ selectedHolidays.length }} Holidays?
+          </div>
+        </q-card-section>
+
+        <q-card-section class="text-body2 q-pt-md">
+          <div>
+            Are you sure you want to permanently delete these
+            <strong>{{ selectedHolidays.length }}</strong> holidays?
+          </div>
+          <div class="text-caption text-grey-7 q-mt-xs">
+            Regular working capacity will be restored and active project schedules will be automatically recalculated.
+          </div>
+
+          <!-- List of selected holidays to delete -->
+          <q-card flat bordered class="q-mt-md q-pa-xs scroll" style="max-height: 180px">
+            <q-list dense separator>
+              <q-item v-for="h in selectedHolidays" :key="h.holiday_id">
+                <q-item-section>
+                  <q-item-label class="text-weight-bold">{{ h.description }}</q-item-label>
+                  <q-item-label caption>{{ formatPrettyDate(h.holiday_date) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-card>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancel" color="grey-7" v-close-popup no-caps />
+          <q-btn
+            unelevated
+            label="Delete Holidays"
+            color="negative"
+            icon="delete_sweep"
+            :loading="batchDeleteDialog.deleting"
+            no-caps
+            class="text-weight-bold"
+            @click="executeBatchDelete"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -642,6 +742,7 @@ import {
   getHolidaysApi,
   createHolidayApi,
   batchCreateHolidaysApi,
+  batchDeleteHolidaysApi,
   updateHolidayApi,
   deleteHolidayApi,
   getResourceWorkScheduleApi,
@@ -657,6 +758,7 @@ const isProjectManager = computed(() => authStore.user?.role === 'PROJECT_MANAGE
 const loading = ref(false);
 const viewMode = ref<'grid' | 'list'>('grid');
 const holidays = ref<HolidayItem[]>([]);
+const selectedHolidays = ref<HolidayItem[]>([]);
 const userNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
 
 interface QCalendarMonthInstance {
@@ -934,6 +1036,55 @@ async function executeDeleteHoliday() {
     });
   } finally {
     deleteDialog.value.deleting = false;
+  }
+}
+
+const batchDeleteDialog = ref({
+  show: false,
+  deleting: false,
+});
+
+function openBatchDeleteDialog() {
+  if (selectedHolidays.value.length === 0) return;
+  batchDeleteDialog.value = {
+    show: true,
+    deleting: false,
+  };
+}
+
+function switchToListViewForBatchDelete() {
+  viewMode.value = 'list';
+  $q.notify({
+    type: 'info',
+    message: 'Select holidays using the checkboxes in the table to delete multiple.',
+    position: 'top',
+  });
+}
+
+async function executeBatchDelete() {
+  const ids = selectedHolidays.value.map((h) => h.holiday_id);
+  if (ids.length === 0) return;
+
+  batchDeleteDialog.value.deleting = true;
+  try {
+    const res = await batchDeleteHolidaysApi(ids);
+    $q.notify({
+      type: 'positive',
+      message: `Successfully deleted ${res.deletedCount} holiday${res.deletedCount === 1 ? '' : 's'}!`,
+      position: 'top',
+    });
+    batchDeleteDialog.value.show = false;
+    selectedHolidays.value = [];
+    await loadHolidays();
+    window.dispatchEvent(new CustomEvent('holidays-updated'));
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to delete holidays.',
+      position: 'top',
+    });
+  } finally {
+    batchDeleteDialog.value.deleting = false;
   }
 }
 

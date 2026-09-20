@@ -1292,6 +1292,27 @@ export async function batchCreateHolidaysApi(
 }
 
 /**
+ * Batch delete holidays (Project Manager only)
+ * POST /api/holidays/batch-delete
+ */
+export async function batchDeleteHolidaysApi(
+  holiday_ids: number[],
+): Promise<{ deletedCount: number }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/holidays/batch-delete`, {
+    method: 'POST',
+    body: JSON.stringify({ holiday_ids }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete holidays');
+  }
+
+  return data.data;
+}
+
+/**
  * Update an existing holiday (Project Manager only)
  * PUT /api/holidays/:id
  */

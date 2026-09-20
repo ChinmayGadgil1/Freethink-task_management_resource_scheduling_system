@@ -359,3 +359,29 @@ export async function batchCreateHolidays(holidays: CreateHolidayDTO[]): Promise
         connection.release();
     }
 }
+
+/**
+ * Batch delete holidays by array of holiday IDs and trigger single schedule recalculation
+ */
+export async function batchDeleteHolidays(holidayIds: number[]): Promise<number> {
+    const validIds = (holidayIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isInteger(id) && id > 0);
+
+    if (validIds.length === 0) return 0;
+
+    const pool = getPool();
+    const placeholders = validIds.map(() => '?').join(',');
+    const [result] = await pool.query<ResultSetHeader>(
+        `DELETE FROM holidays WHERE holiday_id IN (${placeholders})`,
+        validIds
+    );
+
+    const deletedCount = result.affectedRows || 0;
+    if (deletedCount > 0) {
+        await recalculateActiveProjects();
+    }
+
+    return deletedCount;
+}
+
