@@ -1175,19 +1175,19 @@ export async function restoreTaskFromBin(taskId: number, projectManagerId?: numb
         const projectId = Number(task.project_id);
         const wasProjectDeleted = task.project_deleted_at !== null;
 
-        // Safeguard: If parent project is still binned, restore parent project as well
+        // Safeguard: If parent project is still binned, restore parent project and all sibling tasks
         if (wasProjectDeleted) {
             await connection.query("UPDATE projects SET deleted_at = NULL WHERE project_id = ?", [projectId]);
+            await connection.query("UPDATE tasks SET deleted_at = NULL WHERE project_id = ?", [projectId]);
+        } else {
+            await connection.query("UPDATE tasks SET deleted_at = NULL WHERE task_id = ?", [taskId]);
         }
-
-        await connection.query("UPDATE tasks SET deleted_at = NULL WHERE task_id = ?", [taskId]);
 
         // Validate dependency integrity: prune dead references to non-existent or permanently deleted predecessors/successors
         await connection.query(
             `DELETE FROM task_dependencies
-             WHERE (task_id = ? AND predecessor_task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL))
-                OR (predecessor_task_id = ? AND task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL))`,
-            [taskId, taskId]
+             WHERE predecessor_task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL)
+                OR task_id NOT IN (SELECT task_id FROM tasks WHERE deleted_at IS NULL)`
         );
 
         await connection.commit();
