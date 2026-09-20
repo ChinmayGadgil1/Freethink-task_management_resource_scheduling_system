@@ -677,6 +677,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     }
 
     const resourceSchedule = new Map<number, Map<string, number>>();
+    const resourceDayEndOffset = new Map<number, Map<string, number>>();
 
     // Preload existing task allocations from other active projects for these resources
     if (resourceUserIds.length > 0) {
@@ -712,8 +713,12 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
             if (!resourceSchedule.has(userId)) {
                 resourceSchedule.set(userId, new Map());
             }
+            if (!resourceDayEndOffset.has(userId)) {
+                resourceDayEndOffset.set(userId, new Map());
+            }
 
             resourceSchedule.get(userId)!.set(date, busyHours);
+            resourceDayEndOffset.get(userId)!.set(date, busyHours);
         }
     }
 
@@ -804,8 +809,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                     if (checkDate.getDay() !== 0 && checkDate.getDay() !== 6 && !holidays.has(dStr)) {
                         const allAvailable = resourceIds.every(uid => {
                             const avail = getAvailableHours(uid, dStr);
-                            const already = resourceSchedule.get(uid)?.get(dStr) ?? 0;
-                            return (avail - already) > 0;
+                            return avail > 0;
                         });
                         if (allAvailable) {
                             currentDate = checkDate;
@@ -834,10 +838,16 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                     }
 
                     const availableHours = getAvailableHours(userId, date);
-                    const userSchedMap = resourceSchedule.get(userId);
-                    const alreadyScheduled = userSchedMap?.get(date) ?? 0;
-                    const extraLost = Math.max(0, dependencyHourOffset - alreadyScheduled);
-                    const effectiveAvailableHours = Math.max(0, availableHours - extraLost);
+                    const dailyHours = resourceConfigs.get(userId)?.dailyHours ?? 8;
+                    const prevEndOffset = resourceDayEndOffset.get(userId)?.get(date) ?? 0;
+                    const userLeaveType = leaveTypes.get(userId)?.get(date);
+                    let leaveStartOffset = 0;
+                    if (userLeaveType === 'FIRST_HALF') {
+                        leaveStartOffset = 4;
+                    }
+                    const startHourOffset = Math.max(prevEndOffset, dependencyHourOffset, leaveStartOffset);
+                    const remainingSpanToday = Math.max(0, dailyHours - startHourOffset);
+                    const effectiveAvailableHours = Number(Math.min(availableHours, remainingSpanToday).toFixed(2));
 
                     if (effectiveAvailableHours <= 0) {
                         continue;
@@ -852,17 +862,6 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                         continue;
                     }
 
-                    if (!resourceSchedule.has(userId)) {
-                        resourceSchedule.set(userId, new Map());
-                    }
-
-                    const userSchedule = resourceSchedule.get(userId)!;
-                    const userLeaveType = leaveTypes.get(userId)?.get(date);
-                    let leaveStartOffset = 0;
-                    if (userLeaveType === 'FIRST_HALF') {
-                        leaveStartOffset = 4;
-                    }
-                    const startHourOffset = Math.max(alreadyScheduled, dependencyHourOffset, leaveStartOffset);
                     const endHourOffset = Number((startHourOffset + hoursToAllocate).toFixed(2));
                     
                     const currentStartTime = formatDateTimeLocal(currentDate, startHourOffset);
@@ -875,10 +874,19 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                         plannedEnd = currentEndTime;
                     }
 
-                    userSchedule.set(
+                    if (!resourceSchedule.has(userId)) {
+                        resourceSchedule.set(userId, new Map());
+                    }
+                    const currentAlloc = resourceSchedule.get(userId)!.get(date) ?? 0;
+                    resourceSchedule.get(userId)!.set(
                         date,
-                        Number((startHourOffset + hoursToAllocate).toFixed(2))
+                        Number((currentAlloc + hoursToAllocate).toFixed(2))
                     );
+
+                    if (!resourceDayEndOffset.has(userId)) {
+                        resourceDayEndOffset.set(userId, new Map());
+                    }
+                    resourceDayEndOffset.get(userId)!.set(date, endHourOffset);
 
                     taskScheduleEntries.push({
                         task_id: task.task_id,
@@ -912,10 +920,16 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 while (supervisorRemaining > 0) {
                     const dateStr = formatDateLocal(supDate);
                     const availableHours = getAvailableHours(taskSupervisorId, dateStr);
-                    const userSchedMap = resourceSchedule.get(taskSupervisorId);
-                    const alreadyScheduled = userSchedMap?.get(dateStr) ?? 0;
-                    const extraLost = Math.max(0, supHourOffset - alreadyScheduled);
-                    const effectiveAvailableHours = Math.max(0, availableHours - extraLost);
+                    const dailyHours = resourceConfigs.get(taskSupervisorId)?.dailyHours ?? 8;
+                    const prevEndOffset = resourceDayEndOffset.get(taskSupervisorId)?.get(dateStr) ?? 0;
+                    const userLeaveType = leaveTypes.get(taskSupervisorId)?.get(dateStr);
+                    let leaveStartOffset = 0;
+                    if (userLeaveType === 'FIRST_HALF') {
+                        leaveStartOffset = 4;
+                    }
+                    const startHourOffset = Math.max(prevEndOffset, supHourOffset, leaveStartOffset);
+                    const remainingSpanToday = Math.max(0, dailyHours - startHourOffset);
+                    const effectiveAvailableHours = Number(Math.min(availableHours, remainingSpanToday).toFixed(2));
 
                     if (effectiveAvailableHours > 0) {
                         const hoursToAllocate = Number(Math.min(
@@ -924,17 +938,6 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                         ).toFixed(2));
 
                         if (hoursToAllocate > 0) {
-                            if (!resourceSchedule.has(taskSupervisorId)) {
-                                resourceSchedule.set(taskSupervisorId, new Map());
-                            }
-
-                            const userSchedule = resourceSchedule.get(taskSupervisorId)!;
-                            const userLeaveType = leaveTypes.get(taskSupervisorId)?.get(dateStr);
-                            let leaveStartOffset = 0;
-                            if (userLeaveType === 'FIRST_HALF') {
-                                leaveStartOffset = 4;
-                            }
-                            const startHourOffset = Math.max(alreadyScheduled, supHourOffset, leaveStartOffset);
                             const endHourOffset = Number((startHourOffset + hoursToAllocate).toFixed(2));
 
                             const currentStartTime = formatDateTimeLocal(supDate, startHourOffset);
@@ -947,10 +950,19 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                                 plannedEnd = currentEndTime;
                             }
 
-                            userSchedule.set(
+                            if (!resourceSchedule.has(taskSupervisorId)) {
+                                resourceSchedule.set(taskSupervisorId, new Map());
+                            }
+                            const currentAlloc = resourceSchedule.get(taskSupervisorId)!.get(dateStr) ?? 0;
+                            resourceSchedule.get(taskSupervisorId)!.set(
                                 dateStr,
-                                Number((startHourOffset + hoursToAllocate).toFixed(2))
+                                Number((currentAlloc + hoursToAllocate).toFixed(2))
                             );
+
+                            if (!resourceDayEndOffset.has(taskSupervisorId)) {
+                                resourceDayEndOffset.set(taskSupervisorId, new Map());
+                            }
+                            resourceDayEndOffset.get(taskSupervisorId)!.set(dateStr, endHourOffset);
 
                             taskScheduleEntries.push({
                                 task_id: task.task_id,
@@ -1042,12 +1054,13 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         }
     }
 
-    // Delete all task_schedules belonging to this project (purging allocations of completed tasks as well)
+    // Delete task_schedules belonging to uncompleted tasks, and purge obsolete future allocations of completed tasks
     await pool.query(
         `
         DELETE ts FROM task_schedules ts
         INNER JOIN tasks t ON ts.task_id = t.task_id
         WHERE t.project_id = ?
+          AND (t.status != 'COMPLETED' OR ts.schedule_date > DATE(COALESCE(t.actual_end, NOW())))
         `,
         [projectId]
     );
