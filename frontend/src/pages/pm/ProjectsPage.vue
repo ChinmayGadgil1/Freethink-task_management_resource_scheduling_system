@@ -910,38 +910,73 @@
     </div>
 
     <!-- 6. INSIGHTS STRIP -->
-    <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md">
-      <div class="row q-col-gutter-md items-center justify-around text-center">
-        <div class="row items-center q-gutter-sm">
-          <q-avatar size="36px" color="green-1" text-color="green"
-            ><q-icon name="trending_up"
-          /></q-avatar>
-          <div class="text-left">
-            <div class="text-caption text-grey-6">Highest Progress</div>
-            <div class="text-subtitle1 text-weight-bolder">
-              {{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%
+    <q-card flat bordered :dark="$q.dark.isActive" class="rounded-borders q-pa-md q-mt-md">
+      <div class="row q-col-gutter-md items-center">
+        <!-- Highest Progress -->
+        <div class="col-12 col-sm-4">
+          <div
+            class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs"
+          >
+            <q-avatar
+              size="40px"
+              :color="$q.dark.isActive ? 'green-10' : 'green-1'"
+              :text-color="$q.dark.isActive ? 'green-3' : 'green'"
+              class="flex-shrink-0"
+            >
+              <q-icon name="trending_up" size="22px" />
+            </q-avatar>
+            <div class="text-left" style="min-width: 0">
+              <div class="text-caption text-grey-6 ellipsis">Highest Progress</div>
+              <div class="text-subtitle1 text-weight-bolder">
+                {{ Math.max(...projects.map((p) => Number(p.progress) || 0), 0) }}%
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="row items-center q-gutter-sm">
-          <q-avatar size="36px" color="purple-1" text-color="primary"
-            ><q-icon name="pie_chart"
-          /></q-avatar>
-          <div class="text-left">
-            <div class="text-caption text-grey-6">Average Progress</div>
-            <div class="text-subtitle1 text-weight-bolder">{{ completionAverage }}%</div>
+        <!-- Average Progress -->
+        <div class="col-12 col-sm-4">
+          <div
+            class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs"
+          >
+            <q-avatar
+              size="40px"
+              :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+              :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+              class="flex-shrink-0"
+            >
+              <q-icon name="pie_chart" size="22px" />
+            </q-avatar>
+            <div class="text-left" style="min-width: 0">
+              <div class="text-caption text-grey-6 ellipsis">Average Progress</div>
+              <div class="text-subtitle1 text-weight-bolder">{{ completionAverage }}%</div>
+            </div>
           </div>
         </div>
 
-        <div class="row items-center q-gutter-sm">
-          <q-avatar size="36px" color="orange-1" text-color="orange"
-            ><q-icon name="priority_high"
-          /></q-avatar>
-          <div class="text-left">
-            <div class="text-caption text-grey-6">Projects Needing Attention</div>
-            <div class="text-subtitle1 text-weight-bolder">
-              {{ atRiskProjects + delayedProjects }}
+        <!-- Projects Needing Attention -->
+        <div class="col-12 col-sm-4">
+          <div
+            class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs"
+          >
+            <q-avatar
+              size="40px"
+              :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
+              :text-color="$q.dark.isActive ? 'orange-3' : 'orange'"
+              class="flex-shrink-0"
+            >
+              <q-icon name="priority_high" size="22px" />
+            </q-avatar>
+            <div class="text-left" style="min-width: 0">
+              <div
+                class="text-caption text-grey-6 ellipsis"
+                title="Projects Needing Attention"
+              >
+                Projects Needing Attention
+              </div>
+              <div class="text-subtitle1 text-weight-bolder">
+                {{ atRiskProjects + delayedProjects }}
+              </div>
             </div>
           </div>
         </div>
@@ -952,7 +987,7 @@
     <q-dialog v-model="showCreateDialog">
       <q-card
         :dark="$q.dark.isActive"
-        style="min-width: 460px; max-width: 95vw"
+        style="width: 500px; max-width: 95vw"
         class="rounded-borders"
       >
         <q-card-section class="row items-center justify-between q-pb-sm">
@@ -1004,7 +1039,7 @@
 
           <q-card-section class="q-pt-sm q-pb-sm q-px-md">
             <div class="row q-col-gutter-sm">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-input
                   v-model="form.start_date"
                   outlined
@@ -1022,7 +1057,7 @@
                   ]"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-input
                   v-model="form.deadline"
                   outlined

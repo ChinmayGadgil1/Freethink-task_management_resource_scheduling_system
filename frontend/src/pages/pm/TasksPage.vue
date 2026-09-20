@@ -687,7 +687,7 @@
 
     <!-- ASSIGN MEMBER DIALOG -->
     <q-dialog v-model="showAssignTaskMemberDialog">
-      <q-card :dark="$q.dark.isActive" style="min-width: 420px" class="rounded-borders">
+      <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw" class="rounded-borders">
         <q-card-section class="row items-center justify-between">
           <div class="text-subtitle1 text-weight-bold">Assign Member / Supervisor to Task</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -912,7 +912,7 @@
 
     <!-- EDIT TASK DIALOG -->
     <q-dialog v-model="showEditDialog">
-      <q-card :dark="$q.dark.isActive" style="min-width: 450px" class="rounded-borders">
+      <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw" class="rounded-borders">
         <q-card-section class="row items-center justify-between">
           <div class="text-subtitle1 text-weight-bold">Update Task: {{ editingTaskTitle }}</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -946,7 +946,7 @@
             </div>
 
             <div class="row q-col-gutter-sm">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-select
                   v-model="editForm.status"
                   outlined
@@ -957,7 +957,7 @@
                   @update:model-value="onEditStatusChange"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-select
                   v-model="editForm.priority"
                   outlined
@@ -991,7 +991,7 @@
             </div>
 
             <div class="row q-col-gutter-sm">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-input
                   v-model.number="editForm.progress"
                   outlined
@@ -1004,7 +1004,7 @@
                   @update:model-value="onEditProgressChange"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-input
                   v-model.number="editForm.expected_effort"
                   outlined

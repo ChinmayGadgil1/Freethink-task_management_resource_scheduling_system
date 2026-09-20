@@ -1,6 +1,6 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
-    <q-card class="dialog-card" :dark="$q.dark.isActive" style="min-width: 520px; max-width: 95vw">
+    <q-card class="dialog-card rounded-borders" :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw">
       <q-card-section class="row items-center justify-between q-pb-none">
         <div>
           <div v-if="fixedProjectName" class="modal-eyebrow">NEW TASK</div>
@@ -66,31 +66,27 @@
 
           <!-- Priority and Effort Row -->
           <div class="row q-col-gutter-sm">
-            <div class="col-12">
-              <div class="row q-col-gutter-sm">
-                <div class="col-6">
-                  <q-select
-                    v-model="form.priority"
-                    outlined
-                    dense
-                    label="Priority"
-                    :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
-                  />
-                </div>
+            <div class="col-12 col-sm-6">
+              <q-select
+                v-model="form.priority"
+                outlined
+                dense
+                label="Priority"
+                :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+              />
+            </div>
 
-                <div class="col-6">
-                  <q-input
-                    v-model.number="form.expected_effort"
-                    outlined
-                    dense
-                    type="number"
-                    min="0.5"
-                    step="0.5"
-                    label="Effort (Hours) *"
-                    :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
-                  />
-                </div>
-              </div>
+            <div class="col-12 col-sm-6">
+              <q-input
+                v-model.number="form.expected_effort"
+                outlined
+                dense
+                type="number"
+                min="0.5"
+                step="0.5"
+                label="Effort (Hours) *"
+                :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
+              />
             </div>
           </div>
         </q-card-section>

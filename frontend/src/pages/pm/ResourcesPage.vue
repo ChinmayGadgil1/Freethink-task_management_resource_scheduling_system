@@ -291,7 +291,7 @@
               <q-separator />
 
               <!-- CARD ACTIONS -->
-              <q-card-actions class="q-pa-sm row no-wrap gap-xs">
+              <q-card-actions class="q-pa-sm row wrap gap-xs">
                 <q-btn
                   outline
                   dense
@@ -585,7 +585,7 @@
       <q-card
         class="dialog-card"
         :dark="$q.dark.isActive"
-        style="min-width: 440px; max-width: 95vw"
+        style="width: 440px; max-width: 95vw"
       >
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
@@ -688,7 +688,7 @@
       <q-card
         class="dialog-card"
         :dark="$q.dark.isActive"
-        style="min-width: 440px; max-width: 95vw"
+        style="width: 440px; max-width: 95vw"
       >
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
@@ -858,7 +858,7 @@
     <q-dialog v-model="showScheduleDialog" persistent>
       <q-card
         :dark="$q.dark.isActive"
-        style="min-width: 440px; max-width: 520px; border-radius: 14px"
+        style="width: 480px; max-width: 95vw; border-radius: 14px"
       >
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
