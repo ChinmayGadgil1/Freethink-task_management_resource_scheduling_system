@@ -448,7 +448,10 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         `
         SELECT
             td.task_id,
-            td.predecessor_task_id
+            td.predecessor_task_id,
+            pred.status AS pred_status,
+            pred.actual_end AS pred_actual_end,
+            pred.planned_end AS pred_planned_end
         FROM task_dependencies td
         INNER JOIN tasks t ON td.task_id = t.task_id
         INNER JOIN tasks pred ON td.predecessor_task_id = pred.task_id
@@ -463,10 +466,33 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         [projectId]
     );
 
-    let dependencies: TaskDependency[] = dependencyRows.map(row => ({
-        task_id: Number(row.task_id),
-        predecessor_task_id: Number(row.predecessor_task_id)
-    }));
+    const activeTaskIds = new Set(tasks.map(t => t.task_id));
+    const completedPredMinStart = new Map<number, Date>();
+    let dependencies: TaskDependency[] = [];
+
+    for (const row of dependencyRows) {
+        const taskId = Number(row.task_id);
+        const predId = Number(row.predecessor_task_id);
+        const predStatus = String(row.pred_status);
+
+        if (predStatus === 'COMPLETED') {
+            const rawEnd = row.pred_actual_end || row.pred_planned_end;
+            if (rawEnd) {
+                const predEndDate = new Date(rawEnd);
+                if (!isNaN(predEndDate.getTime())) {
+                    const existing = completedPredMinStart.get(taskId);
+                    if (!existing || predEndDate > existing) {
+                        completedPredMinStart.set(taskId, predEndDate);
+                    }
+                }
+            }
+        } else if (activeTaskIds.has(taskId) && activeTaskIds.has(predId)) {
+            dependencies.push({
+                task_id: taskId,
+                predecessor_task_id: predId
+            });
+        }
+    }
 
     // Validate that task graph is acyclic before running scheduling calculations
     try {
@@ -714,7 +740,12 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
 
     const earliestStarts = new Map<number, Date>();
     for (const task of tasks) {
-        earliestStarts.set(task.task_id, new Date(baselineDate));
+        const minStart = completedPredMinStart.get(task.task_id);
+        if (minStart && minStart > baselineDate) {
+            earliestStarts.set(task.task_id, new Date(minStart));
+        } else {
+            earliestStarts.set(task.task_id, new Date(baselineDate));
+        }
     }
 
     const taskUpdates = new Map<number, {
