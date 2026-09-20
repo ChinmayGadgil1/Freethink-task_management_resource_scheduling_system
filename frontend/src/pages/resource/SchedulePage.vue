@@ -857,6 +857,25 @@ const monthMatrixDays = computed(() => {
   return days;
 });
 
+function formatHolidayKey(hDate: string | Date | null | undefined): string {
+  if (!hDate) return '';
+  if (typeof hDate === 'string') {
+    const str = hDate.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return str;
+    }
+  }
+  try {
+    const d = new Date(hDate);
+    if (!isNaN(d.getTime())) {
+      return formatLocalDate(d);
+    }
+  } catch {
+    // fallback
+  }
+  return typeof hDate === 'string' ? hDate.slice(0, 10) : '';
+}
+
 function getTasksOnDate(date: Date): Task[] {
   const targetDateStr = formatLocalDate(date);
   const dayAvail = getDayAvailability(date);
@@ -874,7 +893,7 @@ function getTasksOnDate(date: Date): Task[] {
 
   if (
     holidays.value &&
-    holidays.value.some((h) => String(h.holiday_date).slice(0, 10) === targetDateStr)
+    holidays.value.some((h) => formatHolidayKey(h.holiday_date) === targetDateStr)
   ) {
     return [];
   }
@@ -1189,7 +1208,10 @@ async function loadData() {
     ]);
     tasks.value = (tasksRes || []).filter((t) => !isVerificationTask(t));
     projects.value = projectsRes || [];
-    holidays.value = holidaysRes || [];
+    holidays.value = (holidaysRes || []).map((h) => ({
+      ...h,
+      holiday_date: formatHolidayKey(h.holiday_date),
+    }));
   } catch {
     $q.notify({
       type: 'negative',

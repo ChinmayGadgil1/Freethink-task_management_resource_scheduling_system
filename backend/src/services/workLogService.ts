@@ -615,8 +615,8 @@ export async function submitDailyLogs(userId: number, dateStr: string) {
              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
              WHERE p.deleted_at IS NULL
                AND p.status NOT IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
-               AND (pm.user_id IS NOT NULL OR ta.user_id IS NOT NULL OR t.supervisor_id = ?)`,
-            [userId, userId, userId]
+               AND (pm.user_id IS NOT NULL OR ta.user_id IS NOT NULL OR t.supervisor_id = ? OR t.created_by = ?)`,
+            [userId, userId, userId, userId]
         );
 
         await connection.commit();
