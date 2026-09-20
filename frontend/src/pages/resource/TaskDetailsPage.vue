@@ -35,10 +35,10 @@
             class="page-title text-h5 text-weight-bold"
             :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
           >
-            Task Specs
+            Tasks
           </div>
           <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
-            Track, organize, and manage all your assigned task specifications.
+            Track, organize, and manage all your assigned tasks.
           </div>
         </div>
 
@@ -929,7 +929,7 @@
             flat
             no-caps
             icon="arrow_back"
-            label="Back to Task Specs"
+            label="Back to Tasks"
             :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
             class="q-mb-sm"
             @click="router.push('/app/resource-dashboard/task-details')"
@@ -1410,7 +1410,7 @@
                         no-caps
                         color="primary"
                         icon="edit"
-                        label="Edit Task Specs"
+                        label="Edit Task"
                         class="full-width text-weight-bold"
                         style="border-radius: 8px; height: 40px"
                         @click="openUpdateTaskDialog(task)"
@@ -2344,7 +2344,7 @@
         flat
         no-caps
         color="primary"
-        label="Back to Task Specs"
+        label="Back to Tasks"
         class="q-mt-md"
         @click="router.push('/app/resource-dashboard/task-details')"
       />

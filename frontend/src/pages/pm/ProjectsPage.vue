@@ -23,15 +23,15 @@
     </div>
 
     <!-- 2. SUMMARY / KPI STATS GRID (4 Widgets matching Resource Dashboard) -->
-    <div class="row q-col-gutter-md q-mb-lg">
+    <div class="row q-col-gutter-md q-mb-md">
       <div class="col-12 col-sm-6 col-md-3">
         <StatCard
           title="Total Projects"
           :value="totalProjects"
           subtitle="Active Workspace"
-          badge="WORKSPACE"
           icon="folder"
           color="purple"
+          note-class="note-purple"
           @click="filterAllProjects"
         />
       </div>
@@ -41,9 +41,9 @@
           title="On Track"
           :value="onTrackProjects"
           :subtitle="`${totalProjects ? Math.round((onTrackProjects / totalProjects) * 100) : 0}% of total`"
-          badge="ON TRACK"
           icon="check_circle"
           color="green"
+          note-class="note-green"
           @click="filterOnTrackProjects"
         />
       </div>
@@ -53,9 +53,9 @@
           title="At Risk"
           :value="atRiskProjects"
           :subtitle="`${totalProjects ? Math.round((atRiskProjects / totalProjects) * 100) : 0}% of total`"
-          badge="AT RISK"
           icon="warning_amber"
           color="orange"
+          note-class="note-orange"
           @click="filterAtRiskProjects"
         />
       </div>
@@ -65,9 +65,9 @@
           title="Delayed"
           :value="delayedProjects"
           :subtitle="`${totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0}% of total`"
-          badge="URGENT"
           icon="schedule"
           color="red"
+          note-class="note-red"
           :negative="delayedProjects > 0"
           @click="filterDelayedProjects"
         />

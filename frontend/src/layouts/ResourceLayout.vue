@@ -172,7 +172,7 @@ const resourceNavItems: SidebarNavItem[] = [
     bgClass: 'bg-purple-soft',
   },
   {
-    title: 'Task Specs',
+    title: 'Tasks',
     to: '/app/resource-dashboard/task-details',
     icon: 'assignment',
     colorClass: 'text-primary',

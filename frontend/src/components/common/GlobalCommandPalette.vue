@@ -274,7 +274,7 @@ const defaultActions = computed<Omit<PaletteItem, 'flatIndex'>[]>(() => {
       {
         id: 'act-res-tasks',
         category: 'Navigation',
-        title: 'Task Specs & Worklogs',
+        title: 'Tasks & Worklogs',
         subtitle: 'Track tasks, log hours & progress',
         icon: 'assignment',
         iconColor: 'text-teal',
