@@ -42,6 +42,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const notifStore = useNotificationStore();
         notifStore.stopPolling();
+        notifStore.notifications = [];
+        notifStore.unreadCount = 0;
       } catch {
         // ignore if not initialized
       }

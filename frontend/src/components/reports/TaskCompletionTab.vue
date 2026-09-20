@@ -68,60 +68,54 @@
         </div>
       </div>
 
-      <!-- KPI Metric Cards -->
+      <!-- KPI Metric Cards using reusable StatCard component -->
       <div class="row q-col-gutter-md">
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">COMPLETED TASKS</div>
-              <div class="text-h4 text-weight-bold text-positive q-mt-xs">
-                {{ reportData.summary.completedTasksCount }}
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                Out of {{ reportData.summary.totalTasksCount }} total tasks
-              </div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Completed Tasks"
+            :value="reportData.summary.completedTasksCount"
+            :subtitle="`Out of ${reportData.summary.totalTasksCount} total tasks`"
+            icon="task_alt"
+            color="green"
+            note-class="note-green"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">COMPLETION RATE</div>
-              <div class="text-h4 text-weight-bold text-teal q-mt-xs">
-                {{ reportData.summary.completionRate }}%
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Portfolio execution velocity</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Completion Rate"
+            :value="`${reportData.summary.completionRate}%`"
+            subtitle="Portfolio execution velocity"
+            icon="speed"
+            color="purple"
+            note-class="note-purple"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">AVG TURNAROUND</div>
-              <div class="text-h4 text-weight-bold text-primary q-mt-xs">
-                {{ reportData.summary.avgTurnaroundDays }}
-                <span class="text-subtitle2 text-weight-regular">days</span>
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Start to completion interval</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Avg Turnaround"
+            :value="`${reportData.summary.avgTurnaroundDays}d`"
+            subtitle="Start to completion interval"
+            icon="timelapse"
+            color="blue"
+            note-class="note-blue"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">ON-TIME DELIVERY</div>
-              <div class="text-h4 text-weight-bold text-positive q-mt-xs">
-                {{ reportData.summary.onTimeCount }}
-                <span class="text-subtitle2 text-negative text-weight-regular">
-                  ({{ reportData.summary.lateCount }} Late)
-                </span>
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Delivered before or on deadline</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="On-Time Delivery"
+            :value="reportData.summary.onTimeCount"
+            :subtitle="`${reportData.summary.lateCount} Delivered late`"
+            icon="verified"
+            :color="reportData.summary.lateCount > 0 ? 'orange' : 'green'"
+            :note-class="reportData.summary.lateCount > 0 ? 'note-orange' : 'note-green'"
+            :clickable="false"
+          />
         </div>
       </div>
 
@@ -162,22 +156,54 @@
             </q-td>
           </template>
 
+          <!-- Completion Date & Deadline -->
+          <template #body-cell-completionDate="props">
+            <q-td :props="props" align="center">
+              <div class="text-weight-medium">{{ props.row.completionDate }}</div>
+              <div class="text-caption text-grey-5">Due: {{ props.row.deadline }}</div>
+            </q-td>
+          </template>
+
+          <!-- Turnaround -->
+          <template #body-cell-turnaroundDays="props">
+            <q-td :props="props" align="center">
+              {{ props.row.turnaroundDays !== null ? `${props.row.turnaroundDays}d` : '—' }}
+            </q-td>
+          </template>
+
           <!-- Effort Variance -->
           <template #body-cell-effortVariance="props">
             <q-td :props="props">
-              <span
-                :class="
-                  props.row.effortVariance > 0 ? 'text-negative text-weight-bold' : 'text-grey-7'
-                "
-              >
-                {{
-                  props.row.effortVariance > 0
-                    ? `+${props.row.effortVariance}h`
-                    : `${props.row.effortVariance}h`
-                }}
-              </span>
+              <div>
+                <span
+                  v-if="props.row.actualEffort === 0"
+                  class="text-caption text-grey-6 text-weight-medium"
+                >
+                  0h logged
+                </span>
+                <span
+                  v-else-if="props.row.effortVariance > 0"
+                  class="text-negative text-weight-bold"
+                >
+                  +{{ props.row.effortVariance }}h Overrun
+                </span>
+                <span
+                  v-else-if="props.row.effortVariance < 0"
+                  class="text-positive text-weight-medium"
+                >
+                  {{ Math.abs(props.row.effortVariance) }}h saved
+                </span>
+                <span v-else class="text-positive text-weight-medium">
+                  On target
+                </span>
+              </div>
               <div class="text-caption text-grey-5">
-                {{ props.row.actualEffort }}h / {{ props.row.expectedEffort }}h
+                <template v-if="props.row.actualEffort === 0">
+                  {{ props.row.expectedEffort }}h planned
+                </template>
+                <template v-else>
+                  {{ props.row.actualEffort }}h / {{ props.row.expectedEffort }}h
+                </template>
               </div>
             </q-td>
           </template>
@@ -194,17 +220,20 @@
                       ? 'negative'
                       : 'grey-6'
                 "
-                class="q-px-sm q-py-xs text-weight-bold"
+                class="q-px-sm q-py-xs text-weight-bold cursor-pointer"
               >
                 {{ props.row.onTimeStatus }}
+                <q-tooltip v-if="props.row.onTimeStatus === 'Late'" class="bg-dark text-body2">
+                  Late by {{ props.row.daysLate }} days (Target: {{ props.row.deadline }})
+                </q-tooltip>
+                <q-tooltip
+                  v-else-if="props.row.onTimeStatus === 'On Time'"
+                  class="bg-dark text-body2"
+                >
+                  Completed on or before deadline (Target: {{ props.row.deadline }})
+                </q-tooltip>
+                <q-tooltip v-else class="bg-dark text-body2"> No target deadline specified </q-tooltip>
               </q-badge>
-            </q-td>
-          </template>
-
-          <!-- Turnaround -->
-          <template #body-cell-turnaroundDays="props">
-            <q-td :props="props" align="center">
-              {{ props.row.turnaroundDays !== null ? `${props.row.turnaroundDays} d` : '—' }}
             </q-td>
           </template>
         </q-table>
@@ -238,17 +267,39 @@
             </td>
             <td>{{ r.projectName }}</td>
             <td>{{ r.assignedResources }}</td>
-            <td style="text-align: center">{{ r.completionDate }}</td>
+            <td style="text-align: center">
+              <div>{{ r.completionDate }}</div>
+              <div style="font-size: 9px; color: #6b7280">Due: {{ r.deadline }}</div>
+            </td>
             <td style="text-align: right">
-              <div>{{ r.actualEffort }}h / {{ r.expectedEffort }}h</div>
+              <div>
+                {{
+                  r.actualEffort === 0
+                    ? `${r.expectedEffort}h planned`
+                    : `${r.actualEffort}h / ${r.expectedEffort}h`
+                }}
+              </div>
               <div
                 :style="{
-                  color: r.effortVariance > 0 ? '#dc2626' : '#059669',
+                  color:
+                    r.actualEffort === 0
+                      ? '#6b7280'
+                      : r.effortVariance > 0
+                        ? '#dc2626'
+                        : '#059669',
                   fontSize: '10px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                 }"
               >
-                {{ r.effortVariance > 0 ? `+${r.effortVariance}h` : `${r.effortVariance}h` }}
+                {{
+                  r.actualEffort === 0
+                    ? '0h logged'
+                    : r.effortVariance > 0
+                      ? `+${r.effortVariance}h Overrun`
+                      : r.effortVariance < 0
+                        ? `${Math.abs(r.effortVariance)}h saved`
+                        : 'On target'
+                }}
               </div>
             </td>
             <td style="text-align: center">
@@ -266,7 +317,7 @@
               </span>
             </td>
             <td style="text-align: center">
-              {{ r.turnaroundDays !== null ? `${r.turnaroundDays} d` : '—' }}
+              {{ r.turnaroundDays !== null ? `${r.turnaroundDays}d` : '—' }}
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
@@ -288,6 +339,7 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from '@/components/reports/PrintReportLayout.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import {
   computeTaskCompletionReport,
   type TaskCompletionReportRow,
@@ -461,16 +513,9 @@ const columns: QTableProps['columns'] = [
     field: 'onTimeStatus',
     align: 'center',
     sortable: true,
+    style: 'min-width: 120px',
+    headerStyle: 'min-width: 120px',
   },
 ];
 </script>
 
-<style scoped>
-.kpi-card {
-  border-radius: 8px;
-  transition: transform 0.15s ease-in-out;
-}
-.kpi-card:hover {
-  transform: translateY(-2px);
-}
-</style>

@@ -130,6 +130,8 @@ export interface TaskCompletionReportRow {
   assignedResources: string;
   status: string;
   completionDate: string;
+  deadline: string;
+  daysLate: number;
   expectedEffort: number;
   actualEffort: number;
   effortVariance: number;
@@ -169,6 +171,7 @@ export function computeTaskCompletionReport(
     const completionDate = extractDateOnly(t.actual_end) || extractDateOnly(t.updated_at) || '—';
 
     let onTimeStatus: 'On Time' | 'Late' | 'No Deadline' = 'No Deadline';
+    let daysLate = 0;
     const dline = extractDateOnly(t.deadline);
     if (dline && completionDate !== '—') {
       if (completionDate <= dline) {
@@ -177,6 +180,11 @@ export function computeTaskCompletionReport(
       } else {
         onTimeStatus = 'Late';
         lateCount++;
+        const cMs = new Date(completionDate).getTime();
+        const dMs = new Date(dline).getTime();
+        if (!isNaN(cMs) && !isNaN(dMs) && cMs > dMs) {
+          daysLate = Math.max(1, Math.round((cMs - dMs) / (1000 * 60 * 60 * 24)));
+        }
       }
     }
 
@@ -211,6 +219,8 @@ export function computeTaskCompletionReport(
       assignedResources,
       status: t.status,
       completionDate,
+      deadline: dline || '—',
+      daysLate,
       expectedEffort,
       actualEffort,
       effortVariance,
@@ -393,19 +403,20 @@ export function computeResourceWorkloadReport(
     let userTasks: Task[];
 
     if (selectedProjectId && selectedProjectId !== 'ALL') {
+      const pId = Number(selectedProjectId);
       userTasks = tasks.filter(
         (t) =>
           !isVerificationTask(t) &&
-          t.project_id === selectedProjectId &&
-          (t.assigned_resource_ids?.includes(item.resourceId) ||
-            t.assigned_resources?.some((ar) => ar.user_id === item.resourceId)),
+          Number(t.project_id) === pId &&
+          (t.assigned_resource_ids?.some((id) => Number(id) === Number(item.resourceId)) ||
+            t.assigned_resources?.some((ar) => Number(ar.user_id) === Number(item.resourceId))),
       );
     } else {
       userTasks = tasks.filter(
         (t) =>
           !isVerificationTask(t) &&
-          (t.assigned_resource_ids?.includes(item.resourceId) ||
-            t.assigned_resources?.some((ar) => ar.user_id === item.resourceId)),
+          (t.assigned_resource_ids?.some((id) => Number(id) === Number(item.resourceId)) ||
+            t.assigned_resources?.some((ar) => Number(ar.user_id) === Number(item.resourceId))),
       );
     }
 

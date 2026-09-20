@@ -48,56 +48,55 @@
         </div>
       </div>
 
-      <!-- KPI Metric Cards -->
+      <!-- KPI Metric Cards using reusable StatCard component -->
       <div class="row q-col-gutter-md">
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">ACTIVE PROJECTS</div>
-              <div class="text-h4 text-weight-bold text-primary q-mt-xs">
-                {{ reportData.summary.activeProjects }}
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                Out of {{ reportData.summary.totalProjects }} total
-              </div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Active Projects"
+            :value="reportData.summary.activeProjects"
+            :subtitle="`Out of ${reportData.summary.totalProjects} total projects`"
+            icon="folder"
+            color="purple"
+            note-class="note-purple"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">AVERAGE PROGRESS</div>
-              <div class="text-h4 text-weight-bold text-info q-mt-xs">
-                {{ reportData.summary.averageProgress }}%
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Across all projects</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Average Progress"
+            :value="`${reportData.summary.averageProgress}%`"
+            subtitle="Across all workspace projects"
+            icon="trending_up"
+            color="blue"
+            note-class="note-blue"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">ON TRACK</div>
-              <div class="text-h4 text-weight-bold text-positive q-mt-xs">
-                {{ reportData.summary.onTrackCount }}
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Meeting scheduled milestones</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="On Track"
+            :value="reportData.summary.onTrackCount"
+            subtitle="Meeting scheduled milestones"
+            icon="check_circle"
+            color="green"
+            note-class="note-green"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">SLIPPING / AT RISK</div>
-              <div class="text-h4 text-weight-bold text-negative q-mt-xs">
-                {{ reportData.summary.slippingCount }}
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Requires PM attention</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Slipping / At Risk"
+            :value="reportData.summary.slippingCount"
+            subtitle="Requires PM attention"
+            icon="warning_amber"
+            color="red"
+            note-class="note-red"
+            :negative="reportData.summary.slippingCount > 0"
+            :clickable="false"
+          />
         </div>
       </div>
 
@@ -115,8 +114,8 @@
           <!-- Status -->
           <template #body-cell-status="props">
             <q-td :props="props">
-              <q-badge :color="getStatusColor(props.row.status)" outline>
-                {{ props.row.status }}
+              <q-badge :color="getStatusColor(props.row.status)" outline class="text-weight-medium">
+                {{ formatProjectStatus(props.row.status) }}
               </q-badge>
             </q-td>
           </template>
@@ -140,8 +139,8 @@
             <q-td :props="props" style="min-width: 140px">
               <div class="row items-center justify-between text-caption q-mb-xs">
                 <span class="text-weight-bold">{{ props.row.progress }}%</span>
-                <span class="text-grey-5"
-                  >{{ props.row.completedTasks }}/{{ props.row.totalTasks }} Tasks</span
+                <span class="text-grey-6"
+                  >{{ props.row.completedTasks }} of {{ props.row.totalTasks }} Done</span
                 >
               </div>
               <q-linear-progress
@@ -165,30 +164,10 @@
                       ? 'warning'
                       : 'negative'
                 "
-                class="q-px-sm q-py-xs"
+                class="q-px-sm q-py-xs text-weight-medium"
               >
                 {{ props.row.health }}
               </q-badge>
-            </q-td>
-          </template>
-
-          <!-- Effort Variance -->
-          <template #body-cell-effortVariance="props">
-            <q-td :props="props">
-              <span
-                :class="
-                  props.row.effortVariance > 0 ? 'text-negative text-weight-bold' : 'text-grey-7'
-                "
-              >
-                {{
-                  props.row.effortVariance > 0
-                    ? `+${props.row.effortVariance}h`
-                    : `${props.row.effortVariance}h`
-                }}
-              </span>
-              <div class="text-caption text-grey-5">
-                {{ props.row.actualEffort }}h / {{ props.row.expectedEffort }}h
-              </div>
             </q-td>
           </template>
         </q-table>
@@ -205,14 +184,13 @@
       <table class="print-table">
         <thead>
           <tr>
-            <th style="width: 25%">Project Name</th>
-            <th style="width: 12%">Status</th>
+            <th style="width: 26%">Project Name</th>
+            <th style="width: 14%">Status</th>
             <th style="width: 10%">Priority</th>
-            <th style="width: 11%; text-align: center">Start Date</th>
-            <th style="width: 11%; text-align: center">Deadline</th>
-            <th style="width: 15%">Progress</th>
-            <th style="width: 8%; text-align: center">Tasks</th>
-            <th style="width: 8%; text-align: right">Effort (Var)</th>
+            <th style="width: 12%; text-align: center">Start Date</th>
+            <th style="width: 12%; text-align: center">Deadline</th>
+            <th style="width: 16%">Progress</th>
+            <th style="width: 10%; text-align: center">Tasks</th>
           </tr>
         </thead>
         <tbody>
@@ -232,7 +210,7 @@
                       : 'badge-warning'
                 "
               >
-                {{ r.status }}
+                {{ formatProjectStatus(r.status) }}
               </span>
             </td>
             <td>{{ r.priority }}</td>
@@ -240,28 +218,16 @@
             <td style="text-align: center">{{ r.deadline }}</td>
             <td>
               <div>
-                <strong>{{ r.progress }}%</strong> ({{ r.completedTasks }}/{{ r.totalTasks }} done)
+                <strong>{{ r.progress }}%</strong> ({{ r.completedTasks }} of {{ r.totalTasks }} done)
               </div>
               <div class="print-progress-bar">
                 <div class="print-progress-fill" :style="{ width: `${r.progress}%` }"></div>
               </div>
             </td>
             <td style="text-align: center">{{ r.completedTasks }}/{{ r.totalTasks }}</td>
-            <td style="text-align: right">
-              <div>{{ r.actualEffort }}h / {{ r.expectedEffort }}h</div>
-              <div
-                :style="{
-                  color: r.effortVariance > 0 ? '#dc2626' : '#059669',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                }"
-              >
-                {{ r.effortVariance > 0 ? `+${r.effortVariance}h` : `${r.effortVariance}h` }}
-              </div>
-            </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
-            <td colspan="8" style="text-align: center; padding: 16px; color: #6b7280">
+            <td colspan="7" style="text-align: center; padding: 16px; color: #6b7280">
               No project records match the selected filter criteria.
             </td>
           </tr>
@@ -279,10 +245,19 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from '@/components/reports/PrintReportLayout.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import {
   computeProjectProgressReport,
   type ProjectProgressReportRow,
 } from '@/components/reports/reportCalculations';
+
+function formatProjectStatus(status?: string | null): string {
+  if (!status) return '';
+  return status
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
 
 const props = defineProps<{
   projects: Project[];
@@ -426,23 +401,7 @@ const columns: QTableProps['columns'] = [
   { name: 'progress', label: 'Progress & Tasks', field: 'progress', align: 'left', sortable: true },
   { name: 'startDate', label: 'Start Date', field: 'startDate', align: 'center', sortable: true },
   { name: 'deadline', label: 'Deadline', field: 'deadline', align: 'center', sortable: true },
-  {
-    name: 'effortVariance',
-    label: 'Effort Variance',
-    field: 'effortVariance',
-    align: 'right',
-    sortable: true,
-  },
   { name: 'health', label: 'Health', field: 'health', align: 'center', sortable: true },
 ];
 </script>
 
-<style scoped>
-.kpi-card {
-  border-radius: 8px;
-  transition: transform 0.15s ease-in-out;
-}
-.kpi-card:hover {
-  transform: translateY(-2px);
-}
-</style>

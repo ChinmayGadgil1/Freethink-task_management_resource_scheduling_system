@@ -61,25 +61,95 @@
         </div>
       </div>
 
-      <!-- Alert / Summary Banner -->
+      <!-- KPI Metric Cards using reusable StatCard component -->
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Delayed / At-Risk"
+            :value="filteredDelayedCount"
+            :subtitle="
+              hasActiveFilters
+                ? `Out of ${reportData.totalDelayed} total portfolio delayed`
+                : 'Active tasks requiring PM attention'
+            "
+            icon="warning"
+            color="red"
+            note-class="note-red"
+            :negative="filteredDelayedCount > 0"
+            :clickable="false"
+          />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Past Deadline"
+            :value="filteredOverdueCount"
+            :subtitle="
+              hasActiveFilters
+                ? `${filteredOverdueCount} of ${reportData.totalOverdue} overdue in portfolio`
+                : 'Breached target deadline'
+            "
+            icon="event_busy"
+            color="red"
+            note-class="note-red"
+            :negative="filteredOverdueCount > 0"
+            :clickable="false"
+          />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Effort Overrun"
+            :value="filteredOverrunCount"
+            :subtitle="
+              hasActiveFilters
+                ? `${filteredOverrunCount} of ${reportData.totalOverrun} over-budget tasks`
+                : 'Exceeding planned effort'
+            "
+            icon="hourglass_bottom"
+            color="orange"
+            note-class="note-orange"
+            :clickable="false"
+          />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Schedule Bottlenecks"
+            :value="filteredBottlenecksCount"
+            :subtitle="
+              hasActiveFilters
+                ? 'Filtered critical path & slippage risks'
+                : 'CPM dependency & milestone risks'
+            "
+            icon="account_tree"
+            color="purple"
+            note-class="note-purple"
+            :clickable="false"
+          />
+        </div>
+      </div>
+
+      <!-- Dynamic Filter-Aware Alert Banner -->
       <q-banner
         rounded
-        class="text-white"
-        :class="reportData.totalDelayed > 0 ? 'bg-negative' : 'bg-positive'"
+        class="text-white q-mt-sm"
+        :class="filteredDelayedCount > 0 ? 'bg-negative' : 'bg-positive'"
       >
         <template #avatar>
-          <q-icon :name="reportData.totalDelayed > 0 ? 'warning' : 'check_circle'" />
+          <q-icon :name="filteredDelayedCount > 0 ? 'warning' : 'check_circle'" />
         </template>
         <div class="text-weight-bold text-subtitle2">
           {{
-            reportData.totalDelayed > 0
-              ? `${reportData.totalDelayed} Active Task(s) Requiring PM Attention`
-              : 'All Active Tasks Are Currently On Schedule!'
+            filteredDelayedCount > 0
+              ? `${filteredDelayedCount} Active Task(s) Requiring PM Attention ${hasActiveFilters ? '(Filtered Scope)' : ''}`
+              : 'All Tasks in Selected Scope Are Currently On Schedule!'
           }}
         </div>
         <div class="text-caption">
-          {{ reportData.totalOverdue }} task(s) past target deadline &bull;
-          {{ reportData.totalOverrun }} task(s) exceeding effort estimates.
+          {{ filteredOverdueCount }} task(s) past target deadline &bull;
+          {{ filteredOverrunCount }} task(s) exceeding effort estimates &bull;
+          {{ filteredBottlenecksCount }} schedule/dependency risk(s).
         </div>
       </q-banner>
 
@@ -107,22 +177,58 @@
           <!-- Assignees -->
           <template #body-cell-assignees="props">
             <q-td :props="props">
-              <div class="row items-center gap-xs">
-                <q-icon name="person" size="14px" color="grey-6" />
-                <span>{{ props.row.assignees }}</span>
+              <div class="row items-center no-wrap gap-xs">
+                <q-icon name="person" size="15px" color="grey-6" class="flex-shrink-0" />
+                <span class="text-body2" style="line-height: 1.3">{{ props.row.assignees }}</span>
+              </div>
+            </q-td>
+          </template>
+
+          <!-- Delay Types / Tags -->
+          <template #body-cell-delayTypes="props">
+            <q-td :props="props">
+              <div class="row items-center wrap gap-xs">
+                <q-badge
+                  v-for="dType in props.row.delayTypes"
+                  :key="dType"
+                  rounded
+                  :color="
+                    dType === 'Overdue Deadline'
+                      ? 'negative'
+                      : dType === 'Effort Overrun'
+                        ? 'deep-orange'
+                        : dType === 'Deadline Slippage'
+                          ? 'amber-9'
+                          : 'purple-8'
+                  "
+                  class="q-px-sm q-py-xs text-weight-bold"
+                >
+                  {{ dType }}
+                </q-badge>
               </div>
             </q-td>
           </template>
 
           <!-- Delay / Overdue -->
           <template #body-cell-daysOverdue="props">
-            <q-td :props="props" align="right">
+            <q-td :props="props" align="center">
               <span
-                class="text-weight-bold"
+                class="text-weight-bold cursor-pointer"
                 :class="props.row.daysOverdue > 0 ? 'text-negative' : 'text-warning'"
               >
-                {{ props.row.daysOverdue > 0 ? `+${props.row.daysOverdue} d` : 'At Risk' }}
+                {{ props.row.daysOverdue > 0 ? `+${props.row.daysOverdue}d` : 'At Risk' }}
               </span>
+              <q-tooltip class="bg-dark text-body2">
+                <template v-if="props.row.daysOverdue > 0 && props.row.deadline !== '—'">
+                  Overdue by {{ props.row.daysOverdue }} days past target deadline ({{ props.row.deadline }})
+                </template>
+                <template v-else-if="props.row.daysOverdue > 0">
+                  Projected milestone delay: +{{ props.row.daysOverdue }} days
+                </template>
+                <template v-else>
+                  Task is on critical path or schedule is at risk
+                </template>
+              </q-tooltip>
             </q-td>
           </template>
 
@@ -137,50 +243,6 @@
                 +{{ props.row.effortOverrun }}h overrun
               </div>
               <div v-else class="text-caption text-grey-6">Within budget</div>
-            </q-td>
-          </template>
-
-          <!-- Delay Types / Tags -->
-          <template #body-cell-delayTypes="props">
-            <q-td :props="props">
-              <div class="row items-center gap-xs">
-                <q-chip
-                  v-for="dType in props.row.delayTypes"
-                  :key="dType"
-                  dense
-                  outline
-                  size="xs"
-                  :color="
-                    dType.includes('Overdue')
-                      ? 'negative'
-                      : dType.includes('Effort')
-                        ? 'deep-orange'
-                        : 'warning'
-                  "
-                >
-                  {{ dType }}
-                </q-chip>
-              </div>
-            </q-td>
-          </template>
-
-          <!-- Risks -->
-          <template #body-cell-risks="props">
-            <q-td :props="props" align="center">
-              <div class="row items-center justify-center gap-xs">
-                <q-badge
-                  v-if="props.row.isDeadlineAtRisk"
-                  color="negative"
-                  label="Deadline"
-                  class="q-px-xs"
-                />
-                <q-badge
-                  v-if="props.row.isScheduleAtRisk"
-                  color="warning"
-                  label="Schedule"
-                  class="q-px-xs"
-                />
-              </div>
             </q-td>
           </template>
         </q-table>
@@ -200,11 +262,10 @@
             <th style="width: 25%">Task Title</th>
             <th style="width: 14%">Project</th>
             <th style="width: 15%">Assignees</th>
-            <th style="width: 10%; text-align: center">Deadline</th>
-            <th style="width: 10%; text-align: center">Planned End</th>
-            <th style="width: 8%; text-align: right">Overdue</th>
-            <th style="width: 10%; text-align: right">Effort (Act/Exp)</th>
-            <th style="width: 8%; text-align: center">Risk Factors</th>
+            <th style="width: 15%">Delay Factors</th>
+            <th style="width: 10%; text-align: center">Target Deadline</th>
+            <th style="width: 10%; text-align: center">CPM Planned End</th>
+            <th style="width: 11%; text-align: right">Delay / Effort</th>
           </tr>
         </thead>
         <tbody>
@@ -215,40 +276,43 @@
             </td>
             <td>{{ r.projectName }}</td>
             <td>{{ r.assignees }}</td>
-            <td style="text-align: center">{{ r.deadline }}</td>
-            <td style="text-align: center">{{ r.plannedEnd }}</td>
-            <td style="text-align: right">
-              <span style="font-weight: 700; color: #dc2626">
-                {{ r.daysOverdue > 0 ? `+${r.daysOverdue} d` : 'At Risk' }}
-              </span>
-            </td>
-            <td style="text-align: right">
-              <div>{{ r.actualEffort }}h / {{ r.expectedEffort }}h</div>
-              <div
-                v-if="r.effortOverrun > 0"
-                style="font-size: 10px; font-weight: 700; color: #dc2626"
-              >
-                +{{ r.effortOverrun }}h
-              </div>
-            </td>
-            <td style="text-align: center">
+            <td>
               <span
                 v-for="dType in r.delayTypes"
                 :key="dType"
                 class="print-badge"
-                :class="dType.includes('Overdue') ? 'badge-negative' : 'badge-warning'"
+                :class="
+                  dType === 'Overdue Deadline'
+                    ? 'badge-negative'
+                    : dType === 'Effort Overrun'
+                      ? 'badge-warning'
+                      : 'badge-info'
+                "
                 style="margin: 1px 2px"
               >
                 {{ dType }}
               </span>
             </td>
+            <td style="text-align: center">{{ r.deadline }}</td>
+            <td style="text-align: center">{{ r.plannedEnd }}</td>
+            <td style="text-align: right">
+              <div style="font-weight: 700; color: #dc2626">
+                {{ r.daysOverdue > 0 ? `+${r.daysOverdue}d` : 'At Risk' }}
+              </div>
+              <div style="font-size: 10px; color: #6b7280">
+                {{ r.actualEffort }}h / {{ r.expectedEffort }}h
+                <span v-if="r.effortOverrun > 0" style="color: #dc2626; font-weight: 700">
+                  (+{{ r.effortOverrun }}h)
+                </span>
+              </div>
+            </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
             <td
-              colspan="8"
+              colspan="7"
               style="text-align: center; padding: 16px; color: #059669; font-weight: 600"
             >
-              ✓ All tasks are currently on schedule. No delayed or at-risk tasks found.
+              ✓ All tasks in the selected scope are currently on schedule. No delayed or at-risk tasks found.
             </td>
           </tr>
         </tbody>
@@ -265,6 +329,7 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from '@/components/reports/PrintReportLayout.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import {
   computeDelayedTasksReport,
   type DelayedTaskReportRow,
@@ -315,31 +380,6 @@ const hasActiveFilters = computed(() => {
   );
 });
 
-const filteredRows = computed<DelayedTaskReportRow[]>(() => {
-  return reportData.value.rows.filter((row) => {
-    if (selectedProjectId.value !== 'ALL' && row.projectId !== selectedProjectId.value) {
-      return false;
-    }
-    if (selectedResourceId.value !== 'ALL') {
-      const origTask = props.tasks.find((t) => t.task_id === row.taskId);
-      const isAssigned =
-        origTask?.assigned_resource_ids?.includes(selectedResourceId.value) ||
-        origTask?.assigned_resources?.some((ar) => ar.user_id === selectedResourceId.value);
-      if (!isAssigned) return false;
-    }
-    if (selectedDelayType.value !== 'ALL') {
-      if (!row.delayTypes.includes(selectedDelayType.value)) return false;
-    }
-    return true;
-  });
-});
-
-function resetFilters() {
-  selectedProjectId.value = 'ALL';
-  selectedResourceId.value = 'ALL';
-  selectedDelayType.value = 'ALL';
-}
-
 const selectedProjectName = computed(() => {
   if (selectedProjectId.value === 'ALL') return 'All Projects';
   const found = props.projects.find((p) => p.project_id === selectedProjectId.value);
@@ -357,6 +397,54 @@ const selectedDelayTypeLabel = computed(() => {
   return found ? found.label : selectedDelayType.value;
 });
 
+const filteredRows = computed<DelayedTaskReportRow[]>(() => {
+  return reportData.value.rows.filter((row) => {
+    if (
+      selectedProjectId.value !== 'ALL' &&
+      Number(row.projectId) !== Number(selectedProjectId.value)
+    ) {
+      return false;
+    }
+    if (selectedResourceId.value !== 'ALL') {
+      const origTask = props.tasks.find((t) => t.task_id === row.taskId);
+      const selId = Number(selectedResourceId.value);
+      const isAssigned =
+        origTask?.assigned_resource_ids?.some((id) => Number(id) === selId) ||
+        origTask?.assigned_resources?.some((ar) => Number(ar.user_id) === selId) ||
+        row.assignees.toLowerCase().includes(selectedResourceName.value.toLowerCase());
+      if (!isAssigned) return false;
+    }
+    if (selectedDelayType.value !== 'ALL') {
+      if (!row.delayTypes.includes(selectedDelayType.value)) return false;
+    }
+    return true;
+  });
+});
+
+const filteredDelayedCount = computed(() => filteredRows.value.length);
+const filteredOverdueCount = computed(
+  () => filteredRows.value.filter((r) => r.delayTypes.includes('Overdue Deadline')).length,
+);
+const filteredOverrunCount = computed(
+  () => filteredRows.value.filter((r) => r.delayTypes.includes('Effort Overrun')).length,
+);
+const filteredBottlenecksCount = computed(
+  () =>
+    filteredRows.value.filter(
+      (r) =>
+        r.delayTypes.includes('Schedule Bottleneck') ||
+        r.delayTypes.includes('Deadline Slippage') ||
+        r.isDeadlineAtRisk ||
+        r.isScheduleAtRisk,
+    ).length,
+);
+
+function resetFilters() {
+  selectedProjectId.value = 'ALL';
+  selectedResourceId.value = 'ALL';
+  selectedDelayType.value = 'ALL';
+}
+
 const printFilters = computed<ReportFilterMeta[]>(() => [
   { label: 'Project Scope', value: selectedProjectName.value },
   { label: 'Assigned Resource', value: selectedResourceName.value },
@@ -366,28 +454,28 @@ const printFilters = computed<ReportFilterMeta[]>(() => [
 
 const printMetrics = computed<SummaryMetricMeta[]>(() => [
   {
-    label: 'Total Delayed Tasks',
-    value: reportData.value.totalDelayed,
+    label: 'Delayed Tasks',
+    value: filteredDelayedCount.value,
     color: 'negative',
-    helper: 'Immediate attention required',
+    helper: `${reportData.value.totalDelayed} total across portfolio`,
   },
   {
     label: 'Past Deadline',
-    value: reportData.value.totalOverdue,
+    value: filteredOverdueCount.value,
     color: 'negative',
     helper: 'Target deadline breached',
   },
   {
     label: 'Effort Overrun',
-    value: reportData.value.totalOverrun,
+    value: filteredOverrunCount.value,
     color: 'warning',
     helper: 'Hours exceeding estimate',
   },
   {
-    label: 'Critical Risk Tasks',
-    value: reportData.value.rows.filter((r) => r.isDeadlineAtRisk || r.isScheduleAtRisk).length,
-    color: 'warning',
-    helper: 'Schedule bottleneck impact',
+    label: 'Schedule Bottlenecks',
+    value: filteredBottlenecksCount.value,
+    color: 'primary',
+    helper: 'Critical path & slippage risk',
   },
 ]);
 
@@ -398,15 +486,36 @@ const printNotes = [
 ];
 
 const columns: QTableProps['columns'] = [
-  { name: 'title', label: 'Task / Project', field: 'title', align: 'left', sortable: true },
-  { name: 'assignees', label: 'Assigned Team', field: 'assignees', align: 'left', sortable: true },
-  { name: 'delayTypes', label: 'Delay Factors', field: 'delayTypes', align: 'left' },
+  {
+    name: 'title',
+    label: 'Task / Project',
+    field: 'title',
+    align: 'left',
+    sortable: true,
+    style: 'min-width: 220px',
+  },
+  {
+    name: 'assignees',
+    label: 'Assigned Team',
+    field: 'assignees',
+    align: 'left',
+    sortable: true,
+    style: 'min-width: 175px',
+  },
+  {
+    name: 'delayTypes',
+    label: 'Delay Factors',
+    field: 'delayTypes',
+    align: 'left',
+    style: 'min-width: 160px',
+  },
   {
     name: 'deadline',
     label: 'Target Deadline',
     field: 'deadline',
     align: 'center',
     sortable: true,
+    style: 'min-width: 110px',
   },
   {
     name: 'plannedEnd',
@@ -414,6 +523,7 @@ const columns: QTableProps['columns'] = [
     field: 'plannedEnd',
     align: 'center',
     sortable: true,
+    style: 'min-width: 120px',
   },
   {
     name: 'daysOverdue',
@@ -421,6 +531,7 @@ const columns: QTableProps['columns'] = [
     field: 'daysOverdue',
     align: 'center',
     sortable: true,
+    style: 'min-width: 110px',
   },
   {
     name: 'effortOverrun',
@@ -428,7 +539,7 @@ const columns: QTableProps['columns'] = [
     field: 'actualEffort',
     align: 'right',
     sortable: true,
+    style: 'min-width: 140px',
   },
-  { name: 'risks', label: 'Risks', field: 'isDeadlineAtRisk', align: 'center' },
 ];
 </script>

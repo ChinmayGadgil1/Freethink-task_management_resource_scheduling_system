@@ -65,63 +65,58 @@
       <div class="row q-col-gutter-md">
         <!-- 1. Total Capacity -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">TOTAL CAPACITY</div>
-              <div class="text-h4 text-weight-bold text-primary q-mt-xs">
-                {{ reportData.totalCapacity }}h
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Standard weekly team availability</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Total Capacity"
+            :value="`${filteredCapacity}h`"
+            :subtitle="
+              hasActiveFilters
+                ? `Across ${filteredRows.length} member(s) (${reportData.totalCapacity}h total team)`
+                : 'Standard weekly team availability'
+            "
+            icon="group"
+            color="purple"
+            note-class="note-purple"
+            :clickable="false"
+          />
         </div>
 
         <!-- 2. Scheduled Effort & Logged Hours -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">SCHEDULED EFFORT</div>
-              <div class="text-h4 text-weight-bold text-teal q-mt-xs">
-                {{ reportData.totalScheduled }}h
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                {{ reportData.totalLogged }}h actual logged effort
-              </div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Scheduled Effort"
+            :value="`${filteredScheduled}h`"
+            :subtitle="`${filteredLogged}h actual logged effort`"
+            icon="schedule"
+            color="blue"
+            note-class="note-blue"
+            :clickable="false"
+          />
         </div>
 
         <!-- 3. Available Headroom -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">AVAILABLE HEADROOM</div>
-              <div class="text-h4 text-weight-bold text-positive q-mt-xs">
-                {{ reportData.totalHeadroom }}h
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">Unallocated capacity buffer</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Available Headroom"
+            :value="`${filteredHeadroom}h`"
+            subtitle="Unallocated capacity buffer"
+            icon="free_cancellation"
+            color="green"
+            note-class="note-green"
+            :clickable="false"
+          />
         </div>
 
         <!-- 4. Avg Team Utilization & Band Breakdown -->
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card class="kpi-card" :dark="$q.dark.isActive" flat bordered>
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-weight-medium text-grey-6">AVG TEAM UTILIZATION</div>
-              <div
-                class="text-h4 text-weight-bold q-mt-xs"
-                :class="reportData.overloadedCount > 0 ? 'text-negative' : 'text-primary'"
-              >
-                {{ reportData.averageUtilization }}%
-              </div>
-              <div class="text-caption text-grey-5 q-mt-xs">
-                {{ reportData.optimalCount }} Optimal ·
-                {{ reportData.overloadedCount }} Overloaded ·
-                {{ reportData.underutilizedCount }} Under
-              </div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Avg Team Utilization"
+            :value="`${filteredAvgUtilization}%`"
+            :subtitle="`${filteredOptimalCount} Optimal · ${filteredOverloadedCount} Overloaded · ${filteredUnderutilizedCount} Underutilized`"
+            icon="speed"
+            :color="filteredOverloadedCount > 0 ? 'red' : 'primary'"
+            :note-class="filteredOverloadedCount > 0 ? 'note-red' : 'note-purple'"
+            :clickable="false"
+          />
         </div>
       </div>
 
@@ -160,11 +155,13 @@
                 size="8px"
                 :value="props.row.workloadPercent / 100"
                 :color="
-                  props.row.status === 'Overloaded'
-                    ? 'negative'
-                    : props.row.status === 'Underutilized'
-                      ? 'grey-6'
-                      : 'positive'
+                  props.row.workloadPercent === 0
+                    ? 'grey-4'
+                    : props.row.workloadPercent > 85
+                      ? 'negative'
+                      : props.row.workloadPercent >= 50
+                        ? 'positive'
+                        : 'primary'
                 "
               />
             </q-td>
@@ -181,38 +178,28 @@
           <template #body-cell-availableHeadroom="props">
             <q-td :props="props" align="right">
               <span
-                :class="props.row.availableHeadroom < 0 ? 'text-negative text-weight-bold' : 'text-positive text-weight-medium'"
+                class="cursor-pointer"
+                :class="
+                  props.row.availableHeadroom < 0
+                    ? 'text-negative text-weight-bold'
+                    : 'text-positive text-weight-medium'
+                "
               >
                 {{ props.row.availableHeadroom }}h
               </span>
-            </q-td>
-          </template>
-
-          <!-- Status / Band -->
-          <template #body-cell-status="props">
-            <q-td :props="props" align="center">
-              <q-badge
-                rounded
-                :color="
-                  props.row.status === 'Overloaded'
-                    ? 'negative'
-                    : props.row.status === 'Underutilized'
-                      ? 'grey-7'
-                      : 'positive'
-                "
-                class="q-px-sm q-py-xs text-weight-bold"
-              >
-                {{ props.row.status }}
-              </q-badge>
+              <q-tooltip class="bg-dark text-body2">
+                Available buffer: {{ props.row.availableHeadroom }}h ({{ props.row.weeklyCapacity }}h capacity − {{ props.row.scheduledEffort }}h scheduled)
+              </q-tooltip>
             </q-td>
           </template>
         </q-table>
       </q-card>
     </div>
 
-    <!-- Standalone Print-only Report Document -->
+    <!-- Printable Report Component -->
     <PrintReportLayout
-      title="Resource Workload & Utilization Report"
+      ref="printReportRef"
+      title="Resource Workload &amp; Utilization Report"
       :filters="printFilters"
       :summary-metrics="printMetrics"
       :notes="printNotes"
@@ -227,7 +214,7 @@
             <th style="width: 11%; text-align: right">Actual Logged</th>
             <th style="width: 11%; text-align: right">Weekly Capacity</th>
             <th style="width: 10%; text-align: right">Headroom</th>
-            <th style="width: 11%; text-align: center">Utilization & Band</th>
+            <th style="width: 11%; text-align: center">Utilization</th>
           </tr>
         </thead>
         <tbody>
@@ -238,29 +225,18 @@
             </td>
             <td>{{ r.role }}</td>
             <td style="text-align: center">{{ r.assignedTasksCount }}</td>
-            <td style="text-align: right">{{ r.scheduledEffort }} hrs</td>
-            <td style="text-align: right">{{ r.loggedHours }} hrs</td>
-            <td style="text-align: right">{{ r.weeklyCapacity }} hrs</td>
+            <td style="text-align: right">{{ r.scheduledEffort }}h</td>
+            <td style="text-align: right">{{ r.loggedHours }}h</td>
+            <td style="text-align: right">{{ r.weeklyCapacity }}h</td>
             <td style="text-align: right">
               <span
                 :style="{ color: r.availableHeadroom < 0 ? '#dc2626' : '#059669', fontWeight: 600 }"
               >
-                {{ r.availableHeadroom }} hrs
+                {{ r.availableHeadroom }}h
               </span>
             </td>
-            <td style="text-align: center">
-              <span
-                class="print-badge"
-                :class="
-                  r.status === 'Overloaded'
-                    ? 'badge-negative'
-                    : r.status === 'Underutilized'
-                      ? ''
-                      : 'badge-positive'
-                "
-              >
-                {{ r.status }} ({{ r.workloadPercent }}%)
-              </span>
+            <td style="text-align: center; font-weight: 600">
+              {{ r.workloadPercent }}%
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
@@ -282,6 +258,7 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from '@/components/reports/PrintReportLayout.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import {
   computeResourceWorkloadReport,
   type ResourceWorkloadReportRow,
@@ -341,8 +318,16 @@ const hasActiveFilters = computed(() => {
 
 const filteredRows = computed<ResourceWorkloadReportRow[]>(() => {
   return reportData.value.rows.filter((row) => {
-    if (selectedResourceId.value !== 'ALL' && row.resourceId !== selectedResourceId.value) {
+    if (
+      selectedResourceId.value !== 'ALL' &&
+      Number(row.resourceId) !== Number(selectedResourceId.value)
+    ) {
       return false;
+    }
+    if (selectedProjectId.value !== 'ALL') {
+      if (row.assignedTasksCount === 0 && row.scheduledEffort === 0 && row.loggedHours === 0) {
+        return false;
+      }
     }
     if (selectedBand.value !== 'ALL') {
       if (selectedBand.value === 'Optimal' && row.status !== 'Optimal' && row.status !== 'Normal') {
@@ -357,6 +342,33 @@ const filteredRows = computed<ResourceWorkloadReportRow[]>(() => {
     }
     return true;
   });
+});
+
+const filteredCapacity = computed(() =>
+  filteredRows.value.reduce((acc, r) => acc + r.weeklyCapacity, 0),
+);
+const filteredScheduled = computed(() =>
+  Math.round(filteredRows.value.reduce((acc, r) => acc + r.scheduledEffort, 0) * 10) / 10,
+);
+const filteredLogged = computed(() =>
+  Math.round(filteredRows.value.reduce((acc, r) => acc + r.loggedHours, 0) * 10) / 10,
+);
+const filteredHeadroom = computed(() =>
+  Math.round(filteredRows.value.reduce((acc, r) => acc + r.availableHeadroom, 0) * 10) / 10,
+);
+const filteredOverloadedCount = computed(
+  () => filteredRows.value.filter((r) => r.status === 'Overloaded').length,
+);
+const filteredOptimalCount = computed(
+  () => filteredRows.value.filter((r) => r.status === 'Optimal' || r.status === 'Normal').length,
+);
+const filteredUnderutilizedCount = computed(
+  () => filteredRows.value.filter((r) => r.status === 'Underutilized').length,
+);
+const filteredAvgUtilization = computed(() => {
+  if (filteredRows.value.length === 0) return 0;
+  const total = filteredRows.value.reduce((acc, r) => acc + r.workloadPercent, 0);
+  return Math.round(total / filteredRows.value.length);
 });
 
 function resetFilters() {
@@ -378,8 +390,8 @@ const selectedProjectName = computed(() => {
 });
 
 const selectedBandLabel = computed(() => {
-  const found = bandOptions.find((b) => b.value === selectedBand.value);
-  return found ? found.label : selectedBand.value;
+  const match = bandOptions.find((b) => b.value === selectedBand.value);
+  return match ? match.label : selectedBand.value;
 });
 
 const printFilters = computed<ReportFilterMeta[]>(() => [
@@ -392,37 +404,37 @@ const printFilters = computed<ReportFilterMeta[]>(() => [
 const printMetrics = computed<SummaryMetricMeta[]>(() => [
   {
     label: 'Total Team Capacity',
-    value: `${reportData.value.totalCapacity}h/wk`,
+    value: `${filteredCapacity.value}h/wk`,
     color: 'primary',
-    helper: `Across ${props.resources.length} team members`,
+    helper: `Across ${filteredRows.value.length} team members`,
   },
   {
     label: 'Scheduled Effort',
-    value: `${reportData.value.totalScheduled}h`,
+    value: `${filteredScheduled.value}h`,
     color: 'info',
     helper: 'Committed active task workload',
   },
   {
     label: 'Actual Effort Logged',
-    value: `${reportData.value.totalLogged}h`,
+    value: `${filteredLogged.value}h`,
     color: 'teal',
     helper: 'Accumulated tracked time',
   },
   {
     label: 'Available Headroom',
-    value: `${reportData.value.totalHeadroom}h`,
+    value: `${filteredHeadroom.value}h`,
     color: 'positive',
     helper: 'Buffer for new task dispatch',
   },
   {
     label: 'Avg Utilization',
-    value: `${reportData.value.averageUtilization}%`,
+    value: `${filteredAvgUtilization.value}%`,
     color: 'primary',
-    helper: `${reportData.value.optimalCount} Optimal · ${reportData.value.underutilizedCount} Under`,
+    helper: `${filteredOptimalCount.value} Optimal · ${filteredUnderutilizedCount.value} Underutilized`,
   },
   {
     label: 'Overloaded Members',
-    value: reportData.value.overloadedCount,
+    value: filteredOverloadedCount.value,
     color: 'negative',
     helper: '>85% capacity threshold breached',
   },
@@ -465,16 +477,6 @@ const columns: QTableProps['columns'] = [
     align: 'right',
     sortable: true,
   },
-  { name: 'status', label: 'Load Status', field: 'status', align: 'center', sortable: true },
 ];
 </script>
 
-<style scoped>
-.kpi-card {
-  border-radius: 8px;
-  transition: transform 0.15s ease-in-out;
-}
-.kpi-card:hover {
-  transform: translateY(-2px);
-}
-</style>
