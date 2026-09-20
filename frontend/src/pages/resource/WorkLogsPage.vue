@@ -127,9 +127,11 @@
                 {{
                   totalScheduledHours > 0
                     ? 'Planned capacity for this day'
-                    : isWeekend
-                      ? 'Weekend — No scheduled shift'
-                      : 'No scheduled slots for this day'
+                    : allocations.length > 0
+                      ? 'Active tasks available to log'
+                      : isWeekend
+                        ? 'Weekend — No scheduled shift'
+                        : 'No scheduled slots for this day'
                 }}
               </div>
             </q-card>

@@ -144,6 +144,28 @@ export async function createWorkLog(
     try {
         await connection.beginTransaction();
 
+        if (hoursLogged <= 0) {
+            throw new Error("Hours logged must be greater than 0");
+        }
+
+        if (hoursLogged > 16) {
+            throw new Error("A single work log entry cannot exceed 16 hours");
+        }
+
+        // Validate that user does not exceed 24 hours logged across all tasks on this calendar date
+        const [dailyLogRows] = await connection.query<RowDataPacket[]>(
+            `SELECT COALESCE(SUM(hours_logged), 0) as total_logged_today 
+             FROM work_logs 
+             WHERE user_id = ? AND log_date = ?`,
+            [userId, logDate]
+        );
+        const existingHoursToday = Number(dailyLogRows[0]?.total_logged_today || 0);
+        if (existingHoursToday + hoursLogged > 24) {
+            throw new Error(
+                `Daily limit exceeded: You have already logged ${existingHoursToday}h on ${logDate}. Adding ${hoursLogged}h would total ${(existingHoursToday + hoursLogged).toFixed(1)}h (cannot exceed 24 hours in a single calendar day).`
+            );
+        }
+
         // Validate task existence and user assignment/supervisor status
         const [tasks] = await connection.query<RowDataPacket[]>(
             `SELECT t.task_id, t.project_id, t.supervisor_id, t.status, t.progress, t.actual_effort,
@@ -343,9 +365,11 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
            AND (
              ts.schedule_id IS NOT NULL
              OR EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)
+             OR (? = 1 AND t.status = 'IN_PROGRESS')
            )
          GROUP BY t.task_id, p.name
          ORDER BY (EXISTS (SELECT 1 FROM work_logs wl WHERE wl.task_id = t.task_id AND wl.user_id = ? AND wl.log_date = ?)) DESC,
+                  (t.status = 'IN_PROGRESS') DESC,
                   scheduled_hours_today > 0 DESC,
                   CASE t.priority
                       WHEN 'CRITICAL' THEN 1
@@ -355,9 +379,8 @@ export async function getDailyWorkAllocationsForResource(userId: number, dateStr
                       ELSE 5
                   END ASC,
                   t.title ASC`,
-        [userId, userId, userId, dateStr, userId, userId, dateStr, userId, dateStr, userId, dateStr]
+        [userId, userId, userId, dateStr, userId, userId, dateStr, userId, dateStr, isToday ? 1 : 0, userId, dateStr]
     );
-    console.log("DEBUG SCHEDULED HOURS:", tasks.map(t => t.scheduled_hours_today));
 
     // 2. Fetch all work logs logged by this user on dateStr
     const [logs] = await pool.query<RowDataPacket[]>(

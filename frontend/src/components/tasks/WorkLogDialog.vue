@@ -59,14 +59,14 @@
           </div>
         </div>
 
-        <!-- Hours Worked (0.5-hour precision enforced) -->
+        <!-- Hours Worked (0.5-hour precision enforced, max 16h) -->
         <div>
           <div class="row items-center justify-between q-mb-xs">
             <div
               class="text-caption text-weight-bold"
               :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
             >
-              Hours Worked * (0.5 hr steps)
+              Hours Worked * (0.5 hr steps, max 16h)
             </div>
             <span v-if="hoursValidationError" class="text-caption text-negative text-weight-medium">
               {{ hoursValidationError }}
@@ -76,6 +76,7 @@
             v-model.number="form.hours_logged"
             type="number"
             min="0.5"
+            max="16"
             step="0.5"
             placeholder="e.g. 1.0, 1.5, 2.0"
             outlined
@@ -103,6 +104,58 @@
               :color="form.hours_logged === preset ? 'primary' : 'grey-7'"
               @click="form.hours_logged = preset"
             />
+          </div>
+        </div>
+
+        <!-- Effort Budget Status & Overrun Warning -->
+        <div
+          v-if="expectedEffort > 0"
+          class="effort-info-box q-pa-sm rounded-borders"
+          :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
+        >
+          <div class="row items-center justify-between text-caption">
+            <div class="row items-center q-gutter-x-xs">
+              <span class="text-grey-6">Budget:</span>
+              <span class="text-weight-bold">{{ expectedEffort }}h</span>
+              <span class="text-grey-5">·</span>
+              <span class="text-grey-6">Logged:</span>
+              <span class="text-weight-bold">{{ currentActualEffort }}h</span>
+              <span class="text-grey-5">·</span>
+              <span class="text-grey-6">Total After:</span>
+              <span
+                class="text-weight-bold"
+                :class="isOverrun ? 'text-warning' : 'text-primary'"
+              >
+                {{ totalEffortAfterLog }}h
+              </span>
+            </div>
+            <div v-if="suggestedProgress !== null && suggestedProgress !== form.progress_logged">
+              <q-btn
+                flat
+                dense
+                no-caps
+                size="xs"
+                color="primary"
+                icon="auto_awesome"
+                :label="`Suggest ${suggestedProgress}%`"
+                @click="form.progress_logged = suggestedProgress"
+              >
+                <q-tooltip>Set progress to {{ suggestedProgress }}% based on cumulative effort</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+
+          <!-- Overrun banner -->
+          <div
+            v-if="isOverrun"
+            class="row items-center q-mt-xs q-pa-xs rounded-borders text-caption text-weight-medium"
+            :class="$q.dark.isActive ? 'bg-amber-10 text-amber-1' : 'bg-amber-1 text-amber-10'"
+            style="border: 1px solid rgba(245, 158, 11, 0.3)"
+          >
+            <q-icon name="warning" size="16px" class="q-mr-xs text-warning" />
+            <span>
+              Effort Overrun: Total effort ({{ totalEffortAfterLog }}h) exceeds budget ({{ expectedEffort }}h) by {{ overrunHours }}h while progress is {{ form.progress_logged }}%.
+            </span>
           </div>
         </div>
 
@@ -238,10 +291,49 @@ const computedStatus = computed(() => {
   return getStatusFromProgress(form.progress_logged);
 });
 
+const expectedEffort = computed(() => {
+  if (!props.task) return 0;
+  const val = Number(props.task.expected_effort);
+  return isNaN(val) ? 0 : val;
+});
+
+const currentActualEffort = computed(() => {
+  if (!props.task) return 0;
+  const val = Number(props.task.actual_effort);
+  return isNaN(val) ? 0 : val;
+});
+
+const totalEffortAfterLog = computed(() => {
+  const h = Number(form.hours_logged) || 0;
+  return Number((currentActualEffort.value + h).toFixed(2));
+});
+
+const isOverrun = computed(() => {
+  return (
+    expectedEffort.value > 0 &&
+    totalEffortAfterLog.value > expectedEffort.value &&
+    Number(form.progress_logged) < 100
+  );
+});
+
+const overrunHours = computed(() => {
+  if (!isOverrun.value) return '0';
+  return Number((totalEffortAfterLog.value - expectedEffort.value).toFixed(2)).toString();
+});
+
+const suggestedProgress = computed(() => {
+  if (expectedEffort.value <= 0) return null;
+  const ratio = Math.round((totalEffortAfterLog.value / expectedEffort.value) * 100);
+  return Math.min(100, Math.max(0, ratio));
+});
+
 const hoursValidationError = computed(() => {
   const h = Number(form.hours_logged);
   if (isNaN(h) || h <= 0) {
     return 'Hours must be greater than 0';
+  }
+  if (h > 16) {
+    return 'A single work log cannot exceed 16 hours';
   }
   if (Math.round(h * 10) % 5 !== 0) {
     return 'Hours must be in 0.5-hr increments (e.g. 0.5, 1, 1.5, 2)';
@@ -255,6 +347,7 @@ const canSubmit = computed(() => {
     !hoursValidationError.value &&
     form.log_date !== '' &&
     Number(form.hours_logged) > 0 &&
+    Number(form.hours_logged) <= 16 &&
     Number(form.progress_logged) >= 0 &&
     Number(form.progress_logged) <= 100 &&
     form.notes.trim().length > 0
@@ -312,7 +405,8 @@ function save() {
 </script>
 
 <style scoped>
-.scheduled-info-box {
+.scheduled-info-box,
+.effort-info-box {
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 </style>

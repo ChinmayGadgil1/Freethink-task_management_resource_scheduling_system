@@ -164,19 +164,26 @@ export function canCompleteBy(
     const N = resourceIds.length;
     const sharePerAssignee = Number((Number(task.expected_effort) / N).toFixed(2));
     const actualPerAssignee = Number((Number(task.actual_effort) / N).toFixed(2));
+    const taskProgress = Math.min(100, Math.max(0, Number(task.progress) || 0));
+    const progressRemFactor = taskProgress >= 100 ? 0 : (100 - taskProgress) / 100;
 
     const remainingPerResource = new Map<number, number>();
     let totalAssigneeRem = 0;
     for (const uid of resourceIds) {
         const userLogged = taskUserActualLogs?.get(`${task.task_id}_${uid}`) ?? (N === 1 ? Number(task.actual_effort) : actualPerAssignee);
-        const rem = Math.max(0, Number((sharePerAssignee - userLogged).toFixed(2)));
+        let rem = 0;
+        if (taskProgress < 100) {
+            const remByProgress = Number((sharePerAssignee * progressRemFactor).toFixed(2));
+            const remByEffort = Math.max(0, Number((sharePerAssignee - userLogged).toFixed(2)));
+            rem = taskProgress > 0 ? remByProgress : Math.max(sharePerAssignee, remByEffort);
+        }
         remainingPerResource.set(uid, rem);
         totalAssigneeRem = Number((totalAssigneeRem + rem).toFixed(2));
     }
 
     let supRemaining = 0;
-    if (taskSupervisorId) {
-        supRemaining = Number((Number(task.expected_effort) * 0.20).toFixed(2));
+    if (taskSupervisorId && taskProgress < 100) {
+        supRemaining = Number((Number(task.expected_effort) * 0.20 * progressRemFactor).toFixed(2));
     }
 
     if (totalAssigneeRem <= 0 && supRemaining <= 0) {
@@ -190,7 +197,11 @@ export function canCompleteBy(
         }
     }
 
-    const currentDate = earliestStart ? new Date(earliestStart) : new Date();
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+
+    const initialStart = earliestStart ? new Date(earliestStart) : new Date();
+    const currentDate = new Date(Math.max(initialStart.getTime(), todayMidnight.getTime()));
     currentDate.setHours(0, 0, 0, 0);
 
     const endDate = parseDateLocal(targetDate);
@@ -793,19 +804,26 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
 
         const sharePerAssignee = N > 0 ? Number((Number(task.expected_effort) / N).toFixed(2)) : 0;
         const actualPerAssignee = N > 0 ? Number((Number(task.actual_effort) / N).toFixed(2)) : 0;
+        const taskProgress = Math.min(100, Math.max(0, Number(task.progress) || 0));
+        const progressRemFactor = taskProgress >= 100 ? 0 : (100 - taskProgress) / 100;
 
         const remainingEffortPerResource = new Map<number, number>();
         let totalAssigneeRemaining = 0;
         for (const uid of resourceIds) {
             const userLogged = taskUserActualLogs.get(`${task.task_id}_${uid}`) ?? (N === 1 ? Number(task.actual_effort) : actualPerAssignee);
-            const rem = Math.max(0, Number((sharePerAssignee - userLogged).toFixed(2)));
+            let rem = 0;
+            if (taskProgress < 100) {
+                const remByProgress = Number((sharePerAssignee * progressRemFactor).toFixed(2));
+                const remByEffort = Math.max(0, Number((sharePerAssignee - userLogged).toFixed(2)));
+                rem = taskProgress > 0 ? remByProgress : Math.max(sharePerAssignee, remByEffort);
+            }
             remainingEffortPerResource.set(uid, rem);
             totalAssigneeRemaining = Number((totalAssigneeRemaining + rem).toFixed(2));
         }
 
         let supervisorRemaining = 0;
-        if (taskSupervisorId) {
-            supervisorRemaining = Number((Number(task.expected_effort) * 0.20).toFixed(2));
+        if (taskSupervisorId && taskProgress < 100) {
+            supervisorRemaining = Number((Number(task.expected_effort) * 0.20 * progressRemFactor).toFixed(2));
         }
 
         let plannedStart: string | null = null;
@@ -814,8 +832,14 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         let taskEarliestStart = earliestStarts.get(task.task_id) ?? new Date(baselineDate);
         let taskFinalEnd: Date | null = null;
 
+        const hasStarted = Boolean(task.actual_start || taskProgress > 0 || task.status === "IN_PROGRESS");
+        if (hasStarted) {
+            plannedStart = task.actual_start ? parseAndFormatDatetime(task.actual_start) : (task.planned_start ? parseAndFormatDatetime(task.planned_start) : null);
+        }
+
         if ((totalAssigneeRemaining > 0 || supervisorRemaining > 0) && resourceIds.length > 0 && task.status !== "UNASSIGNED") {
-            let currentDate = new Date(taskEarliestStart);
+            const allocationStartDate = new Date(Math.max(taskEarliestStart.getTime(), todayMidnight.getTime()));
+            let currentDate = new Date(allocationStartDate);
             currentDate.setHours(0, 0, 0, 0);
 
             const initialAllocationsForRisk = new Map<number, Map<string, number>>();
@@ -932,7 +956,10 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
 
             // Phase 2: Schedule supervisor review (20% of base effort)
             if (taskSupervisorId && supervisorRemaining > 0) {
-                let supDate = taskFinalEnd ? new Date(taskFinalEnd) : new Date(taskEarliestStart);
+                let supDate = taskFinalEnd ? new Date(taskFinalEnd) : new Date(allocationStartDate);
+                if (supDate < todayMidnight) {
+                    supDate = new Date(todayMidnight);
+                }
                 let supHourOffset = Math.max(0, supDate.getHours() - 10 + supDate.getMinutes() / 60);
                 if (supHourOffset >= 8) {
                     supDate.setDate(supDate.getDate() + 1);

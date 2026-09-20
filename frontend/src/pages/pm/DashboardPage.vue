@@ -972,11 +972,17 @@
                     v-model.number="logProgressForm.hours_logged"
                     label="Hours Logged *"
                     type="number"
+                    min="0.5"
+                    max="16"
                     step="0.5"
                     outlined
                     dense
                     :dark="$q.dark.isActive"
-                    :rules="[(val) => (val !== null && val >= 0) || 'Valid hours required']"
+                    :rules="[
+                      (val) => (val !== null && val > 0) || 'Hours must be greater than 0',
+                      (val) => (val <= 16) || 'A single work log cannot exceed 16 hours',
+                      (val) => Math.round(val * 10) % 5 === 0 || '0.5h increments required',
+                    ]"
                   />
                 </div>
                 <div class="col-6">

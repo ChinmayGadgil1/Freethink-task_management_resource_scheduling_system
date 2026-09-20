@@ -600,7 +600,7 @@ export async function assignResource(
 }
 
 const workLogSchema = z.object({
-    hours_logged: z.number().positive().refine(
+    hours_logged: z.number().positive().max(16, "A single work log entry cannot exceed 16 hours").refine(
         (val) => Math.round(val * 10) % 5 === 0,
         { message: "Hours worked must be in 0.5-hour increments (e.g. 0.5, 1, 1.5, 2)" }
     ),
