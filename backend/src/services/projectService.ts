@@ -103,6 +103,23 @@ export async function syncProjectProgress(projectId: number): Promise<number> {
         calculatedProgress = Math.max(0, Math.min(100, calculatedProgress));
     }
 
+    // Check if there are any active pending verification tasks for this project
+    const [verifRows] = await pool.query<RowDataPacket[]>(
+        `SELECT COUNT(*) AS pending_verifications
+         FROM tasks
+         WHERE project_id = ?
+           AND deleted_at IS NULL
+           AND task_type = 'VERIFICATION'
+           AND status != 'COMPLETED'`,
+        [projectId]
+    );
+    const pendingVerifications = Number(verifRows[0]?.pending_verifications || 0);
+
+    if (pendingVerifications > 0 && calculatedProgress >= 100) {
+        // Cap progress at 99% if standard tasks are done but QA/verification is still pending
+        calculatedProgress = 99;
+    }
+
     // Fetch current project status to handle smart state transitions
     const [projRows] = await pool.query<RowDataPacket[]>(
         `SELECT status FROM projects WHERE project_id = ? AND deleted_at IS NULL`,
@@ -114,9 +131,9 @@ export async function syncProjectProgress(projectId: number): Promise<number> {
     const currentStatus = projRows[0]?.status;
     let nextStatus = currentStatus;
 
-    if (calculatedProgress >= 100) {
+    if (calculatedProgress >= 100 && pendingVerifications === 0) {
         nextStatus = "COMPLETED";
-    } else if (currentStatus === "COMPLETED" && calculatedProgress < 100) {
+    } else if (currentStatus === "COMPLETED" && (calculatedProgress < 100 || pendingVerifications > 0)) {
         nextStatus = "IN_PROGRESS";
     } else if (currentStatus === "NOT_STARTED" && calculatedProgress > 0) {
         nextStatus = "IN_PROGRESS";
