@@ -220,26 +220,98 @@
             />
           </div>
           <div
-            v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 0"
-            class="row q-gutter-xs wrap"
+            v-if="assignedResourceIds.length > 0"
+            class="column q-gutter-y-xs"
           >
-            <q-chip
-              v-for="rId in task.assigned_resource_ids"
+            <div
+              v-for="rId in assignedResourceIds"
               :key="rId"
-              dense
-              square
-              :removable="allowUnassign"
-              class="resource-chip"
-              @remove="handleUnassignClick(rId)"
+              class="assignee-progress-card rounded-borders q-pa-sm"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
+              style="border: 1px solid rgba(0, 0, 0, 0.08)"
             >
-              <q-avatar size="18px" class="avatar-purple q-mr-xs">
-                {{ getResourceInitial(rId) }}
-              </q-avatar>
-              {{ resolveResourceName(rId) }}
-              <q-tooltip v-if="allowUnassign"
-                >Click X to unassign {{ resolveResourceName(rId) }}</q-tooltip
+              <!-- Member Header: Avatar, Name on left; Progress % and Unassign cross on right -->
+              <div class="row items-center justify-between no-wrap q-mb-xs">
+                <div class="row items-center q-gutter-xs no-wrap ellipsis">
+                  <q-avatar size="20px" class="avatar-purple">
+                    {{ getResourceInitial(rId) }}
+                  </q-avatar>
+                  <span
+                    class="text-caption text-weight-bold ellipsis"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  >
+                    {{ resolveResourceName(rId) }}
+                  </span>
+                </div>
+
+                <div class="row items-center q-gutter-x-xs no-wrap">
+                  <span
+                    v-if="getAssigneeProgress(rId)"
+                    class="text-caption text-weight-bolder"
+                    :class="
+                      getAssigneeProgress(rId)!.progress_logged === 100
+                        ? 'text-positive'
+                        : 'text-primary'
+                    "
+                  >
+                    {{ getAssigneeProgress(rId)!.progress_logged }}%
+                  </span>
+                  <span
+                    v-else
+                    class="text-caption text-grey-5 text-weight-medium"
+                    style="font-size: 11px"
+                  >
+                    Not logged yet
+                  </span>
+
+                  <q-btn
+                    v-if="allowUnassign"
+                    flat
+                    round
+                    dense
+                    size="xs"
+                    icon="close"
+                    color="grey-6"
+                    class="unassign-member-btn q-ml-xs"
+                    @click="handleUnassignClick(rId)"
+                  >
+                    <q-tooltip>Unassign {{ resolveResourceName(rId) }}</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+
+              <!-- Mini Progress Bar -->
+              <q-linear-progress
+                :value="(getAssigneeProgress(rId)?.progress_logged ?? 0) / 100"
+                rounded
+                size="5px"
+                :color="
+                  getAssigneeProgress(rId)?.progress_logged === 100
+                    ? 'positive'
+                    : 'primary'
+                "
+                :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+              />
+
+              <!-- Last Updated & Hours Logged Metadata -->
+              <div
+                v-if="getAssigneeProgress(rId)"
+                class="row items-center q-mt-xs q-gutter-x-xs text-caption text-grey-6"
+                style="font-size: 10.5px"
               >
-            </q-chip>
+                <span>
+                  Last updated:
+                  {{
+                    formatDate(
+                      getAssigneeProgress(rId)!.log_date ||
+                        getAssigneeProgress(rId)!.created_at,
+                    )
+                  }}
+                </span>
+                <span>·</span>
+                <span>{{ formatHours(getAssigneeProgress(rId)!.hours_logged) }} logged</span>
+              </div>
+            </div>
           </div>
           <span v-else class="text-caption text-grey-5">No members currently assigned</span>
         </div>
@@ -577,7 +649,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth'; // Auth store to identify current user
-import { getWorkLogsApi, type Task, type WorkLog } from '@/services/api';
+import {
+  getWorkLogsApi,
+  type Task,
+  type WorkLog,
+  type AssigneeProgress,
+} from '@/services/api';
 import {
   formatDate,
   formatStatus,
@@ -644,16 +721,19 @@ const currentUserId = computed<number | null>(() => {
 });
 
 const workLogs = ref<WorkLog[]>([]);
+const assigneeProgress = ref<AssigneeProgress[]>([]);
 const loadingLogs = ref(false);
 
 async function fetchTaskWorkLogs(taskId: number) {
   loadingLogs.value = true;
   try {
-    const { logs } = await getWorkLogsApi(taskId);
-    workLogs.value = logs || [];
+    const res = await getWorkLogsApi(taskId);
+    workLogs.value = res.logs || [];
+    assigneeProgress.value = res.assignee_progress || [];
   } catch (err) {
     console.error('Failed to load task work logs:', err);
     workLogs.value = [];
+    assigneeProgress.value = [];
   } finally {
     loadingLogs.value = false;
   }
@@ -663,13 +743,40 @@ watch(
   () => [props.modelValue, props.task?.task_id],
   ([isOpen, taskId]) => {
     if (isOpen && taskId) {
+      if (props.task?.assignee_progress) {
+        assigneeProgress.value = props.task.assignee_progress;
+      }
       void fetchTaskWorkLogs(Number(taskId));
     } else {
       workLogs.value = [];
+      assigneeProgress.value = [];
     }
   },
   { immediate: true },
 );
+
+const assignedResourceIds = computed<number[]>(() => {
+  if (!props.task) return [];
+  if (props.task.assigned_resource_ids && props.task.assigned_resource_ids.length > 0) {
+    return props.task.assigned_resource_ids.map((id) => Number(id));
+  }
+  if (props.task.assigned_resources && props.task.assigned_resources.length > 0) {
+    return props.task.assigned_resources.map((r) => Number(r.user_id));
+  }
+  return [];
+});
+
+function getAssigneeProgress(resourceId: number): AssigneeProgress | undefined {
+  const byId = assigneeProgress.value.find(
+    (ap) => Number(ap.user_id) === Number(resourceId),
+  );
+  if (byId) return byId;
+
+  const resName = resolveResourceName(resourceId).toLowerCase().trim();
+  return assigneeProgress.value.find(
+    (ap) => ap.author_name && ap.author_name.toLowerCase().trim() === resName,
+  );
+}
 
 const resolvedProjectName = computed(() => {
   if (props.projectName) return props.projectName;
@@ -681,6 +788,16 @@ const resolvedProjectName = computed(() => {
 function resolveResourceName(resourceId: number): string {
   if (props.resourceNamesMap?.[resourceId]) {
     return props.resourceNamesMap[resourceId];
+  }
+  const ap = assigneeProgress.value.find((a) => Number(a.user_id) === Number(resourceId));
+  if (ap?.author_name) {
+    return ap.author_name;
+  }
+  if (props.task?.assigned_resources) {
+    const r = props.task.assigned_resources.find(
+      (res) => Number(res.user_id) === Number(resourceId),
+    );
+    if (r?.name) return r.name;
   }
   if (props.task?.assigned_resource_ids && props.task?.assigned_resource_names) {
     const idx = props.task.assigned_resource_ids.findIndex(
@@ -899,5 +1016,18 @@ function handleRemoveDependencyClick(predecessorId: number) {
   font-size: 11px;
   font-weight: 600;
   border-radius: 4px;
+}
+
+.assignee-progress-card {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.assignee-progress-card:hover {
+  border-color: rgba(139, 111, 216, 0.35) !important;
+}
+
+.unassign-member-btn:hover {
+  color: var(--q-negative) !important;
+  background: rgba(239, 68, 68, 0.1);
 }
 </style>

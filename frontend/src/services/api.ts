@@ -157,6 +157,7 @@ export interface Task {
   supervisor_effort?: number;
   total_task_effort?: number;
   assignees_count?: number;
+  assignee_progress?: AssigneeProgress[];
 }
 
 export interface WorkLog {
