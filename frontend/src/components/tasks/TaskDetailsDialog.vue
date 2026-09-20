@@ -4,7 +4,7 @@
       v-if="task"
       class="dialog-card"
       :dark="$q.dark.isActive"
-      style="min-width: 480px; max-width: 95vw"
+      style="width: 720px; max-width: 95vw"
     >
       <q-card-section class="row items-center justify-between q-pb-none">
         <div class="row items-center gap-xs">
@@ -974,8 +974,12 @@ function handleRemoveDependencyClick(predecessorId: number) {
 <style scoped lang="scss">
 .popup-details-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .detail-item {
