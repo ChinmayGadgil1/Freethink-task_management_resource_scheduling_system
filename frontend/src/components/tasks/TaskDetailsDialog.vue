@@ -526,6 +526,7 @@
                   {{ log.notes }}
                 </div>
 
+                <!--
                 <div
                   v-if="log.blockers"
                   class="row items-center text-caption text-negative q-mt-xs text-weight-medium"
@@ -533,6 +534,7 @@
                   <q-icon name="warning_amber" size="13px" class="q-mr-xs" />
                   <span>Blocker: {{ log.blockers }}</span>
                 </div>
+                -->
               </q-item-section>
             </q-item>
           </q-list>

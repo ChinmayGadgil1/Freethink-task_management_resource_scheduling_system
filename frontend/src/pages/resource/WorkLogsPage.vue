@@ -512,6 +512,7 @@
                           :label="`${formatHours(log.hours_logged)}h`"
                         />
                         <span class="text-weight-medium">{{ log.notes }}</span>
+                        <!--
                         <q-chip
                           v-if="log.blockers"
                           dense
@@ -522,6 +523,7 @@
                         >
                           Blocker: {{ log.blockers }}
                         </q-chip>
+                        -->
                       </div>
                       <div class="row items-center gap-sm">
                         <span class="text-caption text-grey-5">Progress Logged: <b>{{ log.progress_logged }}%</b></span>
@@ -626,7 +628,7 @@
           <div class="row items-center gap-sm col-grow" style="max-width: 680px">
             <q-input
               v-model="searchQuery"
-              placeholder="Search by task title, project, notes or blockers..."
+              placeholder="Search by task title, project, or notes..."
               outlined
               dense
               clearable
@@ -779,6 +781,7 @@
                   </div>
 
                   <!-- Blockers Alert -->
+                  <!--
                   <div
                     v-if="log.blockers"
                     class="row items-center gap-xs q-mt-xs text-negative text-caption text-weight-medium bg-red-soft q-pa-xs rounded-borders"
@@ -786,6 +789,7 @@
                     <q-icon name="warning" size="14px" />
                     <span><b>Blocker:</b> {{ log.blockers }}</span>
                   </div>
+                  -->
                 </div>
 
                 <!-- Right: Effort, Progress & Action -->

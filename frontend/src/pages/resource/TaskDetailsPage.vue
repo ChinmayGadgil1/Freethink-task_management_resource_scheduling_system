@@ -2315,6 +2315,7 @@
                     </div>
 
                     <!-- Blocker details if reported -->
+                    <!--
                     <div
                       v-if="log.blockers"
                       class="row items-center text-negative q-mt-xs text-weight-medium text-caption"
@@ -2322,6 +2323,7 @@
                       <q-icon name="warning_amber" size="15px" class="q-mr-xs" />
                       <span>Blocker: {{ log.blockers }}</span>
                     </div>
+                    -->
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -2407,6 +2409,7 @@
             dense
             rows="3"
           />
+          <!--
           <q-input
             v-model="stopSessionForm.blockers"
             type="textarea"
@@ -2415,6 +2418,7 @@
             dense
             rows="2"
           />
+          -->
         </q-card-section>
         <q-card-actions align="right" class="q-pa-md">
           <q-btn v-close-popup flat no-caps label="Cancel" color="grey-7" />

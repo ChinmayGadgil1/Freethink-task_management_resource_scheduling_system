@@ -136,6 +136,7 @@
             placeholder="Describe what was accomplished, milestones completed, or items tested..."
             outlined
             dense
+            stack-label
             rows="3"
             :dark="$q.dark.isActive"
             :rules="[(val) => (val && val.trim().length > 0) || 'Work description is required']"
@@ -143,6 +144,7 @@
         </div>
 
         <!-- Blockers (Optional) -->
+        <!--
         <div>
           <q-input
             v-model="form.blockers"
@@ -151,10 +153,12 @@
             placeholder="Any blockers, dependencies pending, or technical hurdles..."
             outlined
             dense
+            stack-label
             rows="2"
             :dark="$q.dark.isActive"
           />
         </div>
+        -->
       </q-card-section>
 
       <q-separator />

@@ -92,6 +92,7 @@
             />
           </div>
 
+          <!--
           <div class="col-12">
             <q-input
               v-model="form.blockers"
@@ -102,6 +103,7 @@
               rows="2"
             />
           </div>
+          -->
         </div>
       </q-card-section>
 
