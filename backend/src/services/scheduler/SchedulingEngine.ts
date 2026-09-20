@@ -271,6 +271,21 @@ export function calculateRisks(
     is_schedule_at_risk: boolean;
     is_deadline_at_risk: boolean;
 } {
+    if (task.status === "COMPLETED" || task.status === "UNASSIGNED") {
+        return {
+            is_schedule_at_risk: false,
+            is_deadline_at_risk: false
+        };
+    }
+
+    const resourceIds = taskResources.get(task.task_id) ?? [];
+    if (resourceIds.length === 0) {
+        return {
+            is_schedule_at_risk: false,
+            is_deadline_at_risk: false
+        };
+    }
+
     const isScheduleAtRisk =
         plannedEnd !== null &&
         !canCompleteBy(
@@ -744,12 +759,20 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     }[] = [];
 
     const earliestStarts = new Map<number, Date>();
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+
     for (const task of tasks) {
         const minStart = completedPredMinStart.get(task.task_id);
-        if (minStart && minStart > baselineDate) {
+        const hasStarted = Boolean(task.actual_start || Number(task.progress || 0) > 0);
+        const effectiveBaseline = hasStarted
+            ? baselineDate
+            : (baselineDate < todayMidnight ? todayMidnight : baselineDate);
+
+        if (minStart && minStart > effectiveBaseline) {
             earliestStarts.set(task.task_id, new Date(minStart));
         } else {
-            earliestStarts.set(task.task_id, new Date(baselineDate));
+            earliestStarts.set(task.task_id, new Date(effectiveBaseline));
         }
     }
 

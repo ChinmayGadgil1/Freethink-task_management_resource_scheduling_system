@@ -878,16 +878,24 @@
                   stack-label
                   :dark="$q.dark.isActive"
                   :rules="[
-                    (val) =>
-                      !val ||
-                      !editingTaskProject?.start_date ||
-                      val >= editingTaskProject.start_date ||
-                      `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
-                    (val) =>
-                      !val ||
-                      !editingTaskProject?.deadline ||
-                      val <= editingTaskProject.deadline ||
-                      `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
+                    (val) => {
+                      if (!val || !editingTaskProject?.start_date) return true;
+                      const pStart = String(editingTaskProject.start_date).split('T')[0] || '';
+                      return (
+                        !pStart ||
+                        val >= pStart ||
+                        `Deadline cannot be earlier than project start date (${pStart})`
+                      );
+                    },
+                    (val) => {
+                      if (!val || !editingTaskProject?.deadline) return true;
+                      const pDeadline = String(editingTaskProject.deadline).split('T')[0] || '';
+                      return (
+                        !pDeadline ||
+                        val <= pDeadline ||
+                        `Deadline cannot be later than project deadline (${pDeadline})`
+                      );
+                    },
                   ]"
                 >
                   <template #append>

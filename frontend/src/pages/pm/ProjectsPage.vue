@@ -1636,6 +1636,12 @@ function getProjectHealth(project: Project): 'ON_TRACK' | 'AT_RISK' | 'DELAYED' 
   // 4. If project is IN PROGRESS: evaluate schedule pace
   const progress = Number(project.progress) || 0;
 
+  // Grace period: newly created projects (created within the last 48 hours) with 0 progress are on track
+  const createdAtMs = project.created_at ? new Date(project.created_at).getTime() : 0;
+  if (createdAtMs > 0 && Date.now() - createdAtMs < 48 * 60 * 60 * 1000 && progress === 0) {
+    return 'ON_TRACK';
+  }
+
   if (project.start_date && project.deadline) {
     const startMs = new Date(project.start_date).getTime();
     const deadlineMs = new Date(project.deadline).getTime();

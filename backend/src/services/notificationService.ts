@@ -35,10 +35,11 @@ export async function ensureDeletedAtColumn(): Promise<void> {
     }
     try {
         const pool = getPool();
+        // Purge legacy false "75% of scheduled timeline has elapsed" notifications
         await pool.query(
-            `UPDATE notifications 
-             SET message = REPLACE(REPLACE(message, 'Please review and respond.', 'Please review.'), ' and reviewed', '') 
-             WHERE message LIKE '%Please review and respond.%' OR message LIKE '% and reviewed%'`
+            `DELETE FROM notifications 
+             WHERE type = 'POSSIBLE_DELAY' 
+               AND message LIKE '%75% of scheduled timeline has elapsed%'`
         );
     } catch {
         // ignore if fails
@@ -134,27 +135,40 @@ function evaluatePossibleDelay(t: {
     progress: number;
     is_deadline_at_risk: boolean;
     is_schedule_at_risk: boolean;
+    created_at?: any;
+    project_start_date?: any;
+    project_created_at?: any;
 }): { isDelay: boolean; reason: string } {
     if (t.status !== "IN_PROGRESS" && t.status !== "SCHEDULED") {
         return { isDelay: false, reason: "" };
     }
 
     const progress = Number(t.progress) || 0;
-    const isAtRisk = Boolean(t.is_deadline_at_risk || t.is_schedule_at_risk);
     const cleanDeadline = t.deadline ? (t.deadline.includes("T") ? t.deadline.split("T")[0]! : t.deadline) : null;
+    const now = Date.now();
 
-    // 1. Critical path / scheduling engine risk
+    // Grace period for newly created tasks and projects (24h for task, 48h for project)
+    const taskCreatedAt = t.created_at ? new Date(t.created_at).getTime() : 0;
+    const projectCreatedAt = t.project_created_at ? new Date(t.project_created_at).getTime() : 0;
+    const isRecentlyCreatedTask = taskCreatedAt > 0 && (now - taskCreatedAt) < 24 * 60 * 60 * 1000;
+    const isRecentlyCreatedProject = projectCreatedAt > 0 && (now - projectCreatedAt) < 48 * 60 * 60 * 1000;
+
+    // 1. Critical path / scheduling engine capacity risk
+    const isAtRisk = Boolean(t.is_deadline_at_risk || t.is_schedule_at_risk);
     if (isAtRisk) {
-        if (t.is_deadline_at_risk && cleanDeadline) {
+        // Do not spam delay notifications for newly created tasks or projects during the grace period
+        if (!isRecentlyCreatedTask && !isRecentlyCreatedProject) {
+            if (t.is_deadline_at_risk && cleanDeadline) {
+                return {
+                    isDelay: true,
+                    reason: `Scheduling engine detected deadline capacity risk for ${cleanDeadline}. Current progress: ${progress}%.`
+                };
+            }
             return {
                 isDelay: true,
-                reason: `Scheduling engine detected deadline capacity risk for ${cleanDeadline}. Current progress: ${progress}%.`
+                reason: `Scheduling engine flagged timeline delay based on resource capacity allocations. Current progress: ${progress}%.`
             };
         }
-        return {
-            isDelay: true,
-            reason: `Scheduling engine flagged timeline delay based on resource capacity allocations. Current progress: ${progress}%.`
-        };
     }
 
     // 2. Overdue task (past target deadline)
@@ -168,21 +182,31 @@ function evaluatePossibleDelay(t: {
     }
 
     // 3. Timeline pacing lag (significantly into scheduled timeline with minimal progress)
-    if (t.planned_start && (t.planned_end || cleanDeadline)) {
+    // Only applies if the task is NOT newly created, has existed for at least 24h,
+    // has a total scheduled duration of at least 24h, and work was scheduled before today.
+    if (!isRecentlyCreatedTask && !isRecentlyCreatedProject && t.planned_start && (t.planned_end || cleanDeadline)) {
         const startDate = new Date(t.planned_start).getTime();
         const endDate = new Date(t.planned_end || cleanDeadline).getTime();
-        const now = Date.now();
 
-        if (!isNaN(startDate) && !isNaN(endDate) && endDate > startDate && now > startDate) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        if (!isNaN(startDate) && !isNaN(endDate) && endDate > startDate && now > startDate && startDate < todayStart.getTime()) {
             const totalDuration = endDate - startDate;
-            const elapsed = now - startDate;
-            const elapsedRatio = elapsed / totalDuration;
 
-            if (elapsedRatio >= 0.75 && progress < 30) {
-                return {
-                    isDelay: true,
-                    reason: `75% of scheduled timeline has elapsed with only ${progress}% completion. Potential delay risk.`
-                };
+            // Require scheduled duration of at least 24 hours to avoid sub-day / same-day pacing false alarms
+            if (totalDuration >= 24 * 60 * 60 * 1000) {
+                // Effective elapsed time is relative to when the task was created or planned start, whichever is later
+                const effectiveStart = taskCreatedAt > 0 ? Math.max(startDate, taskCreatedAt) : startDate;
+                const elapsed = now - effectiveStart;
+                const elapsedRatio = elapsed / totalDuration;
+
+                if (elapsedRatio >= 0.75 && progress < 30) {
+                    return {
+                        isDelay: true,
+                        reason: `75% of scheduled timeline has elapsed with only ${progress}% completion. Potential delay risk.`
+                    };
+                }
             }
         }
     }
@@ -240,7 +264,8 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
         // Fetch non-deleted tasks assigned to this resource
         const [tasks] = await pool.query<RowDataPacket[]>(
             `SELECT t.task_id, t.title, t.status, t.deadline, t.planned_start, t.planned_end, t.actual_start, t.actual_end,
-                    t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
+                    t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk,
+                    t.created_at, p.name as project_name, p.start_date as project_start_date, p.created_at as project_created_at
              FROM tasks t
              JOIN task_assignments ta ON t.task_id = ta.task_id
              LEFT JOIN projects p ON t.project_id = p.project_id
@@ -290,9 +315,9 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                     );
                 }
             } else {
-                // If task is no longer at risk, remove any stale unread POSSIBLE_DELAY alert for this task
+                // If task is no longer at risk, remove any stale POSSIBLE_DELAY alert for this task
                 await pool.query(
-                    `DELETE FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ? AND is_read = FALSE`,
+                    `DELETE FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ?`,
                     [userId, link]
                 );
             }
@@ -333,7 +358,8 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
         // Project Manager: inspect non-deleted project tasks
         const [tasks] = await pool.query<RowDataPacket[]>(
             `SELECT t.task_id, t.title, t.status, t.deadline, t.planned_start, t.planned_end, t.actual_start, t.actual_end,
-                    t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk, p.name as project_name
+                    t.expected_effort, t.actual_effort, t.progress, t.is_deadline_at_risk, t.is_schedule_at_risk,
+                    t.created_at, p.name as project_name, p.start_date as project_start_date, p.created_at as project_created_at
               FROM tasks t
              JOIN projects p ON t.project_id = p.project_id
              WHERE p.project_manager_id = ? AND t.deleted_at IS NULL AND p.deleted_at IS NULL
@@ -382,9 +408,9 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                     );
                 }
             } else {
-                // If task is no longer at risk, remove any stale unread POSSIBLE_DELAY alert for this task
+                // If task is no longer at risk, remove any stale POSSIBLE_DELAY alert for this task
                 await pool.query(
-                    `DELETE FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ? AND is_read = FALSE`,
+                    `DELETE FROM notifications WHERE user_id = ? AND type = 'POSSIBLE_DELAY' AND link = ?`,
                     [userId, link]
                 );
             }

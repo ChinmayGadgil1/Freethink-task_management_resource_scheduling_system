@@ -1065,18 +1065,7 @@
                     stack-label
                     hint="Target deadline for assigned members"
                     :dark="$q.dark.isActive"
-                    :rules="[
-                      (val) =>
-                        !val ||
-                        !editingTaskProject?.start_date ||
-                        val >= editingTaskProject.start_date ||
-                        `Deadline cannot be earlier than project start date (${editingTaskProject.start_date})`,
-                      (val) =>
-                        !val ||
-                        !editingTaskProject?.deadline ||
-                        val <= editingTaskProject.deadline ||
-                        `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
-                    ]"
+                    :rules="editDeadlineRules"
                   >
                     <template #append>
                       <q-icon name="event" class="cursor-pointer text-primary">
@@ -1727,6 +1716,25 @@ const editingTaskProject = computed(() => {
   if (!t) return null;
   return projects.value.find((p) => Number(p.project_id) === Number(t.project_id)) || null;
 });
+
+const editDeadlineRules = computed(() => [
+  (val: string) => {
+    if (!val || !editingTaskProject.value?.start_date) return true;
+    const pStart = String(editingTaskProject.value.start_date).split('T')[0] || '';
+    return (
+      !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`
+    );
+  },
+  (val: string) => {
+    if (!val || !editingTaskProject.value?.deadline) return true;
+    const pDeadline = String(editingTaskProject.value.deadline).split('T')[0] || '';
+    return (
+      !pDeadline ||
+      val <= pDeadline ||
+      `Deadline cannot be later than project deadline (${pDeadline})`
+    );
+  },
+]);
 
 const taskSelectOptions = computed(() =>
   tasks.value.map((t) => ({ label: `${t.title} (#${t.task_id})`, value: t.task_id })),
