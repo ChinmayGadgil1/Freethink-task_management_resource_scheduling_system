@@ -160,3 +160,41 @@ export async function deleteHoliday(req: AuthRequest<{ id: string }>, res: Respo
         });
     }
 }
+
+/**
+ * POST /api/holidays/batch
+ * Batch import holidays (Project Manager only)
+ */
+export async function batchCreateHolidaysController(req: AuthRequest, res: Response): Promise<void> {
+    try {
+        if (req.user?.role !== "PROJECT_MANAGER") {
+            res.status(403).json({
+                success: false,
+                message: "Access denied. Only Project Managers can import holidays."
+            });
+            return;
+        }
+
+        const { holidays } = req.body;
+        if (!Array.isArray(holidays) || holidays.length === 0) {
+            res.status(400).json({
+                success: false,
+                message: "A non-empty array of holidays is required."
+            });
+            return;
+        }
+
+        const result = await holidayService.batchCreateHolidays(holidays);
+        res.status(200).json({
+            success: true,
+            message: `Successfully imported ${result.inserted} holidays (${result.skipped} skipped).`,
+            data: result
+        });
+    } catch (error: any) {
+        console.error("Error batch importing holidays:", error);
+        res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Failed to batch import holidays."
+        });
+    }
+}

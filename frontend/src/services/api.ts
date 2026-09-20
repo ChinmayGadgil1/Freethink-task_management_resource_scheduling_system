@@ -1264,6 +1264,33 @@ export async function createHolidayApi(payload: {
   return data.data;
 }
 
+export interface BatchImportHolidaysResult {
+  inserted: number;
+  skipped: number;
+  errors: string[];
+}
+
+/**
+ * Batch import holidays (Project Manager only)
+ * POST /api/holidays/batch
+ */
+export async function batchCreateHolidaysApi(
+  holidays: Array<{ holiday_date: string; description: string }>,
+): Promise<BatchImportHolidaysResult> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/holidays/batch`, {
+    method: 'POST',
+    body: JSON.stringify({ holidays }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to import holidays');
+  }
+
+  return data.data;
+}
+
 /**
  * Update an existing holiday (Project Manager only)
  * PUT /api/holidays/:id

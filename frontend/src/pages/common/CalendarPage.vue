@@ -83,6 +83,19 @@
             ]"
           />
 
+          <!-- Import Holidays Button (PM Only) -->
+          <q-btn
+            v-if="isProjectManager"
+            color="primary"
+            outline
+            icon="upload_file"
+            label="Import Holidays"
+            unelevated
+            no-caps
+            class="text-weight-bold rounded-borders"
+            @click="openImportHolidayDialog()"
+          />
+
           <!-- Add Holiday Button (PM Only) -->
           <q-btn
             v-if="isProjectManager"
@@ -491,6 +504,130 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- 6. IMPORT HOLIDAYS MODAL -->
+    <q-dialog v-model="importDialog.show" persistent>
+      <q-card :dark="$q.dark.isActive" style="width: 640px; max-width: 95vw; max-height: 90vh" class="column">
+        <!-- Header -->
+        <q-card-section class="row items-center justify-between q-pb-sm">
+          <div class="row items-center">
+            <q-avatar icon="upload_file" color="primary" text-color="white" size="36px" class="q-mr-sm" />
+            <div>
+              <div class="text-subtitle1 text-weight-bold">Import Holidays</div>
+              <div class="text-caption text-grey-7">Upload a CSV or JSON file to batch import holidays</div>
+            </div>
+          </div>
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-separator />
+
+        <!-- Scrollable Content -->
+        <q-card-section class="q-pa-md scroll col">
+          <!-- Instruction banner -->
+          <div
+            class="q-pa-sm q-mb-md rounded-borders row items-center justify-between"
+            :class="$q.dark.isActive ? 'bg-grey-9 text-grey-3' : 'bg-blue-1 text-blue-10'"
+          >
+            <div class="text-caption">
+              <strong>Format:</strong> <code>holiday_date</code> (YYYY-MM-DD) and <code>description</code>
+            </div>
+            <q-btn
+              flat
+              dense
+              size="sm"
+              icon="download"
+              label="Sample CSV"
+              href="/holidays_2026.csv"
+              download="holidays_template.csv"
+              color="primary"
+              no-caps
+            />
+          </div>
+
+          <!-- File upload picker -->
+          <q-file
+            v-model="importDialog.file"
+            label="Select CSV or JSON file"
+            outlined
+            dense
+            clearable
+            accept=".csv, .txt, .json"
+            @update:model-value="onImportFileChange"
+          >
+            <template #prepend>
+              <q-icon name="attach_file" />
+            </template>
+          </q-file>
+
+          <!-- Error message if file parse error -->
+          <div v-if="importDialog.parseError" class="q-mt-sm text-caption text-negative row items-center">
+            <q-icon name="error" size="16px" class="q-mr-xs" />
+            <span>{{ importDialog.parseError }}</span>
+          </div>
+
+          <!-- Parsed summary & preview -->
+          <div v-if="importDialog.parsedItems.length > 0" class="q-mt-md">
+            <!-- Counters row -->
+            <div class="row q-gutter-sm q-mb-sm items-center">
+              <q-chip dense color="primary" text-color="white" icon="list">
+                Total: {{ importDialog.parsedItems.length }}
+              </q-chip>
+              <q-chip dense color="positive" text-color="white" icon="add_task">
+                To Import: {{ newImportItemsCount }}
+              </q-chip>
+              <q-chip v-if="skippedImportItemsCount > 0" dense color="grey-7" text-color="white" icon="block">
+                Existing / Skipped: {{ skippedImportItemsCount }}
+              </q-chip>
+            </div>
+
+            <!-- Preview table -->
+            <q-table
+              dense
+              flat
+              bordered
+              :rows="importDialog.parsedItems"
+              :columns="importTableColumns"
+              row-key="index"
+              :pagination="{ rowsPerPage: 5 }"
+              class="q-mt-xs"
+              :dark="$q.dark.isActive"
+            >
+              <template #body-cell-status="props">
+                <q-td :props="props">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :color="props.row.isDuplicate ? 'grey-6' : 'positive'"
+                    text-color="white"
+                  >
+                    {{ props.row.isDuplicate ? 'Already Exists' : 'Ready' }}
+                  </q-chip>
+                </q-td>
+              </template>
+            </q-table>
+          </div>
+        </q-card-section>
+
+        <q-separator />
+
+        <!-- Actions -->
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat label="Cancel" color="grey-7" v-close-popup no-caps />
+          <q-btn
+            unelevated
+            color="primary"
+            icon="file_upload"
+            :label="`Import ${newImportItemsCount} Holiday${newImportItemsCount === 1 ? '' : 's'}`"
+            :loading="importDialog.importing"
+            :disable="newImportItemsCount === 0 || importDialog.importing"
+            no-caps
+            class="text-weight-bold"
+            @click="executeImportHolidays"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -504,6 +641,7 @@ import { useAuthStore } from '@/stores/auth';
 import {
   getHolidaysApi,
   createHolidayApi,
+  batchCreateHolidaysApi,
   updateHolidayApi,
   deleteHolidayApi,
   getResourceWorkScheduleApi,
@@ -796,6 +934,193 @@ async function executeDeleteHoliday() {
     });
   } finally {
     deleteDialog.value.deleting = false;
+  }
+}
+
+interface ParsedHolidayItem {
+  index: number;
+  holiday_date: string;
+  description: string;
+  isDuplicate: boolean;
+}
+
+const importDialog = ref({
+  show: false,
+  file: null as File | null,
+  importing: false,
+  parseError: '',
+  parsedItems: [] as ParsedHolidayItem[],
+});
+
+const importTableColumns: QTableColumn[] = [
+  { name: 'holiday_date', label: 'Date', field: 'holiday_date', align: 'left', sortable: true },
+  { name: 'description', label: 'Holiday Name', field: 'description', align: 'left', sortable: true },
+  { name: 'status', label: 'Status', field: 'isDuplicate', align: 'center' },
+];
+
+const newImportItemsCount = computed(() => {
+  return importDialog.value.parsedItems.filter((item) => !item.isDuplicate).length;
+});
+
+const skippedImportItemsCount = computed(() => {
+  return importDialog.value.parsedItems.filter((item) => item.isDuplicate).length;
+});
+
+function openImportHolidayDialog() {
+  importDialog.value = {
+    show: true,
+    file: null,
+    importing: false,
+    parseError: '',
+    parsedItems: [],
+  };
+}
+
+function normalizeDate(rawDate: string): string | null {
+  const trimmed = rawDate.trim();
+  const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const y = isoMatch[1]!;
+    const m = isoMatch[2]!.padStart(2, '0');
+    const d = isoMatch[3]!.padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const d = dmyMatch[1]!.padStart(2, '0');
+    const m = dmyMatch[2]!.padStart(2, '0');
+    const y = dmyMatch[3]!;
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
+async function onImportFileChange(file: File | null) {
+  if (!file) {
+    importDialog.value.parsedItems = [];
+    importDialog.value.parseError = '';
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const existingDates = new Set(holidays.value.map((h) => h.holiday_date.split('T')[0]));
+    const parsed: ParsedHolidayItem[] = [];
+    const seenInFile = new Set<string>();
+
+    const trimmed = text.trim();
+    if (trimmed.startsWith('[') || (trimmed.startsWith('{') && !trimmed.startsWith('{\\'))) {
+      const json = JSON.parse(trimmed);
+      const list = Array.isArray(json) ? json : [json];
+      for (const item of list) {
+        const rawDate = item.holiday_date || item.date || item.HolidayDate;
+        const desc = item.description || item.name || item.holiday || item.Description || '';
+        const normDate = rawDate ? normalizeDate(String(rawDate)) : null;
+        if (normDate && desc) {
+          const isDup = existingDates.has(normDate) || seenInFile.has(normDate);
+          seenInFile.add(normDate);
+          parsed.push({
+            index: parsed.length + 1,
+            holiday_date: normDate,
+            description: String(desc).trim(),
+            isDuplicate: isDup,
+          });
+        }
+      }
+    } else {
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        const delimiter = line.includes(';') ? ';' : line.includes('\t') ? '\t' : ',';
+        const parts = line.split(delimiter).map((p) => p.trim().replace(/^["']|["']$/g, ''));
+        if (parts.length < 2) continue;
+
+        const p0Lower = parts[0]!.toLowerCase();
+        const p1Lower = parts[1]!.toLowerCase();
+        if (
+          (p0Lower.includes('date') || p0Lower.includes('holiday')) &&
+          (p1Lower.includes('desc') || p1Lower.includes('name') || p1Lower.includes('title'))
+        ) {
+          continue;
+        }
+
+        let normDate = normalizeDate(parts[0]!);
+        let desc = parts[1]!;
+
+        if (!normDate && parts.length >= 2) {
+          normDate = normalizeDate(parts[1]!);
+          desc = parts[0]!;
+        }
+
+        if (normDate && desc) {
+          const isDup = existingDates.has(normDate) || seenInFile.has(normDate);
+          seenInFile.add(normDate);
+          parsed.push({
+            index: parsed.length + 1,
+            holiday_date: normDate,
+            description: desc,
+            isDuplicate: isDup,
+          });
+        }
+      }
+    }
+
+    if (parsed.length === 0) {
+      importDialog.value.parseError =
+        'No valid holidays found. Please ensure the file contains dates (YYYY-MM-DD) and holiday names.';
+      importDialog.value.parsedItems = [];
+    } else {
+      importDialog.value.parseError = '';
+      importDialog.value.parsedItems = parsed;
+    }
+  } catch (err: unknown) {
+    importDialog.value.parseError =
+      err instanceof Error ? err.message : 'Failed to parse file. Please verify format.';
+    importDialog.value.parsedItems = [];
+  }
+}
+
+async function executeImportHolidays() {
+  const itemsToImport = importDialog.value.parsedItems
+    .filter((i) => !i.isDuplicate)
+    .map((i) => ({ holiday_date: i.holiday_date, description: i.description }));
+
+  if (itemsToImport.length === 0) {
+    $q.notify({
+      type: 'warning',
+      message: 'No new holidays to import.',
+      position: 'top',
+    });
+    return;
+  }
+
+  importDialog.value.importing = true;
+  try {
+    const res = await batchCreateHolidaysApi(itemsToImport);
+    $q.notify({
+      type: 'positive',
+      message: `Successfully imported ${res.inserted} holiday${res.inserted === 1 ? '' : 's'}!`,
+      position: 'top',
+    });
+    if (res.skipped > 0) {
+      $q.notify({
+        type: 'info',
+        message: `${res.skipped} holiday(s) already existed and were skipped.`,
+        position: 'top',
+      });
+    }
+
+    importDialog.value.show = false;
+    await loadHolidays();
+    window.dispatchEvent(new CustomEvent('holidays-updated'));
+  } catch (error: unknown) {
+    $q.notify({
+      type: 'negative',
+      message: error instanceof Error ? error.message : 'Failed to import holidays.',
+      position: 'top',
+    });
+  } finally {
+    importDialog.value.importing = false;
   }
 }
 

@@ -291,3 +291,71 @@ export function countWorkingDays(startDateInput: Date | string, endDateInput: Da
 
     return count;
 }
+
+export interface BatchImportResult {
+    inserted: number;
+    skipped: number;
+    errors: string[];
+}
+
+/**
+ * Batch insert holidays skipping existing duplicates and triggering single schedule recalculation
+ */
+export async function batchCreateHolidays(holidays: CreateHolidayDTO[]): Promise<BatchImportResult> {
+    const pool = getPool();
+    const connection = await pool.getConnection();
+
+    let inserted = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    try {
+        await connection.beginTransaction();
+
+        // Get all existing holiday dates
+        const [existingRows] = await connection.query<RowDataPacket[]>(
+            `SELECT DATE_FORMAT(holiday_date, '%Y-%m-%d') as holiday_date FROM holidays`
+        );
+        const existingDateSet = new Set(existingRows.map(r => String(r.holiday_date)));
+
+        for (const item of holidays) {
+            const formattedDate = formatDateKey(item.holiday_date);
+            const desc = (item.description || "").trim();
+
+            if (!isValidDateString(formattedDate)) {
+                errors.push(`Invalid date format: ${item.holiday_date}`);
+                continue;
+            }
+
+            if (!desc) {
+                errors.push(`Missing description for date: ${formattedDate}`);
+                continue;
+            }
+
+            if (existingDateSet.has(formattedDate)) {
+                skipped++;
+                continue;
+            }
+
+            await connection.query(
+                `INSERT INTO holidays (holiday_date, description) VALUES (?, ?)`,
+                [formattedDate, desc]
+            );
+            existingDateSet.add(formattedDate);
+            inserted++;
+        }
+
+        await connection.commit();
+
+        if (inserted > 0) {
+            await recalculateActiveProjects();
+        }
+
+        return { inserted, skipped, errors };
+    } catch (err: any) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+}
