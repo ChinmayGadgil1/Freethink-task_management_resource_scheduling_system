@@ -1529,7 +1529,7 @@ const resourceMap = computed(() => {
 
     // Compute weekly scheduled workload effort from backend schedule engine
     const workload = resourceWorkloadsMap.value[item.resource_id];
-    let scheduledEffort: number;
+    let scheduledEffort = 0;
 
     if (workload?.daily_allocations && workload.daily_allocations.length > 0) {
       // Sum scheduled hours strictly for the current calendar week
@@ -1540,31 +1540,73 @@ const resourceMap = computed(() => {
         (sum, d) => sum + (Number(d.allocated_hours) || 0),
         0,
       );
-    } else if (workload?.tasks && workload.tasks.length > 0) {
-      // Fallback: active remaining effort from resource workload tasks (backend expected_effort already proportioned)
-      scheduledEffort = workload.tasks.reduce((sum, t) => {
-        const remEffort = Math.max(
-          0,
-          (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0),
-        );
-        return sum + remEffort;
-      }, 0);
     } else {
-      // Fallback: local active task remaining effort distributed among co-assignees
-      const activeTasks = item.tasks.filter((t) => t.status !== 'COMPLETED');
-      scheduledEffort = activeTasks.reduce((sum, t) => {
+      // Fallback: If no daily allocations exist, pro-rate active tasks that overlap with the current calendar week
+      const tasksToEvaluate =
+        workload?.tasks && workload.tasks.length > 0 ? workload.tasks : item.tasks;
+      const activeTasks = tasksToEvaluate.filter((t) => t.status !== 'COMPLETED');
+      const weekDatesSorted = Array.from(currentWeekDates).sort();
+      const weekStartStr = weekDatesSorted[0] || '';
+      const weekEndStr = weekDatesSorted[weekDatesSorted.length - 1] || '';
+
+      for (const t of activeTasks) {
         const assigneesCount = Math.max(
           1,
           t.assigned_resource_ids?.length ||
             (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
+            (t as unknown as { assignees_count?: number }).assignees_count ||
             1,
         );
-        const remEffort = Math.max(
-          0,
-          (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0),
-        );
-        return sum + remEffort / assigneesCount;
-      }, 0);
+        const remEffort =
+          Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)) /
+          assigneesCount;
+
+        if (remEffort <= 0) continue;
+
+        const startStr = (
+          t.start_date ||
+          (t as unknown as { planned_start?: string | null }).planned_start ||
+          ''
+        ).slice(0, 10);
+        const endStr = (
+          t.deadline ||
+          (t as unknown as { planned_end?: string | null }).planned_end ||
+          ''
+        ).slice(0, 10);
+
+        if (startStr && endStr) {
+          // Skip tasks entirely outside the current week
+          if (endStr < weekStartStr || startStr > weekEndStr) {
+            continue;
+          }
+
+          // Count working days in current week that fall within the task's schedule
+          let overlapWorkingDays = 0;
+          for (const dStr of currentWeekDates) {
+            if (dStr >= startStr && dStr <= endStr) {
+              const d = new Date(dStr);
+              if (d.getDay() !== 0 && d.getDay() !== 6) {
+                overlapWorkingDays++;
+              }
+            }
+          }
+
+          const totalDays = Math.max(
+            1,
+            Math.round(
+              (new Date(endStr).getTime() - new Date(startStr).getTime()) / (1000 * 60 * 60 * 24),
+            ) + 1,
+          );
+
+          if (overlapWorkingDays > 0) {
+            const effortPerDay = remEffort / totalDays;
+            scheduledEffort += Math.min(remEffort, effortPerDay * overlapWorkingDays);
+          }
+        } else {
+          // If task has no defined schedule boundaries, distribute across a standard sprint (4 weeks)
+          scheduledEffort += Math.min(remEffort, remEffort / 4);
+        }
+      }
     }
 
     item.totalEffort = Math.round(scheduledEffort * 10) / 10;

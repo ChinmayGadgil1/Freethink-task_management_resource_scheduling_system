@@ -553,8 +553,9 @@ export async function stopSession(userId: number, progressLogged: number, notes:
     const diffMs = endTime.getTime() - startTime.getTime();
     let hoursLogged = diffMs / (1000 * 60 * 60);
     
-    // Ensure at least a small amount of time is logged if they start and stop immediately
+    // Ensure at least a small amount of time is logged if they start and stop immediately, and cap max duration
     if (hoursLogged < 0.01) hoursLogged = 0.01;
+    if (hoursLogged > 12) hoursLogged = 12;
 
     // First mark session as inactive
     await pool.query(

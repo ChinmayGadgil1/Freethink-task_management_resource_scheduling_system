@@ -524,12 +524,13 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
           AND t.deleted_at IS NULL
           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
           AND t.verified_task_id IS NULL
+          AND t.status IN ('SCHEDULED', 'IN_PROGRESS')
         ORDER BY ts.schedule_date ASC
         `,
         [resourceId]
     );
 
-    // Fetch daily hours logged from work_logs for this resource (actual work completed)
+    // Fetch daily hours logged from work_logs for this resource (actual work completed on active tasks)
     const [workLogRows] = await pool.query<RowDataPacket[]>(
         `
         SELECT DATE_FORMAT(wl.log_date, '%Y-%m-%d') as log_date, wl.task_id, SUM(wl.hours_logged) as logged_hours, t.project_id
@@ -539,6 +540,7 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
           AND t.deleted_at IS NULL
           AND (t.task_type IS NULL OR t.task_type != 'VERIFICATION')
           AND t.verified_task_id IS NULL
+          AND t.status IN ('SCHEDULED', 'IN_PROGRESS')
         GROUP BY DATE_FORMAT(wl.log_date, '%Y-%m-%d'), wl.task_id, t.project_id
         ORDER BY log_date ASC
         `,
@@ -565,13 +567,20 @@ export async function getResourceWorkload(resourceId: number, pmProjectIds?: Set
         logDateMap.set(d, (logDateMap.get(d) || 0) + Number(l.logged_hours));
     }
 
+    const [userRows] = await pool.query<RowDataPacket[]>(
+        `SELECT daily_working_hours FROM users WHERE user_id = ?`,
+        [resourceId]
+    );
+    const dailyWorkingHours = Number(userRows[0]?.daily_working_hours) || 8;
+    const maxDailyCapacity = Math.max(dailyWorkingHours, 10);
+
     const allDates = new Set([...scheduleDateMap.keys(), ...logDateMap.keys()]);
     const dailyMap = new Map<string, number>();
 
     for (const date of allDates) {
         const logged = logDateMap.get(date) || 0;
         const scheduled = scheduleDateMap.get(date) || 0;
-        const effectiveHours = Math.max(logged, scheduled);
+        const effectiveHours = Math.min(maxDailyCapacity, Math.max(logged, scheduled));
         dailyMap.set(date, Math.round(effectiveHours * 100) / 100);
     }
 
