@@ -253,11 +253,16 @@ export function computeResourceMetrics(
             (t.assigned_resource_ids?.includes(r.user_id) ||
               t.assigned_resources?.some((ar) => ar.user_id === r.user_id)),
         );
-        scheduledEffort = userTasks.reduce(
-          (sum, t) =>
-            sum + Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)),
-          0,
-        );
+        scheduledEffort = userTasks.reduce((sum, t) => {
+          const count = Math.max(
+            1,
+            t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+          );
+          return (
+            sum +
+            Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)) / count
+          );
+        }, 0);
       }
     }
 

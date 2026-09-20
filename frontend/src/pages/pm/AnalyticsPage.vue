@@ -1186,8 +1186,6 @@ function initUtilizationChart() {
     },
     yAxis: {
       type: 'value',
-      name: isVeryNarrow ? '' : 'Utilization (%)',
-      nameTextStyle: { color: theme.mutedText, fontSize: 11 },
       min: 0,
       max: 100,
       axisLabel: {
@@ -1224,7 +1222,12 @@ function initUtilizationChart() {
             { offset: 1, color: 'rgba(118, 84, 214, 0.0)' },
           ]),
         },
-        data: shiftData.map((d) => d.utilization),
+        data: shiftData.map((d) => ({
+          value: d.utilization,
+          label: {
+            position: d.utilization >= 90 ? ('bottom' as const) : ('top' as const),
+          },
+        })),
         label: {
           show: true,
           position: 'top',

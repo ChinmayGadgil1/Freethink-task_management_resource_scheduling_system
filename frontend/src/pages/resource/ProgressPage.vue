@@ -736,8 +736,8 @@ import { formatDate, formatHours } from '@/utils/formatters';
 import { isOverdue } from '@/utils/taskHelpers';
 import { useAuthStore } from '@/stores/auth';
 
-import { getTasksApi } from '@/services/api';
-import type { Task } from '@/services/api';
+import { getTasksApi, getMyWorkLogsApi } from '@/services/api';
+import type { Task, MyWorkLogItem } from '@/services/api';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -746,7 +746,18 @@ const authStore = useAuthStore();
 const currentUserId = computed(() => authStore.user?.user_id);
 
 const tasks = ref<Task[]>([]);
+const userWorkLogs = ref<MyWorkLogItem[]>([]);
 const tableFilter = ref('');
+
+const userTaskActualMap = computed(() => {
+  const map = new Map<number, number>();
+  for (const log of userWorkLogs.value) {
+    const tId = Number(log.task_id);
+    const hrs = Number(log.hours_logged) || 0;
+    map.set(tId, (map.get(tId) || 0) + hrs);
+  }
+  return map;
+});
 
 const loading = ref(true);
 const error = ref('');
@@ -791,8 +802,15 @@ async function loadTasks() {
   error.value = '';
 
   try {
-    const fetchedTasks = await getTasksApi();
+    const [fetchedTasks, workLogsRes] = await Promise.all([
+      getTasksApi(),
+      getMyWorkLogsApi(1000).catch((err) => {
+        console.warn('Failed to load user work logs:', err);
+        return { logs: [], total_hours: 0, total_logs: 0 };
+      }),
+    ]);
     tasks.value = fetchedTasks;
+    userWorkLogs.value = workLogsRes.logs || [];
   } catch (err) {
     console.error('Failed to load progress:', err);
     error.value = err instanceof Error ? err.message : 'Failed to load your progress.';
@@ -815,6 +833,28 @@ function daysUntil(deadline: string): number {
   return Math.round((d.getTime() - today.getTime()) / 86400000);
 }
 
+function getTaskActualEffortForMe(t: Task): number {
+  const tId = Number(t.task_id);
+  if (userTaskActualMap.value.has(tId)) {
+    return userTaskActualMap.value.get(tId) || 0;
+  }
+  const myId = currentUserId.value;
+  const isAssignee =
+    t.assigned_resource_ids?.includes(myId as number) ||
+    t.assigned_resources?.some((ar) => Number(ar.user_id) === myId);
+  const assigneesCount = Math.max(
+    1,
+    t.assigned_resource_ids?.length || t.assigned_resources?.length || 1,
+  );
+  if (isAssignee) {
+    return (Number(t.actual_effort) || 0) / assigneesCount;
+  }
+  if (myId && Number(t.supervisor_id) === myId) {
+    return 0;
+  }
+  return (Number(t.actual_effort) || 0) / assigneesCount;
+}
+
 function getTaskExpectedEffortForMe(t: Task): number {
   const myId = currentUserId.value;
   const isAssignee =
@@ -828,7 +868,7 @@ function getTaskExpectedEffortForMe(t: Task): number {
     return (Number(t.expected_effort) || 0) / assigneesCount;
   }
   if (myId && Number(t.supervisor_id) === myId) {
-    return ((Number(t.expected_effort) || 0) * 0.2) / assigneesCount;
+    return (Number(t.expected_effort) || 0) * 0.2;
   }
   return (Number(t.expected_effort) || 0) / assigneesCount;
 }
@@ -867,14 +907,14 @@ const expectedEffort = computed(() =>
 );
 
 const actualEffort = computed(() =>
-  assignedTasks.value.reduce((s, t) => s + (Number(t.actual_effort) || 0), 0),
+  assignedTasks.value.reduce((s, t) => s + getTaskActualEffortForMe(t), 0),
 );
 
 const actualHoursRemaining = computed(() =>
   assignedTasks.value
     .filter((t) => t.status !== 'COMPLETED')
     .reduce(
-      (s, t) => s + Math.max(0, getTaskExpectedEffortForMe(t) - (Number(t.actual_effort) || 0)),
+      (s, t) => s + Math.max(0, getTaskExpectedEffortForMe(t) - getTaskActualEffortForMe(t)),
       0,
     ),
 );
@@ -969,7 +1009,7 @@ const projectProgress = computed(() => {
       existing.active += isActive ? 1 : 0;
       existing.progressTotal += Number(task.progress) || 0;
       existing.expectedEffort += getTaskExpectedEffortForMe(task);
-      existing.actualEffort += Number(task.actual_effort) || 0;
+      existing.actualEffort += getTaskActualEffortForMe(task);
     } else {
       groups.set(project, {
         project,
@@ -978,7 +1018,7 @@ const projectProgress = computed(() => {
         active: isActive ? 1 : 0,
         progressTotal: Number(task.progress) || 0,
         expectedEffort: getTaskExpectedEffortForMe(task),
-        actualEffort: Number(task.actual_effort) || 0,
+        actualEffort: getTaskActualEffortForMe(task),
       });
     }
   }
@@ -1289,12 +1329,12 @@ function initEffortChart() {
 
   const taskTitles = sortedTasks.map((t) => t.title);
   const plannedData = sortedTasks.map((t) => Number(getTaskExpectedEffortForMe(t).toFixed(1)));
-  const actualData = sortedTasks.map((t) => Number(t.actual_effort) || 0);
+  const actualData = sortedTasks.map((t) => Number(getTaskActualEffortForMe(t).toFixed(1)));
   const remainingData = sortedTasks.map((t) =>
     t.status === 'COMPLETED'
       ? 0
       : Number(
-          Math.max(0, getTaskExpectedEffortForMe(t) - (Number(t.actual_effort) || 0)).toFixed(1),
+          Math.max(0, getTaskExpectedEffortForMe(t) - getTaskActualEffortForMe(t)).toFixed(1),
         ),
   );
 
@@ -1310,7 +1350,7 @@ function initEffortChart() {
         const task = sortedTasks[items[0]?.dataIndex ?? 0];
         if (!task) return '';
         const planned = Number(getTaskExpectedEffortForMe(task).toFixed(1));
-        const actual = Number(task.actual_effort) || 0;
+        const actual = Number(getTaskActualEffortForMe(task).toFixed(1));
         const remaining =
           task.status === 'COMPLETED' ? 0 : Number(Math.max(0, planned - actual).toFixed(1));
         return `
