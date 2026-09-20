@@ -338,7 +338,7 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
                 await createNotification({
                     userId: pmId,
                     type: "LEAVE_REQUESTED",
-                    title: `Leave Requested: ${user.name}`,
+                    title: `Leave Requested: ${user.name} (${workingDates[0]})`,
                     message: `${user.name} submitted a leave request for ${rangeStr}. Please review.`,
                     link: "/pm/leaves",
                 });
@@ -559,7 +559,7 @@ export async function approveLeave(identifier: number | string, pmUserId: number
             await createNotification({
                 userId: otherPmId,
                 type: "LEAVE_APPROVED",
-                title: `Leave Approved: ${firstRow.user_name}`,
+                title: `Leave Approved: ${firstRow.user_name} (${earliestDate})`,
                 message: `Leave for ${firstRow.user_name} (${dateRangeText}) has been approved by ${pmName || 'Project Manager'}.`,
                 link: "/pm/leaves",
             });

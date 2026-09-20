@@ -425,13 +425,22 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
 
     // 2. Sync existing leave notifications from database (preserves dismissed ones)
     if (userRole === "RESOURCE") {
-        // Fetch approved / rejected leaves for this resource
+        // Fetch approved / rejected leaves for this resource grouped by request
         const [leaves] = await pool.query<RowDataPacket[]>(
-            `SELECT ul.leave_id, ul.request_id, DATE_FORMAT(ul.leave_date, '%Y-%m-%d') as leave_date, ul.leave_hours, ul.status, ul.rejection_reason, u.name as approver_name
+            `SELECT 
+                MIN(ul.leave_id) as leave_id,
+                ul.request_id,
+                DATE_FORMAT(MIN(ul.leave_date), '%Y-%m-%d') as leave_date,
+                DATE_FORMAT(MAX(ul.leave_date), '%Y-%m-%d') as end_date,
+                SUM(ul.leave_hours) as leave_hours,
+                ul.status,
+                MAX(ul.rejection_reason) as rejection_reason,
+                MAX(u.name) as approver_name
              FROM user_leaves ul
              LEFT JOIN users u ON ul.approver_id = u.user_id
              WHERE ul.user_id = ? AND ul.status IN ('APPROVED', 'REJECTED')
-             ORDER BY ul.created_at DESC
+             GROUP BY COALESCE(ul.request_id, CONCAT('leave_', ul.leave_id)), ul.status
+             ORDER BY MAX(ul.created_at) DESC
              LIMIT 15`,
             [userId]
         );
@@ -440,19 +449,21 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
             const isApproved = l.status === "APPROVED";
             const notifType: NotificationType = isApproved ? "LEAVE_APPROVED" : "LEAVE_REJECTED";
             const leaveDate = String(l.leave_date);
+            const endDate = String(l.end_date);
             const link = "/app/resource-dashboard/leaves";
             const approver = l.approver_name || "Project Manager";
             const title = isApproved ? `Leave Approved: ${leaveDate}` : `Leave Rejected: ${leaveDate}`;
 
             const [exists] = await pool.query<RowDataPacket[]>(
-                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = ? AND (link = ? OR title = ?)`,
-                [userId, notifType, link, title]
+                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = ? AND title = ?`,
+                [userId, notifType, title]
             );
 
             if (exists.length === 0) {
+                const dateRangeText = leaveDate !== endDate ? `${leaveDate} to ${endDate}` : leaveDate;
                 const message = isApproved
-                    ? `Your leave request for ${leaveDate} (${l.leave_hours}h) was approved by ${approver}.`
-                    : `Your leave request for ${leaveDate} was rejected by ${approver}.${l.rejection_reason ? ` Reason: ${l.rejection_reason}` : ''}`;
+                    ? `Your leave request for ${dateRangeText} (${l.leave_hours}h) was approved by ${approver}.`
+                    : `Your leave request for ${dateRangeText} was rejected by ${approver}.${l.rejection_reason ? ` Reason: ${l.rejection_reason}` : ''}`;
 
                 await pool.query(
                     `INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at)
@@ -462,28 +473,37 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
             }
         }
     } else {
-        // PM: fetch pending leave requests from resources assigned to PM's projects
+        // PM: fetch pending leave requests from resources assigned to PM's projects grouped by request
         const [pendingLeaves] = await pool.query<RowDataPacket[]>(
-            `SELECT ul.leave_id, ul.request_id, ul.user_id, DATE_FORMAT(ul.leave_date, '%Y-%m-%d') as leave_date, ul.leave_hours, u.name as resource_name
+            `SELECT 
+                MIN(ul.leave_id) as leave_id,
+                ul.request_id,
+                ul.user_id,
+                DATE_FORMAT(MIN(ul.leave_date), '%Y-%m-%d') as leave_date,
+                DATE_FORMAT(MAX(ul.leave_date), '%Y-%m-%d') as end_date,
+                SUM(ul.leave_hours) as leave_hours,
+                u.name as resource_name
              FROM user_leaves ul
              INNER JOIN project_members pm ON ul.user_id = pm.user_id
              INNER JOIN projects p ON pm.project_id = p.project_id
              INNER JOIN users u ON ul.user_id = u.user_id
              WHERE p.project_manager_id = ? AND ul.status = 'PENDING' AND p.deleted_at IS NULL
-             GROUP BY ul.leave_id
-             ORDER BY ul.created_at DESC
+             GROUP BY COALESCE(ul.request_id, CONCAT('leave_', ul.leave_id)), ul.user_id, u.name
+             ORDER BY MAX(ul.created_at) DESC
              LIMIT 15`,
             [userId]
         );
 
         for (const pl of pendingLeaves) {
             const leaveDate = String(pl.leave_date);
+            const endDate = String(pl.end_date);
+            const rangeStr = leaveDate !== endDate ? `${leaveDate} to ${endDate}` : leaveDate;
             const link = "/pm/leaves";
-            const title = `Leave Requested: ${pl.resource_name}`;
+            const title = `Leave Requested: ${pl.resource_name} (${leaveDate})`;
 
             const [exists] = await pool.query<RowDataPacket[]>(
-                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'LEAVE_REQUESTED' AND link = ? AND (title = ? OR message LIKE ?)`,
-                [userId, link, title, `%${pl.resource_name}%${leaveDate}%`]
+                `SELECT notification_id FROM notifications WHERE user_id = ? AND type = 'LEAVE_REQUESTED' AND (title = ? OR message LIKE ?)`,
+                [userId, title, `%${pl.resource_name}%${leaveDate}%`]
             );
 
             if (exists.length === 0) {
@@ -493,7 +513,7 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
                     [
                         userId,
                         title,
-                        `${pl.resource_name} has requested leave for ${leaveDate} (${pl.leave_hours}h). Please review.`,
+                        `${pl.resource_name} has requested leave for ${rangeStr} (${pl.leave_hours}h). Please review.`,
                         link
                     ]
                 );
