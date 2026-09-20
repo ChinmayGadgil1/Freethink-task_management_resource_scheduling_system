@@ -342,6 +342,12 @@ export async function update(req: AuthRequest<{ id: string }>, res: Response) {
             } else if (parsed.status === "SCHEDULED" || parsed.status === "UNASSIGNED") {
                 parsed.progress = 0;
             }
+        } else if (parsed.status !== undefined && parsed.progress !== undefined) {
+            if (parsed.status === "COMPLETED" && parsed.progress < 100) {
+                parsed.progress = 100;
+            } else if ((parsed.status === "SCHEDULED" || parsed.status === "UNASSIGNED") && parsed.progress > 0) {
+                parsed.status = "IN_PROGRESS";
+            }
         }
 
         if (parsed.status === "COMPLETED") {
