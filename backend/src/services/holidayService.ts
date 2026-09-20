@@ -6,7 +6,7 @@ import { recalculate } from "./scheduler/SchedulingEngine.js";
 /**
  * Triggers schedule recalculation for all currently active projects when company holidays change.
  */
-async function recalculateActiveProjects(): Promise<void> {
+export async function recalculateActiveProjects(): Promise<void> {
     const pool = getPool();
     try {
         const [projectRows] = await pool.query<RowDataPacket[]>(
