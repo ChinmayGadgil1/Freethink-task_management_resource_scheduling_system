@@ -768,6 +768,37 @@
                 </div>
               </div>
 
+              <!-- Deadline (Required when at least one member is assigned) -->
+              <div
+                v-if="newTaskForm.assigned_resource_ids && newTaskForm.assigned_resource_ids.length > 0"
+                class="row q-col-gutter-sm"
+              >
+                <div class="col-12">
+                  <q-input
+                    v-model="newTaskForm.deadline"
+                    label="Deadline *"
+                    type="date"
+                    outlined
+                    dense
+                    stack-label
+                    :dark="$q.dark.isActive"
+                    :rules="[
+                      (val) => !!val || 'Deadline is required when assigning members',
+                      (val) => {
+                        if (!val || !selectedNewTaskProject?.start_date) return true;
+                        const pStart = String(selectedNewTaskProject.start_date).split('T')[0] || '';
+                        return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                      },
+                      (val) => {
+                        if (!val || !selectedNewTaskProject?.deadline) return true;
+                        const pDeadline = String(selectedNewTaskProject.deadline).split('T')[0] || '';
+                        return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                      },
+                    ]"
+                  />
+                </div>
+              </div>
+
               <div class="row justify-end q-mt-md q-gutter-sm">
                 <q-btn flat label="Cancel" v-close-popup />
                 <q-btn
@@ -1224,6 +1255,11 @@ const projectOptions = computed(() => {
   return opts;
 });
 
+const selectedNewTaskProject = computed(() => {
+  if (!newTaskForm.project_id) return null;
+  return projects.value.find((p) => Number(p.project_id) === Number(newTaskForm.project_id)) || null;
+});
+
 const resourceOptions = computed(() => {
   const seen = new Set<number>();
   const opts: Array<{ label: string; value: number }> = [];
@@ -1315,16 +1351,23 @@ function openAddTaskDialog() {
 
 async function handleCreateTask() {
   if (!newTaskForm.project_id || !newTaskForm.title.trim()) return;
+  const hasAssignees = newTaskForm.assigned_resource_ids.length > 0;
+  if (hasAssignees && !newTaskForm.deadline) {
+    $q.notify({
+      type: 'warning',
+      message: 'Deadline is required when assigning team members',
+    });
+    return;
+  }
   taskSubmitting.value = true;
   try {
-    const hasAssignees = newTaskForm.assigned_resource_ids.length > 0;
     await createTaskApi({
       project_id: newTaskForm.project_id,
       title: newTaskForm.title.trim(),
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
       status: hasAssignees ? 'SCHEDULED' : 'UNASSIGNED',
-      deadline: null,
+      deadline: hasAssignees ? (newTaskForm.deadline || null) : null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
       assigned_resource_ids: newTaskForm.assigned_resource_ids,
     });

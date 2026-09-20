@@ -743,17 +743,30 @@
               </template>
             </q-select>
 
-            <!-- Deadline (Only available after at least one member is selected) -->
+            <!-- Deadline (Required when at least one member is selected) -->
             <q-input
               v-if="assignTaskMemberForm.user_ids && assignTaskMemberForm.user_ids.length > 0"
               v-model="assignTaskMemberForm.deadline"
               outlined
               dense
               type="date"
-              label="Deadline (Optional)"
+              label="Deliverable Target Deadline *"
               stack-label
               hint="Set target deliverable deadline for assigned members"
               :dark="$q.dark.isActive"
+              :rules="[
+                (val) => !!val || 'Deadline is required when assigning members',
+                (val) => {
+                  if (!val || !currentAssignTaskProject?.start_date) return true;
+                  const pStart = String(currentAssignTaskProject.start_date).split('T')[0] || '';
+                  return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                },
+                (val) => {
+                  if (!val || !currentAssignTaskProject?.deadline) return true;
+                  const pDeadline = String(currentAssignTaskProject.deadline).split('T')[0] || '';
+                  return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                },
+              ]"
             />
           </q-card-section>
 
@@ -1461,6 +1474,12 @@ const assignSupervisorSelectOptions = computed(() => {
   return opts;
 });
 
+const currentAssignTaskProject = computed(() => {
+  const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
+  if (!currentTask) return null;
+  return projects.value.find((p) => Number(p.project_id) === Number(currentTask.project_id)) || null;
+});
+
 const createProjectMembers = ref<ResourceUser[]>([]);
 
 const createForm = reactive<{
@@ -1924,6 +1943,14 @@ async function handleAssignTaskMember() {
   const origDeadline = currentTask?.deadline ? currentTask.deadline.split('T')[0] ?? '' : '';
   const newDeadline = newAssigneeIds.length > 0 ? (assignTaskMemberForm.deadline || '') : '';
   const deadlineChanged = origDeadline !== newDeadline;
+
+  if (newAssigneeIds.length > 0 && !assignTaskMemberForm.deadline) {
+    $q.notify({
+      type: 'warning',
+      message: 'Deadline is required when assigning team members',
+    });
+    return;
+  }
 
   if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged && !deadlineChanged) {
     $q.notify({

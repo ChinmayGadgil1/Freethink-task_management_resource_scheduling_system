@@ -2550,12 +2550,13 @@
               <div class="col-12">
                 <q-input
                   v-model="createForm.deadline"
-                  label="Deadline"
+                  label="Target Deadline *"
                   type="date"
                   outlined
                   dense
                   stack-label
                   :rules="[
+                    (val) => !!val || 'Deadline is required for self-assigned tasks',
                     (val) => {
                       if (!val || !selectedCreateProject?.start_date) return true;
                       const pStart = String(selectedCreateProject.start_date).split('T')[0] || '';
@@ -3777,6 +3778,7 @@ const canCreateTask = computed(() => {
   return (
     createForm.value.project_id !== null &&
     createForm.value.title.trim().length > 0 &&
+    Boolean(createForm.value.deadline) &&
     Number(createForm.value.expected_effort) > 0
   );
 });

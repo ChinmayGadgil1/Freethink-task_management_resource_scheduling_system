@@ -78,10 +78,13 @@ export async function create(req: AuthRequest, res: Response) {
             }
         }
 
-        // If self-assigned by a RESOURCE, force assignment strictly to themselves
+        // If self-assigned by a RESOURCE, force assignment strictly to themselves and require deadline
         let resourceIds = parsed.assigned_resource_ids;
         if (userRole === "RESOURCE") {
             resourceIds = [userId!];
+            if (!parsed.deadline || !parsed.deadline.trim()) {
+                return res.status(400).json({ message: "Deadline is required for self-assigned tasks" });
+            }
         }
 
         // Deadline option is only available when at least one member is assigned

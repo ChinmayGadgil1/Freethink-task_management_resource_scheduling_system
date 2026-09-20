@@ -786,6 +786,34 @@
                 </q-select>
               </div>
             </div>
+
+            <div class="row q-col-gutter-sm">
+              <div class="col-12">
+                <q-input
+                  v-model="assignForm.deadline"
+                  outlined
+                  dense
+                  type="date"
+                  label="Target Deadline *"
+                  stack-label
+                  hint="Deliverable target completion date"
+                  :dark="$q.dark.isActive"
+                  :rules="[
+                    (val) => !!val || 'Deadline is required when assigning a task to a resource',
+                    (val) => {
+                      if (!val || !selectedAssignProject?.start_date) return true;
+                      const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
+                      return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                    },
+                    (val) => {
+                      if (!val || !selectedAssignProject?.deadline) return true;
+                      const pDeadline = String(selectedAssignProject.deadline).split('T')[0] || '';
+                      return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                    },
+                  ]"
+                />
+              </div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md q-pt-none">
@@ -1176,6 +1204,7 @@ const assignForm = reactive<{
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   expected_effort: number;
   supervisor_id: number | null;
+  deadline: string;
 }>({
   project_id: null,
   title: '',
@@ -1183,6 +1212,12 @@ const assignForm = reactive<{
   priority: 'MEDIUM',
   expected_effort: 8,
   supervisor_id: null,
+  deadline: '',
+});
+
+const selectedAssignProject = computed(() => {
+  if (!assignForm.project_id) return null;
+  return projectList.value.find((p) => p.project_id === assignForm.project_id) || null;
 });
 
 const assignSupervisorOptions = computed(() => {
@@ -1610,6 +1645,7 @@ function openAssignModal(resourceId: number) {
   assignForm.priority = 'MEDIUM';
   assignForm.expected_effort = 8;
   assignForm.supervisor_id = null;
+  assignForm.deadline = '';
   showAssignDialog.value = true;
 }
 
@@ -1643,6 +1679,13 @@ async function handleAssignTask() {
   if (!selectedResourceId.value || !assignForm.project_id || !assignForm.title.trim()) {
     return;
   }
+  if (!assignForm.deadline) {
+    $q.notify({
+      type: 'warning',
+      message: 'Deadline is required when assigning a task to a resource',
+    });
+    return;
+  }
 
   submitting.value = true;
   try {
@@ -1652,6 +1695,7 @@ async function handleAssignTask() {
       description: assignForm.description || null,
       priority: assignForm.priority,
       status: 'SCHEDULED',
+      deadline: assignForm.deadline || null,
       expected_effort: Number(assignForm.expected_effort) || 8,
       assigned_resource_ids: [selectedResourceId.value],
       supervisor_id: assignForm.supervisor_id || undefined,
