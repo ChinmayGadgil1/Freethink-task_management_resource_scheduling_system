@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2";
 import type { Task, TaskDependency } from "../../models/taskModel.js";
 
 import { calculateUrgencyScore, sortTasksByUrgency, type ScoredTask } from "./PriorityEngine.js";
-import { getDownstreamDependencyCount, detectCycles } from "./DependencyEngine.js";
+import { getDownstreamDependencyCount, detectCycles, pruneCycles } from "./DependencyEngine.js";
 
 export interface ResourceScheduleConfig {
     userId: number;
@@ -463,7 +463,7 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         [projectId]
     );
 
-    const dependencies: TaskDependency[] = dependencyRows.map(row => ({
+    let dependencies: TaskDependency[] = dependencyRows.map(row => ({
         task_id: Number(row.task_id),
         predecessor_task_id: Number(row.predecessor_task_id)
     }));
@@ -472,8 +472,15 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
     try {
         detectCycles(tasks, dependencies);
     } catch (cycleError: any) {
-        console.error(`SchedulingEngine: Cycle detected in project ${projectId}:`, cycleError.message);
-        throw cycleError;
+        console.warn(`SchedulingEngine: Cycle detected in project ${projectId}. Pruning invalid dependencies:`, cycleError.message);
+        const { validDependencies, removedDependencies } = pruneCycles(tasks, dependencies);
+        dependencies = validDependencies;
+        for (const rem of removedDependencies) {
+            await pool.query(
+                `DELETE FROM task_dependencies WHERE task_id = ? AND predecessor_task_id = ?`,
+                [rem.task_id, rem.predecessor_task_id]
+            );
+        }
     }
 
     const baselineDate = projectStartDate ? new Date(projectStartDate) : new Date();

@@ -53,6 +53,28 @@ export function detectCycles(tasks: Task[], dependencies: TaskDependency[]): boo
 }
 
 /**
+ * Prunes cyclic dependencies incrementally, returning only the acyclic subset of dependencies.
+ */
+export function pruneCycles(
+    tasks: Task[],
+    dependencies: TaskDependency[]
+): { validDependencies: TaskDependency[]; removedDependencies: TaskDependency[] } {
+    const validDependencies: TaskDependency[] = [];
+    const removedDependencies: TaskDependency[] = [];
+
+    for (const dep of dependencies) {
+        const { hasCycle } = wouldCreateCycle(dep.task_id, dep.predecessor_task_id, validDependencies);
+        if (hasCycle) {
+            removedDependencies.push(dep);
+        } else {
+            validDependencies.push(dep);
+        }
+    }
+
+    return { validDependencies, removedDependencies };
+}
+
+/**
  * Returns all downstream descendant task IDs that depend directly or indirectly on the given taskId.
  */
 export function getDownstreamDescendants(taskId: number, dependencies: TaskDependency[]): Set<number> {
