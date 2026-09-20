@@ -2046,25 +2046,74 @@ const totalEffort = computed(() => {
     );
     return Math.round(sum * 10) / 10;
   }
-  if (backendWorkload.value?.tasks && backendWorkload.value.tasks.length > 0) {
-    const sum = backendWorkload.value.tasks.reduce((acc, t) => {
-      const rem = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
-      return acc + rem;
-    }, 0);
-    return Math.round(sum * 10) / 10;
-  }
-  const activeTasks = resourceTasks.value.filter((t) => t.status !== 'COMPLETED');
-  const sum = activeTasks.reduce((acc, t) => {
+
+  // Fallback: If no daily allocations exist, pro-rate active tasks that overlap with the current calendar week
+  const tasksToEvaluate =
+    backendWorkload.value?.tasks && backendWorkload.value.tasks.length > 0
+      ? backendWorkload.value.tasks
+      : resourceTasks.value;
+  const activeTasks = tasksToEvaluate.filter((t) => t.status !== 'COMPLETED');
+  const weekDatesSorted = Array.from(currentWeekDates).sort();
+  const weekStartStr = weekDatesSorted[0] || '';
+  const weekEndStr = weekDatesSorted[weekDatesSorted.length - 1] || '';
+
+  let scheduledEffort = 0;
+  for (const t of activeTasks) {
     const assigneesCount = Math.max(
       1,
       t.assigned_resource_ids?.length ||
         (t as unknown as { assigned_resources?: unknown[] }).assigned_resources?.length ||
         1,
     );
-    const rem = Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0));
-    return acc + rem / assigneesCount;
-  }, 0);
-  return Math.round(sum * 10) / 10;
+    const remEffort =
+      Math.max(0, (Number(t.expected_effort) || 0) - (Number(t.actual_effort) || 0)) /
+      assigneesCount;
+
+    if (remEffort <= 0) continue;
+
+    const startStr = (
+      t.start_date ||
+      (t as unknown as { planned_start?: string | null }).planned_start ||
+      ''
+    ).slice(0, 10);
+    const endStr = (
+      t.deadline ||
+      (t as unknown as { planned_end?: string | null }).planned_end ||
+      ''
+    ).slice(0, 10);
+
+    if (startStr && endStr) {
+      if (endStr < weekStartStr || startStr > weekEndStr) {
+        continue;
+      }
+
+      let overlapWorkingDays = 0;
+      for (const dStr of currentWeekDates) {
+        if (dStr >= startStr && dStr <= endStr) {
+          const d = new Date(dStr);
+          if (d.getDay() !== 0 && d.getDay() !== 6) {
+            overlapWorkingDays++;
+          }
+        }
+      }
+
+      const totalDays = Math.max(
+        1,
+        Math.round(
+          (new Date(endStr).getTime() - new Date(startStr).getTime()) / (1000 * 60 * 60 * 24),
+        ) + 1,
+      );
+
+      if (overlapWorkingDays > 0) {
+        const effortPerDay = remEffort / totalDays;
+        scheduledEffort += Math.min(remEffort, effortPerDay * overlapWorkingDays);
+      }
+    } else {
+      scheduledEffort += Math.min(remEffort, remEffort / 4);
+    }
+  }
+
+  return Math.round(scheduledEffort * 10) / 10;
 });
 
 const utilization = computed(() => {
