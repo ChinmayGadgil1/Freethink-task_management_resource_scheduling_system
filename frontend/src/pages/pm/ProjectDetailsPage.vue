@@ -266,9 +266,10 @@
       </q-card>
 
       <!-- 02 KPI METRIC CARDS -->
-      <div class="row q-col-gutter-md items-stretch" style="min-width: 0">
+      <div class="row q-col-gutter-sm items-stretch" style="min-width: 0">
         <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
+            dense
             title="Overall Progress"
             :value="`${overallProgress}%`"
             :subtitle="`${completedTasksCount} completed`"
@@ -280,6 +281,7 @@
         </div>
         <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
+            dense
             title="Total Tasks"
             :value="totalTasksCount"
             :subtitle="`${inProgressTasksCount} in progress`"
@@ -291,6 +293,7 @@
         </div>
         <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
+            dense
             title="Completed Tasks"
             :value="completedTasksCount"
             :subtitle="`${taskCompletionRate}% done`"
@@ -302,6 +305,7 @@
         </div>
         <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
+            dense
             title="Overdue Tasks"
             :value="overdueTasksCount"
             :subtitle="overdueTasksCount > 0 ? 'Requires attention' : 'All on schedule'"
@@ -314,6 +318,7 @@
         </div>
         <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
+            dense
             title="Team Members"
             :value="teamMembers.length"
             :subtitle="`${activeAssigneesCount} assigned`"
@@ -325,26 +330,21 @@
         </div>
         <div class="col-12 col-sm-6 col-md-4 col-lg-2" style="min-width: 0">
           <StatCard
+            dense
             title="Days Remaining"
-            :value="
-              daysRemaining > 0
-                ? daysRemaining
-                : daysRemaining === 0
-                  ? 'Due today'
-                  : Math.abs(daysRemaining) + 'd ago'
-            "
-            :subtitle="`Due ${formatDate(project.deadline)}`"
+            :value="daysRemainingCardValue"
+            :subtitle="daysRemainingCardSubtitle"
             icon="event_available"
             color="blue"
             note-class="note-blue"
-            :negative="daysRemaining < 0"
+            :negative="daysRemaining < 0 && !!project.deadline"
             @click="filterAllTasks"
           />
         </div>
       </div>
 
       <!-- 03 & 04 PROGRESS BREAKDOWN & MILESTONES -->
-      <div class="row q-col-gutter-md items-stretch" style="min-width: 0">
+      <div class="row q-col-gutter-md items-stretch" style="min-width: 0; margin-top: 14px">
         <div class="col-12 col-md-6" style="min-width: 0">
           <q-card
             flat
@@ -2318,6 +2318,22 @@ const daysRemainingText = computed(() => {
   if (daysRemaining.value > 0) return `${daysRemaining.value} days left`;
   if (daysRemaining.value === 0) return 'Due today';
   return `Overdue by ${Math.abs(daysRemaining.value)} days`;
+});
+
+const daysRemainingCardValue = computed(() => {
+  if (!project.deadline) return '—';
+  if (project.status === 'COMPLETED') return 'Done';
+  if (daysRemaining.value > 0) return `${daysRemaining.value}d`;
+  if (daysRemaining.value === 0) return 'Due today';
+  return `${Math.abs(daysRemaining.value)}d ago`;
+});
+
+const daysRemainingCardSubtitle = computed(() => {
+  if (!project.deadline) return 'No deadline set';
+  if (project.status === 'COMPLETED') return 'Completed';
+  if (daysRemaining.value === 0) return 'Due today';
+  if (daysRemaining.value < 0) return 'Overdue';
+  return `Due ${formatDate(project.deadline)}`;
 });
 
 const totalTasksCount = computed(() => tasks.value.length);

@@ -7,6 +7,7 @@
       'cursor-pointer': clickable,
       'has-badge-layout': !!badge,
       'is-negative-card': isNegative,
+      'is-dense': dense,
     }"
     @click="clickable && $emit('click')"
   >
@@ -32,7 +33,7 @@
         </div>
 
         <div class="stat-badge-bottom column">
-          <div class="stat-value" :class="{ 'text-negative': isNegative }">{{ value }}</div>
+          <div class="stat-value" :class="[{ 'text-negative': isNegative }, valueSizeClass]">{{ value }}</div>
           <div class="stat-title">{{ title }}</div>
           <div v-if="subtitle" class="stat-meta" :class="[noteClass, { negative: isNegative }]">
             {{ subtitle }}
@@ -42,22 +43,26 @@
 
       <!-- Standard layout: Horizontal icon on left, content on right -->
       <template v-else>
-        <div class="stat-standard-layout row items-center gap-sm">
+        <div class="stat-standard-layout row items-center">
           <div
             class="stat-icon-wrapper flex flex-center"
             :style="{ backgroundColor: resolvedBgColor, color: resolvedColor }"
           >
-            <q-icon :name="icon" size="22px" />
+            <q-icon :name="icon" :size="dense ? '18px' : '20px'" />
           </div>
 
           <div class="stat-content column col">
-            <div class="stat-title ellipsis" :title="title">{{ title }}</div>
-            <div class="stat-value ellipsis" :class="{ 'text-negative': isNegative }">
+            <div class="stat-title" :title="title">{{ title }}</div>
+            <div
+              class="stat-value"
+              :class="[{ 'text-negative': isNegative }, valueSizeClass]"
+              :title="String(value)"
+            >
               {{ value }}
             </div>
             <div
               v-if="subtitle"
-              class="stat-meta ellipsis"
+              class="stat-meta"
               :class="[noteClass, { negative: isNegative }]"
               :title="subtitle"
             >
@@ -98,6 +103,7 @@ export interface StatCardProps {
   negative?: boolean;
   noteClass?: string;
   clickable?: boolean;
+  dense?: boolean;
 }
 
 const props = withDefaults(defineProps<StatCardProps>(), {
@@ -111,11 +117,19 @@ const props = withDefaults(defineProps<StatCardProps>(), {
   negative: false,
   noteClass: '',
   clickable: true,
+  dense: false,
 });
 
 defineEmits<{
   (e: 'click'): void;
 }>();
+
+const valueSizeClass = computed(() => {
+  const str = String(props.value ?? '');
+  if (str.length > 7) return 'stat-value--xs';
+  if (str.length > 4) return 'stat-value--sm';
+  return '';
+});
 
 const resolvedColor = computed(() => {
   if (!props.color) return '#8b6fd8';
@@ -156,7 +170,7 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 <style scoped lang="scss">
 .stat-card-widget {
   height: 100%;
-  min-height: 96px;
+  min-height: 84px;
   border-radius: 12px;
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #e5e7ec);
@@ -171,7 +185,7 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 }
 
 .stat-card-inner {
-  padding: 14px 16px;
+  padding: 12px 14px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -180,15 +194,17 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
 
 /* Standard horizontal layout */
 .stat-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  flex: 0 0 40px;
   border-radius: 10px;
 }
 
 .stat-standard-layout {
   min-width: 0;
   overflow: hidden;
+  gap: 10px;
 }
 
 .stat-content {
@@ -201,28 +217,93 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   font-size: 11.5px;
   line-height: 1.25;
   font-weight: 600;
-  text-transform: capitalize;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-value {
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--wo-text-main, #1d2433);
-  font-size: 24px;
-  line-height: 1.1;
+  font-size: 22px;
+  line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.stat-value--sm {
+    font-size: 17px;
+  }
+
+  &.stat-value--xs {
+    font-size: 13.5px;
+    letter-spacing: -0.01em;
+  }
 }
 
 .stat-meta {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--wo-text-muted, #667085);
   font-size: 10.5px;
   font-weight: 500;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &.negative {
     color: #f04438 !important;
     font-weight: 600;
+  }
+}
+
+/* Dense layout for compact grids (e.g., 6-card row) */
+.is-dense {
+  min-height: 78px;
+
+  .stat-card-inner {
+    padding: 10px 12px;
+  }
+
+  .stat-standard-layout {
+    gap: 8px;
+  }
+
+  .stat-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    flex: 0 0 36px;
+    border-radius: 8px;
+  }
+
+  .stat-title {
+    font-size: 11px;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+
+  .stat-value {
+    font-size: 19px;
+    margin-top: 1px;
+    line-height: 1.15;
+
+    &.stat-value--sm {
+      font-size: 15.5px;
+    }
+
+    &.stat-value--xs {
+      font-size: 13px;
+    }
+  }
+
+  .stat-meta {
+    font-size: 10px;
+    margin-top: 2px;
+    line-height: 1.2;
   }
 }
 

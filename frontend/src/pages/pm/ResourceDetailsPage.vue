@@ -1074,6 +1074,21 @@
               </div>
 
               <div class="row q-col-gutter-sm">
+                <div class="col-12">
+                  <q-input
+                    v-model="editForm.description"
+                    outlined
+                    dense
+                    type="textarea"
+                    rows="3"
+                    label="Description"
+                    :dark="$q.dark.isActive"
+                    hint="Optional details about this task"
+                  />
+                </div>
+              </div>
+
+              <div class="row q-col-gutter-sm">
                 <div class="col-6">
                   <q-select
                     v-model="editForm.status"
@@ -1395,6 +1410,7 @@ const editingTaskId = ref<number | null>(null);
 
 const editForm = reactive<{
   title: string;
+  description: string;
   status: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED';
   priority: TaskPriority;
   progress: number;
@@ -1403,6 +1419,7 @@ const editForm = reactive<{
   supervisor_id: number | null;
 }>({
   title: '',
+  description: '',
   status: 'UNASSIGNED',
   priority: 'MEDIUM',
   progress: 0,
@@ -1440,6 +1457,7 @@ const editSupervisorOptions = computed(() => {
 function openEditModal(task: Task) {
   editingTaskId.value = task.task_id;
   editForm.title = task.title;
+  editForm.description = task.description ?? '';
   editForm.status = task.status;
   editForm.priority = task.priority;
   editForm.progress = Number(task.progress) || 0;
@@ -1499,6 +1517,7 @@ async function handleUpdateTask() {
   try {
     await updateTaskApi(editingTaskId.value, {
       title: editForm.title.trim(),
+      description: editForm.description.trim() || null,
       status: editForm.status,
       priority: editForm.priority,
       progress: Number(editForm.progress) || 0,
