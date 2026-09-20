@@ -557,6 +557,9 @@ export function computeDeadlineVarianceReport(
   let onTimeCount = 0;
   let delayedCount = 0;
 
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
   const rows: DeadlineVarianceReportRow[] = [];
 
   tasks.forEach((t) => {
@@ -567,10 +570,27 @@ export function computeDeadlineVarianceReport(
     const deadlineMs = new Date(deadlineStr).getTime();
 
     let comparisonDateStr: string | null = null;
-    if (t.status === 'COMPLETED' && t.actual_end) {
-      comparisonDateStr = extractDateOnly(t.actual_end);
-    } else if (t.planned_end) {
-      comparisonDateStr = extractDateOnly(t.planned_end);
+    let actualEndStr: string = '—';
+
+    if (t.status === 'COMPLETED') {
+      const compDate = extractDateOnly(t.actual_end) || extractDateOnly(t.updated_at);
+      if (compDate) {
+        comparisonDateStr = compDate;
+        actualEndStr = compDate;
+      } else if (t.planned_end) {
+        comparisonDateStr = extractDateOnly(t.planned_end);
+      }
+    } else {
+      const planned = extractDateOnly(t.planned_end);
+      if (planned) {
+        if (todayStr > deadlineStr && todayStr > planned) {
+          comparisonDateStr = todayStr;
+        } else {
+          comparisonDateStr = planned;
+        }
+      } else if (todayStr > deadlineStr) {
+        comparisonDateStr = todayStr;
+      }
     }
 
     if (!comparisonDateStr) return;
@@ -598,7 +618,7 @@ export function computeDeadlineVarianceReport(
       projectName: projectMap.get(t.project_id) || `Project #${t.project_id}`,
       deadline: deadlineStr,
       plannedEnd: extractDateOnly(t.planned_end) || '—',
-      actualEnd: extractDateOnly(t.actual_end) || '—',
+      actualEnd: actualEndStr,
       status: t.status,
       varianceDays,
       category,
@@ -613,7 +633,6 @@ export function computeDeadlineVarianceReport(
   };
 }
 
-// --- Report 7: Current Schedule Snapshot (Transparent Schedule Baseline) ---
 export interface ScheduleSnapshotRow {
   taskId: number;
   title: string;
@@ -624,6 +643,7 @@ export interface ScheduleSnapshotRow {
   deadline: string;
   status: string;
   scheduleHealth: string;
+  healthReason?: string;
 }
 
 export function computeScheduleSnapshotReport(
@@ -631,17 +651,40 @@ export function computeScheduleSnapshotReport(
   projects: Project[],
 ): ScheduleSnapshotRow[] {
   const projectMap = new Map(projects.map((p) => [p.project_id, p.name]));
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   return tasks
     .filter((t) => !isVerificationTask(t))
     .map((t) => {
+      const dline = extractDateOnly(t.deadline);
+      const pend = extractDateOnly(t.planned_end);
+      const pstart = extractDateOnly(t.planned_start);
+      const isPastDeadline = Boolean(dline && dline < todayStr);
+      const isPlannedEndAfterDeadline = Boolean(dline && pend && pend > dline);
+      const isPlannedEndPast = Boolean(pend && pend < todayStr);
+
       let scheduleHealth = 'On Schedule';
+      let healthReason = 'Progressing on track within planned schedule and deadline';
+
       if (t.status === 'COMPLETED') {
         scheduleHealth = 'Completed';
+        healthReason = 'Task execution completed successfully';
+      } else if (isPastDeadline) {
+        scheduleHealth = 'Deadline Slipping';
+        healthReason = `Target deadline (${dline}) has already passed without completion`;
+      } else if (isPlannedEndAfterDeadline) {
+        scheduleHealth = 'Deadline Slipping';
+        healthReason = `Planned end date (${pend}) exceeds target deadline (${dline})`;
       } else if (t.is_deadline_at_risk) {
         scheduleHealth = 'Deadline Slipping';
+        healthReason = 'Critical path delay projected to exceed deadline';
+      } else if (isPlannedEndPast) {
+        scheduleHealth = 'Schedule At Risk';
+        healthReason = `Planned completion date (${pend}) elapsed without task being completed`;
       } else if (t.is_schedule_at_risk) {
         scheduleHealth = 'Schedule At Risk';
+        healthReason = 'CPM schedule bottleneck or dependency float exhausted';
       }
 
       return {
@@ -649,11 +692,12 @@ export function computeScheduleSnapshotReport(
         title: t.title,
         projectId: t.project_id,
         projectName: projectMap.get(t.project_id) || `Project #${t.project_id}`,
-        plannedStart: extractDateOnly(t.planned_start) || '—',
-        plannedEnd: extractDateOnly(t.planned_end) || '—',
-        deadline: extractDateOnly(t.deadline) || '—',
+        plannedStart: pstart || '—',
+        plannedEnd: pend || '—',
+        deadline: dline || '—',
         status: t.status,
         scheduleHealth,
+        healthReason,
       };
     });
 }

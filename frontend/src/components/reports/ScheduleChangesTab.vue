@@ -46,7 +46,7 @@
             map-options
             :options="projectOptions"
             label="Filter by Project"
-            style="min-width: 220px"
+            style="min-width: 200px"
             :dark="$q.dark.isActive"
           />
 
@@ -59,7 +59,20 @@
             map-options
             :options="resourceOptions"
             label="Filter by Resource"
-            style="min-width: 220px"
+            style="min-width: 200px"
+            :dark="$q.dark.isActive"
+          />
+
+          <q-select
+            v-model="selectedScheduleHealth"
+            outlined
+            dense
+            options-dense
+            emit-value
+            map-options
+            :options="scheduleHealthOptions"
+            label="Schedule Status"
+            style="min-width: 180px"
             :dark="$q.dark.isActive"
           />
 
@@ -77,6 +90,62 @@
 
         <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
           Showing {{ filteredRows.length }} task schedule baselines
+        </div>
+      </div>
+
+      <!-- Summary KPI Cards using reusable StatCard component -->
+      <div class="row q-col-gutter-md">
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Total Baselines"
+            :value="filteredTotalCount"
+            :subtitle="
+              hasActiveFilters
+                ? `Across ${filteredRows.length} filtered task(s) (${allRows.length} total)`
+                : 'Tasks with schedule baselines'
+            "
+            icon="fact_check"
+            color="purple"
+            note-class="note-purple"
+            :clickable="false"
+          />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="On Schedule"
+            :value="filteredOnScheduleCount"
+            subtitle="Milestones meeting CPM targets"
+            icon="check_circle"
+            color="green"
+            note-class="note-green"
+            :clickable="false"
+          />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="At Risk / Slipping"
+            :value="filteredSlippingCount"
+            subtitle="Critical path or deadline risk"
+            icon="warning_amber"
+            color="red"
+            note-class="note-red"
+            :negative="filteredSlippingCount > 0"
+            :clickable="false"
+          />
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+          <StatCard
+            title="Completed Baselines"
+            :value="filteredCompletedCount"
+            subtitle="Successfully executed tasks"
+            icon="task_alt"
+            color="blue"
+            note-class="note-blue"
+            :clickable="false"
+          />
         </div>
       </div>
 
@@ -112,18 +181,51 @@
             </q-td>
           </template>
 
+          <!-- Current Planned Start -->
+          <template #body-cell-plannedStart="props">
+            <q-td :props="props" align="center">
+              <span>{{ props.row.plannedStart }}</span>
+            </q-td>
+          </template>
+
+          <!-- Current Planned End -->
+          <template #body-cell-plannedEnd="props">
+            <q-td :props="props" align="center">
+              <span>{{ props.row.plannedEnd }}</span>
+            </q-td>
+          </template>
+
+          <!-- Target Deadline -->
+          <template #body-cell-deadline="props">
+            <q-td :props="props" align="center">
+              <span>{{ props.row.deadline }}</span>
+            </q-td>
+          </template>
+
           <!-- Status -->
           <template #body-cell-status="props">
-            <q-td :props="props">
-              <q-badge :color="props.row.status === 'COMPLETED' ? 'positive' : 'grey-7'" outline>
-                {{ props.row.status }}
+            <q-td :props="props" align="center">
+              <q-badge
+                :color="
+                  props.row.status === 'COMPLETED'
+                    ? 'positive'
+                    : props.row.status === 'IN_PROGRESS'
+                      ? 'primary'
+                      : props.row.status === 'SCHEDULED'
+                        ? 'indigo-7'
+                        : 'grey-7'
+                "
+                outline
+                class="text-weight-bold q-px-sm"
+              >
+                {{ formatStatus(props.row.status) }}
               </q-badge>
             </q-td>
           </template>
 
           <!-- Schedule Health -->
           <template #body-cell-scheduleHealth="props">
-            <q-td :props="props">
+            <q-td :props="props" align="center">
               <q-badge
                 :color="
                   props.row.scheduleHealth === 'Completed'
@@ -134,8 +236,13 @@
                         ? 'warning'
                         : 'info'
                 "
+                class="text-weight-bold q-px-sm q-py-xs cursor-pointer"
                 :label="props.row.scheduleHealth"
-              />
+              >
+                <q-tooltip class="bg-dark text-body2">
+                  {{ props.row.healthReason || props.row.scheduleHealth }}
+                </q-tooltip>
+              </q-badge>
             </q-td>
           </template>
         </q-table>
@@ -172,7 +279,7 @@
             <td style="text-align: center">{{ r.plannedStart }}</td>
             <td style="text-align: center">{{ r.plannedEnd }}</td>
             <td style="text-align: center">{{ r.deadline }}</td>
-            <td style="text-align: center">{{ r.status }}</td>
+            <td style="text-align: center">{{ formatStatus(r.status) }}</td>
             <td style="text-align: center">
               <span
                 class="print-badge"
@@ -209,6 +316,7 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from './PrintReportLayout.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import { computeScheduleSnapshotReport, type ScheduleSnapshotRow } from './reportCalculations';
 
 const props = defineProps<{
@@ -217,8 +325,18 @@ const props = defineProps<{
   resources: ResourceUser[];
 }>();
 
+// Filter states
 const selectedProjectId = ref<number | null>(null);
 const selectedResourceId = ref<number | null>(null);
+const selectedScheduleHealth = ref<string>('ALL');
+
+const scheduleHealthOptions = [
+  { label: 'All Statuses', value: 'ALL' },
+  { label: 'On Schedule', value: 'On Schedule' },
+  { label: 'Deadline Slipping', value: 'Deadline Slipping' },
+  { label: 'Schedule At Risk', value: 'Schedule At Risk' },
+  { label: 'Completed', value: 'Completed' },
+];
 
 const projectOptions = computed(() => [
   { label: 'All Projects', value: null },
@@ -231,12 +349,25 @@ const resourceOptions = computed(() => [
 ]);
 
 const hasActiveFilters = computed(() => {
-  return selectedProjectId.value !== null || selectedResourceId.value !== null;
+  return (
+    selectedProjectId.value !== null ||
+    selectedResourceId.value !== null ||
+    selectedScheduleHealth.value !== 'ALL'
+  );
 });
 
 function resetFilters() {
   selectedProjectId.value = null;
   selectedResourceId.value = null;
+  selectedScheduleHealth.value = 'ALL';
+}
+
+function formatStatus(status?: string | null): string {
+  if (!status) return '';
+  return status
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
 }
 
 const allRows = computed(() => {
@@ -247,52 +378,78 @@ const filteredRows = computed(() => {
   let list = allRows.value;
 
   if (selectedProjectId.value !== null) {
-    list = list.filter((r) => r.projectId === selectedProjectId.value);
+    const pId = Number(selectedProjectId.value);
+    list = list.filter((r) => Number(r.projectId) === pId);
   }
 
   if (selectedResourceId.value !== null) {
-    const resId = selectedResourceId.value;
+    const resId = Number(selectedResourceId.value);
     list = list.filter((r) => {
       const task = props.tasks.find((t) => t.task_id === r.taskId);
       if (!task) return false;
       return (
-        task.assigned_resource_ids?.includes(resId) ||
-        task.assigned_resources?.some((ar: { user_id: number }) => ar.user_id === resId)
+        task.assigned_resource_ids?.some((id) => Number(id) === resId) ||
+        task.assigned_resources?.some((ar: { user_id: number }) => Number(ar.user_id) === resId) ||
+        (task.assigned_resource_names &&
+          selectedResourceName.value &&
+          task.assigned_resource_names.includes(selectedResourceName.value))
       );
     });
+  }
+
+  if (selectedScheduleHealth.value !== 'ALL') {
+    list = list.filter((r) => r.scheduleHealth === selectedScheduleHealth.value);
   }
 
   return list;
 });
 
+// Reactive KPI metric counts
+const filteredTotalCount = computed(() => filteredRows.value.length);
+const filteredOnScheduleCount = computed(
+  () => filteredRows.value.filter((r) => r.scheduleHealth === 'On Schedule').length,
+);
+const filteredSlippingCount = computed(
+  () =>
+    filteredRows.value.filter(
+      (r) => r.scheduleHealth === 'Deadline Slipping' || r.scheduleHealth === 'Schedule At Risk',
+    ).length,
+);
+const filteredCompletedCount = computed(
+  () => filteredRows.value.filter((r) => r.scheduleHealth === 'Completed').length,
+);
+
 const selectedProjectName = computed(() => {
   if (selectedProjectId.value === null) return 'All Projects';
-  const p = props.projects.find((pr) => pr.project_id === selectedProjectId.value);
+  const p = props.projects.find((pr) => pr.project_id === Number(selectedProjectId.value));
   return p ? p.name : 'Unknown Project';
 });
 
 const selectedResourceName = computed(() => {
   if (selectedResourceId.value === null) return 'All Resources';
-  const r = props.resources.find((res) => res.user_id === selectedResourceId.value);
+  const r = props.resources.find((res) => res.user_id === Number(selectedResourceId.value));
   return r ? r.name : 'Unknown Resource';
 });
 
 const printFilters = computed<ReportFilterMeta[]>(() => [
   { label: 'Project', value: selectedProjectName.value },
   { label: 'Resource', value: selectedResourceName.value },
+  {
+    label: 'Schedule Health',
+    value:
+      selectedScheduleHealth.value === 'ALL' ? 'All Statuses' : selectedScheduleHealth.value,
+  },
   { label: 'Audit Baseline Mode', value: 'Live Scheduling Engine Snapshot' },
 ]);
 
 const printMetrics = computed<SummaryMetricMeta[]>(() => {
-  const total = filteredRows.value.length;
-  const slipping = filteredRows.value.filter(
-    (r) => r.scheduleHealth === 'Deadline Slipping' || r.scheduleHealth === 'Schedule At Risk',
-  ).length;
-  const completed = filteredRows.value.filter((r) => r.status === 'COMPLETED').length;
-  const onTrack = total - slipping - completed;
+  const total = filteredTotalCount.value;
+  const slipping = filteredSlippingCount.value;
+  const completed = filteredCompletedCount.value;
+  const onTrack = filteredOnScheduleCount.value;
   return [
-    { label: 'Total Assessed Tasks', value: total },
-    { label: 'On Track / Normal', value: Math.max(0, onTrack), color: '#059669' },
+    { label: 'Total Baselines', value: total },
+    { label: 'On Schedule', value: onTrack, color: '#059669' },
     { label: 'Slipping / At Risk', value: slipping, color: slipping > 0 ? '#dc2626' : undefined },
     { label: 'Completed Baselines', value: completed, color: '#2563eb' },
   ];
@@ -323,21 +480,21 @@ const columns: QTableColumn<ScheduleSnapshotRow>[] = [
   {
     name: 'plannedStart',
     label: 'Current Planned Start',
-    align: 'left',
+    align: 'center',
     field: 'plannedStart',
     sortable: true,
   },
   {
     name: 'plannedEnd',
     label: 'Current Planned End',
-    align: 'left',
+    align: 'center',
     field: 'plannedEnd',
     sortable: true,
   },
   {
     name: 'deadline',
     label: 'Target Deadline',
-    align: 'left',
+    align: 'center',
     field: 'deadline',
     sortable: true,
   },

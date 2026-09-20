@@ -106,7 +106,6 @@
               label="Schedule Changes"
               no-caps
             />
-            <q-tab name="progress-history" icon="history" label="Progress History" no-caps />
           </q-tabs>
 
           <q-separator :dark="$q.dark.isActive" class="screen-only" />
@@ -152,7 +151,7 @@
               />
             </q-tab-panel>
 
-            <!-- 6. Deadline Variance Tab -->
+            <!-- 5. Deadline Variance Tab -->
             <q-tab-panel name="deadline-variance" class="q-pa-md">
               <DeadlineVarianceTab
                 :tasks="taskList"
@@ -161,19 +160,10 @@
               />
             </q-tab-panel>
 
-            <!-- 7. Schedule Changes Tab -->
+            <!-- 6. Schedule Changes Tab -->
             <q-tab-panel name="schedule-changes" class="q-pa-md">
               <ScheduleChangesTab
                 :tasks="taskList"
-                :projects="projectList"
-                :resources="resourceList"
-              />
-            </q-tab-panel>
-
-            <!-- 8. Progress History Tab -->
-            <q-tab-panel name="progress-history" class="q-pa-md">
-              <ProgressHistoryTab
-                :feed-logs="feedLogs"
                 :projects="projectList"
                 :resources="resourceList"
               />
@@ -192,12 +182,10 @@ import {
   getTasksApi,
   getResourcesApi,
   getResourceWorkloadApi,
-  getGlobalProgressFeedApi,
   type Project,
   type Task,
   type ResourceUser,
   type ResourceWorkload,
-  type ProgressFeedLog,
 } from '@/services/api';
 
 // Child Report Tab Components
@@ -207,7 +195,6 @@ import DelayedTasksTab from '@/components/reports/DelayedTasksTab.vue';
 import ResourceWorkloadTab from '@/components/reports/ResourceWorkloadTab.vue';
 import DeadlineVarianceTab from '@/components/reports/DeadlineVarianceTab.vue';
 import ScheduleChangesTab from '@/components/reports/ScheduleChangesTab.vue';
-import ProgressHistoryTab from '@/components/reports/ProgressHistoryTab.vue';
 
 // Active Tab State
 const activeTab = ref<string>('project-progress');
@@ -222,7 +209,6 @@ const projectList = ref<Project[]>([]);
 const taskList = ref<Task[]>([]);
 const resourceList = ref<ResourceUser[]>([]);
 const workloadsMap = ref<Record<number, ResourceWorkload | null>>({});
-const feedLogs = ref<ProgressFeedLog[]>([]);
 
 /**
  * Loads shared reporting datasets once efficiently:
@@ -230,24 +216,21 @@ const feedLogs = ref<ProgressFeedLog[]>([]);
  * - Tasks
  * - Resources
  * - Resource Workloads (parallel mapped per resource)
- * - Progress Feed Logs (work log history)
  */
 async function loadAllReportsData() {
   loading.value = true;
   errorMessage.value = null;
 
   try {
-    const [projects, tasks, resources, logs] = await Promise.all([
+    const [projects, tasks, resources] = await Promise.all([
       getProjectsApi(),
       getTasksApi(),
       getResourcesApi(),
-      getGlobalProgressFeedApi(100).catch(() => []),
     ]);
 
     projectList.value = projects;
     taskList.value = tasks;
     resourceList.value = resources;
-    feedLogs.value = logs;
 
     // Fetch workloads in parallel
     const wMap: Record<number, ResourceWorkload | null> = {};

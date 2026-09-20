@@ -61,52 +61,59 @@
         </div>
       </div>
 
-      <!-- Summary KPI Cards -->
+      <!-- Summary KPI Cards using reusable StatCard component -->
       <div class="row q-col-gutter-md">
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered :dark="$q.dark.isActive">
-            <q-card-section>
-              <div class="text-caption text-grey-6 text-uppercase">Total Evaluated</div>
-              <div class="text-h5 text-weight-bold q-mt-xs">{{ reportData.rows.length }}</div>
-              <div class="text-caption text-grey-6">Tasks with target deadlines</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Total Evaluated"
+            :value="filteredTotalCount"
+            :subtitle="
+              hasActiveFilters
+                ? `Across ${filteredRows.length} filtered task(s) (${reportData.rows.length} total)`
+                : 'Tasks with target deadlines'
+            "
+            icon="fact_check"
+            color="purple"
+            note-class="note-purple"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered :dark="$q.dark.isActive">
-            <q-card-section>
-              <div class="text-caption text-positive text-uppercase">Ahead of Schedule</div>
-              <div class="text-h5 text-weight-bold text-positive q-mt-xs">
-                {{ reportData.aheadCount }}
-              </div>
-              <div class="text-caption text-grey-6">Delivered / projected before deadline</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Ahead of Schedule"
+            :value="filteredAheadCount"
+            subtitle="Delivered / projected before deadline"
+            icon="trending_up"
+            color="green"
+            note-class="note-green"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered :dark="$q.dark.isActive">
-            <q-card-section>
-              <div class="text-caption text-info text-uppercase">On Time</div>
-              <div class="text-h5 text-weight-bold text-info q-mt-xs">
-                {{ reportData.onTimeCount }}
-              </div>
-              <div class="text-caption text-grey-6">Aligned exactly with deadline</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="On Time"
+            :value="filteredOnTimeCount"
+            subtitle="Aligned exactly on target deadline"
+            icon="check_circle"
+            color="blue"
+            note-class="note-blue"
+            :clickable="false"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-md-3">
-          <q-card flat bordered :dark="$q.dark.isActive">
-            <q-card-section>
-              <div class="text-caption text-negative text-uppercase">Delayed</div>
-              <div class="text-h5 text-weight-bold text-negative q-mt-xs">
-                {{ reportData.delayedCount }}
-              </div>
-              <div class="text-caption text-grey-6">Exceeds target deadline</div>
-            </q-card-section>
-          </q-card>
+          <StatCard
+            title="Delayed"
+            :value="filteredDelayedCount"
+            subtitle="Exceeds target deadline"
+            icon="warning_amber"
+            color="red"
+            note-class="note-red"
+            :negative="filteredDelayedCount > 0"
+            :clickable="false"
+          />
         </div>
       </div>
 
@@ -142,18 +149,43 @@
 
           <!-- Status -->
           <template #body-cell-status="props">
-            <q-td :props="props">
-              <q-badge :color="props.row.status === 'COMPLETED' ? 'positive' : 'primary'" outline>
-                {{ props.row.status }}
+            <q-td :props="props" align="center">
+              <q-badge
+                :color="props.row.status === 'COMPLETED' ? 'positive' : 'primary'"
+                outline
+                class="text-weight-medium"
+              >
+                {{ formatStatus(props.row.status) }}
               </q-badge>
             </q-td>
           </template>
 
-          <!-- Variance Days with clear indicator -->
+          <!-- Target Deadline -->
+          <template #body-cell-deadline="props">
+            <q-td :props="props" align="center">
+              {{ props.row.deadline }}
+            </q-td>
+          </template>
+
+          <!-- Planned End -->
+          <template #body-cell-plannedEnd="props">
+            <q-td :props="props" align="center">
+              {{ props.row.plannedEnd }}
+            </q-td>
+          </template>
+
+          <!-- Actual End -->
+          <template #body-cell-actualEnd="props">
+            <q-td :props="props" align="center">
+              {{ props.row.actualEnd }}
+            </q-td>
+          </template>
+
+          <!-- Variance Days with clear indicator and tooltip -->
           <template #body-cell-varianceDays="props">
-            <q-td :props="props">
+            <q-td :props="props" align="right">
               <span
-                class="text-weight-bold"
+                class="text-weight-bold cursor-pointer"
                 :class="
                   props.row.varianceDays < 0
                     ? 'text-positive'
@@ -168,12 +200,27 @@
                     : `${props.row.varianceDays}d`
                 }}
               </span>
+              <q-tooltip class="bg-dark text-body2">
+                <template v-if="props.row.varianceDays < 0">
+                  {{ Math.abs(props.row.varianceDays) }} days ahead of target deadline ({{
+                    props.row.deadline
+                  }})
+                </template>
+                <template v-else-if="props.row.varianceDays > 0">
+                  Delayed by {{ props.row.varianceDays }} days past target deadline ({{
+                    props.row.deadline
+                  }})
+                </template>
+                <template v-else>
+                  Delivered / projected exactly on target deadline ({{ props.row.deadline }})
+                </template>
+              </q-tooltip>
             </q-td>
           </template>
 
           <!-- Category Badge -->
           <template #body-cell-category="props">
-            <q-td :props="props">
+            <q-td :props="props" align="center">
               <q-badge
                 :color="
                   props.row.category === 'Ahead'
@@ -182,6 +229,7 @@
                       ? 'negative'
                       : 'info'
                 "
+                class="text-weight-bold q-px-sm q-py-xs"
                 :label="props.row.category"
               />
             </q-td>
@@ -266,6 +314,7 @@ import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from './PrintReportLayout.vue';
+import StatCard from '@/components/dashboard/StatCard.vue';
 import {
   computeDeadlineVarianceReport,
   type DeadlineVarianceReportRow,
@@ -313,6 +362,14 @@ function resetFilters() {
   selectedCategory.value = 'ALL';
 }
 
+function formatStatus(status?: string | null): string {
+  if (!status) return '';
+  return status
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 const reportData = computed(() => {
   return computeDeadlineVarianceReport(props.tasks, props.projects);
 });
@@ -321,17 +378,21 @@ const filteredRows = computed(() => {
   let list = reportData.value.rows;
 
   if (selectedProjectId.value !== null) {
-    list = list.filter((r) => r.projectId === selectedProjectId.value);
+    const pId = Number(selectedProjectId.value);
+    list = list.filter((r) => Number(r.projectId) === pId);
   }
 
   if (selectedResourceId.value !== null) {
-    const resId = selectedResourceId.value;
+    const resId = Number(selectedResourceId.value);
     list = list.filter((r) => {
       const task = props.tasks.find((t) => t.task_id === r.taskId);
       if (!task) return false;
       return (
-        task.assigned_resource_ids?.includes(resId) ||
-        task.assigned_resources?.some((ar: { user_id: number }) => ar.user_id === resId)
+        task.assigned_resource_ids?.some((id) => Number(id) === resId) ||
+        task.assigned_resources?.some((ar: { user_id: number }) => Number(ar.user_id) === resId) ||
+        (task.assigned_resource_names &&
+          selectedResourceName.value &&
+          task.assigned_resource_names.includes(selectedResourceName.value))
       );
     });
   }
@@ -342,6 +403,17 @@ const filteredRows = computed(() => {
 
   return list;
 });
+
+const filteredTotalCount = computed(() => filteredRows.value.length);
+const filteredAheadCount = computed(
+  () => filteredRows.value.filter((r) => r.category === 'Ahead').length,
+);
+const filteredOnTimeCount = computed(
+  () => filteredRows.value.filter((r) => r.category === 'On Time').length,
+);
+const filteredDelayedCount = computed(
+  () => filteredRows.value.filter((r) => r.category === 'Delayed').length,
+);
 
 const selectedProjectName = computed(() => {
   if (selectedProjectId.value === null) return 'All Projects';
@@ -369,10 +441,10 @@ const printFilters = computed<ReportFilterMeta[]>(() => [
 ]);
 
 const printMetrics = computed<SummaryMetricMeta[]>(() => [
-  { label: 'Ahead of Deadline', value: reportData.value.aheadCount, color: '#059669' },
-  { label: 'On Time', value: reportData.value.onTimeCount, color: '#2563eb' },
-  { label: 'Delayed', value: reportData.value.delayedCount, color: '#dc2626' },
-  { label: 'Total Assessed Tasks', value: reportData.value.rows.length },
+  { label: 'Ahead of Deadline', value: filteredAheadCount.value, color: '#059669' },
+  { label: 'On Time', value: filteredOnTimeCount.value, color: '#2563eb' },
+  { label: 'Delayed', value: filteredDelayedCount.value, color: '#dc2626' },
+  { label: 'Total Assessed Tasks', value: filteredTotalCount.value },
 ]);
 
 const printNotes = [
@@ -407,21 +479,21 @@ const columns: QTableColumn<DeadlineVarianceReportRow>[] = [
   {
     name: 'deadline',
     label: 'Target Deadline',
-    align: 'left',
+    align: 'center',
     field: 'deadline',
     sortable: true,
   },
   {
     name: 'plannedEnd',
     label: 'Planned End',
-    align: 'left',
+    align: 'center',
     field: 'plannedEnd',
     sortable: true,
   },
   {
     name: 'actualEnd',
     label: 'Actual End',
-    align: 'left',
+    align: 'center',
     field: 'actualEnd',
     sortable: true,
   },
