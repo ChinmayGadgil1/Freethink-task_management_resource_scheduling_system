@@ -404,6 +404,19 @@ export async function updateProject(
         return null;
     }
 
+    if (deadline) {
+        const cleanDeadline = deadline.includes("T") ? deadline.split("T")[0]! : deadline;
+        // Clamp existing task deadlines that exceed the new project deadline
+        await pool.query(
+            `UPDATE tasks 
+             SET deadline = ?, is_deadline_at_risk = TRUE 
+             WHERE project_id = ? 
+               AND deadline > ? 
+               AND deleted_at IS NULL`,
+            [cleanDeadline, projectId, cleanDeadline]
+        );
+    }
+
     // Trigger auto-scheduler recalculation to update Gantt schedules and deadline risks with new project dates
     try {
         await recalculate(projectId);
