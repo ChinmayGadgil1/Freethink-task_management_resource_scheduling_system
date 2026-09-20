@@ -147,7 +147,8 @@ export function canCompleteBy(
     leaves: Map<number, Map<string, number>>,
     resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
     initialAllocations?: Map<number, Map<string, number>>,
-    earliestStart?: Date
+    earliestStart?: Date,
+    taskUserActualLogs?: Map<string, number>
 ): boolean {
     const resourceIds = taskResources.get(task.task_id) ?? [];
     const taskSupervisorId = task.supervisor_id ? Number(task.supervisor_id) : null;
@@ -167,7 +168,8 @@ export function canCompleteBy(
     const remainingPerResource = new Map<number, number>();
     let totalAssigneeRem = 0;
     for (const uid of resourceIds) {
-        const rem = Math.max(0, Number((sharePerAssignee - actualPerAssignee).toFixed(2)));
+        const userLogged = taskUserActualLogs?.get(`${task.task_id}_${uid}`) ?? (N === 1 ? Number(task.actual_effort) : actualPerAssignee);
+        const rem = Math.max(0, Number((sharePerAssignee - userLogged).toFixed(2)));
         remainingPerResource.set(uid, rem);
         totalAssigneeRem = Number((totalAssigneeRem + rem).toFixed(2));
     }
@@ -263,7 +265,8 @@ export function calculateRisks(
     resourceConfigs: Map<number, ResourceScheduleConfig> = new Map(),
     initialAllocations?: Map<number, Map<string, number>>,
     earliestStart?: Date,
-    projectDeadline?: string | null
+    projectDeadline?: string | null,
+    taskUserActualLogs?: Map<string, number>
 ): {
     is_schedule_at_risk: boolean;
     is_deadline_at_risk: boolean;
@@ -278,7 +281,8 @@ export function calculateRisks(
             leaves,
             resourceConfigs,
             initialAllocations,
-            earliestStart
+            earliestStart,
+            taskUserActualLogs
         );
 
     // Effective deadline is the task-specific deadline if present, otherwise project-level deadline
@@ -302,7 +306,8 @@ export function calculateRisks(
                 leaves,
                 resourceConfigs,
                 initialAllocations,
-                earliestStart
+                earliestStart,
+                taskUserActualLogs
             );
         }
     }
@@ -423,6 +428,21 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         created_at: row.created_at,
         updated_at: row.updated_at
     }));
+
+    const taskIds = tasks.map(t => t.task_id);
+    const taskUserActualLogs = new Map<string, number>();
+    if (taskIds.length > 0) {
+        const [logRows] = await pool.query<RowDataPacket[]>(
+            `SELECT task_id, user_id, SUM(hours_logged) as user_logged_hours
+             FROM work_logs
+             WHERE task_id IN (?)
+             GROUP BY task_id, user_id`,
+            [taskIds]
+        );
+        for (const l of logRows) {
+            taskUserActualLogs.set(`${Number(l.task_id)}_${Number(l.user_id)}`, Number(l.user_logged_hours || 0));
+        }
+    }
 
     const [dependencyRows] = await pool.query<RowDataPacket[]>(
         `
@@ -711,7 +731,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         const remainingEffortPerResource = new Map<number, number>();
         let totalAssigneeRemaining = 0;
         for (const uid of resourceIds) {
-            const rem = Math.max(0, Number((sharePerAssignee - actualPerAssignee).toFixed(2)));
+            const userLogged = taskUserActualLogs.get(`${task.task_id}_${uid}`) ?? (N === 1 ? Number(task.actual_effort) : actualPerAssignee);
+            const rem = Math.max(0, Number((sharePerAssignee - userLogged).toFixed(2)));
             remainingEffortPerResource.set(uid, rem);
             totalAssigneeRemaining = Number((totalAssigneeRemaining + rem).toFixed(2));
         }
@@ -921,7 +942,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 resourceConfigs,
                 initialAllocationsForRisk,
                 taskEarliestStart,
-                projectDeadline
+                projectDeadline,
+                taskUserActualLogs
             );
 
             taskUpdates.set(task.task_id, {
@@ -946,7 +968,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 resourceConfigs,
                 initialAllocationsForRisk,
                 taskEarliestStart,
-                projectDeadline
+                projectDeadline,
+                taskUserActualLogs
             );
             
             taskUpdates.set(task.task_id, {
@@ -1022,7 +1045,8 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 resourceConfigs,
                 resourceSchedule,
                 baselineDate,
-                projectDeadline
+                projectDeadline,
+                taskUserActualLogs
             );
 
             await pool.query(
