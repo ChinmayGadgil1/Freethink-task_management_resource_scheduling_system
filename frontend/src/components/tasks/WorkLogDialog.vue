@@ -27,12 +27,24 @@
           <div class="col-12 col-sm-6">
             <q-input
               v-model="form.log_date"
-              type="date"
               label="Work Date *"
               outlined
               dense
+              mask="####-##-##"
               :dark="$q.dark.isActive"
-            />
+            >
+              <template #append>
+                <q-icon name="event" class="cursor-pointer text-primary">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date v-model="form.log_date" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Close" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
           </div>
           <div class="col-12 col-sm-6">
             <div

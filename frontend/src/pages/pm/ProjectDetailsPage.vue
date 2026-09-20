@@ -891,14 +891,32 @@
                 <div v-else class="row items-center no-wrap q-gutter-xs">
                   <q-avatar
                     size="24px"
-                    :color="getAssigneeName(props.row) === 'Unassigned' ? ($q.dark.isActive ? 'grey-8' : 'grey-4') : 'primary'"
-                    :text-color="getAssigneeName(props.row) === 'Unassigned' ? ($q.dark.isActive ? 'grey-4' : 'grey-8') : 'white'"
+                    :color="
+                      getAssigneeName(props.row) === 'Unassigned'
+                        ? $q.dark.isActive
+                          ? 'grey-8'
+                          : 'grey-4'
+                        : 'primary'
+                    "
+                    :text-color="
+                      getAssigneeName(props.row) === 'Unassigned'
+                        ? $q.dark.isActive
+                          ? 'grey-4'
+                          : 'grey-8'
+                        : 'white'
+                    "
                     class="text-weight-bold"
-                    >{{ getAssigneeName(props.row) === 'Unassigned' ? '?' : getAssigneeName(props.row).charAt(0) }}</q-avatar
+                    >{{
+                      getAssigneeName(props.row) === 'Unassigned'
+                        ? '?'
+                        : getAssigneeName(props.row).charAt(0)
+                    }}</q-avatar
                   >
                   <span
                     class="ellipsis"
-                    :class="getAssigneeName(props.row) === 'Unassigned' ? 'text-grey-6 text-italic' : ''"
+                    :class="
+                      getAssigneeName(props.row) === 'Unassigned' ? 'text-grey-6 text-italic' : ''
+                    "
                     style="max-width: 100px"
                     >{{ getAssigneeName(props.row) }}</span
                   >
@@ -1264,7 +1282,7 @@
                     v-model="editProjectForm.start_date"
                     outlined
                     dense
-                    type="date"
+                    mask="####-##-##"
                     label="Start Date"
                     stack-label
                     :dark="$q.dark.isActive"
@@ -1275,14 +1293,30 @@
                         val <= editProjectForm.deadline ||
                         'Start date cannot be after deadline',
                     ]"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="editProjectForm.start_date"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
                 <div class="col-6">
                   <q-input
                     v-model="editProjectForm.deadline"
                     outlined
                     dense
-                    type="date"
+                    mask="####-##-##"
                     label="Deadline"
                     stack-label
                     :dark="$q.dark.isActive"
@@ -1293,7 +1327,23 @@
                         val >= editProjectForm.start_date ||
                         'Deadline cannot be before start date',
                     ]"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="editProjectForm.deadline"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
               </div>
             </q-card-section>
@@ -1621,7 +1671,7 @@
                 v-model="assignTaskMemberForm.deadline"
                 outlined
                 dense
-                type="date"
+                mask="####-##-##"
                 label="Deliverable Target Deadline *"
                 stack-label
                 hint="Set target deliverable deadline for assigned members"
@@ -1631,15 +1681,39 @@
                   (val) => {
                     if (!val || !project?.start_date) return true;
                     const pStart = String(project.start_date).split('T')[0] || '';
-                    return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                    return (
+                      !pStart ||
+                      val >= pStart ||
+                      `Deadline cannot be earlier than project start date (${pStart})`
+                    );
                   },
                   (val) => {
                     if (!val || !project?.deadline) return true;
                     const pDeadline = String(project.deadline).split('T')[0] || '';
-                    return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                    return (
+                      !pDeadline ||
+                      val <= pDeadline ||
+                      `Deadline cannot be later than project deadline (${pDeadline})`
+                    );
                   },
                 ]"
-              />
+              >
+                <template #append>
+                  <q-icon name="event" class="cursor-pointer text-primary">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date
+                        v-model="assignTaskMemberForm.deadline"
+                        mask="YYYY-MM-DD"
+                        :dark="$q.dark.isActive"
+                      >
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Close" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
             </q-card-section>
 
             <q-card-actions align="right" class="q-pa-md">
@@ -2079,7 +2153,7 @@ function openAssignTaskMemberDialog(taskId: number) {
     ? Number(currentTask.supervisor_id)
     : null;
   assignTaskMemberForm.deadline = currentTask?.deadline
-    ? currentTask.deadline.split('T')[0] ?? ''
+    ? (currentTask.deadline.split('T')[0] ?? '')
     : '';
   showAssignTaskMemberDialog.value = true;
 }
@@ -2151,8 +2225,8 @@ async function handleAssignTaskMember() {
   const supervisorChanged =
     (currentTask?.supervisor_id ? Number(currentTask.supervisor_id) : null) !== newSupId;
 
-  const origDeadline = currentTask?.deadline ? currentTask.deadline.split('T')[0] ?? '' : '';
-  const newDeadline = newAssigneeIds.length > 0 ? (assignTaskMemberForm.deadline || '') : '';
+  const origDeadline = currentTask?.deadline ? (currentTask.deadline.split('T')[0] ?? '') : '';
+  const newDeadline = newAssigneeIds.length > 0 ? assignTaskMemberForm.deadline || '' : '';
   const deadlineChanged = origDeadline !== newDeadline;
 
   if (newAssigneeIds.length > 0 && !assignTaskMemberForm.deadline) {
@@ -2163,7 +2237,12 @@ async function handleAssignTaskMember() {
     return;
   }
 
-  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged && !deadlineChanged) {
+  if (
+    toAssignIds.length === 0 &&
+    toUnassignIds.length === 0 &&
+    !supervisorChanged &&
+    !deadlineChanged
+  ) {
     $q.notify({
       type: 'info',
       message: 'No changes made to task assignment, supervisor, or deadline',
@@ -2775,7 +2854,8 @@ function onQuickUpdateStatusClick(stVal: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRE
     // Restore existing saved progress; only fall back to 10 if task truly has no progress yet
     const savedProgress = getTaskProgressNumber(selectedTaskForUpdate.value.progress);
     if (selectedTaskForUpdateProgress.value <= 0 || selectedTaskForUpdateProgress.value >= 100) {
-      selectedTaskForUpdateProgress.value = savedProgress > 0 && savedProgress < 100 ? savedProgress : 10;
+      selectedTaskForUpdateProgress.value =
+        savedProgress > 0 && savedProgress < 100 ? savedProgress : 10;
     }
   }
 }

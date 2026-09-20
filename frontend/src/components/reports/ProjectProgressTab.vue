@@ -218,7 +218,8 @@
             <td style="text-align: center">{{ r.deadline }}</td>
             <td>
               <div>
-                <strong>{{ r.progress }}%</strong> ({{ r.completedTasks }} of {{ r.totalTasks }} done)
+                <strong>{{ r.progress }}%</strong> ({{ r.completedTasks }} of
+                {{ r.totalTasks }} done)
               </div>
               <div class="print-progress-bar">
                 <div class="print-progress-fill" :style="{ width: `${r.progress}%` }"></div>
@@ -404,4 +405,3 @@ const columns: QTableProps['columns'] = [
   { name: 'health', label: 'Health', field: 'health', align: 'center', sortable: true },
 ];
 </script>
-

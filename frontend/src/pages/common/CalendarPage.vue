@@ -559,14 +559,26 @@
 
     <!-- 6. IMPORT HOLIDAYS MODAL -->
     <q-dialog v-model="importDialog.show" persistent>
-      <q-card :dark="$q.dark.isActive" style="width: 640px; max-width: 95vw; max-height: 90vh" class="column">
+      <q-card
+        :dark="$q.dark.isActive"
+        style="width: 640px; max-width: 95vw; max-height: 90vh"
+        class="column"
+      >
         <!-- Header -->
         <q-card-section class="row items-center justify-between q-pb-sm">
           <div class="row items-center">
-            <q-avatar icon="upload_file" color="primary" text-color="white" size="36px" class="q-mr-sm" />
+            <q-avatar
+              icon="upload_file"
+              color="primary"
+              text-color="white"
+              size="36px"
+              class="q-mr-sm"
+            />
             <div>
               <div class="text-subtitle1 text-weight-bold">Import Holidays</div>
-              <div class="text-caption text-grey-7">Upload a CSV or JSON file to batch import holidays</div>
+              <div class="text-caption text-grey-7">
+                Upload a CSV or JSON file to batch import holidays
+              </div>
             </div>
           </div>
           <q-btn icon="close" flat round dense v-close-popup />
@@ -582,7 +594,8 @@
             :class="$q.dark.isActive ? 'bg-grey-9 text-grey-3' : 'bg-blue-1 text-blue-10'"
           >
             <div class="text-caption">
-              <strong>Format:</strong> <code>holiday_date</code> (YYYY-MM-DD) and <code>description</code>
+              <strong>Format:</strong> <code>holiday_date</code> (YYYY-MM-DD) and
+              <code>description</code>
             </div>
             <q-btn
               flat
@@ -613,7 +626,10 @@
           </q-file>
 
           <!-- Error message if file parse error -->
-          <div v-if="importDialog.parseError" class="q-mt-sm text-caption text-negative row items-center">
+          <div
+            v-if="importDialog.parseError"
+            class="q-mt-sm text-caption text-negative row items-center"
+          >
             <q-icon name="error" size="16px" class="q-mr-xs" />
             <span>{{ importDialog.parseError }}</span>
           </div>
@@ -628,7 +644,13 @@
               <q-chip dense color="positive" text-color="white" icon="add_task">
                 To Import: {{ newImportItemsCount }}
               </q-chip>
-              <q-chip v-if="skippedImportItemsCount > 0" dense color="grey-7" text-color="white" icon="block">
+              <q-chip
+                v-if="skippedImportItemsCount > 0"
+                dense
+                color="grey-7"
+                text-color="white"
+                icon="block"
+              >
                 Existing / Skipped: {{ skippedImportItemsCount }}
               </q-chip>
             </div>
@@ -697,7 +719,8 @@
             <strong>{{ selectedHolidays.length }}</strong> holidays?
           </div>
           <div class="text-caption text-grey-7 q-mt-xs">
-            Regular working capacity will be restored and active project schedules will be automatically recalculated.
+            Regular working capacity will be restored and active project schedules will be
+            automatically recalculated.
           </div>
 
           <!-- List of selected holidays to delete -->
@@ -1105,7 +1128,13 @@ const importDialog = ref({
 
 const importTableColumns: QTableColumn[] = [
   { name: 'holiday_date', label: 'Date', field: 'holiday_date', align: 'left', sortable: true },
-  { name: 'description', label: 'Holiday Name', field: 'description', align: 'left', sortable: true },
+  {
+    name: 'description',
+    label: 'Holiday Name',
+    field: 'description',
+    align: 'left',
+    sortable: true,
+  },
   { name: 'status', label: 'Status', field: 'isDuplicate', align: 'center' },
 ];
 
@@ -1179,7 +1208,10 @@ async function onImportFileChange(file: File | null) {
         }
       }
     } else {
-      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]!;
         const delimiter = line.includes(';') ? ';' : line.includes('\t') ? '\t' : ',';

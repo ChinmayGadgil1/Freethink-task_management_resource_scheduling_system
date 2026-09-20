@@ -1333,9 +1333,7 @@ function initEffortChart() {
   const remainingData = sortedTasks.map((t) =>
     t.status === 'COMPLETED'
       ? 0
-      : Number(
-          Math.max(0, getTaskExpectedEffortForMe(t) - getTaskActualEffortForMe(t)).toFixed(1),
-        ),
+      : Number(Math.max(0, getTaskExpectedEffortForMe(t) - getTaskActualEffortForMe(t)).toFixed(1)),
   );
 
   const hasOverflow = sortedTasks.length > 6;

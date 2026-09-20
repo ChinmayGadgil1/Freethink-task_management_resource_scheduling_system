@@ -421,11 +421,24 @@
                 v-model="startDateFilter"
                 outlined
                 dense
-                type="date"
+                mask="####-##-##"
                 label="Start Date"
                 :dark="$q.dark.isActive"
                 stack-label
-              />
+                clearable
+              >
+                <template #append>
+                  <q-icon name="event" class="cursor-pointer text-primary">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date v-model="startDateFilter" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Close" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
             </div>
 
             <div class="col-6 col-md-2">
@@ -433,11 +446,24 @@
                 v-model="endDateFilter"
                 outlined
                 dense
-                type="date"
+                mask="####-##-##"
                 label="End Date"
                 :dark="$q.dark.isActive"
                 stack-label
-              />
+                clearable
+              >
+                <template #append>
+                  <q-icon name="event" class="cursor-pointer text-primary">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date v-model="endDateFilter" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Close" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
             </div>
 
             <div class="col-12 col-md-1 text-right">
@@ -475,230 +501,219 @@
           </div>
 
           <div v-else>
-            <div v-for="group in groupedProjectCards" :key="group.label || 'all'" class="q-mb-md">
-              <div v-if="group.label" class="row items-center q-gutter-xs q-mb-sm">
-                <q-icon name="category" size="16px" color="primary" />
-                <span class="text-subtitle2 text-weight-bold">{{ group.label }}</span>
-                <q-chip dense size="sm" color="purple-1" text-color="primary">{{
-                  group.projects.length
-                }}</q-chip>
-              </div>
+            <div class="active-projects-scroll-container custom-scrollbar">
+              <div v-for="group in groupedProjectCards" :key="group.label || 'all'" class="q-mb-md">
+                <div v-if="group.label" class="row items-center q-gutter-xs q-mb-sm">
+                  <q-icon name="category" size="16px" color="primary" />
+                  <span class="text-subtitle2 text-weight-bold">{{ group.label }}</span>
+                  <q-chip dense size="sm" color="purple-1" text-color="primary">{{
+                    group.projects.length
+                  }}</q-chip>
+                </div>
 
-              <div class="projects-cards-grid">
-                <q-card
-                  v-for="project in group.projects"
-                  :key="project.project_id"
-                  flat
-                  bordered
-                  :dark="$q.dark.isActive"
-                  class="project-grid-card cursor-pointer full-height column justify-between"
-                  @click="goToProject(project.project_id)"
-                >
-                  <!-- Consistent Clean Card Header -->
-                  <div
-                    class="q-px-md q-pt-md q-pb-sm relative-position overflow-hidden project-card-header"
+                <div class="projects-cards-grid">
+                  <q-card
+                    v-for="project in group.projects"
+                    :key="project.project_id"
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="project-grid-card cursor-pointer full-height column justify-between"
+                    @click="goToProject(project.project_id)"
                   >
-                    <div class="row items-center justify-between no-wrap q-mb-xs">
-                      <q-avatar
-                        size="36px"
-                        :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                        class="shadow-1"
+                    <!-- Consistent Clean Card Header -->
+                    <div
+                      class="q-px-md q-pt-md q-pb-sm relative-position overflow-hidden project-card-header"
+                    >
+                      <div class="row items-center justify-between no-wrap q-mb-xs">
+                        <q-avatar
+                          size="36px"
+                          :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                          :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                          class="shadow-1"
+                        >
+                          <q-icon name="folder" size="20px" />
+                        </q-avatar>
+
+                        <div class="row items-center q-gutter-xs no-wrap">
+                          <q-chip
+                            dense
+                            square
+                            :color="getPriorityChipColor(project.priority)"
+                            :text-color="getPriorityTextColor(project.priority)"
+                            class="text-caption text-weight-bold q-px-sm"
+                          >
+                            {{ (project.priority || 'MEDIUM').toUpperCase() }}
+                          </q-chip>
+                          <q-btn
+                            flat
+                            round
+                            dense
+                            icon="more_vert"
+                            :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                            size="sm"
+                            @click.stop
+                          >
+                            <q-menu auto-close>
+                              <q-list style="min-width: 150px">
+                                <q-item clickable @click="goToProject(project.project_id)">
+                                  <q-item-section avatar
+                                    ><q-icon name="visibility" color="primary"
+                                  /></q-item-section>
+                                  <q-item-section>View Details</q-item-section>
+                                </q-item>
+                                <q-item
+                                  v-if="project.status === 'COMPLETED'"
+                                  clickable
+                                  class="text-primary"
+                                  @click="confirmArchiveProject(project)"
+                                >
+                                  <q-item-section avatar
+                                    ><q-icon name="archive" color="primary"
+                                  /></q-item-section>
+                                  <q-item-section>Archive Project</q-item-section>
+                                </q-item>
+                                <q-item
+                                  v-if="project.status === 'ARCHIVED'"
+                                  clickable
+                                  class="text-primary"
+                                  @click="confirmUnarchiveProject(project)"
+                                >
+                                  <q-item-section avatar
+                                    ><q-icon name="unarchive" color="primary"
+                                  /></q-item-section>
+                                  <q-item-section>Unarchive Project</q-item-section>
+                                </q-item>
+                                <q-separator />
+                                <q-item
+                                  clickable
+                                  class="text-negative"
+                                  @click="confirmDeleteProject(project)"
+                                >
+                                  <q-item-section avatar
+                                    ><q-icon name="delete" color="negative"
+                                  /></q-item-section>
+                                  <q-item-section>Delete Project</q-item-section>
+                                </q-item>
+                              </q-list>
+                            </q-menu>
+                          </q-btn>
+                        </div>
+                      </div>
+
+                      <div
+                        class="text-subtitle1 text-weight-bold project-card-title q-mb-xs"
+                        :title="project.name"
                       >
-                        <q-icon name="folder" size="20px" />
-                      </q-avatar>
-
-                      <div class="row items-center q-gutter-xs no-wrap">
-                        <q-chip
-                          dense
-                          square
-                          :color="getPriorityChipColor(project.priority)"
-                          :text-color="getPriorityTextColor(project.priority)"
-                          class="text-caption text-weight-bold q-px-sm"
-                        >
-                          {{ (project.priority || 'MEDIUM').toUpperCase() }}
-                        </q-chip>
-                        <q-btn
-                          flat
-                          round
-                          dense
-                          icon="more_vert"
-                          :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                          size="sm"
-                          @click.stop
-                        >
-                          <q-menu auto-close>
-                            <q-list style="min-width: 150px">
-                              <q-item clickable @click="goToProject(project.project_id)">
-                                <q-item-section avatar
-                                  ><q-icon name="visibility" color="primary"
-                                /></q-item-section>
-                                <q-item-section>View Details</q-item-section>
-                              </q-item>
-                              <q-item
-                                v-if="project.status === 'COMPLETED'"
-                                clickable
-                                class="text-primary"
-                                @click="confirmArchiveProject(project)"
-                              >
-                                <q-item-section avatar
-                                  ><q-icon name="archive" color="primary"
-                                /></q-item-section>
-                                <q-item-section>Archive Project</q-item-section>
-                              </q-item>
-                              <q-item
-                                v-if="project.status === 'ARCHIVED'"
-                                clickable
-                                class="text-primary"
-                                @click="confirmUnarchiveProject(project)"
-                              >
-                                <q-item-section avatar
-                                  ><q-icon name="unarchive" color="primary"
-                                /></q-item-section>
-                                <q-item-section>Unarchive Project</q-item-section>
-                              </q-item>
-                              <q-separator />
-                              <q-item
-                                clickable
-                                class="text-negative"
-                                @click="confirmDeleteProject(project)"
-                              >
-                                <q-item-section avatar
-                                  ><q-icon name="delete" color="negative"
-                                /></q-item-section>
-                                <q-item-section>Delete Project</q-item-section>
-                              </q-item>
-                            </q-list>
-                          </q-menu>
-                        </q-btn>
+                        {{ project.name }}
+                      </div>
+                      <div
+                        class="text-caption text-grey-6 project-card-desc"
+                        :title="project.description || ''"
+                      >
+                        {{
+                          project.description ||
+                          'Sprint deliverables, task assignments, and progress tracking.'
+                        }}
                       </div>
                     </div>
 
-                    <div
-                      class="text-subtitle1 text-weight-bold project-card-title q-mb-xs"
-                      :title="project.name"
-                    >
-                      {{ project.name }}
-                    </div>
-                    <div
-                      class="text-caption text-grey-6 project-card-desc"
-                      :title="project.description || ''"
-                    >
-                      {{
-                        project.description ||
-                        'Sprint deliverables, task assignments, and progress tracking.'
-                      }}
-                    </div>
-                  </div>
-
-                  <!-- Card Body -->
-                  <q-card-section class="q-pa-md column justify-between col">
-                    <!-- Dual Pill Info Badges -->
-                    <div class="row q-col-gutter-xs q-mb-md">
-                      <div class="col-6">
-                        <div
-                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption"
-                          :class="
-                            $q.dark.isActive ? 'bg-dark text-grey-3' : 'bg-grey-1 text-grey-8'
-                          "
-                          style="border: 1px solid rgba(0, 0, 0, 0.07)"
-                        >
-                          <q-icon
-                            name="assignment"
-                            size="13px"
-                            :color="getStatusIconColor(project.status)"
-                          />
-                          <div class="ellipsis">
-                            <span class="text-grey-6">Status: </span>
-                            <strong :class="`text-${getStatusIconColor(project.status)}`">{{
-                              formatStatus(project.status)
-                            }}</strong>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div
-                          class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption"
-                          :class="
-                            $q.dark.isActive ? 'bg-dark text-grey-3' : 'bg-grey-1 text-grey-8'
-                          "
-                          style="border: 1px solid rgba(0, 0, 0, 0.07)"
-                          :title="`Due: ${formatDate(project.deadline)}`"
-                        >
-                          <q-icon
-                            name="event"
-                            size="13px"
-                            :color="
-                              isOverdue(project.deadline, project.status) ? 'negative' : 'grey-6'
+                    <!-- Card Body -->
+                    <q-card-section class="q-pa-md column justify-between col">
+                      <!-- Dual Pill Info Badges -->
+                      <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-6">
+                          <div
+                            class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption"
+                            :class="
+                              $q.dark.isActive ? 'bg-dark text-grey-3' : 'bg-grey-1 text-grey-8'
                             "
-                          />
-                          <div class="ellipsis">
-                            <span class="text-grey-6">Due: </span>
-                            <strong
-                              :class="
-                                isOverdue(project.deadline, project.status)
-                                  ? 'text-negative text-weight-bold'
-                                  : 'text-main'
+                            style="border: 1px solid rgba(0, 0, 0, 0.07)"
+                          >
+                            <q-icon
+                              name="assignment"
+                              size="13px"
+                              :color="getStatusIconColor(project.status)"
+                            />
+                            <div class="ellipsis">
+                              <span class="text-grey-6">Status: </span>
+                              <strong :class="`text-${getStatusIconColor(project.status)}`">{{
+                                formatStatus(project.status)
+                              }}</strong>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-6">
+                          <div
+                            class="row items-center no-wrap gap-xs q-px-sm q-py-xs rounded-borders text-caption"
+                            :class="
+                              $q.dark.isActive ? 'bg-dark text-grey-3' : 'bg-grey-1 text-grey-8'
+                            "
+                            style="border: 1px solid rgba(0, 0, 0, 0.07)"
+                            :title="`Due: ${formatDate(project.deadline)}`"
+                          >
+                            <q-icon
+                              name="event"
+                              size="13px"
+                              :color="
+                                isOverdue(project.deadline, project.status) ? 'negative' : 'grey-6'
                               "
-                              >{{ formatDate(project.deadline) }}</strong
-                            >
+                            />
+                            <div class="ellipsis">
+                              <span class="text-grey-6">Due: </span>
+                              <strong
+                                :class="
+                                  isOverdue(project.deadline, project.status)
+                                    ? 'text-negative text-weight-bold'
+                                    : 'text-main'
+                                "
+                                >{{ formatDate(project.deadline) }}</strong
+                              >
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <!-- Progress Bar with soft Quasar theme -->
-                    <div class="q-mb-xs">
-                      <div class="row items-center justify-between text-caption q-mb-xs">
-                        <span class="text-grey-6 text-weight-medium">Progress</span>
-                        <span class="text-weight-bold text-primary">
-                          {{ Number(project.progress) || 0 }}%
-                        </span>
+                      <!-- Progress Bar with soft Quasar theme -->
+                      <div class="q-mb-xs">
+                        <div class="row items-center justify-between text-caption q-mb-xs">
+                          <span class="text-grey-6 text-weight-medium">Progress</span>
+                          <span class="text-weight-bold text-primary">
+                            {{ Number(project.progress) || 0 }}%
+                          </span>
+                        </div>
+                        <q-linear-progress
+                          rounded
+                          size="6px"
+                          :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
+                          color="primary"
+                          :track-color="$q.dark.isActive ? 'grey-9' : 'purple-1'"
+                        />
                       </div>
-                      <q-linear-progress
-                        rounded
-                        size="6px"
-                        :value="Math.min(100, Math.max(0, Number(project.progress) || 0)) / 100"
-                        color="primary"
-                        :track-color="$q.dark.isActive ? 'grey-9' : 'purple-1'"
-                      />
-                    </div>
-                  </q-card-section>
-                </q-card>
+                    </q-card-section>
+                  </q-card>
+                </div>
               </div>
             </div>
 
-            <!-- Cards Pagination Toolbar -->
-            <div
-              v-if="groupBy === 'None' && filteredProjects.length > pagination.rowsPerPage"
-              class="row items-center justify-between q-mt-md q-px-xs wrap gap-sm"
-            >
-              <div class="text-caption text-grey-6">
-                Showing {{ (pagination.page - 1) * pagination.rowsPerPage + 1 }} -
-                {{ Math.min(pagination.page * pagination.rowsPerPage, filteredProjects.length) }} of
-                {{ filteredProjects.length }} projects
+            <!-- Cards Footer Info & Scroll Indicator -->
+            <div class="row items-center justify-between q-mt-sm q-px-xs text-caption text-grey-6">
+              <div class="row items-center q-gutter-xs">
+                <span
+                  >Showing <strong>{{ filteredProjects.length }}</strong> active project{{
+                    filteredProjects.length === 1 ? '' : 's'
+                  }}</span
+                >
+                <span v-if="filteredProjects.length > 6" class="text-primary text-weight-medium">
+                  • 6 visible at once (scroll vertically for more)
+                </span>
               </div>
-              <div class="row items-center q-gutter-sm">
-                <q-select
-                  v-model="pagination.rowsPerPage"
-                  :options="[8, 16, 24]"
-                  dense
-                  outlined
-                  options-dense
-                  :dark="$q.dark.isActive"
-                  style="width: 100px"
-                  label="Per page"
-                />
-                <q-pagination
-                  v-model="pagination.page"
-                  :max="cardTotalPages"
-                  :max-pages="5"
-                  direction-links
-                  boundary-links
-                  color="primary"
-                  dense
-                  size="sm"
-                />
+              <div
+                v-if="filteredProjects.length > 6"
+                class="row items-center q-gutter-xs text-grey-6"
+              >
+                <q-icon name="swap_vert" size="16px" color="primary" />
+                <span>Scrollable list</span>
               </div>
             </div>
           </div>
@@ -716,11 +731,13 @@
               v-if="selectedProjects.length > 0"
               class="row items-center justify-between q-pa-sm q-mb-sm rounded-borders"
               :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-purple-1 text-primary'"
-              style="border: 1px solid var(--q-primary);"
+              style="border: 1px solid var(--q-primary)"
             >
               <div class="row items-center q-gutter-sm">
                 <q-icon name="check_circle" color="primary" size="20px" />
-                <span class="text-weight-bold">{{ selectedProjects.length }} project(s) selected</span>
+                <span class="text-weight-bold"
+                  >{{ selectedProjects.length }} project(s) selected</span
+                >
               </div>
               <div class="row items-center q-gutter-xs">
                 <q-btn
@@ -772,7 +789,7 @@
             selection="multiple"
             :loading="loading"
             :pagination="pagination"
-            :rows-per-page-options="[8, 16, 24]"
+            :rows-per-page-options="[6, 12, 18, 24]"
             no-data-label="No projects found"
           >
             <template #body-cell-project="props">
@@ -914,9 +931,7 @@
       <div class="row q-col-gutter-md items-center">
         <!-- Highest Progress -->
         <div class="col-12 col-sm-4">
-          <div
-            class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs"
-          >
+          <div class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs">
             <q-avatar
               size="40px"
               :color="$q.dark.isActive ? 'green-10' : 'green-1'"
@@ -936,9 +951,7 @@
 
         <!-- Average Progress -->
         <div class="col-12 col-sm-4">
-          <div
-            class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs"
-          >
+          <div class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs">
             <q-avatar
               size="40px"
               :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
@@ -956,9 +969,7 @@
 
         <!-- Projects Needing Attention -->
         <div class="col-12 col-sm-4">
-          <div
-            class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs"
-          >
+          <div class="row items-center justify-start justify-sm-center q-gutter-md no-wrap q-py-xs">
             <q-avatar
               size="40px"
               :color="$q.dark.isActive ? 'orange-10' : 'orange-1'"
@@ -968,10 +979,7 @@
               <q-icon name="priority_high" size="22px" />
             </q-avatar>
             <div class="text-left" style="min-width: 0">
-              <div
-                class="text-caption text-grey-6 ellipsis"
-                title="Projects Needing Attention"
-              >
+              <div class="text-caption text-grey-6 ellipsis" title="Projects Needing Attention">
                 Projects Needing Attention
               </div>
               <div class="text-subtitle1 text-weight-bolder">
@@ -1044,7 +1052,7 @@
                   v-model="form.start_date"
                   outlined
                   dense
-                  type="date"
+                  mask="####-##-##"
                   label="Start date"
                   stack-label
                   :dark="$q.dark.isActive"
@@ -1055,14 +1063,30 @@
                       val <= form.deadline ||
                       'Start date cannot be after deadline',
                   ]"
-                />
+                >
+                  <template #append>
+                    <q-icon name="event" class="cursor-pointer text-primary">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date
+                          v-model="form.start_date"
+                          mask="YYYY-MM-DD"
+                          :dark="$q.dark.isActive"
+                        >
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Close" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
               </div>
               <div class="col-12 col-sm-6">
                 <q-input
                   v-model="form.deadline"
                   outlined
                   dense
-                  type="date"
+                  mask="####-##-##"
                   label="Deadline"
                   stack-label
                   :dark="$q.dark.isActive"
@@ -1073,7 +1097,19 @@
                       val >= form.start_date ||
                       'Deadline cannot be before start date',
                   ]"
-                />
+                >
+                  <template #append>
+                    <q-icon name="event" class="cursor-pointer text-primary">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date v-model="form.deadline" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Close" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
               </div>
             </div>
           </q-card-section>
@@ -1365,7 +1401,8 @@ function handleBulkDelete() {
       } catch (error: unknown) {
         $q.notify({
           type: 'negative',
-          message: error instanceof Error ? error.message : 'Failed to move projects to Recycle Bin',
+          message:
+            error instanceof Error ? error.message : 'Failed to move projects to Recycle Bin',
         });
       } finally {
         bulkActionLoading.value = false;
@@ -1396,7 +1433,7 @@ function handleBulkExport() {
 
 const pagination = ref({
   page: 1,
-  rowsPerPage: 8,
+  rowsPerPage: 6,
   sortBy: '',
   descending: false,
 });
@@ -1459,7 +1496,8 @@ const projectColumns: QTableColumn<Project>[] = [
   {
     name: 'owner',
     label: 'Owner',
-    field: (row) => (row as Project & { project_manager_name?: string }).project_manager_name || '—',
+    field: (row) =>
+      (row as Project & { project_manager_name?: string }).project_manager_name || '—',
     align: 'left',
   },
   {
@@ -1655,25 +1693,20 @@ const filteredProjects = computed(() => {
 
     let matchesStartDate = true;
     if (startDateFilter.value) {
-      matchesStartDate = project.start_date ? new Date(project.start_date) >= new Date(startDateFilter.value) : false;
+      matchesStartDate = project.start_date
+        ? new Date(project.start_date) >= new Date(startDateFilter.value)
+        : false;
     }
 
     let matchesEndDate = true;
     if (endDateFilter.value) {
-      matchesEndDate = project.deadline ? new Date(project.deadline) <= new Date(endDateFilter.value) : false;
+      matchesEndDate = project.deadline
+        ? new Date(project.deadline) <= new Date(endDateFilter.value)
+        : false;
     }
 
     return matchesSearch && matchesStatus && matchesHealth && matchesStartDate && matchesEndDate;
   });
-});
-
-const cardTotalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredProjects.value.length / (pagination.value.rowsPerPage || 8))),
-);
-
-const paginatedFilteredProjects = computed(() => {
-  const start = (pagination.value.page - 1) * pagination.value.rowsPerPage;
-  return filteredProjects.value.slice(start, start + pagination.value.rowsPerPage);
 });
 
 watch([searchQuery, statusFilter, healthFilter, startDateFilter, endDateFilter, groupBy], () => {
@@ -1701,7 +1734,7 @@ const groupedProjectCards = computed(() => {
     return Array.from(map.entries()).map(([label, projs]) => ({ label, projects: projs }));
   }
 
-  return [{ label: '', projects: paginatedFilteredProjects.value }];
+  return [{ label: '', projects: filteredProjects.value }];
 });
 
 const activeWorkspaceProjects = computed(() =>
@@ -1910,6 +1943,22 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.active-projects-scroll-container {
+  max-height: 580px;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 4px 6px 12px 4px;
+  box-sizing: border-box;
+
+  @media (max-width: 1023px) {
+    max-height: 860px;
+  }
+
+  @media (max-width: 600px) {
+    max-height: 580px;
+  }
+}
+
 .projects-cards-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

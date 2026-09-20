@@ -1,6 +1,10 @@
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="(val) => emit('update:modelValue', val)">
-    <q-card class="dialog-card rounded-borders" :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw">
+    <q-card
+      class="dialog-card rounded-borders"
+      :dark="$q.dark.isActive"
+      style="width: 520px; max-width: 95vw"
+    >
       <q-card-section class="row items-center justify-between q-pb-none">
         <div>
           <div v-if="fixedProjectName" class="modal-eyebrow">NEW TASK</div>

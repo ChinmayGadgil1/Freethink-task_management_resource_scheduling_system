@@ -687,7 +687,11 @@
 
     <!-- ASSIGN MEMBER DIALOG -->
     <q-dialog v-model="showAssignTaskMemberDialog">
-      <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw" class="rounded-borders">
+      <q-card
+        :dark="$q.dark.isActive"
+        style="width: 480px; max-width: 95vw"
+        class="rounded-borders"
+      >
         <q-card-section class="row items-center justify-between">
           <div class="text-subtitle1 text-weight-bold">Assign Member / Supervisor to Task</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -749,7 +753,7 @@
               v-model="assignTaskMemberForm.deadline"
               outlined
               dense
-              type="date"
+              mask="####-##-##"
               label="Deliverable Target Deadline *"
               stack-label
               hint="Set target deliverable deadline for assigned members"
@@ -759,15 +763,39 @@
                 (val) => {
                   if (!val || !currentAssignTaskProject?.start_date) return true;
                   const pStart = String(currentAssignTaskProject.start_date).split('T')[0] || '';
-                  return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                  return (
+                    !pStart ||
+                    val >= pStart ||
+                    `Deadline cannot be earlier than project start date (${pStart})`
+                  );
                 },
                 (val) => {
                   if (!val || !currentAssignTaskProject?.deadline) return true;
                   const pDeadline = String(currentAssignTaskProject.deadline).split('T')[0] || '';
-                  return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                  return (
+                    !pDeadline ||
+                    val <= pDeadline ||
+                    `Deadline cannot be later than project deadline (${pDeadline})`
+                  );
                 },
               ]"
-            />
+            >
+              <template #append>
+                <q-icon name="event" class="cursor-pointer text-primary">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date
+                      v-model="assignTaskMemberForm.deadline"
+                      mask="YYYY-MM-DD"
+                      :dark="$q.dark.isActive"
+                    >
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Close" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
@@ -912,7 +940,11 @@
 
     <!-- EDIT TASK DIALOG -->
     <q-dialog v-model="showEditDialog">
-      <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw" class="rounded-borders">
+      <q-card
+        :dark="$q.dark.isActive"
+        style="width: 520px; max-width: 95vw"
+        class="rounded-borders"
+      >
         <q-card-section class="row items-center justify-between">
           <div class="text-subtitle1 text-weight-bold">Update Task: {{ editingTaskTitle }}</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -963,7 +995,12 @@
                   outlined
                   dense
                   label="Priority"
-                  :options="editForm.priority === 'NONE' || (selectedTaskDetails?.task_type === 'VERIFICATION') ? ['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] : ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                  :options="
+                    editForm.priority === 'NONE' ||
+                    selectedTaskDetails?.task_type === 'VERIFICATION'
+                      ? ['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+                      : ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+                  "
                   :dark="$q.dark.isActive"
                 />
               </div>
@@ -1023,7 +1060,7 @@
                     v-model="editForm.deadline"
                     outlined
                     dense
-                    type="date"
+                    mask="####-##-##"
                     label="Deadline (Optional)"
                     stack-label
                     hint="Target deadline for assigned members"
@@ -1040,7 +1077,23 @@
                         val <= editingTaskProject.deadline ||
                         `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
                     ]"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="editForm.deadline"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
                 <div
                   v-else
@@ -1048,7 +1101,8 @@
                   :class="$q.dark.isActive ? 'bg-grey-9 text-grey-4' : 'bg-grey-2 text-grey-7'"
                 >
                   <q-icon name="info" color="primary" size="16px" class="q-mr-xs" />
-                  Deadlines can only be set once at least one team member is assigned to this deliverable.
+                  Deadlines can only be set once at least one team member is assigned to this
+                  deliverable.
                 </div>
               </div>
             </div>
@@ -1491,7 +1545,9 @@ const assignSupervisorSelectOptions = computed(() => {
 const currentAssignTaskProject = computed(() => {
   const currentTask = tasks.value.find((t) => t.task_id === assignTaskMemberForm.task_id);
   if (!currentTask) return null;
-  return projects.value.find((p) => Number(p.project_id) === Number(currentTask.project_id)) || null;
+  return (
+    projects.value.find((p) => Number(p.project_id) === Number(currentTask.project_id)) || null
+  );
 });
 
 const createProjectMembers = ref<ResourceUser[]>([]);
@@ -1828,7 +1884,7 @@ watch(
     if (newTaskId && tasks.value.length > 0) {
       checkDeepLinkTask();
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -1963,7 +2019,7 @@ function openAssignTaskMemberDialog(taskId: number | null) {
     ? Number(currentTask.supervisor_id)
     : null;
   assignTaskMemberForm.deadline = currentTask?.deadline
-    ? currentTask.deadline.split('T')[0] ?? ''
+    ? (currentTask.deadline.split('T')[0] ?? '')
     : '';
   showAssignTaskMemberDialog.value = true;
 }
@@ -1983,8 +2039,8 @@ async function handleAssignTaskMember() {
     : null;
   const supervisorChanged = origSupId !== newSupId;
 
-  const origDeadline = currentTask?.deadline ? currentTask.deadline.split('T')[0] ?? '' : '';
-  const newDeadline = newAssigneeIds.length > 0 ? (assignTaskMemberForm.deadline || '') : '';
+  const origDeadline = currentTask?.deadline ? (currentTask.deadline.split('T')[0] ?? '') : '';
+  const newDeadline = newAssigneeIds.length > 0 ? assignTaskMemberForm.deadline || '' : '';
   const deadlineChanged = origDeadline !== newDeadline;
 
   if (newAssigneeIds.length > 0 && !assignTaskMemberForm.deadline) {
@@ -1995,7 +2051,12 @@ async function handleAssignTaskMember() {
     return;
   }
 
-  if (toAssignIds.length === 0 && toUnassignIds.length === 0 && !supervisorChanged && !deadlineChanged) {
+  if (
+    toAssignIds.length === 0 &&
+    toUnassignIds.length === 0 &&
+    !supervisorChanged &&
+    !deadlineChanged
+  ) {
     $q.notify({
       type: 'info',
       message: 'No changes made to task assignment, supervisor, or deadline',
@@ -2282,7 +2343,7 @@ async function handleUpdateTask() {
 
   submitting.value = true;
   try {
-    const finalDeadline = editingTaskHasAssignees.value ? (editForm.deadline || null) : null;
+    const finalDeadline = editingTaskHasAssignees.value ? editForm.deadline || null : null;
     await updateTaskApi(editingTaskId.value, {
       title: editForm.title.trim(),
       description: editForm.description.trim() || null,

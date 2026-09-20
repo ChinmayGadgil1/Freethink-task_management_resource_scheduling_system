@@ -220,14 +220,14 @@
               </span>
               <q-tooltip class="bg-dark text-body2">
                 <template v-if="props.row.daysOverdue > 0 && props.row.deadline !== '—'">
-                  Overdue by {{ props.row.daysOverdue }} days past target deadline ({{ props.row.deadline }})
+                  Overdue by {{ props.row.daysOverdue }} days past target deadline ({{
+                    props.row.deadline
+                  }})
                 </template>
                 <template v-else-if="props.row.daysOverdue > 0">
                   Projected milestone delay: +{{ props.row.daysOverdue }} days
                 </template>
-                <template v-else>
-                  Task is on critical path or schedule is at risk
-                </template>
+                <template v-else> Task is on critical path or schedule is at risk </template>
               </q-tooltip>
             </q-td>
           </template>
@@ -312,7 +312,8 @@
               colspan="7"
               style="text-align: center; padding: 16px; color: #059669; font-weight: 600"
             >
-              ✓ All tasks in the selected scope are currently on schedule. No delayed or at-risk tasks found.
+              ✓ All tasks in the selected scope are currently on schedule. No delayed or at-risk
+              tasks found.
             </td>
           </tr>
         </tbody>

@@ -32,7 +32,12 @@
           </q-btn>
 
           <q-btn
-            v-if="activeTab === 'daily' && isSelectedDateToday && !isCheckedOut && allocations.length > 0"
+            v-if="
+              activeTab === 'daily' &&
+              isSelectedDateToday &&
+              !isCheckedOut &&
+              allocations.length > 0
+            "
             unelevated
             no-caps
             color="positive"
@@ -109,13 +114,16 @@
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">Scheduled Hours</span>
                 <div class="summary-icon-wrap bg-purple-soft text-primary">
-                  <q-icon name="event" size="18px" />  
+                  <q-icon name="event" size="18px" />
                 </div>
               </div>
               <div class="text-h6 text-weight-bolder text-primary q-mt-xs" style="line-height: 1.2">
                 {{ formatHours(totalScheduledHours) }}h
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
                 {{
                   totalScheduledHours > 0
                     ? 'Planned capacity for this day'
@@ -137,7 +145,13 @@
             >
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">
-                  {{ isSelectedDateFuture ? 'Logged Effort' : isSelectedDateToday ? 'Logged Today' : 'Logged on Date' }}
+                  {{
+                    isSelectedDateFuture
+                      ? 'Logged Effort'
+                      : isSelectedDateToday
+                        ? 'Logged Today'
+                        : 'Logged on Date'
+                  }}
                 </span>
                 <div class="summary-icon-wrap bg-blue-soft text-info">
                   <q-icon name="history_edu" size="18px" />
@@ -146,7 +160,10 @@
               <div class="text-h6 text-weight-bolder text-info q-mt-xs" style="line-height: 1.2">
                 {{ formatHours(totalLoggedHours) }}h
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
                 {{
                   isSelectedDateFuture
                     ? 'No advance logs permitted'
@@ -170,17 +187,35 @@
             >
               <div class="row items-center justify-between">
                 <span class="text-caption text-weight-bold text-grey-6">
-                  {{ isSelectedDateFuture ? 'Scheduled Tasks' : isSelectedDateToday ? 'Active Deliverables' : 'Tasks on Date' }}
+                  {{
+                    isSelectedDateFuture
+                      ? 'Scheduled Tasks'
+                      : isSelectedDateToday
+                        ? 'Active Deliverables'
+                        : 'Tasks on Date'
+                  }}
                 </span>
                 <div class="summary-icon-wrap bg-green-soft text-positive">
                   <q-icon name="assignment" size="18px" />
                 </div>
               </div>
-              <div class="text-h6 text-weight-bolder text-positive q-mt-xs" style="line-height: 1.2">
+              <div
+                class="text-h6 text-weight-bolder text-positive q-mt-xs"
+                style="line-height: 1.2"
+              >
                 {{ allocations.length }}
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
-                {{ isSelectedDateFuture ? 'Planned deliverables for this date' : isSelectedDateToday ? 'Tasks available to work on' : 'Deliverables for this date' }}
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
+                {{
+                  isSelectedDateFuture
+                    ? 'Planned deliverables for this date'
+                    : isSelectedDateToday
+                      ? 'Tasks available to work on'
+                      : 'Deliverables for this date'
+                }}
               </div>
             </q-card>
           </div>
@@ -202,15 +237,22 @@
               <div class="text-h6 text-weight-bolder text-warning q-mt-xs" style="line-height: 1.2">
                 {{ totalLogsCount }}
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">
-                {{ isSelectedDateFuture ? 'Future date — 0 entries' : 'Entries submitted for this day' }}
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
+                {{
+                  isSelectedDateFuture
+                    ? 'Future date — 0 entries'
+                    : 'Entries submitted for this day'
+                }}
               </div>
             </q-card>
           </div>
         </div>
 
         <!-- Date Selector & Navigation Controls -->
-        <div class="row items-center justify-between wrap gap-sm" style="margin-top: 20px;">
+        <div class="row items-center justify-between wrap gap-sm" style="margin-top: 20px">
           <div class="row items-center gap-xs">
             <q-btn
               round
@@ -277,7 +319,8 @@
             <q-icon name="info" color="primary" size="20px" />
           </template>
           <span>
-            You have active deliverables for this day. Click <b>Add Work Log</b> on any task card below to record your hours and progress.
+            You have active deliverables for this day. Click <b>Add Work Log</b> on any task card
+            below to record your hours and progress.
           </span>
         </q-banner>
 
@@ -315,7 +358,11 @@
               class="text-h6 text-weight-bold"
               :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
             >
-              {{ isSelectedDateFuture ? 'No Deliverables Scheduled For This Day' : 'No Task Allocations For This Day' }}
+              {{
+                isSelectedDateFuture
+                  ? 'No Deliverables Scheduled For This Day'
+                  : 'No Task Allocations For This Day'
+              }}
             </div>
             <div class="text-body2 text-grey-6 q-mt-xs" style="max-width: 480px; margin: 0 auto">
               {{
@@ -406,7 +453,10 @@
                       </div>
                       <div class="row items-center gap-xs">
                         <q-icon name="timer" size="15px" color="info" />
-                        <span><b>{{ isSelectedDateToday ? 'Logged Today:' : 'Logged on Date:' }}</b> {{ formatHours(item.hours_logged_today) }}h</span>
+                        <span
+                          ><b>{{ isSelectedDateToday ? 'Logged Today:' : 'Logged on Date:' }}</b>
+                          {{ formatHours(item.hours_logged_today) }}h</span
+                        >
                       </div>
                       <div class="row items-center gap-xs">
                         <q-icon name="donut_large" size="15px" color="positive" />
@@ -469,7 +519,9 @@
                         :disable="item.is_blocked"
                         @click="openWorkLogDialog(item)"
                       >
-                        <q-tooltip v-if="item.is_blocked" class="bg-negative">Blocked: Predecessor tasks must be completed first.</q-tooltip>
+                        <q-tooltip v-if="item.is_blocked" class="bg-negative"
+                          >Blocked: Predecessor tasks must be completed first.</q-tooltip
+                        >
                       </q-btn>
                       <q-chip
                         v-else
@@ -481,7 +533,9 @@
                         class="text-weight-medium"
                       >
                         Future Date
-                        <q-tooltip>Work logs cannot be submitted in advance for future dates</q-tooltip>
+                        <q-tooltip
+                          >Work logs cannot be submitted in advance for future dates</q-tooltip
+                        >
                       </q-chip>
                     </div>
                   </div>
@@ -526,8 +580,12 @@
                         -->
                       </div>
                       <div class="row items-center gap-sm">
-                        <span class="text-caption text-grey-5">Progress Logged: <b>{{ log.progress_logged }}%</b></span>
-                        <span class="text-caption text-grey-5">{{ formatTime(log.created_at) }}</span>
+                        <span class="text-caption text-grey-5"
+                          >Progress Logged: <b>{{ log.progress_logged }}%</b></span
+                        >
+                        <span class="text-caption text-grey-5">{{
+                          formatTime(log.created_at)
+                        }}</span>
                       </div>
                     </div>
                   </div>
@@ -558,7 +616,12 @@
               <div class="text-h6 text-weight-bolder text-primary q-mt-xs" style="line-height: 1.2">
                 {{ formatHours(allLogsStats.total_hours) }}h
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">All-time recorded effort</div>
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
+                All-time recorded effort
+              </div>
             </q-card>
           </div>
 
@@ -578,7 +641,12 @@
               <div class="text-h6 text-weight-bolder text-info q-mt-xs" style="line-height: 1.2">
                 {{ allLogsStats.total_logs }}
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">Work log updates submitted</div>
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
+                Work log updates submitted
+              </div>
             </q-card>
           </div>
 
@@ -595,10 +663,18 @@
                   <q-icon name="task_alt" size="18px" />
                 </div>
               </div>
-              <div class="text-h6 text-weight-bolder text-positive q-mt-xs" style="line-height: 1.2">
+              <div
+                class="text-h6 text-weight-bolder text-positive q-mt-xs"
+                style="line-height: 1.2"
+              >
                 {{ distinctTasksCount }}
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">Unique deliverables touched</div>
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
+                Unique deliverables touched
+              </div>
             </q-card>
           </div>
 
@@ -618,13 +694,18 @@
               <div class="text-h6 text-weight-bolder text-warning q-mt-xs" style="line-height: 1.2">
                 {{ averageHoursPerEntry }}h
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs ellipsis" style="font-size: 12px; line-height: 1.35">Average hours per log</div>
+              <div
+                class="text-caption text-grey-6 q-mt-xs ellipsis"
+                style="font-size: 12px; line-height: 1.35"
+              >
+                Average hours per log
+              </div>
             </q-card>
           </div>
         </div>
 
         <!-- Filter & Search Bar -->
-        <div class="row items-center justify-between wrap gap-sm" style="margin-top: 20px;">
+        <div class="row items-center justify-between wrap gap-sm" style="margin-top: 20px">
           <div class="row items-center gap-sm col-grow" style="max-width: 680px">
             <q-input
               v-model="searchQuery"
@@ -858,7 +939,9 @@
             >
               <q-item-section>
                 <q-item-label class="text-weight-bold">{{ task.title }}</q-item-label>
-                <q-item-label caption>{{ task.project_name }} · {{ formatStatusLabel(task.status) }}</q-item-label>
+                <q-item-label caption
+                  >{{ task.project_name }} · {{ formatStatusLabel(task.status) }}</q-item-label
+                >
               </q-item-section>
               <q-item-section side>
                 <q-btn round flat dense icon="add" color="primary" />
@@ -1060,7 +1143,7 @@ async function loadDailyAllocations() {
 
 function submitDailyLogs() {
   $q.dialog({
-    title: 'Submit Today\'s Logs',
+    title: "Submit Today's Logs",
     message:
       'Are you sure you want to submit your logs for today? This indicates you have left the office and will trigger a schedule recalculation. You cannot undo this action.',
     cancel: true,
@@ -1098,9 +1181,7 @@ function openWorkLogDialog(task: DailyAllocationTask) {
 
 // Available active tasks for quick logging
 const availableTasksForLogging = computed(() => {
-  return allocations.value.filter(
-    (t) => t.status !== 'COMPLETED' && !t.is_blocked,
-  );
+  return allocations.value.filter((t) => t.status !== 'COMPLETED' && !t.is_blocked);
 });
 
 function openTaskSelectionOrFirst() {
@@ -1292,7 +1373,9 @@ onMounted(() => {
 .log-history-card {
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
 }
 
 .task-allocation-card:hover,

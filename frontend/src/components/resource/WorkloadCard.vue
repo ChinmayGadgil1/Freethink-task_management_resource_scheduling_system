@@ -16,8 +16,24 @@
         <q-chip
           dense
           square
-          :color="consumedPct > 100 ? ($q.dark.isActive ? 'red-10' : 'red-1') : ($q.dark.isActive ? 'purple-10' : 'deep-purple-1')"
-          :text-color="consumedPct > 100 ? ($q.dark.isActive ? 'red-2' : 'negative') : ($q.dark.isActive ? 'purple-2' : 'primary')"
+          :color="
+            consumedPct > 100
+              ? $q.dark.isActive
+                ? 'red-10'
+                : 'red-1'
+              : $q.dark.isActive
+                ? 'purple-10'
+                : 'deep-purple-1'
+          "
+          :text-color="
+            consumedPct > 100
+              ? $q.dark.isActive
+                ? 'red-2'
+                : 'negative'
+              : $q.dark.isActive
+                ? 'purple-2'
+                : 'primary'
+          "
           class="text-caption text-weight-bold"
         >
           {{ consumedPct > 100 ? 'Effort Overload' : 'Allocated Effort' }}
@@ -116,9 +132,7 @@ const $q = useQuasar();
 const router = useRouter();
 
 const consumedPct = computed(() =>
-  props.allocatedHours
-    ? Math.round((props.actualHours / props.allocatedHours) * 100)
-    : 0,
+  props.allocatedHours ? Math.round((props.actualHours / props.allocatedHours) * 100) : 0,
 );
 
 function goToTaskDetails() {

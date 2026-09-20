@@ -436,8 +436,7 @@ const printFilters = computed<ReportFilterMeta[]>(() => [
   { label: 'Resource', value: selectedResourceName.value },
   {
     label: 'Schedule Health',
-    value:
-      selectedScheduleHealth.value === 'ALL' ? 'All Statuses' : selectedScheduleHealth.value,
+    value: selectedScheduleHealth.value === 'ALL' ? 'All Statuses' : selectedScheduleHealth.value,
   },
   { label: 'Audit Baseline Mode', value: 'Live Scheduling Engine Snapshot' },
 ]);

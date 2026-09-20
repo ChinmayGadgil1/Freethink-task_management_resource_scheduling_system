@@ -280,18 +280,47 @@
                       <q-icon name="person" size="14px" color="primary" />
                     </template>
                   </q-select>
-                  <q-btn flat round dense icon="chevron_left" size="sm" @click="workloadWeekOffset--" />
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="chevron_left"
+                    size="sm"
+                    @click="workloadWeekOffset--"
+                  />
                   <q-badge
                     outline
                     :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                     class="q-px-sm q-py-xs text-weight-medium"
                   >
-                    {{ workloadWeekOffset === 0 ? 'This Week' : workloadWeekOffset === -1 ? 'Last Week' : workloadWeekOffset === 1 ? 'Next Week' : (workloadWeekOffset > 0 ? `+${workloadWeekOffset} Weeks` : `${workloadWeekOffset} Weeks`) }}
-                    <span v-if="weeklyShiftWorkload && weeklyShiftWorkload.length > 0" class="q-ml-xs text-grey-6" style="font-size: 0.9em;">
-                      ({{ formatDateShort(weeklyShiftWorkload[0]?.dateStr) }} - {{ formatDateShort(weeklyShiftWorkload[6]?.dateStr) }})
+                    {{
+                      workloadWeekOffset === 0
+                        ? 'This Week'
+                        : workloadWeekOffset === -1
+                          ? 'Last Week'
+                          : workloadWeekOffset === 1
+                            ? 'Next Week'
+                            : workloadWeekOffset > 0
+                              ? `+${workloadWeekOffset} Weeks`
+                              : `${workloadWeekOffset} Weeks`
+                    }}
+                    <span
+                      v-if="weeklyShiftWorkload && weeklyShiftWorkload.length > 0"
+                      class="q-ml-xs text-grey-6"
+                      style="font-size: 0.9em"
+                    >
+                      ({{ formatDateShort(weeklyShiftWorkload[0]?.dateStr) }} -
+                      {{ formatDateShort(weeklyShiftWorkload[6]?.dateStr) }})
                     </span>
                   </q-badge>
-                  <q-btn flat round dense icon="chevron_right" size="sm" @click="workloadWeekOffset++" />
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="chevron_right"
+                    size="sm"
+                    @click="workloadWeekOffset++"
+                  />
                 </div>
               </div>
               <div ref="utilizationChartRef" class="echarts-box"></div>
@@ -880,7 +909,7 @@ const weeklyShiftWorkload = computed(() =>
     resourceList.value,
     workloadsMap.value,
     selectedWorkloadResourceId.value,
-    workloadWeekOffset.value
+    workloadWeekOffset.value,
   ),
 );
 

@@ -192,7 +192,6 @@ export interface WorkLogsResponse {
   assignee_progress: AssigneeProgress[];
 }
 
-
 export interface CreateWorkLogPayload {
   hours_logged: number;
   progress_logged: number;

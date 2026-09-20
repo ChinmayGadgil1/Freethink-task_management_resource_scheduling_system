@@ -35,21 +35,47 @@
             v-model="startDateFilter"
             outlined
             dense
-            type="date"
+            mask="####-##-##"
             label="Completed From"
             style="min-width: 150px"
             :dark="$q.dark.isActive"
-          />
+            clearable
+          >
+            <template #append>
+              <q-icon name="event" class="cursor-pointer text-primary">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="startDateFilter" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
 
           <q-input
             v-model="endDateFilter"
             outlined
             dense
-            type="date"
+            mask="####-##-##"
             label="Completed To"
             style="min-width: 150px"
             :dark="$q.dark.isActive"
-          />
+            clearable
+          >
+            <template #append>
+              <q-icon name="event" class="cursor-pointer text-primary">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="endDateFilter" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
 
           <q-btn
             v-if="hasActiveFilters"
@@ -193,9 +219,7 @@
                 >
                   {{ Math.abs(props.row.effortVariance) }}h saved
                 </span>
-                <span v-else class="text-positive text-weight-medium">
-                  On target
-                </span>
+                <span v-else class="text-positive text-weight-medium"> On target </span>
               </div>
               <div class="text-caption text-grey-5">
                 <template v-if="props.row.actualEffort === 0">
@@ -232,7 +256,9 @@
                 >
                   Completed on or before deadline (Target: {{ props.row.deadline }})
                 </q-tooltip>
-                <q-tooltip v-else class="bg-dark text-body2"> No target deadline specified </q-tooltip>
+                <q-tooltip v-else class="bg-dark text-body2">
+                  No target deadline specified
+                </q-tooltip>
               </q-badge>
             </q-td>
           </template>
@@ -282,11 +308,7 @@
               <div
                 :style="{
                   color:
-                    r.actualEffort === 0
-                      ? '#6b7280'
-                      : r.effortVariance > 0
-                        ? '#dc2626'
-                        : '#059669',
+                    r.actualEffort === 0 ? '#6b7280' : r.effortVariance > 0 ? '#dc2626' : '#059669',
                   fontSize: '10px',
                   fontWeight: 600,
                 }"
@@ -518,4 +540,3 @@ const columns: QTableProps['columns'] = [
   },
 ];
 </script>
-

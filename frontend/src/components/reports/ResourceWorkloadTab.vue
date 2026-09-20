@@ -188,7 +188,9 @@
                 {{ props.row.availableHeadroom }}h
               </span>
               <q-tooltip class="bg-dark text-body2">
-                Available buffer: {{ props.row.availableHeadroom }}h ({{ props.row.weeklyCapacity }}h capacity − {{ props.row.scheduledEffort }}h scheduled)
+                Available buffer: {{ props.row.availableHeadroom }}h ({{
+                  props.row.weeklyCapacity
+                }}h capacity − {{ props.row.scheduledEffort }}h scheduled)
               </q-tooltip>
             </q-td>
           </template>
@@ -235,9 +237,7 @@
                 {{ r.availableHeadroom }}h
               </span>
             </td>
-            <td style="text-align: center; font-weight: 600">
-              {{ r.workloadPercent }}%
-            </td>
+            <td style="text-align: center; font-weight: 600">{{ r.workloadPercent }}%</td>
           </tr>
           <tr v-if="filteredRows.length === 0">
             <td colspan="8" style="text-align: center; padding: 16px; color: #6b7280">
@@ -347,14 +347,14 @@ const filteredRows = computed<ResourceWorkloadReportRow[]>(() => {
 const filteredCapacity = computed(() =>
   filteredRows.value.reduce((acc, r) => acc + r.weeklyCapacity, 0),
 );
-const filteredScheduled = computed(() =>
-  Math.round(filteredRows.value.reduce((acc, r) => acc + r.scheduledEffort, 0) * 10) / 10,
+const filteredScheduled = computed(
+  () => Math.round(filteredRows.value.reduce((acc, r) => acc + r.scheduledEffort, 0) * 10) / 10,
 );
-const filteredLogged = computed(() =>
-  Math.round(filteredRows.value.reduce((acc, r) => acc + r.loggedHours, 0) * 10) / 10,
+const filteredLogged = computed(
+  () => Math.round(filteredRows.value.reduce((acc, r) => acc + r.loggedHours, 0) * 10) / 10,
 );
-const filteredHeadroom = computed(() =>
-  Math.round(filteredRows.value.reduce((acc, r) => acc + r.availableHeadroom, 0) * 10) / 10,
+const filteredHeadroom = computed(
+  () => Math.round(filteredRows.value.reduce((acc, r) => acc + r.availableHeadroom, 0) * 10) / 10,
 );
 const filteredOverloadedCount = computed(
   () => filteredRows.value.filter((r) => r.status === 'Overloaded').length,
@@ -479,4 +479,3 @@ const columns: QTableProps['columns'] = [
   },
 ];
 </script>
-

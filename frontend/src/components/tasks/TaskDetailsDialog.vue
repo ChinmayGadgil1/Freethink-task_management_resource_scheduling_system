@@ -219,10 +219,7 @@
               @click="emit('assignMember', task.task_id)"
             />
           </div>
-          <div
-            v-if="assignedResourceIds.length > 0"
-            class="column q-gutter-y-xs"
-          >
+          <div v-if="assignedResourceIds.length > 0" class="column q-gutter-y-xs">
             <div
               v-for="rId in assignedResourceIds"
               :key="rId"
@@ -285,11 +282,7 @@
                 :value="(getAssigneeProgress(rId)?.progress_logged ?? 0) / 100"
                 rounded
                 size="5px"
-                :color="
-                  getAssigneeProgress(rId)?.progress_logged === 100
-                    ? 'positive'
-                    : 'primary'
-                "
+                :color="getAssigneeProgress(rId)?.progress_logged === 100 ? 'positive' : 'primary'"
                 :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
               />
 
@@ -303,8 +296,7 @@
                   Last updated:
                   {{
                     formatDate(
-                      getAssigneeProgress(rId)!.log_date ||
-                        getAssigneeProgress(rId)!.created_at,
+                      getAssigneeProgress(rId)!.log_date || getAssigneeProgress(rId)!.created_at,
                     )
                   }}
                 </span>
@@ -649,12 +641,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth'; // Auth store to identify current user
-import {
-  getWorkLogsApi,
-  type Task,
-  type WorkLog,
-  type AssigneeProgress,
-} from '@/services/api';
+import { getWorkLogsApi, type Task, type WorkLog, type AssigneeProgress } from '@/services/api';
 import {
   formatDate,
   formatStatus,
@@ -767,9 +754,7 @@ const assignedResourceIds = computed<number[]>(() => {
 });
 
 function getAssigneeProgress(resourceId: number): AssigneeProgress | undefined {
-  const byId = assigneeProgress.value.find(
-    (ap) => Number(ap.user_id) === Number(resourceId),
-  );
+  const byId = assigneeProgress.value.find((ap) => Number(ap.user_id) === Number(resourceId));
   if (byId) return byId;
 
   const resName = resolveResourceName(resourceId).toLowerCase().trim();
@@ -1023,7 +1008,9 @@ function handleRemoveDependencyClick(predecessorId: number) {
 }
 
 .assignee-progress-card {
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .assignee-progress-card:hover {

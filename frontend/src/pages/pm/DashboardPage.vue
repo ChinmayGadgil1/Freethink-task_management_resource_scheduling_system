@@ -642,23 +642,55 @@
                   <q-input
                     v-model="newProjectForm.start_date"
                     label="Start Date"
-                    type="date"
                     outlined
                     dense
                     stack-label
+                    mask="####-##-##"
                     :dark="$q.dark.isActive"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="newProjectForm.start_date"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
                 <div class="col-6">
                   <q-input
                     v-model="newProjectForm.deadline"
                     label="Deadline"
-                    type="date"
                     outlined
                     dense
                     stack-label
+                    mask="####-##-##"
                     :dark="$q.dark.isActive"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="newProjectForm.deadline"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
               </div>
             </q-card-section>
@@ -763,39 +795,71 @@
                     use-chips
                     clearable
                     :dark="$q.dark.isActive"
-                    :hint="newTaskForm.assigned_resource_ids.length > 0 ? 'Task will be created as Scheduled' : 'No assignees — task will be Unassigned'"
+                    :hint="
+                      newTaskForm.assigned_resource_ids.length > 0
+                        ? 'Task will be created as Scheduled'
+                        : 'No assignees — task will be Unassigned'
+                    "
                   />
                 </div>
               </div>
 
               <!-- Deadline (Required when at least one member is assigned) -->
               <div
-                v-if="newTaskForm.assigned_resource_ids && newTaskForm.assigned_resource_ids.length > 0"
+                v-if="
+                  newTaskForm.assigned_resource_ids && newTaskForm.assigned_resource_ids.length > 0
+                "
                 class="row q-col-gutter-sm"
               >
                 <div class="col-12">
                   <q-input
                     v-model="newTaskForm.deadline"
                     label="Deadline *"
-                    type="date"
                     outlined
                     dense
                     stack-label
+                    mask="####-##-##"
                     :dark="$q.dark.isActive"
                     :rules="[
                       (val) => !!val || 'Deadline is required when assigning members',
                       (val) => {
                         if (!val || !selectedNewTaskProject?.start_date) return true;
-                        const pStart = String(selectedNewTaskProject.start_date).split('T')[0] || '';
-                        return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                        const pStart =
+                          String(selectedNewTaskProject.start_date).split('T')[0] || '';
+                        return (
+                          !pStart ||
+                          val >= pStart ||
+                          `Deadline cannot be earlier than project start date (${pStart})`
+                        );
                       },
                       (val) => {
                         if (!val || !selectedNewTaskProject?.deadline) return true;
-                        const pDeadline = String(selectedNewTaskProject.deadline).split('T')[0] || '';
-                        return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                        const pDeadline =
+                          String(selectedNewTaskProject.deadline).split('T')[0] || '';
+                        return (
+                          !pDeadline ||
+                          val <= pDeadline ||
+                          `Deadline cannot be later than project deadline (${pDeadline})`
+                        );
                       },
                     ]"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="newTaskForm.deadline"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
               </div>
 
@@ -1257,7 +1321,9 @@ const projectOptions = computed(() => {
 
 const selectedNewTaskProject = computed(() => {
   if (!newTaskForm.project_id) return null;
-  return projects.value.find((p) => Number(p.project_id) === Number(newTaskForm.project_id)) || null;
+  return (
+    projects.value.find((p) => Number(p.project_id) === Number(newTaskForm.project_id)) || null
+  );
 });
 
 const resourceOptions = computed(() => {
@@ -1367,7 +1433,7 @@ async function handleCreateTask() {
       description: newTaskForm.description || null,
       priority: newTaskForm.priority as TaskPriority,
       status: hasAssignees ? 'SCHEDULED' : 'UNASSIGNED',
-      deadline: hasAssignees ? (newTaskForm.deadline || null) : null,
+      deadline: hasAssignees ? newTaskForm.deadline || null : null,
       expected_effort: Number(newTaskForm.expected_effort) || 8,
       assigned_resource_ids: newTaskForm.assigned_resource_ids,
     });
@@ -1545,7 +1611,14 @@ function parseLocalDateMs(dateStr: string): number {
   const p0 = parts[0];
   const p1 = parts[1];
   const p2 = parts[2];
-  if (p0 === undefined || p1 === undefined || p2 === undefined || isNaN(p0) || isNaN(p1) || isNaN(p2)) {
+  if (
+    p0 === undefined ||
+    p1 === undefined ||
+    p2 === undefined ||
+    isNaN(p0) ||
+    isNaN(p1) ||
+    isNaN(p2)
+  ) {
     return new Date(cleanStr).getTime();
   }
   return new Date(p0, p1 - 1, p2).getTime();

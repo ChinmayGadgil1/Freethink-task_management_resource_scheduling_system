@@ -146,7 +146,11 @@
               <template #body-cell-title="props">
                 <q-td :props="props">
                   <span
-                    v-if="props.row.supervisor_id === resourceId && (!props.row.assigned_resource_ids || !props.row.assigned_resource_ids.includes(resourceId))"
+                    v-if="
+                      props.row.supervisor_id === resourceId &&
+                      (!props.row.assigned_resource_ids ||
+                        !props.row.assigned_resource_ids.includes(resourceId))
+                    "
                     class="text-amber-9 text-weight-bold"
                   >
                     🛡️ [Review] {{ props.row.title }}
@@ -158,7 +162,11 @@
               <template #body-cell-effort="props">
                 <q-td :props="props" class="text-center">
                   <span
-                    v-if="props.row.supervisor_id === resourceId && (!props.row.assigned_resource_ids || !props.row.assigned_resource_ids.includes(resourceId))"
+                    v-if="
+                      props.row.supervisor_id === resourceId &&
+                      (!props.row.assigned_resource_ids ||
+                        !props.row.assigned_resource_ids.includes(resourceId))
+                    "
                     class="text-amber-9 text-weight-bold"
                     :title="`Supervisor review effort: 20% of ${props.row.expected_effort}h`"
                   >
@@ -169,11 +177,17 @@
                     class="text-primary text-weight-medium"
                     :title="`Divided share: ${(Number(props.row.expected_effort || 0) / props.row.assigned_resource_ids.length).toFixed(1)}h each across ${props.row.assigned_resource_ids.length} resources`"
                   >
-                    {{ (Number(props.row.expected_effort || 0) / props.row.assigned_resource_ids.length).toFixed(1) }}h <span class="text-caption text-grey-6">(1/{{ props.row.assigned_resource_ids.length }})</span>
+                    {{
+                      (
+                        Number(props.row.expected_effort || 0) /
+                        props.row.assigned_resource_ids.length
+                      ).toFixed(1)
+                    }}h
+                    <span class="text-caption text-grey-6"
+                      >(1/{{ props.row.assigned_resource_ids.length }})</span
+                    >
                   </span>
-                  <span v-else>
-                    {{ Number(props.row.expected_effort || 0) }}h
-                  </span>
+                  <span v-else> {{ Number(props.row.expected_effort || 0) }}h </span>
                 </q-td>
               </template>
 
@@ -715,24 +729,50 @@
                     v-model="assignForm.deadline"
                     outlined
                     dense
-                    type="date"
+                    mask="####-##-##"
                     label="Target Deadline *"
                     stack-label
                     hint="Deliverable target completion date"
+                    :dark="$q.dark.isActive"
                     :rules="[
                       (val) => !!val || 'Deadline is required when assigning a task to a resource',
                       (val) => {
                         if (!val || !selectedAssignProject?.start_date) return true;
                         const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
-                        return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                        return (
+                          !pStart ||
+                          val >= pStart ||
+                          `Deadline cannot be earlier than project start date (${pStart})`
+                        );
                       },
                       (val) => {
                         if (!val || !selectedAssignProject?.deadline) return true;
-                        const pDeadline = String(selectedAssignProject.deadline).split('T')[0] || '';
-                        return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                        const pDeadline =
+                          String(selectedAssignProject.deadline).split('T')[0] || '';
+                        return (
+                          !pDeadline ||
+                          val <= pDeadline ||
+                          `Deadline cannot be later than project deadline (${pDeadline})`
+                        );
                       },
                     ]"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="assignForm.deadline"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
               </div>
             </q-card-section>
@@ -1144,7 +1184,7 @@
                     v-model="editForm.deadline"
                     outlined
                     dense
-                    type="date"
+                    mask="####-##-##"
                     label="Deadline"
                     stack-label
                     :dark="$q.dark.isActive"
@@ -1160,7 +1200,23 @@
                         val <= editingTaskProject.deadline ||
                         `Deadline cannot be later than project deadline (${editingTaskProject.deadline})`,
                     ]"
-                  />
+                  >
+                    <template #append>
+                      <q-icon name="event" class="cursor-pointer text-primary">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date
+                            v-model="editForm.deadline"
+                            mask="YYYY-MM-DD"
+                            :dark="$q.dark.isActive"
+                          >
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                 </div>
               </div>
 
@@ -2040,10 +2096,7 @@ const totalEffort = computed(() => {
     const thisWeekAllocations = backendWorkload.value.daily_allocations.filter((d) =>
       currentWeekDates.has(d.date),
     );
-    const sum = thisWeekAllocations.reduce(
-      (acc, d) => acc + (Number(d.allocated_hours) || 0),
-      0,
-    );
+    const sum = thisWeekAllocations.reduce((acc, d) => acc + (Number(d.allocated_hours) || 0), 0);
     return Math.round(sum * 10) / 10;
   }
 

@@ -152,7 +152,6 @@
     <div class="gantt-legend-row row items-center justify-between q-px-md q-py-xs wrap gap-sm">
       <!-- Left: Timeline Line & Shading Guide -->
       <div class="legend-guide-list row items-center q-gutter-x-md text-caption wrap">
-
         <!-- Leave Indicator -->
         <div
           v-if="isResourceView || (availability && availability.length > 0)"
@@ -675,22 +674,22 @@ function resolveTaskDateHalf(
 function normalizeTimeToDay(d: Date): Date {
   const h = d.getHours();
   const m = d.getMinutes();
-  
+
   if (h === 0 && m === 0) return new Date(d); // Already midnight, likely a full day or snapped date
 
   let decimalHours = h + m / 60;
-  
+
   // Clamp to 10 - 18
   if (decimalHours < 10) decimalHours = 10;
   if (decimalHours > 18) decimalHours = 18;
-  
+
   // Map 10-18 to 0-24
   const fraction = (decimalHours - 10) / 8; // 0.0 to 1.0
   const mappedHours = fraction * 24; // 0.0 to 24.0
-  
+
   const mappedH = Math.floor(mappedHours);
   const mappedM = Math.round((mappedHours - mappedH) * 60);
-  
+
   const next = new Date(d.getFullYear(), d.getMonth(), d.getDate(), mappedH, mappedM, 0);
   return next;
 }
@@ -862,10 +861,15 @@ function getTaskWorkSegments(task: Task): {
           const avail = availabilityMap.value.get(dateStr);
           if (avail) {
             const type = String(avail.leave_type || '').toUpperCase();
-            if (type.includes('FIRST') || type.includes('1') || type.includes('SECOND') || type.includes('2')) {
+            if (
+              type.includes('FIRST') ||
+              type.includes('1') ||
+              type.includes('SECOND') ||
+              type.includes('2')
+            ) {
               return {
                 isFirst: type.includes('FIRST') || type.includes('1'),
-                isSecond: type.includes('SECOND') || type.includes('2')
+                isSecond: type.includes('SECOND') || type.includes('2'),
               };
             }
             return { isFirst: false, isSecond: false };
@@ -880,7 +884,10 @@ function getTaskWorkSegments(task: Task): {
             let worksSecondHalf = false;
 
             for (const assignee of assignees) {
-              const leave = props.globalLeaves.find((l: LeaveResponseDTO) => l.user_id === assignee && String(l.leave_date).startsWith(dateStr));
+              const leave = props.globalLeaves.find(
+                (l: LeaveResponseDTO) =>
+                  l.user_id === assignee && String(l.leave_date).startsWith(dateStr),
+              );
               if (!leave) {
                 worksFirstHalf = true;
                 worksSecondHalf = true;
@@ -928,10 +935,7 @@ function getTaskWorkSegments(task: Task): {
           const rawSegEnd = parseDateLocal(segEndStr);
           if (segStartDate && rawSegEnd) {
             const segEndDate = addDays(rawSegEnd, 1);
-            const segHours = currentSegDates.reduce(
-              (sum, d) => sum + (dateMap.get(d) || 0),
-              0,
-            );
+            const segHours = currentSegDates.reduce((sum, d) => sum + (dateMap.get(d) || 0), 0);
 
             // The segment inherits the half-day properties of its first day
             const segHalfProps = checkHalfDay(segStartStr);
@@ -970,10 +974,15 @@ function getTaskWorkSegments(task: Task): {
           const avail = availabilityMap.value.get(dateStr);
           if (avail) {
             const type = String(avail.leave_type || '').toUpperCase();
-            if (type.includes('FIRST') || type.includes('1') || type.includes('SECOND') || type.includes('2')) {
+            if (
+              type.includes('FIRST') ||
+              type.includes('1') ||
+              type.includes('SECOND') ||
+              type.includes('2')
+            ) {
               return {
                 isFirst: type.includes('FIRST') || type.includes('1'),
-                isSecond: type.includes('SECOND') || type.includes('2')
+                isSecond: type.includes('SECOND') || type.includes('2'),
               };
             }
             return { isFirst: false, isSecond: false };
@@ -987,7 +996,10 @@ function getTaskWorkSegments(task: Task): {
             let worksSecondHalf = false;
 
             for (const assignee of assignees) {
-              const leave = props.globalLeaves.find((l: LeaveResponseDTO) => l.user_id === assignee && String(l.leave_date).startsWith(dateStr));
+              const leave = props.globalLeaves.find(
+                (l: LeaveResponseDTO) =>
+                  l.user_id === assignee && String(l.leave_date).startsWith(dateStr),
+              );
               if (!leave) {
                 worksFirstHalf = true;
                 worksSecondHalf = true;
@@ -1072,10 +1084,7 @@ function getTaskWorkSegments(task: Task): {
   if (Array.isArray(rawAssignees)) {
     numAssignees = Math.max(1, rawAssignees.length);
   } else if (typeof rawAssignees === 'string' && rawAssignees.trim()) {
-    numAssignees = Math.max(
-      1,
-      rawAssignees.split(',').filter((s) => s.trim().length > 0).length,
-    );
+    numAssignees = Math.max(1, rawAssignees.split(',').filter((s) => s.trim().length > 0).length);
   }
   const totalEffort = Number(task.expected_effort) || 0;
   const fallbackHours = Number((totalEffort / numAssignees).toFixed(2));
@@ -1139,7 +1148,9 @@ function applyColumnsConfig() {
           `</div>`
         );
       }
-      const baseH = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
+      const baseH = Number(
+        task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0,
+      );
       let effortTag = '';
       const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
       const assigneesCount = Number(task.assignees_count || 1);
@@ -1157,9 +1168,10 @@ function applyColumnsConfig() {
         if (hasSupervisor) {
           const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
           const totalReq = Number(task.total_expected_effort ?? (baseH + supH).toFixed(1));
-          const splitLabel = assigneesCount > 1
-            ? `${baseH}h dev [${assigneesCount} members] + ${supH}h sup`
-            : `${baseH}h dev + ${supH}h sup`;
+          const splitLabel =
+            assigneesCount > 1
+              ? `${baseH}h dev [${assigneesCount} members] + ${supH}h sup`
+              : `${baseH}h dev + ${supH}h sup`;
           effortTag = `<span class="task-count-pill" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; margin-left: auto;" title="Total Required: ${totalReq}h (${splitLabel})">${totalReq}h (${baseH}+${supH})</span>`;
         } else if (assigneesCount > 1) {
           const share = Number((baseH / assigneesCount).toFixed(1));
@@ -1245,7 +1257,9 @@ function applyColumnsConfig() {
           const supH = Number(task.supervisor_effort || 0);
           return `<span class="effort-badge sup-effort-badge" title="Supervisor Oversight: ${supH}h (20%)">🛡️ ${supH}h (20%)</span>`;
         }
-        const baseH = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
+        const baseH = Number(
+          task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0,
+        );
         const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
         const assigneesCount = Number(task.assignees_count || 1);
         const isResourceMode = Boolean(props.isResourceView);
@@ -1262,9 +1276,10 @@ function applyColumnsConfig() {
         if (hasSupervisor) {
           const supH = Number(task.supervisor_effort || (baseH * 0.2).toFixed(1));
           const totalReq = Number(task.total_expected_effort ?? (baseH + supH).toFixed(1));
-          const splitTitle = assigneesCount > 1
-            ? `Total Required: ${totalReq}h (${baseH}h dev divided among ${assigneesCount} assignees + ${supH}h supervisor)`
-            : `Total Required: ${totalReq}h (${baseH}h assignee + ${supH}h supervisor)`;
+          const splitTitle =
+            assigneesCount > 1
+              ? `Total Required: ${totalReq}h (${baseH}h dev divided among ${assigneesCount} assignees + ${supH}h supervisor)`
+              : `Total Required: ${totalReq}h (${baseH}h assignee + ${supH}h supervisor)`;
           return `<span class="effort-badge combined-effort-badge" title="${splitTitle}"><b>${totalReq}h</b> <span class="sup-split">(${baseH}+${supH})</span></span>`;
         }
         if (assigneesCount > 1) {
@@ -1447,9 +1462,13 @@ function configureGanttEngine() {
     }
 
     const segments = task.segments || [];
-    const baseEffort = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
+    const baseEffort = Number(
+      task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0,
+    );
     const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
-    const combinedEffort = Number(task.total_expected_effort ?? (baseEffort + supEffort).toFixed(1));
+    const combinedEffort = Number(
+      task.total_expected_effort ?? (baseEffort + supEffort).toFixed(1),
+    );
     const hasSupervisor = Boolean(task.supervisor_name || task.supervisor_id);
     const supervisorLabel =
       task.supervisor_name ||
@@ -1462,7 +1481,11 @@ function configureGanttEngine() {
       if (task.is_supervised) {
         effortText = ` · 🛡️ ${supEffort}h (20% review)`;
       } else if (assigneesCount > 1) {
-        const share = Number(task.effort_per_assignee || task.expected_effort || (baseEffort / assigneesCount).toFixed(1));
+        const share = Number(
+          task.effort_per_assignee ||
+            task.expected_effort ||
+            (baseEffort / assigneesCount).toFixed(1),
+        );
         effortText = ` · ${share}h (1/${assigneesCount} of ${baseEffort}h)`;
       } else if (baseEffort > 0) {
         effortText = ` · ${baseEffort}h`;
@@ -1568,12 +1591,40 @@ function configureGanttEngine() {
 
         if (seg.isFirstHalf) {
           // Leave is first half -> Work is second half -> visually right aligned 50%
-          actualSegStart = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), 12, 0, 0);
-          actualSegEnd = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate() + 1, 0, 0, 0);
+          actualSegStart = new Date(
+            seg.startDate.getFullYear(),
+            seg.startDate.getMonth(),
+            seg.startDate.getDate(),
+            12,
+            0,
+            0,
+          );
+          actualSegEnd = new Date(
+            seg.startDate.getFullYear(),
+            seg.startDate.getMonth(),
+            seg.startDate.getDate() + 1,
+            0,
+            0,
+            0,
+          );
         } else if (seg.isSecondHalf) {
           // Leave is second half -> Work is first half -> visually left aligned 50%
-          actualSegStart = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), 0, 0, 0);
-          actualSegEnd = new Date(seg.startDate.getFullYear(), seg.startDate.getMonth(), seg.startDate.getDate(), 12, 0, 0);
+          actualSegStart = new Date(
+            seg.startDate.getFullYear(),
+            seg.startDate.getMonth(),
+            seg.startDate.getDate(),
+            0,
+            0,
+            0,
+          );
+          actualSegEnd = new Date(
+            seg.startDate.getFullYear(),
+            seg.startDate.getMonth(),
+            seg.startDate.getDate(),
+            12,
+            0,
+            0,
+          );
         }
       }
 
@@ -1584,7 +1635,7 @@ function configureGanttEngine() {
       const segWidth = Math.min(rawSegWidth, Math.max(12, taskTotalWidth - segLeft));
 
       const isMulti = segments.length > 1;
-      const targetEffort = isResourceMode ? (task.expected_effort || baseEffort) : combinedEffort;
+      const targetEffort = isResourceMode ? task.expected_effort || baseEffort : combinedEffort;
       const segLabel = isMulti
         ? `${text} [Part ${idx + 1}/${segments.length}: ${seg.allocatedHours}h / ${targetEffort}h req]`
         : `${text}${task.assignee_name ? ` (${escapeHtml(task.assignee_name)})` : ''}${effortText}`;
@@ -1596,17 +1647,23 @@ function configureGanttEngine() {
         const segResourceMap = new Map<string, number>();
         const segStartStr = formatDateIso(seg.startDate);
         const segEndStr = formatDateIso(addDays(seg.endDate, -1));
-        
+
         schedules.forEach((s: TaskScheduleItem) => {
           if (!s.schedule_date || !s.allocated_hours || Number(s.allocated_hours) === 0) return;
-          const dStr = (typeof s.schedule_date === 'string' ? s.schedule_date.split('T')[0] : s.schedule_date) || '';
+          const dStr =
+            (typeof s.schedule_date === 'string'
+              ? s.schedule_date.split('T')[0]
+              : s.schedule_date) || '';
           const sDate = parseIsoToDate(dStr);
           if (sDate) {
-             const compareDateStr = formatDateIso(sDate);
-             if (compareDateStr >= segStartStr && compareDateStr <= segEndStr) {
-               const rName = s.resource_name || 'Resource';
-               segResourceMap.set(rName, (segResourceMap.get(rName) || 0) + Number(s.allocated_hours));
-             }
+            const compareDateStr = formatDateIso(sDate);
+            if (compareDateStr >= segStartStr && compareDateStr <= segEndStr) {
+              const rName = s.resource_name || 'Resource';
+              segResourceMap.set(
+                rName,
+                (segResourceMap.get(rName) || 0) + Number(s.allocated_hours),
+              );
+            }
           }
         });
         if (segResourceMap.size > 0) {
@@ -1725,14 +1782,22 @@ function configureGanttEngine() {
       : task.supervisor_id
         ? `Supervisor #${task.supervisor_id}`
         : null;
-    const baseEffort = Number(task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0);
+    const baseEffort = Number(
+      task.base_expected_effort ?? task.expected_effort ?? task.total_hours ?? 0,
+    );
     const supEffort = Number(task.supervisor_effort || (baseEffort * 0.2).toFixed(1));
-    const combinedEffort = Number(task.total_expected_effort ?? (baseEffort + supEffort).toFixed(1));
+    const combinedEffort = Number(
+      task.total_expected_effort ?? (baseEffort + supEffort).toFixed(1),
+    );
     const assigneesCount = Number(task.assignees_count || 1);
     const statusText = task.status ? task.status.replace(/_/g, ' ') : '—';
     const priorityText = task.priority || '—';
-    const totalHoursText = baseEffort ? `${baseEffort} hrs` : (task.total_hours ? `${task.total_hours} hrs` : '—');
-    
+    const totalHoursText = baseEffort
+      ? `${baseEffort} hrs`
+      : task.total_hours
+        ? `${task.total_hours} hrs`
+        : '—';
+
     const parseOrFallback = (str?: string | null) => {
       if (!str) return '—';
       const d = parseIsoToDate(str);
@@ -1744,26 +1809,28 @@ function configureGanttEngine() {
     let segmentsHtml = '';
     const originalTask = props.tasks.find((t) => t.task_id === task.id);
     const schedules = originalTask?.schedules || [];
-    
+
     if (schedules.length > 0) {
-      const resourceMap = new Map<string, { date: string, hours: number }[]>();
-      
+      const resourceMap = new Map<string, { date: string; hours: number }[]>();
+
       schedules.forEach((s: TaskScheduleItem) => {
         if (!s.schedule_date || !s.allocated_hours || Number(s.allocated_hours) === 0) return;
         const rName = s.resource_name || 'Resource';
         if (!resourceMap.has(rName)) resourceMap.set(rName, []);
-        const dStr = (typeof s.schedule_date === 'string' ? s.schedule_date.split('T')[0] : s.schedule_date) || '';
+        const dStr =
+          (typeof s.schedule_date === 'string' ? s.schedule_date.split('T')[0] : s.schedule_date) ||
+          '';
         const d = parseIsoToDate(dStr);
         resourceMap.get(rName)!.push({
           date: d ? formatDate(d) : dStr,
-          hours: Number(s.allocated_hours)
+          hours: Number(s.allocated_hours),
         });
       });
 
       if (resourceMap.size > 0) {
         let schedulesList = '';
         resourceMap.forEach((days, rName) => {
-          const daysText = days.map(day => `${day.date} (${day.hours}h)`).join(', ');
+          const daysText = days.map((day) => `${day.date} (${day.hours}h)`).join(', ');
           schedulesList += `<div class="tooltip-seg-item"><strong>${escapeHtml(rName)}:</strong> ${daysText}</div>`;
         });
         segmentsHtml = `<div class="tooltip-row column items-start"><span class="tooltip-k q-mb-xs">Resource Schedules:</span><div class="tooltip-segments-list">${schedulesList}</div></div>`;
@@ -2369,17 +2436,23 @@ function buildGanttDataset() {
         const resolvedAssigneeName = resolveAssigneeName(t);
         const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
         const supervisorEffort = supId ? Number((baseExpectedEffort * 0.2).toFixed(1)) : 0;
-        const totalReq = supId ? Number((baseExpectedEffort + supervisorEffort).toFixed(1)) : baseExpectedEffort;
+        const totalReq = supId
+          ? Number((baseExpectedEffort + supervisorEffort).toFixed(1))
+          : baseExpectedEffort;
         const assigneesCount = Math.max(1, assignedIds.length || 1);
         const effortPerAssignee = Number((baseExpectedEffort / assigneesCount).toFixed(2));
 
         const displayExpectedEffort = props.isResourceView
-          ? (isSupervisedByMe ? supervisorEffort : effortPerAssignee)
+          ? isSupervisedByMe
+            ? supervisorEffort
+            : effortPerAssignee
           : totalReq;
 
         const targetDurationHours = props.isResourceView
           ? displayExpectedEffort
-          : (supId ? Number((effortPerAssignee + supervisorEffort).toFixed(2)) : effortPerAssignee);
+          : supId
+            ? Number((effortPerAssignee + supervisorEffort).toFixed(2))
+            : effortPerAssignee;
 
         const { start: resolvedChildStart, end: resolvedChildEnd } = computeTaskGanttDates(
           t,
@@ -2488,22 +2561,28 @@ function buildGanttDataset() {
       const supName = resolveSupervisorName(t);
       const assignedIds = parseResourceIds(t.assigned_resource_ids);
       const isSupervisedByMe = Boolean(
-        t.is_supervised || (myId && supId === myId && !assignedIds.includes(myId))
+        t.is_supervised || (myId && supId === myId && !assignedIds.includes(myId)),
       );
       const resolvedAssigneeName = resolveAssigneeName(t);
       const baseExpectedEffort = Number(t.expected_effort || totalHours || 0);
       const supervisorEffort = supId ? Number((baseExpectedEffort * 0.2).toFixed(1)) : 0;
       const assigneesCount = Math.max(1, assignedIds.length || 1);
       const effortPerAssignee = Number((baseExpectedEffort / assigneesCount).toFixed(2));
-      const totalReq = supId ? Number((baseExpectedEffort + supervisorEffort).toFixed(1)) : baseExpectedEffort;
+      const totalReq = supId
+        ? Number((baseExpectedEffort + supervisorEffort).toFixed(1))
+        : baseExpectedEffort;
 
       const displayExpectedEffort = props.isResourceView
-        ? (isSupervisedByMe ? supervisorEffort : effortPerAssignee)
+        ? isSupervisedByMe
+          ? supervisorEffort
+          : effortPerAssignee
         : totalReq;
 
       const targetDurationHours = props.isResourceView
         ? displayExpectedEffort
-        : (supId ? Number((effortPerAssignee + supervisorEffort).toFixed(2)) : effortPerAssignee);
+        : supId
+          ? Number((effortPerAssignee + supervisorEffort).toFixed(2))
+          : effortPerAssignee;
 
       const { start: resolvedFlatStart, end: resolvedFlatEnd } = computeTaskGanttDates(
         t,

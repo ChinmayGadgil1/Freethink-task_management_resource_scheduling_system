@@ -368,7 +368,9 @@
                       </q-item-label>
                       <q-item-label caption class="text-grey-6 ellipsis">
                         {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
-                        <span v-if="taskItem.created_by_name"> · Assigned by {{ taskItem.created_by_name }}</span>
+                        <span v-if="taskItem.created_by_name">
+                          · Assigned by {{ taskItem.created_by_name }}</span
+                        >
                       </q-item-label>
                     </q-item-section>
                     <q-item-section side>

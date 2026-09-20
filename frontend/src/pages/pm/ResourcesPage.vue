@@ -199,167 +199,169 @@
               <q-card
                 v-for="res in paginatedResources"
                 :key="res.resource_id"
-              flat
-              bordered
-              class="resource-grid-card column justify-between cursor-pointer"
-              @click="goToDetails(res.resource_id)"
-            >
-              <q-card-section class="q-pa-md">
-                <!-- CARD TOP: AVATAR, NAME, CHIP -->
-                <div class="row items-center justify-between no-wrap q-mb-md">
-                  <div class="row items-center no-wrap col q-mr-sm" style="min-width: 0">
-                    <q-avatar
-                      size="42px"
-                      class="resource-card-avatar avatar-purple q-mr-sm flex-shrink-0"
-                    >
-                      {{ getInitials(res.name) }}
-                    </q-avatar>
-                    <div class="col" style="min-width: 0">
-                      <div class="resource-name ellipsis" :title="res.name">
-                        {{ res.name }}
+                flat
+                bordered
+                class="resource-grid-card column justify-between cursor-pointer"
+                @click="goToDetails(res.resource_id)"
+              >
+                <q-card-section class="q-pa-md">
+                  <!-- CARD TOP: AVATAR, NAME, CHIP -->
+                  <div class="row items-center justify-between no-wrap q-mb-md">
+                    <div class="row items-center no-wrap col q-mr-sm" style="min-width: 0">
+                      <q-avatar
+                        size="42px"
+                        class="resource-card-avatar avatar-purple q-mr-sm flex-shrink-0"
+                      >
+                        {{ getInitials(res.name) }}
+                      </q-avatar>
+                      <div class="col" style="min-width: 0">
+                        <div class="resource-name ellipsis" :title="res.name">
+                          {{ res.name }}
+                        </div>
+                        <div class="resource-role">Team Resource</div>
                       </div>
-                      <div class="resource-role">Team Resource</div>
+                    </div>
+
+                    <q-chip dense square :class="['status-chip', getWorkloadChipClass(res.status)]">
+                      {{ formatWorkloadStatus(res.status) }}
+                    </q-chip>
+                  </div>
+
+                  <!-- WORKLOAD METRICS BOX -->
+                  <div class="workload-metric-box q-pa-sm q-mb-sm">
+                    <div class="row justify-between text-caption q-mb-xs">
+                      <span class="text-grey-7 text-weight-medium">Weekly Workload</span>
+                      <span class="text-weight-bold text-dark"
+                        >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{
+                          res.utilization
+                        }}%)</span
+                      >
+                    </div>
+                    <q-linear-progress
+                      rounded
+                      size="6px"
+                      :value="Math.min(100, res.utilization) / 100"
+                      :color="getUtilizationColor(res.utilization)"
+                      track-color="grey-3"
+                      class="workload-progress"
+                    />
+                  </div>
+
+                  <!-- STAT COUNTS -->
+                  <div class="row justify-between text-caption text-grey-7 q-pt-xs q-mb-sm">
+                    <div class="row items-center">
+                      <q-icon name="task_alt" size="15px" color="teal" class="q-mr-xs" />
+                      <span class="text-weight-medium text-dark">{{ res.tasks.length }} Tasks</span>
+                    </div>
+                    <div class="row items-center">
+                      <q-icon name="folder" size="15px" color="primary" class="q-mr-xs" />
+                      <span class="text-weight-medium text-dark"
+                        >{{ res.projectsCount }} Projects</span
+                      >
                     </div>
                   </div>
 
-                  <q-chip dense square :class="['status-chip', getWorkloadChipClass(res.status)]">
-                    {{ formatWorkloadStatus(res.status) }}
-                  </q-chip>
-                </div>
-
-                <!-- WORKLOAD METRICS BOX -->
-                <div class="workload-metric-box q-pa-sm q-mb-sm">
-                  <div class="row justify-between text-caption q-mb-xs">
-                    <span class="text-grey-7 text-weight-medium">Weekly Workload</span>
-                    <span class="text-weight-bold text-dark"
-                      >{{ formatHours(res.totalEffort) }} / {{ res.weeklyCapacity }}h ({{
-                        res.utilization
-                      }}%)</span
+                  <!-- PROJECTS WORKING ON -->
+                  <div class="q-mt-xs">
+                    <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">
+                      Projects Working On:
+                    </div>
+                    <div
+                      v-if="res.projectNames && res.projectNames.length > 0"
+                      class="row q-gutter-xs wrap"
                     >
+                      <q-chip
+                        v-for="pName in res.projectNames"
+                        :key="pName"
+                        dense
+                        square
+                        class="project-badge"
+                        :title="pName"
+                      >
+                        <q-icon name="folder" size="12px" class="q-mr-xs flex-shrink-0" />
+                        <span class="ellipsis" style="max-width: 250px">{{ pName }}</span>
+                      </q-chip>
+                    </div>
+                    <div v-else class="text-caption text-grey-5 italic">
+                      No active project assignments
+                    </div>
                   </div>
-                  <q-linear-progress
-                    rounded
-                    size="6px"
-                    :value="Math.min(100, res.utilization) / 100"
-                    :color="getUtilizationColor(res.utilization)"
-                    track-color="grey-3"
-                    class="workload-progress"
+                </q-card-section>
+
+                <q-separator />
+
+                <!-- CARD ACTIONS -->
+                <q-card-actions class="q-pa-sm row wrap gap-xs">
+                  <q-btn
+                    outline
+                    dense
+                    no-caps
+                    label="Profile"
+                    class="col action-btn-outline"
+                    @click.stop="goToDetails(res.resource_id)"
                   />
-                </div>
+                  <q-btn
+                    outline
+                    dense
+                    no-caps
+                    icon="edit_calendar"
+                    label="Schedule"
+                    class="col action-btn-outline"
+                    @click.stop="openResourceScheduleDialog(res)"
+                  />
+                  <q-btn
+                    unelevated
+                    dense
+                    no-caps
+                    icon="add_task"
+                    label="Assign"
+                    class="col action-btn-primary"
+                    @click.stop="openAssignModal(res.resource_id)"
+                  />
+                </q-card-actions>
+              </q-card>
+            </div>
 
-                <!-- STAT COUNTS -->
-                <div class="row justify-between text-caption text-grey-7 q-pt-xs q-mb-sm">
-                  <div class="row items-center">
-                    <q-icon name="task_alt" size="15px" color="teal" class="q-mr-xs" />
-                    <span class="text-weight-medium text-dark">{{ res.tasks.length }} Tasks</span>
-                  </div>
-                  <div class="row items-center">
-                    <q-icon name="folder" size="15px" color="primary" class="q-mr-xs" />
-                    <span class="text-weight-medium text-dark"
-                      >{{ res.projectsCount }} Projects</span
-                    >
-                  </div>
-                </div>
-
-                <!-- PROJECTS WORKING ON -->
-                <div class="q-mt-xs">
-                  <div class="text-caption text-grey-7 text-weight-medium q-mb-xs">
-                    Projects Working On:
-                  </div>
-                  <div
-                    v-if="res.projectNames && res.projectNames.length > 0"
-                    class="row q-gutter-xs wrap"
-                  >
-                    <q-chip
-                      v-for="pName in res.projectNames"
-                      :key="pName"
-                      dense
-                      square
-                      class="project-badge"
-                      :title="pName"
-                    >
-                      <q-icon name="folder" size="12px" class="q-mr-xs flex-shrink-0" />
-                      <span class="ellipsis" style="max-width: 250px">{{ pName }}</span>
-                    </q-chip>
-                  </div>
-                  <div v-else class="text-caption text-grey-5 italic">
-                    No active project assignments
-                  </div>
-                </div>
-              </q-card-section>
-
-              <q-separator />
-
-              <!-- CARD ACTIONS -->
-              <q-card-actions class="q-pa-sm row wrap gap-xs">
-                <q-btn
-                  outline
-                  dense
-                  no-caps
-                  label="Profile"
-                  class="col action-btn-outline"
-                  @click.stop="goToDetails(res.resource_id)"
-                />
-                <q-btn
-                  outline
-                  dense
-                  no-caps
-                  icon="edit_calendar"
-                  label="Schedule"
-                  class="col action-btn-outline"
-                  @click.stop="openResourceScheduleDialog(res)"
-                />
-                <q-btn
-                  unelevated
-                  dense
-                  no-caps
-                  icon="add_task"
-                  label="Assign"
-                  class="col action-btn-primary"
-                  @click.stop="openAssignModal(res.resource_id)"
-                />
-              </q-card-actions>
-            </q-card>
-          </div>
-
-          <!-- Cards Pagination Toolbar -->
-          <div
-            v-if="filteredResources.length > cardPagination.rowsPerPage"
-            class="row items-center justify-between q-mt-sm q-px-xs wrap gap-sm"
-          >
+            <!-- Cards Pagination Toolbar -->
             <div
-              class="text-caption"
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'"
+              v-if="filteredResources.length > cardPagination.rowsPerPage"
+              class="row items-center justify-between q-mt-sm q-px-xs wrap gap-sm"
             >
-              Showing {{ (cardPagination.page - 1) * cardPagination.rowsPerPage + 1 }} -
-              {{ Math.min(cardPagination.page * cardPagination.rowsPerPage, filteredResources.length) }} of
-              {{ filteredResources.length }} resources
-            </div>
-            <div class="row items-center q-gutter-sm">
-              <q-select
-                v-model="cardPagination.rowsPerPage"
-                :options="[8, 12, 16, 24]"
-                dense
-                outlined
-                options-dense
-                :dark="$q.dark.isActive"
-                style="width: 105px"
-                label="Per page"
-              />
-              <q-pagination
-                v-model="cardPagination.page"
-                :max="cardTotalPages"
-                :max-pages="5"
-                direction-links
-                boundary-links
-                color="primary"
-                dense
-                size="sm"
-                :dark="$q.dark.isActive"
-              />
+              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                Showing {{ (cardPagination.page - 1) * cardPagination.rowsPerPage + 1 }} -
+                {{
+                  Math.min(
+                    cardPagination.page * cardPagination.rowsPerPage,
+                    filteredResources.length,
+                  )
+                }}
+                of {{ filteredResources.length }} resources
+              </div>
+              <div class="row items-center q-gutter-sm">
+                <q-select
+                  v-model="cardPagination.rowsPerPage"
+                  :options="[8, 12, 16, 24]"
+                  dense
+                  outlined
+                  options-dense
+                  :dark="$q.dark.isActive"
+                  style="width: 105px"
+                  label="Per page"
+                />
+                <q-pagination
+                  v-model="cardPagination.page"
+                  :max="cardTotalPages"
+                  :max-pages="5"
+                  direction-links
+                  boundary-links
+                  color="primary"
+                  dense
+                  size="sm"
+                  :dark="$q.dark.isActive"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
           <!-- TABLE VIEW -->
           <q-card v-else flat bordered class="table-card">
@@ -555,18 +557,25 @@
                   class="text-purple-7 text-weight-bold"
                   :title="`Base Effort: ${props.row.expected_effort}h + Supervisor: ${(Number(props.row.expected_effort) * 0.2).toFixed(1)}h`"
                 >
-                  {{ (Number(props.row.expected_effort || 0) * 1.2).toFixed(1) }}h <span class="text-caption text-grey-6">({{ props.row.expected_effort }}+{{ (Number(props.row.expected_effort || 0) * 0.2).toFixed(1) }})</span>
+                  {{ (Number(props.row.expected_effort || 0) * 1.2).toFixed(1) }}h
+                  <span class="text-caption text-grey-6"
+                    >({{ props.row.expected_effort }}+{{
+                      (Number(props.row.expected_effort || 0) * 0.2).toFixed(1)
+                    }})</span
+                  >
                 </span>
                 <span
                   v-else-if="(props.row.assigned_resource_ids?.length || 1) > 1"
                   class="text-primary text-weight-medium"
                   :title="`Total: ${props.row.expected_effort}h (${(Number(props.row.expected_effort) / props.row.assigned_resource_ids.length).toFixed(1)}h each across ${props.row.assigned_resource_ids.length} assignees)`"
                 >
-                  {{ props.row.expected_effort }}h <span class="text-caption text-grey-6">(${(Number(props.row.expected_effort) / props.row.assigned_resource_ids.length).toFixed(1)}h ea)</span>
+                  {{ props.row.expected_effort }}h
+                  <span class="text-caption text-grey-6"
+                    >(${(Number(props.row.expected_effort) /
+                    props.row.assigned_resource_ids.length).toFixed(1)}h ea)</span
+                  >
                 </span>
-                <span v-else>
-                  {{ props.row.expected_effort || 0 }}h
-                </span>
+                <span v-else> {{ props.row.expected_effort || 0 }}h </span>
               </q-td>
             </template>
 
@@ -582,11 +591,7 @@
 
     <!-- ASSIGN RESOURCE TO PROJECT DIALOG (POST /api/projects/:id/members) -->
     <q-dialog v-model="showProjectMemberDialog">
-      <q-card
-        class="dialog-card"
-        :dark="$q.dark.isActive"
-        style="width: 440px; max-width: 95vw"
-      >
+      <q-card class="dialog-card" :dark="$q.dark.isActive" style="width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
             class="text-subtitle1 text-weight-bold"
@@ -685,11 +690,7 @@
 
     <!-- ASSIGN TASK DIALOG (POST /api/tasks) -->
     <q-dialog v-model="showAssignDialog">
-      <q-card
-        class="dialog-card"
-        :dark="$q.dark.isActive"
-        style="width: 440px; max-width: 95vw"
-      >
+      <q-card class="dialog-card" :dark="$q.dark.isActive" style="width: 440px; max-width: 95vw">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
             class="text-subtitle1 text-weight-bold"
@@ -793,7 +794,7 @@
                   v-model="assignForm.deadline"
                   outlined
                   dense
-                  type="date"
+                  mask="####-##-##"
                   label="Target Deadline *"
                   stack-label
                   hint="Deliverable target completion date"
@@ -803,15 +804,39 @@
                     (val) => {
                       if (!val || !selectedAssignProject?.start_date) return true;
                       const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
-                      return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                      return (
+                        !pStart ||
+                        val >= pStart ||
+                        `Deadline cannot be earlier than project start date (${pStart})`
+                      );
                     },
                     (val) => {
                       if (!val || !selectedAssignProject?.deadline) return true;
                       const pDeadline = String(selectedAssignProject.deadline).split('T')[0] || '';
-                      return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                      return (
+                        !pDeadline ||
+                        val <= pDeadline ||
+                        `Deadline cannot be later than project deadline (${pDeadline})`
+                      );
                     },
                   ]"
-                />
+                >
+                  <template #append>
+                    <q-icon name="event" class="cursor-pointer text-primary">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date
+                          v-model="assignForm.deadline"
+                          mask="YYYY-MM-DD"
+                          :dark="$q.dark.isActive"
+                        >
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Close" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
               </div>
             </div>
           </q-card-section>
@@ -856,10 +881,7 @@
 
     <!-- PM WORK SCHEDULE CONFIGURATION DIALOG -->
     <q-dialog v-model="showScheduleDialog" persistent>
-      <q-card
-        :dark="$q.dark.isActive"
-        style="width: 480px; max-width: 95vw; border-radius: 14px"
-      >
+      <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw; border-radius: 14px">
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div class="row items-center q-gutter-xs">
             <q-icon name="edit_calendar" size="24px" color="primary" />

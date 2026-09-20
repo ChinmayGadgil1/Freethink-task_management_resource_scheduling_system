@@ -1322,7 +1322,10 @@
                     </div>
                   </div>
                   <!-- Blocked by Incomplete Predecessor Alert Banner -->
-                  <div v-if="isTaskBlockedByPredecessors && task.status !== 'COMPLETED'" class="row q-mb-sm">
+                  <div
+                    v-if="isTaskBlockedByPredecessors && task.status !== 'COMPLETED'"
+                    class="row q-mb-sm"
+                  >
                     <div class="col-12">
                       <q-banner
                         dense
@@ -1361,7 +1364,10 @@
                     </div>
                   </div>
 
-                  <div v-if="!isCurrentTaskSessionActive && task.status !== 'COMPLETED'" class="row q-mb-xs">
+                  <div
+                    v-if="!isCurrentTaskSessionActive && task.status !== 'COMPLETED'"
+                    class="row q-mb-xs"
+                  >
                     <div class="col-12">
                       <q-btn
                         outline
@@ -1611,7 +1617,7 @@
                     :key="resource.user_id"
                     class="rounded-borders q-pa-md"
                     :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
-                    style="border: 1px solid rgba(0,0,0,0.07)"
+                    style="border: 1px solid rgba(0, 0, 0, 0.07)"
                   >
                     <div class="row items-center justify-between q-mb-xs">
                       <!-- Resource name & You badge -->
@@ -1620,13 +1626,21 @@
                           size="22px"
                           :color="
                             Number(resource.user_id) === getCurrentUserId()
-                              ? ($q.dark.isActive ? 'purple-10' : 'purple-1')
-                              : ($q.dark.isActive ? 'teal-10' : 'teal-1')
+                              ? $q.dark.isActive
+                                ? 'purple-10'
+                                : 'purple-1'
+                              : $q.dark.isActive
+                                ? 'teal-10'
+                                : 'teal-1'
                           "
                           :text-color="
                             Number(resource.user_id) === getCurrentUserId()
-                              ? ($q.dark.isActive ? 'purple-2' : 'primary')
-                              : ($q.dark.isActive ? 'teal-2' : 'teal-9')
+                              ? $q.dark.isActive
+                                ? 'purple-2'
+                                : 'primary'
+                              : $q.dark.isActive
+                                ? 'teal-2'
+                                : 'teal-9'
                           "
                           class="text-weight-bold"
                           style="font-size: 10px"
@@ -1650,15 +1664,25 @@
 
                       <!-- Progress percentage or Not logged yet -->
                       <span
-                        v-if="assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))"
+                        v-if="
+                          assigneeProgress.find(
+                            (ap) => Number(ap.user_id) === Number(resource.user_id),
+                          )
+                        "
                         class="text-caption text-weight-bolder"
                         :class="
                           Number(resource.user_id) === getCurrentUserId()
                             ? 'text-primary'
-                            : ($q.dark.isActive ? 'text-teal-3' : 'text-teal-9')
+                            : $q.dark.isActive
+                              ? 'text-teal-3'
+                              : 'text-teal-9'
                         "
                       >
-                        {{ assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))!.progress_logged }}%
+                        {{
+                          assigneeProgress.find(
+                            (ap) => Number(ap.user_id) === Number(resource.user_id),
+                          )!.progress_logged
+                        }}%
                       </span>
                       <span v-else class="text-caption text-grey-5 text-weight-medium">
                         Not logged yet
@@ -1667,7 +1691,11 @@
 
                     <!-- Mini progress bar -->
                     <q-linear-progress
-                      :value="(assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))?.progress_logged ?? 0) / 100"
+                      :value="
+                        (assigneeProgress.find(
+                          (ap) => Number(ap.user_id) === Number(resource.user_id),
+                        )?.progress_logged ?? 0) / 100
+                      "
                       rounded
                       size="7px"
                       :color="Number(resource.user_id) === getCurrentUserId() ? 'primary' : 'teal'"
@@ -1676,15 +1704,30 @@
 
                     <!-- Last updated metadata -->
                     <div
-                      v-if="assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))"
+                      v-if="
+                        assigneeProgress.find(
+                          (ap) => Number(ap.user_id) === Number(resource.user_id),
+                        )
+                      "
                       class="row items-center q-mt-xs q-gutter-x-sm"
                     >
                       <span class="text-caption text-grey-5">
-                        Last updated: {{ formatHistoryDate(assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))!.log_date) }}
+                        Last updated:
+                        {{
+                          formatHistoryDate(
+                            assigneeProgress.find(
+                              (ap) => Number(ap.user_id) === Number(resource.user_id),
+                            )!.log_date,
+                          )
+                        }}
                       </span>
                       <span class="text-caption text-grey-5">·</span>
                       <span class="text-caption text-grey-5">
-                        {{ assigneeProgress.find(ap => Number(ap.user_id) === Number(resource.user_id))!.hours_logged }}h logged
+                        {{
+                          assigneeProgress.find(
+                            (ap) => Number(ap.user_id) === Number(resource.user_id),
+                          )!.hours_logged
+                        }}h logged
                       </span>
                     </div>
                   </div>
@@ -1722,7 +1765,11 @@
                           v-if="task.assigned_resource_ids && task.assigned_resource_ids.length > 1"
                           class="text-caption text-weight-medium text-primary q-mt-xs"
                         >
-                          ({{ (Number(task.expected_effort || 0) / task.assigned_resource_ids.length).toFixed(1) }}h each across {{ task.assigned_resource_ids.length }} members)
+                          ({{
+                            (
+                              Number(task.expected_effort || 0) / task.assigned_resource_ids.length
+                            ).toFixed(1)
+                          }}h each across {{ task.assigned_resource_ids.length }} members)
                         </div>
                         <div
                           v-if="task.supervisor_id"
@@ -2555,21 +2602,30 @@
                 <q-input
                   v-model="createForm.deadline"
                   label="Target Deadline *"
-                  type="date"
                   outlined
                   dense
                   stack-label
+                  mask="####-##-##"
+                  :dark="$q.dark.isActive"
                   :rules="[
                     (val) => !!val || 'Deadline is required for self-assigned tasks',
                     (val) => {
                       if (!val || !selectedCreateProject?.start_date) return true;
                       const pStart = String(selectedCreateProject.start_date).split('T')[0] || '';
-                      return !pStart || val >= pStart || `Deadline cannot be earlier than project start date (${pStart})`;
+                      return (
+                        !pStart ||
+                        val >= pStart ||
+                        `Deadline cannot be earlier than project start date (${pStart})`
+                      );
                     },
                     (val) => {
                       if (!val || !selectedCreateProject?.deadline) return true;
                       const pDeadline = String(selectedCreateProject.deadline).split('T')[0] || '';
-                      return !pDeadline || val <= pDeadline || `Deadline cannot be later than project deadline (${pDeadline})`;
+                      return (
+                        !pDeadline ||
+                        val <= pDeadline ||
+                        `Deadline cannot be later than project deadline (${pDeadline})`
+                      );
                     },
                   ]"
                 >
@@ -2578,6 +2634,21 @@
                       name="event_available"
                       :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
                     />
+                  </template>
+                  <template #append>
+                    <q-icon name="event" class="cursor-pointer text-primary">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date
+                          v-model="createForm.deadline"
+                          mask="YYYY-MM-DD"
+                          :dark="$q.dark.isActive"
+                        >
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Close" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
                   </template>
                 </q-input>
               </div>
@@ -3520,17 +3591,13 @@ const currentResourceProgress = computed<number | null>(() => {
   }
 
   // Check assigneeProgress for current user's latest recorded progress
-  const myEntry = assigneeProgress.value.find(
-    (ap) => Number(ap.user_id) === currentUserId
-  );
+  const myEntry = assigneeProgress.value.find((ap) => Number(ap.user_id) === currentUserId);
   if (myEntry !== undefined) {
     return Number(myEntry.progress_logged);
   }
 
   // Fallback: check workLogs for current user's latest log
-  const myLog = workLogs.value.find(
-    (wl) => Number(wl.user_id) === currentUserId
-  );
+  const myLog = workLogs.value.find((wl) => Number(wl.user_id) === currentUserId);
   if (myLog !== undefined) {
     return Number(myLog.progress_logged);
   }

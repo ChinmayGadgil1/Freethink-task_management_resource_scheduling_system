@@ -33,7 +33,9 @@
         </div>
 
         <div class="stat-badge-bottom column">
-          <div class="stat-value" :class="[{ 'text-negative': isNegative }, valueSizeClass]">{{ value }}</div>
+          <div class="stat-value" :class="[{ 'text-negative': isNegative }, valueSizeClass]">
+            {{ value }}
+          </div>
           <div class="stat-title">{{ title }}</div>
           <div v-if="subtitle" class="stat-meta" :class="[noteClass, { negative: isNegative }]">
             {{ subtitle }}

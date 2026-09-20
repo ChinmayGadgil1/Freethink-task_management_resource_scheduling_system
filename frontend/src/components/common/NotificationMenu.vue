@@ -391,9 +391,7 @@ function handleNotificationClick(item: NotificationItem) {
 
 function formatNotificationMessage(msg: string): string {
   if (!msg) return '';
-  return msg
-    .replace('Please review and respond.', 'Please review.')
-    .replace(' and reviewed', '');
+  return msg.replace('Please review and respond.', 'Please review.').replace(' and reviewed', '');
 }
 
 function formatTimeAgo(dateStr: string): string {

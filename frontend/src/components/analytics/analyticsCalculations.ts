@@ -102,7 +102,7 @@ export function getCurrentWeekShiftDays(weekOffset: number = 0): WeeklyShiftDay[
   const currentDay = now.getDay(); // 0 is Sunday, 1 is Monday...
   const distanceToMonday = (currentDay + 6) % 7;
   const monday = new Date(now);
-  monday.setDate(now.getDate() - distanceToMonday + (weekOffset * 7));
+  monday.setDate(now.getDate() - distanceToMonday + weekOffset * 7);
 
   const fullLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const shortLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -130,7 +130,7 @@ export function computeWeeklyShiftWorkload(
   resources: ResourceUser[],
   workloadsMap: Record<number, ResourceWorkload | null>,
   selectedResourceId?: number | 'ALL',
-  weekOffset: number = 0
+  weekOffset: number = 0,
 ): WeeklyShiftWorkloadItem[] {
   const shiftDays = getCurrentWeekShiftDays(weekOffset);
   const targetResources =
@@ -183,7 +183,9 @@ export function computeWeeklyShiftWorkload(
 /**
  * Returns Monday through Friday dates for the current calendar week, optionally shifted by weekOffset.
  */
-export function getCurrentWeekWorkingDays(weekOffset: number = 0): { dateStr: string; dayLabel: string }[] {
+export function getCurrentWeekWorkingDays(
+  weekOffset: number = 0,
+): { dateStr: string; dayLabel: string }[] {
   return getCurrentWeekShiftDays(weekOffset).slice(0, 5);
 }
 
@@ -227,7 +229,11 @@ export function computeResourceMetrics(
 
     let scheduledEffort: number;
 
-    if (!isProjectFiltered && workload?.daily_allocations && workload.daily_allocations.length > 0) {
+    if (
+      !isProjectFiltered &&
+      workload?.daily_allocations &&
+      workload.daily_allocations.length > 0
+    ) {
       const currentWeekAllocations = workload.daily_allocations.filter((d) =>
         currentWeekDates.has(d.date),
       );
@@ -497,7 +503,7 @@ export function computeAvailabilityHeatmap(
   resources: ResourceUser[],
   availabilityMap: Record<number, ResourceAvailabilityResponseDTO | null>,
   workloadsMap: Record<number, ResourceWorkload | null>,
-  weekOffset: number = 0
+  weekOffset: number = 0,
 ): HeatmapGridData {
   const workingDays = getCurrentWeekWorkingDays(weekOffset);
   const dayLabels = workingDays.map((d) => d.dayLabel);
