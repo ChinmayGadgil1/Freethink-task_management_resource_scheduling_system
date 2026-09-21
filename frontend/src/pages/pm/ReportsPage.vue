@@ -100,12 +100,6 @@
               no-caps
             />
             <q-tab name="deadline-variance" icon="timelapse" label="Deadline Variance" no-caps />
-            <q-tab
-              name="schedule-changes"
-              icon="history_toggle_off"
-              label="Schedule Changes"
-              no-caps
-            />
           </q-tabs>
 
           <q-separator :dark="$q.dark.isActive" class="screen-only" />
@@ -159,15 +153,6 @@
                 :resources="resourceList"
               />
             </q-tab-panel>
-
-            <!-- 6. Schedule Changes Tab -->
-            <q-tab-panel name="schedule-changes" class="q-pa-md">
-              <ScheduleChangesTab
-                :tasks="taskList"
-                :projects="projectList"
-                :resources="resourceList"
-              />
-            </q-tab-panel>
           </q-tab-panels>
         </q-card>
       </div>
@@ -194,7 +179,6 @@ import TaskCompletionTab from '@/components/reports/TaskCompletionTab.vue';
 import DelayedTasksTab from '@/components/reports/DelayedTasksTab.vue';
 import ResourceWorkloadTab from '@/components/reports/ResourceWorkloadTab.vue';
 import DeadlineVarianceTab from '@/components/reports/DeadlineVarianceTab.vue';
-import ScheduleChangesTab from '@/components/reports/ScheduleChangesTab.vue';
 
 // Active Tab State
 const activeTab = ref<string>('project-progress');
