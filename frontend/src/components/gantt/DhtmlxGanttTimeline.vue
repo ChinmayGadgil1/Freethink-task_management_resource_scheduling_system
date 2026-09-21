@@ -334,6 +334,12 @@ export interface DhtmlxGanttTaskItem {
   $open?: boolean;
 }
 
+interface GanttMarkerExtension {
+  addMarker?: (marker: Record<string, unknown>) => string | number;
+  deleteMarker?: (id: string | number) => void;
+  renderMarkers?: () => void;
+}
+
 const props = withDefaults(defineProps<GanttTimelineProps>(), {
   projects: () => [],
   resources: () => [],
@@ -2004,9 +2010,12 @@ function parseDateStringToMidnight(dateStr: string): Date | null {
 
 function clearCustomMarkers() {
   if (customMarkerIds.value && customMarkerIds.value.length > 0) {
+    const markerExt = gantt as unknown as GanttMarkerExtension;
     customMarkerIds.value.forEach((id) => {
       try {
-        gantt.deleteMarker(id);
+        if (typeof markerExt.deleteMarker === 'function') {
+          markerExt.deleteMarker(id);
+        }
       } catch {
         // ignore
       }
@@ -2020,11 +2029,17 @@ function updateCustomMarkers() {
   clearCustomMarkers();
   customMarkerIds.value = [];
 
+  const markerExt = gantt as unknown as GanttMarkerExtension;
+
+  // Guard: Marker extension is only available if supported and loaded by DHTMLX Gantt
+  if (typeof markerExt.addMarker !== 'function') {
+    return;
+  }
+
   // Only render vertical line markers in 'day' and 'hour' scale modes (NOT weekly or monthly)!
   if (activeScale.value !== 'day' && activeScale.value !== 'hour') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (gantt as any).renderMarkers?.();
+      markerExt.renderMarkers?.();
     } catch {
       // ignore
     }

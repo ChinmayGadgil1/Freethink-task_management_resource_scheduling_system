@@ -591,7 +591,7 @@
       <q-dialog v-model="showNewProjectModal">
         <q-card
           :dark="$q.dark.isActive"
-          style="min-width: 460px; max-width: 90vw; border-radius: 12px"
+          style="width: 100%; max-width: 480px; border-radius: 12px"
         >
           <q-card-section class="row items-center q-pb-sm">
             <div class="text-h6 text-weight-bold">Create New Project</div>
@@ -713,7 +713,7 @@
       <q-dialog v-model="showAddTaskModal">
         <q-card
           :dark="$q.dark.isActive"
-          style="min-width: 480px; max-width: 90vw; border-radius: 12px"
+          style="width: 100%; max-width: 500px; border-radius: 12px"
         >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Add New Task</div>
@@ -882,7 +882,7 @@
       <q-dialog v-model="showAllocateResourceModal">
         <q-card
           :dark="$q.dark.isActive"
-          style="min-width: 440px; max-width: 90vw; border-radius: 12px"
+          style="width: 100%; max-width: 480px; border-radius: 12px"
         >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Allocate Resource</div>
@@ -945,7 +945,7 @@
       <q-dialog v-model="showLogProgressModal">
         <q-card
           :dark="$q.dark.isActive"
-          style="min-width: 460px; max-width: 90vw; border-radius: 12px"
+          style="width: 100%; max-width: 480px; border-radius: 12px"
         >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Log Progress & Effort</div>
@@ -1046,7 +1046,7 @@
       <q-dialog v-model="showGenerateReportModal">
         <q-card
           :dark="$q.dark.isActive"
-          style="min-width: 440px; max-width: 90vw; border-radius: 12px"
+          style="width: 100%; max-width: 480px; border-radius: 12px"
         >
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Generate Project Report</div>

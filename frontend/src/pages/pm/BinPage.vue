@@ -303,7 +303,7 @@
 
     <!-- Confirmation Dialog -->
     <q-dialog v-model="confirmDialog.open" persistent>
-      <q-card style="min-width: 380px; max-width: 480px" class="rounded-borders">
+      <q-card style="width: 100%; max-width: 440px" class="rounded-borders">
         <q-card-section class="row items-center gap-md">
           <q-avatar
             :icon="confirmDialog.icon || 'warning'"

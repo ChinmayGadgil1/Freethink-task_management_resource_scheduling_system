@@ -621,7 +621,7 @@
 
     <!-- ASSIGN MEMBER DIALOG -->
     <q-dialog v-model="showAssignTaskMemberDialog">
-      <q-card :dark="$q.dark.isActive" style="min-width: 420px" class="rounded-borders">
+      <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 460px" class="rounded-borders">
         <q-card-section class="row items-center justify-between">
           <div class="text-subtitle1 text-weight-bold">Assign Member / Supervisor to Task</div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -2125,6 +2125,25 @@ async function handleUpdateTask() {
   }
 }
 
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .header-actions {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+  }
+}
+
 .view-toggle-btn {
   border: 1px solid var(--wo-border, #e2e8f0);
   background: var(--wo-bg-card, #ffffff);
@@ -2550,7 +2569,9 @@ async function handleUpdateTask() {
    Task Details Popup & Dialogs
    =================================================== */
 .details-popup-card {
-  min-width: 440px;
+  width: 100%;
+  max-width: 480px;
+  min-width: 0;
   border-radius: 14px;
   background: var(--wo-bg-card, #ffffff);
 
