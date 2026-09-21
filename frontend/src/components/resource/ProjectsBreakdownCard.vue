@@ -25,10 +25,7 @@
 
     <q-separator />
 
-    <div
-      v-if="!projects.length"
-      class="q-pa-xl text-center text-grey-6 col column items-center justify-center"
-    >
+    <div v-if="!projects.length" class="q-pa-xl text-center text-grey-6 col column items-center justify-center">
       <q-icon name="folder_open" size="40px" color="grey-5" />
       <div class="text-body2 q-mt-sm">No active projects assigned.</div>
     </div>
@@ -43,74 +40,70 @@
           class="q-py-md q-px-md cursor-pointer project-breakdown-item"
           @click="goToProjectTasks(row.project)"
         >
-          <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
-            <q-avatar
-              size="32px"
-              rounded
-              :color="getProjectTheme(idx).bg"
-              :text-color="getProjectTheme(idx).color"
-              :icon="getProjectIcon(idx)"
-            />
-          </q-item-section>
+        <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
+          <q-avatar
+            size="32px"
+            rounded
+            :color="getProjectTheme(idx).bg"
+            :text-color="getProjectTheme(idx).color"
+            :icon="getProjectIcon(idx)"
+          />
+        </q-item-section>
 
-          <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
-            <q-item-label
-              class="text-weight-bold ellipsis"
-              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              :title="row.project"
-              style="font-size: 13px"
-            >
-              {{ row.project }}
-            </q-item-label>
-            <q-item-label
-              caption
-              class="text-grey-6 ellipsis"
-              style="font-size: 11px; margin-top: 2px"
-            >
-              {{ row.tasks }} tasks · Due {{ row.deadline }}
-            </q-item-label>
-          </q-item-section>
-
-          <!-- Progress Bar & % (Desktop/Tablet only) -->
-          <q-item-section
-            side
-            class="gt-xs"
-            style="width: 140px; min-width: 130px; padding-left: 12px; padding-right: 6px"
+        <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
+          <q-item-label
+            class="text-weight-bold ellipsis"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+            :title="row.project"
+            style="font-size: 13px"
           >
-            <div class="row items-center no-wrap gap-sm full-width">
-              <div class="col">
-                <q-linear-progress
-                  :value="row.progress / 100"
-                  size="6px"
-                  rounded
-                  :color="getProgressColor(row.status)"
-                  :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
-                />
-              </div>
-              <span
-                class="text-caption text-weight-bold col-auto"
-                style="min-width: 32px; text-align: right"
-                :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
-              >
-                {{ row.progress }}%
-              </span>
-            </div>
-          </q-item-section>
+            {{ row.project }}
+          </q-item-label>
+          <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
+            {{ row.tasks }} tasks · Due {{ row.deadline }}
+          </q-item-label>
+        </q-item-section>
 
-          <!-- Status Badge -->
-          <q-item-section side style="padding-left: 6px; flex-shrink: 0">
-            <q-chip
-              dense
-              square
-              :color="getStatusChipColor(row.status).bg"
-              :text-color="getStatusChipColor(row.status).text"
-              class="text-caption text-weight-bold"
-              style="font-size: 10.5px; margin: 0"
+        <!-- Progress Bar & % (Desktop/Tablet only) -->
+        <q-item-section
+          side
+          class="gt-xs"
+          style="width: 140px; min-width: 130px; padding-left: 12px; padding-right: 6px"
+        >
+          <div class="row items-center no-wrap gap-sm full-width">
+            <div class="col">
+              <q-linear-progress
+                :value="row.progress / 100"
+                size="6px"
+                rounded
+                :color="getProgressColor(row.status)"
+                :track-color="$q.dark.isActive ? 'grey-8' : 'grey-3'"
+              />
+            </div>
+            <span
+              class="text-caption text-weight-bold col-auto"
+              style="min-width: 32px; text-align: right"
+              :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
             >
-              {{ row.status }}
-            </q-chip>
-          </q-item-section>
-        </q-item>
+              {{ row.progress }}%
+            </span>
+          </div>
+        </q-item-section>
+
+        <!-- Status Badge -->
+        <q-item-section side style="padding-left: 6px; flex-shrink: 0">
+          <q-chip
+            dense
+            square
+            :color="getStatusChipColor(row.status).bg"
+            :text-color="getStatusChipColor(row.status).text"
+            class="text-caption text-weight-bold"
+            style="font-size: 10.5px; margin: 0"
+          >
+            {{ row.status }}
+          </q-chip>
+        </q-item-section>
+      </q-item>
       </q-list>
     </div>
   </q-card>

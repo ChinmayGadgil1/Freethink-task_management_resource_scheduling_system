@@ -28,18 +28,11 @@
               dense
               mask="####-##-##"
               :dark="$q.dark.isActive"
-              :error="!!dateValidationError"
-              :error-message="dateValidationError || undefined"
             >
               <template #append>
                 <q-icon name="event" class="cursor-pointer text-primary">
                   <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-date
-                      v-model="form.log_date"
-                      mask="YYYY-MM-DD"
-                      :options="dateOptions"
-                      :dark="$q.dark.isActive"
-                    >
+                    <q-date v-model="form.log_date" mask="YYYY-MM-DD" :dark="$q.dark.isActive">
                       <div class="row items-center justify-end">
                         <q-btn v-close-popup label="Close" color="primary" flat />
                       </div>
@@ -298,41 +291,10 @@ const hoursError = computed(() => {
   return null;
 });
 
-const minDateStr = computed(() => {
-  if (!props.task?.planned_start) return null;
-  return String(props.task.planned_start).split('T')[0]?.split(' ')[0] || null;
-});
-
-const maxDateStr = computed(() => {
-  const today = createToday();
-  if (!props.task?.deadline) return today;
-  const deadlineStr = String(props.task.deadline).split('T')[0]?.split(' ')[0] || today;
-  return deadlineStr < today ? deadlineStr : today;
-});
-
-const dateOptions = (date: string) => {
-  const formatted = date.replace(/\//g, '-');
-  if (minDateStr.value && formatted < minDateStr.value) return false;
-  if (maxDateStr.value && formatted > maxDateStr.value) return false;
-  return true;
-};
-
-const dateValidationError = computed(() => {
-  if (!form.log_date) return 'Date is required';
-  if (minDateStr.value && form.log_date < minDateStr.value) {
-    return `Cannot log work before scheduled start date (${minDateStr.value})`;
-  }
-  if (maxDateStr.value && form.log_date > maxDateStr.value) {
-    return `Date cannot exceed ${maxDateStr.value}`;
-  }
-  return null;
-});
-
 const canSubmit = computed(() => {
   return (
     props.task !== null &&
     !hoursError.value &&
-    !dateValidationError.value &&
     form.log_date !== '' &&
     Number(form.hours_logged) > 0 &&
     Number(form.hours_logged) <= 16 &&
@@ -352,25 +314,17 @@ function resetForm(task: Task | null) {
   form.status = getStatusFromProgress(form.progress_logged);
   form.notes = '';
   form.blockers = '';
-
-  const today = createToday();
-  if (minDateStr.value && today < minDateStr.value) {
-    form.log_date = minDateStr.value;
-  } else if (maxDateStr.value && today > maxDateStr.value) {
-    form.log_date = maxDateStr.value;
-  } else {
-    form.log_date = today;
-  }
+  form.log_date = createToday();
 }
 
 watch(
-  () => [props.task?.task_id, props.modelValue] as const,
-  ([taskId, modelValue], oldVal) => {
-    const oldTaskId = oldVal?.[0];
-    const oldModelValue = oldVal?.[1];
-    if (modelValue && (!oldModelValue || taskId !== oldTaskId)) {
-      resetForm(props.task);
+  () => [props.task, props.modelValue, props.resourceProgress] as const,
+  ([task, modelValue]) => {
+    if (!modelValue) {
+      return;
     }
+
+    resetForm(task);
   },
   { immediate: true },
 );

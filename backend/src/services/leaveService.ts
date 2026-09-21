@@ -67,8 +67,14 @@ export async function applyLeave(data: CreateLeaveDTO, userRole?: string, creato
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    if (startDateStr <= todayStr) {
+    if (userRole === "RESOURCE" && startDateStr <= todayStr) {
         const error = new Error(`Leaves must be requested at least 1 day in advance. The start date (${startDateStr}) cannot be today or in the past.`);
+        (error as any).status = 400;
+        throw error;
+    }
+
+    if (userRole === "PROJECT_MANAGER" && startDateStr < todayStr) {
+        const error = new Error(`Cannot apply leave for a past date (${startDateStr}).`);
         (error as any).status = 400;
         throw error;
     }
@@ -443,14 +449,14 @@ export async function approveLeave(identifier: number | string, pmUserId: number
 
     // Removed PM restriction: PMs can approve leaves for any resource.
 
-    // Date Validation: leave dates must not have already started or passed (today < earliestDate)
+    // Date Validation: leave dates must not have already passed (today <= latestDate)
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const earliestDate = String(rows[0]!.leave_date);
     const latestDate = String(rows[rows.length - 1]!.leave_date);
 
-    if (todayStr >= earliestDate) {
-        const error = new Error(`Cannot approve a leave request on or after its start date (${earliestDate}). Same-day and past leaves cannot be approved.`);
+    if (todayStr > latestDate) {
+        const error = new Error(`Cannot approve a leave request whose dates have already passed (${latestDate}).`);
         (error as any).status = 400;
         throw error;
     }

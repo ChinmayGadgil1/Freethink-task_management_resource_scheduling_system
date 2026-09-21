@@ -1,6 +1,6 @@
 import { getPool } from "../config/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { recalculate as recalculateSchedule, parseAndFormatDateOnly, formatDateLocal } from "./scheduler/SchedulingEngine.js";
+import { recalculate as recalculateSchedule } from "./scheduler/SchedulingEngine.js";
 import { syncProjectProgress } from "./projectService.js";
 
 /**
@@ -75,18 +75,18 @@ export async function syncTaskProgressAndEffort(taskId: number, existingConnecti
 
         let newStatus: string;
         if (newProgress >= 100) {
-            // Overall task only completes when aggregate progress reaches 100% (all assignees done)
+            // Cannot mark COMPLETED if verification deliverable is still pending review
             newStatus = hasPendingVerification ? "IN_PROGRESS" : "COMPLETED";
-        } else if (newProgress > 0 || newActualEffort > 0) {
-            newStatus = "IN_PROGRESS";
-        } else {
+        } else if (newProgress <= 0) {
             newStatus = assignees.length > 0 ? "SCHEDULED" : "UNASSIGNED";
+        } else {
+            newStatus = "IN_PROGRESS";
         }
 
         const updateFields: string[] = ["actual_effort = ?", "progress = ?", "status = ?"];
         const updateParams: any[] = [newActualEffort, newProgress, newStatus];
 
-        // Check if this task has actual_start set, if not, set it from the earliest log date
+        // Check if this task has actual_start set, if not, set it
         const [taskRows] = await connection.query(
             `SELECT actual_start FROM tasks WHERE task_id = ?`,
             [taskId]
@@ -94,33 +94,11 @@ export async function syncTaskProgressAndEffort(taskId: number, existingConnecti
         
         const tasks = taskRows as any[];
         if (tasks.length > 0 && !tasks[0]?.actual_start && (newProgress > 0 || newActualEffort > 0)) {
-            const [firstLogRows] = await connection.query(
-                `SELECT MIN(log_date) as first_date FROM work_logs WHERE task_id = ?`,
-                [taskId]
-            );
-            const firstDate = (firstLogRows as any[])[0]?.first_date;
-            if (firstDate) {
-                const dStr = typeof firstDate === 'string' ? firstDate.split('T')[0] : new Date(firstDate).toISOString().split('T')[0];
-                updateFields.push("actual_start = ?");
-                updateParams.push(`${dStr} 10:00:00`);
-            } else {
-                updateFields.push("actual_start = NOW()");
-            }
+            updateFields.push("actual_start = NOW()");
         }
         
         if (newStatus === "COMPLETED") {
-            const [lastLogRows] = await connection.query(
-                `SELECT MAX(log_date) as last_date FROM work_logs WHERE task_id = ?`,
-                [taskId]
-            );
-            const lastDate = (lastLogRows as any[])[0]?.last_date;
-            if (lastDate) {
-                const dStr = typeof lastDate === 'string' ? lastDate.split('T')[0] : new Date(lastDate).toISOString().split('T')[0];
-                updateFields.push("actual_end = ?");
-                updateParams.push(`${dStr} 18:00:00`);
-            } else {
-                updateFields.push("actual_end = NOW()");
-            }
+            updateFields.push("actual_end = NOW()");
         } else {
             updateFields.push("actual_end = NULL");
         }
@@ -188,15 +166,13 @@ export async function createWorkLog(
             );
         }
 
-        // Validate task existence, planned_start, deadline, and user assignment/supervisor status
+        // Validate task existence and user assignment/supervisor status
         const [tasks] = await connection.query<RowDataPacket[]>(
             `SELECT t.task_id, t.project_id, t.supervisor_id, t.status, t.progress, t.actual_effort,
-                    t.planned_start, t.deadline, p.deadline as project_deadline,
                     GROUP_CONCAT(ta.user_id) as assigned_user_ids
              FROM tasks t
-             JOIN projects p ON t.project_id = p.project_id
              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
-             WHERE t.task_id = ? AND t.deleted_at IS NULL AND p.deleted_at IS NULL
+             WHERE t.task_id = ? AND t.deleted_at IS NULL
              GROUP BY t.task_id`,
             [taskId]
         );
@@ -216,23 +192,6 @@ export async function createWorkLog(
             throw new Error("Task not found or you are neither assigned to nor supervising this task");
         }
 
-        // Validate scheduled start date (cannot log before planned_start)
-        if (task.planned_start) {
-            const plannedStartDate = parseAndFormatDateOnly(task.planned_start);
-            if (plannedStartDate && logDate < plannedStartDate) {
-                throw new Error(`Cannot log work before the task's scheduled start date (${plannedStartDate})`);
-            }
-        }
-
-        // Validate deadline (cannot log after deadline if set)
-        const effectiveDeadline = task.deadline || task.project_deadline || null;
-        if (effectiveDeadline) {
-            const deadlineDate = parseAndFormatDateOnly(effectiveDeadline);
-            if (deadlineDate && logDate > deadlineDate) {
-                throw new Error(`Cannot log work after the task's deadline (${deadlineDate})`);
-            }
-        }
-
         const isSupervisorOnly = isSupervisor && !isAssigned;
 
         // Check if predecessor tasks are 100% complete
@@ -246,6 +205,13 @@ export async function createWorkLog(
         if (incompletePredecessors.length > 0) {
             throw new Error("Cannot log work: Predecessor tasks must be 100% complete first.");
         }
+
+        // Count previous work logs to detect if this is the first work log
+        const [workLogCountRows] = await connection.query<RowDataPacket[]>(
+            `SELECT COUNT(*) as log_count FROM work_logs WHERE task_id = ?`,
+            [taskId]
+        );
+        const isFirstLog = (workLogCountRows[0]?.log_count ?? 0) === 0;
 
         // Check if there is an active pending verification deliverable
         const [pendingVerificationRows] = await connection.query<RowDataPacket[]>(
@@ -262,6 +228,10 @@ export async function createWorkLog(
             newProgress = Number(task.progress || 0);
             newStatus = String(task.status);
         } else {
+            /* BACKEND STATUS SYNCHRONIZATION FOR ASSIGNEES:
+             0% progress     -> 'SCHEDULED' (planned / not started)
+             100% progress   -> 'COMPLETED' (all work finished), unless verification is pending
+             1% - 99% progress -> 'IN_PROGRESS' (work actively ongoing) */
             if (newProgress <= 0) {
                 newStatus = "SCHEDULED";
             } else if (newProgress >= 100) {
@@ -348,7 +318,7 @@ export async function getWorkLogsByTask(taskId: number) {
 
 export async function getDailyWorkAllocationsForResource(userId: number, dateStr: string, clientToday?: string) {
     const pool = getPool();
-    const todayStr = clientToday || formatDateLocal(new Date());
+    const todayStr = clientToday || new Date().toISOString().split("T")[0]!;
     const isToday = dateStr === todayStr;
 
     // 1. Fetch tasks scheduled or assigned to this resource for dateStr
@@ -518,37 +488,14 @@ export async function startSession(taskId: number, userId: number) {
 
         // Verify task exists and user is assigned or supervisor of this task
         const [tasks] = await connection.query<RowDataPacket[]>(
-            `SELECT t.task_id, t.supervisor_id, t.planned_start, t.deadline, p.deadline as project_deadline
-             FROM tasks t
-             JOIN projects p ON t.project_id = p.project_id
+            `SELECT t.task_id, t.supervisor_id FROM tasks t
              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id AND ta.user_id = ?
-             WHERE t.task_id = ? AND (ta.user_id = ? OR t.supervisor_id = ?)
-               AND t.deleted_at IS NULL AND p.deleted_at IS NULL`,
+             WHERE t.task_id = ? AND (ta.user_id = ? OR t.supervisor_id = ?)`,
             [userId, taskId, userId, userId]
         );
 
         if (tasks.length === 0) {
             throw new Error("Cannot start session: You are neither assigned to nor supervising this task");
-        }
-
-        const task = tasks[0]!;
-        const todayStr = formatDateLocal(new Date());
-
-        // Validate scheduled start date (cannot start session before planned_start)
-        if (task.planned_start) {
-            const plannedStartDate = parseAndFormatDateOnly(task.planned_start);
-            if (plannedStartDate && todayStr < plannedStartDate) {
-                throw new Error(`Cannot start session before the task's scheduled start date (${plannedStartDate})`);
-            }
-        }
-
-        // Validate deadline (cannot start session after deadline if set)
-        const effectiveDeadline = task.deadline || task.project_deadline || null;
-        if (effectiveDeadline) {
-            const deadlineDate = parseAndFormatDateOnly(effectiveDeadline);
-            if (deadlineDate && todayStr > deadlineDate) {
-                throw new Error(`Cannot start session after the task's deadline (${deadlineDate})`);
-            }
         }
 
         // Check if predecessor tasks are 100% complete
@@ -633,13 +580,19 @@ export async function stopSession(userId: number, progressLogged: number, notes:
     if (hoursLogged < 0.01) hoursLogged = 0.01;
     if (hoursLogged > 12) hoursLogged = 12;
 
+    // First mark session as inactive
+    await pool.query(
+        "UPDATE task_sessions SET end_time = NOW(), is_active = FALSE WHERE session_id = ?",
+        [activeSession.session_id]
+    );
+
+    // Call createWorkLog
     const logDate = `${endTime.getFullYear()}-${String(endTime.getMonth() + 1).padStart(2, '0')}-${String(endTime.getDate()).padStart(2, '0')}`;
     
     // Fetch task current status
     const [tasks] = await pool.query<RowDataPacket[]>("SELECT status FROM tasks WHERE task_id = ?", [taskId]);
     const currentStatus = tasks[0]?.status || 'IN_PROGRESS';
     
-    // Create work log first (if this fails, session is not prematurely killed)
     const workLog = await createWorkLog(
         taskId,
         userId,
@@ -649,12 +602,6 @@ export async function stopSession(userId: number, progressLogged: number, notes:
         notes,
         blockers,
         logDate
-    );
-
-    // After workLog is successfully created, mark session as inactive
-    await pool.query(
-        "UPDATE task_sessions SET end_time = NOW(), is_active = FALSE WHERE session_id = ?",
-        [activeSession.session_id]
     );
     
     return workLog;

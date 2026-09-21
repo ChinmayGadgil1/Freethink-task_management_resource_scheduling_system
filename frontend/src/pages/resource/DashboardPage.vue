@@ -169,11 +169,7 @@
         <div class="row q-col-gutter-md q-col-gutter-lg-lg items-stretch">
           <!-- Tasks Requiring Attention -->
           <div class="col-12 col-lg-7 d-flex">
-            <q-card
-              flat
-              bordered
-              class="rounded-borders overflow-hidden full-width full-height column"
-            >
+            <q-card flat bordered class="rounded-borders overflow-hidden full-width full-height column">
               <q-card-section class="q-pa-md row items-center justify-between no-wrap">
                 <div style="min-width: 0" class="col q-pr-sm">
                   <div
@@ -200,10 +196,7 @@
 
               <q-separator />
 
-              <div
-                v-if="!attentionTasks.length"
-                class="q-pa-lg text-center text-grey-6 col column items-center justify-center"
-              >
+              <div v-if="!attentionTasks.length" class="q-pa-lg text-center text-grey-6 col column items-center justify-center">
                 <q-icon name="check_circle" size="34px" color="positive" />
                 <div
                   class="text-body2 q-mt-sm"
@@ -223,10 +216,7 @@
                     class="q-py-md q-px-md cursor-pointer"
                     @click="goToTaskDetails(t.task_id)"
                   >
-                    <q-item-section
-                      avatar
-                      style="min-width: 32px; max-width: 34px; padding-right: 8px"
-                    >
+                    <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
                       <q-avatar
                         size="32px"
                         rounded
@@ -244,11 +234,7 @@
                       >
                         {{ t.title }}
                       </q-item-label>
-                      <q-item-label
-                        caption
-                        class="text-grey-6 ellipsis"
-                        style="font-size: 11px; margin-top: 2px"
-                      >
+                      <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
                         {{ t.project_name || `Project #${t.project_id}` }}
                         <span v-if="t.deadline"> · Due {{ formatDate(t.deadline) }}</span>
                       </q-item-label>
@@ -288,11 +274,7 @@
             :class="supervisedTasks.length > 0 ? 'col-12 col-lg-6' : 'col-12'"
             class="d-flex"
           >
-            <q-card
-              flat
-              bordered
-              class="rounded-borders overflow-hidden full-width full-height column"
-            >
+            <q-card flat bordered class="rounded-borders overflow-hidden full-width full-height column">
               <q-card-section class="q-pa-md row items-center justify-between no-wrap">
                 <div style="min-width: 0" class="col q-pr-sm">
                   <div
@@ -329,10 +311,7 @@
                     class="q-py-md q-px-md cursor-pointer"
                     @click="goToTaskDetails(taskItem.task_id)"
                   >
-                    <q-item-section
-                      avatar
-                      style="min-width: 32px; max-width: 34px; padding-right: 8px"
-                    >
+                    <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
                       <q-avatar
                         size="32px"
                         rounded
@@ -350,11 +329,7 @@
                       >
                         {{ taskItem.title }}
                       </q-item-label>
-                      <q-item-label
-                        caption
-                        class="text-grey-6 ellipsis"
-                        style="font-size: 11px; margin-top: 2px"
-                      >
+                      <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
                         {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
                       </q-item-label>
                     </q-item-section>
@@ -391,11 +366,7 @@
             :class="selfAssignedTasks.length > 0 ? 'col-12 col-lg-6' : 'col-12'"
             class="d-flex"
           >
-            <q-card
-              flat
-              bordered
-              class="rounded-borders overflow-hidden full-width full-height column"
-            >
+            <q-card flat bordered class="rounded-borders overflow-hidden full-width full-height column">
               <q-card-section class="q-pa-md row items-center justify-between no-wrap">
                 <div style="min-width: 0" class="col q-pr-sm">
                   <div
@@ -433,10 +404,7 @@
                     class="q-py-md q-px-md cursor-pointer"
                     @click="goToTaskDetails(taskItem.task_id)"
                   >
-                    <q-item-section
-                      avatar
-                      style="min-width: 32px; max-width: 34px; padding-right: 8px"
-                    >
+                    <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
                       <q-avatar
                         size="32px"
                         rounded
@@ -454,11 +422,7 @@
                       >
                         {{ taskItem.title }}
                       </q-item-label>
-                      <q-item-label
-                        caption
-                        class="text-grey-6 ellipsis"
-                        style="font-size: 11px; margin-top: 2px"
-                      >
+                      <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
                         {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
                         <span v-if="taskItem.created_by_name">
                           · Assigned by {{ taskItem.created_by_name }}</span

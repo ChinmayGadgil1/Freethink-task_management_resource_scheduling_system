@@ -76,10 +76,7 @@
         </div>
       </div>
 
-      <div
-        class="row q-col-gutter-xs q-col-gutter-sm-sm q-mt-sm q-mt-md-md"
-        style="min-width: 0; width: 100%"
-      >
+      <div class="row q-col-gutter-xs q-col-gutter-sm-sm q-mt-sm q-mt-md-md" style="min-width: 0; width: 100%">
         <div class="col-4" style="min-width: 0">
           <q-card
             flat
@@ -87,7 +84,9 @@
             :class="$q.dark.isActive ? 'bg-purple-dark text-purple-2' : 'bg-purple-1 text-purple-9'"
             @click="goToTaskDetails"
           >
-            <div class="text-caption text-weight-medium ellipsis stat-pill-label">Active</div>
+            <div class="text-caption text-weight-medium ellipsis stat-pill-label">
+              Active
+            </div>
             <div class="text-h6 text-weight-bolder q-mt-xs stat-pill-val ellipsis">
               {{ assignedTasks }}
             </div>
@@ -100,7 +99,9 @@
             :class="$q.dark.isActive ? 'bg-blue-dark text-blue-2' : 'bg-blue-1 text-blue-9'"
             @click="goToProgress"
           >
-            <div class="text-caption text-weight-medium ellipsis stat-pill-label">Actual</div>
+            <div class="text-caption text-weight-medium ellipsis stat-pill-label">
+              Actual
+            </div>
             <div class="text-h6 text-weight-bolder q-mt-xs stat-pill-val ellipsis">
               {{ formatHours(actualHours) }}
             </div>
@@ -113,7 +114,9 @@
             :class="$q.dark.isActive ? 'bg-teal-dark text-teal-2' : 'bg-teal-1 text-teal-9'"
             @click="goToProgress"
           >
-            <div class="text-caption text-weight-medium ellipsis stat-pill-label">Remaining</div>
+            <div class="text-caption text-weight-medium ellipsis stat-pill-label">
+              Remaining
+            </div>
             <div class="text-h6 text-weight-bolder q-mt-xs stat-pill-val ellipsis">
               {{ formatHours(remainingHours) }}
             </div>

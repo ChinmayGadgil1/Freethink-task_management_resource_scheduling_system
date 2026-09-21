@@ -584,7 +584,7 @@
                   <div class="row items-center q-gutter-xs no-wrap">
                     <template v-if="props.row.status === 'PENDING'">
                       <q-btn
-                        v-if="canApproveLeave(props.row.start_date || props.row.leave_date)"
+                        v-if="canApproveLeave(props.row.end_date || props.row.leave_date)"
                         flat
                         round
                         dense
@@ -598,9 +598,7 @@
                         <q-tooltip>Approve Leave & Recalculate Schedule</q-tooltip>
                       </q-btn>
                       <q-btn v-else flat round dense disable icon="check" color="grey-5">
-                        <q-tooltip
-                          >Cannot approve: Leave starts today or has already passed</q-tooltip
-                        >
+                        <q-tooltip>Cannot approve: Leave dates have already passed</q-tooltip>
                       </q-btn>
 
                       <q-btn
@@ -2153,11 +2151,11 @@ const leaveColumns: QTableColumn<LeaveItem>[] = [
   { name: 'actions', label: 'Actions', field: () => '', align: 'center' },
 ];
 
-function canApproveLeave(startDateStr: string): boolean {
-  if (!startDateStr) return false;
+function canApproveLeave(endDateStr: string): boolean {
+  if (!endDateStr) return false;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return todayStr < startDateStr;
+  return todayStr <= endDateStr;
 }
 
 async function handleApproveLeave(identifier: number | string) {
