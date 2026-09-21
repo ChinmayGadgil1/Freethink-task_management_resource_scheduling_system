@@ -1150,7 +1150,7 @@ function applyColumnsConfig() {
           `<div class="gantt-col-task is-supervised-task" title="Supervised Deliverable (Review: ${supH}h / 20%)">` +
           `<span class="task-icon-supervisor">🛡️</span>` +
           `<span class="task-title ellipsis text-weight-bold" style="color: #b45309;">${text}</span>` +
-          `<span class="task-count-pill" style="background: rgba(245, 158, 11, 0.2); color: #b45309; margin-left: auto;">🛡️ ${supH}h (20%)</span>` +
+          `<span class="task-count-pill pill-warning">🛡️ ${supH}h (20%)</span>` +
           `</div>`
         );
       }
@@ -1165,9 +1165,9 @@ function applyColumnsConfig() {
       if (isResourceMode) {
         if (assigneesCount > 1) {
           const share = Number(task.expected_effort || (baseH / assigneesCount).toFixed(1));
-          effortTag = `<span class="task-count-pill" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; margin-left: auto;" title="Your Share: ${share}h (1/${assigneesCount} of ${baseH}h total)">${share}h (1/${assigneesCount})</span>`;
+          effortTag = `<span class="task-count-pill pill-split" title="Your Share: ${share}h (1/${assigneesCount} of ${baseH}h total)">${share}h (1/${assigneesCount})</span>`;
         } else if (baseH > 0) {
-          effortTag = `<span class="task-count-pill" style="background: #f1f5f9; color: #475569; margin-left: auto;" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+          effortTag = `<span class="task-count-pill pill-default" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
         }
       } else {
         // Project View
@@ -1178,12 +1178,12 @@ function applyColumnsConfig() {
             assigneesCount > 1
               ? `${baseH}h dev [${assigneesCount} members] + ${supH}h sup`
               : `${baseH}h dev + ${supH}h sup`;
-          effortTag = `<span class="task-count-pill" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; margin-left: auto;" title="Total Required: ${totalReq}h (${splitLabel})">${totalReq}h (${baseH}+${supH})</span>`;
+          effortTag = `<span class="task-count-pill pill-supervisor" title="Total Required: ${totalReq}h (${splitLabel})">${totalReq}h (${baseH}+${supH})</span>`;
         } else if (assigneesCount > 1) {
           const share = Number((baseH / assigneesCount).toFixed(1));
-          effortTag = `<span class="task-count-pill" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; margin-left: auto;" title="Total: ${baseH}h (${share}h each across ${assigneesCount} members)">${baseH}h (${share}h ea)</span>`;
+          effortTag = `<span class="task-count-pill pill-split" title="Total: ${baseH}h (${share}h each across ${assigneesCount} members)">${baseH}h (${share}h ea)</span>`;
         } else if (baseH > 0) {
-          effortTag = `<span class="task-count-pill" style="background: #f1f5f9; color: #475569; margin-left: auto;" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
+          effortTag = `<span class="task-count-pill pill-default" title="Expected Effort: ${baseH}h">${baseH}h</span>`;
         }
       }
       return (
@@ -3413,6 +3413,25 @@ defineExpose({
       margin-left: auto;
       flex-shrink: 0;
       white-space: nowrap;
+      background: #f1f5f9;
+      color: #475569;
+
+      &.pill-default {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      &.pill-split {
+        background: rgba(59, 130, 246, 0.12);
+        color: #2563eb;
+      }
+      &.pill-supervisor {
+        background: rgba(124, 58, 237, 0.12);
+        color: #7c3aed;
+      }
+      &.pill-warning {
+        background: rgba(245, 158, 11, 0.15);
+        color: #b45309;
+      }
     }
   }
 
@@ -4152,8 +4171,9 @@ body.body--dark {
         color: #ffffff;
       }
       .task-count-pill {
-        background: #2e1065;
+        background: rgba(124, 58, 237, 0.22);
         color: #c084fc;
+        border: 1px solid rgba(124, 58, 237, 0.3);
       }
     }
 
@@ -4163,6 +4183,30 @@ body.body--dark {
       }
       .task-count-pill {
         white-space: nowrap;
+        background: rgba(148, 163, 184, 0.14);
+        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+
+        &.pill-default {
+          background: rgba(148, 163, 184, 0.14);
+          color: #94a3b8;
+          border-color: rgba(148, 163, 184, 0.2);
+        }
+        &.pill-split {
+          background: rgba(59, 130, 246, 0.2);
+          color: #60a5fa;
+          border-color: rgba(59, 130, 246, 0.3);
+        }
+        &.pill-supervisor {
+          background: rgba(124, 58, 237, 0.2);
+          color: #c084fc;
+          border-color: rgba(124, 58, 237, 0.3);
+        }
+        &.pill-warning {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.3);
+        }
       }
     }
 
