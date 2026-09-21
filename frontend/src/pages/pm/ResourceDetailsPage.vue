@@ -636,159 +636,396 @@
 
       <!-- ASSIGN TASK DIALOG -->
       <q-dialog v-model="showAssignDialog">
-        <q-card style="min-width: 400px">
-          <q-card-section class="row items-center justify-between">
-            <div class="text-h6 text-weight-bold">Assign Task to {{ resourceName }}</div>
+        <q-card style="width: 500px; max-width: 95vw">
+          <q-card-section class="row items-center justify-between q-pb-xs">
+            <div>
+              <div class="text-h6 text-weight-bold">Assign Task to {{ resourceName }}</div>
+              <div class="text-caption text-grey-6">
+                Current: {{ formatHours(totalEffort) }} weekly load ({{ utilization }}%)
+              </div>
+            </div>
             <q-btn v-close-popup flat round dense icon="close" />
           </q-card-section>
 
-          <q-form @submit.prevent="handleAssignTask">
-            <q-card-section class="q-gutter-md">
-              <q-select
-                v-model="assignForm.project_id"
-                outlined
-                dense
-                label="Select Project *"
-                :options="allProjects"
-                option-value="project_id"
-                option-label="name"
-                emit-value
-                map-options
-                :rules="[(val) => !!val || 'Project is required']"
-              />
+          <!-- TABS: Assign Existing Task vs Create New Task -->
+          <q-tabs
+            v-model="assignModalTab"
+            dense
+            no-caps
+            align="justify"
+            active-color="primary"
+            indicator-color="primary"
+            class="text-grey-7 q-mx-md q-mt-xs"
+            style="border-bottom: 1px solid var(--wo-border, #e5e7ec)"
+          >
+            <q-tab name="existing" icon="assignment_turned_in" label="Assign Existing Task" />
+            <q-tab name="create" icon="add_task" label="Create New Task" />
+          </q-tabs>
 
-              <q-input
-                v-model="assignForm.title"
-                outlined
-                dense
-                label="Task Title *"
-                :rules="[(val) => !!val || 'Title is required']"
-              />
-
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="assignForm.description"
-                    outlined
-                    dense
-                    type="textarea"
-                    label="Description"
-                    autogrow
-                  />
-                </div>
-              </div>
-
-              <div class="row q-col-gutter-sm">
-                <div class="col-6">
+          <q-tab-panels v-model="assignModalTab" animated class="bg-transparent">
+            <!-- TAB 1: ASSIGN EXISTING TASK -->
+            <q-tab-panel name="existing" class="q-pa-md q-pt-sm">
+              <div class="q-gutter-y-md">
+                <!-- Project Filter -->
+                <div>
                   <q-select
-                    v-model="assignForm.priority"
+                    v-model="assignExistingProjectId"
                     outlined
                     dense
-                    label="Priority"
-                    :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
-                  />
-                </div>
-                <div class="col-6">
-                  <q-input
-                    v-model.number="assignForm.expected_effort"
-                    outlined
-                    dense
-                    type="number"
-                    label="Effort (Hours)"
-                  />
-                </div>
-              </div>
-
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-select
-                    v-model="assignForm.supervisor_id"
-                    outlined
-                    dense
-                    clearable
+                    label="Filter by Project"
+                    :options="modalProjectOptions"
                     emit-value
                     map-options
-                    label="Supervisor / Reviewer (Optional)"
-                    :options="assignSupervisorOptions"
-                    :disable="!assignForm.project_id"
+                    @update:model-value="onModalProjectChange"
                   >
                     <template #prepend>
-                      <q-icon name="supervisor_account" size="18px" />
-                    </template>
-                    <template #hint>
-                      Supervisor receives +20% effort overhead and can log work (cannot be the
-                      assigned resource)
+                      <q-icon name="folder" size="18px" />
                     </template>
                   </q-select>
                 </div>
-              </div>
 
-              <div class="row q-col-gutter-sm">
-                <div class="col-12">
-                  <q-input
-                    v-model="assignForm.deadline"
+                <!-- Task Selector -->
+                <div>
+                  <q-select
+                    v-model="selectedAssignTaskId"
                     outlined
                     dense
-                    mask="####-##-##"
-                    label="Target Deadline *"
-                    stack-label
-                    hint="Deliverable target completion date"
-                    :dark="$q.dark.isActive"
-                    :rules="[
-                      (val) => !!val || 'Deadline is required when assigning a task to a resource',
-                      (val) => {
-                        if (!val || !selectedAssignProject?.start_date) return true;
-                        const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
-                        return (
-                          !pStart ||
-                          val >= pStart ||
-                          `Deadline cannot be earlier than project start date (${pStart})`
-                        );
-                      },
-                      (val) => {
-                        if (!val || !selectedAssignProject?.deadline) return true;
-                        const pDeadline =
-                          String(selectedAssignProject.deadline).split('T')[0] || '';
-                        return (
-                          !pDeadline ||
-                          val <= pDeadline ||
-                          `Deadline cannot be later than project deadline (${pDeadline})`
-                        );
-                      },
-                    ]"
+                    emit-value
+                    map-options
+                    :options="modalAssignableTaskOptions"
+                    label="Select Task to Assign *"
+                    :loading="modalLoadingTasks"
+                    clearable
                   >
-                    <template #append>
-                      <q-icon name="event" class="cursor-pointer text-primary">
-                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                          <q-date
-                            v-model="assignForm.deadline"
-                            mask="YYYY-MM-DD"
-                            :dark="$q.dark.isActive"
-                          >
-                            <div class="row items-center justify-end">
-                              <q-btn v-close-popup label="Close" color="primary" flat />
-                            </div>
-                          </q-date>
-                        </q-popup-proxy>
-                      </q-icon>
+                    <template #prepend>
+                      <q-icon name="task_alt" size="18px" />
                     </template>
-                  </q-input>
+                    <template #option="{ itemProps, opt }">
+                      <q-item v-bind="itemProps">
+                        <q-item-section>
+                          <q-item-label class="text-weight-medium">{{ opt.task.title }}</q-item-label>
+                          <q-item-label caption class="row items-center q-gutter-x-xs q-mt-xs wrap">
+                            <q-chip dense square size="xs" class="project-badge">
+                              <q-icon name="folder" size="10px" class="q-mr-xs" />
+                              {{ opt.projectName }}
+                            </q-chip>
+                            <q-chip
+                              dense
+                              square
+                              size="xs"
+                              :color="getPriorityColor(opt.task.priority)"
+                              text-color="white"
+                            >
+                              {{ opt.task.priority }}
+                            </q-chip>
+                            <q-chip
+                              dense
+                              square
+                              size="xs"
+                              :color="getTaskStatusColor(opt.task.status)"
+                              text-color="white"
+                            >
+                              {{ opt.task.status }}
+                            </q-chip>
+                            <span class="text-caption text-grey-6">{{ opt.task.expected_effort || 0 }}h</span>
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template #no-option>
+                      <q-item>
+                        <q-item-section class="text-grey-6 text-caption">
+                          No assignable tasks available in this project
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
+
+                <!-- Empty state banner if no tasks available -->
+                <div v-if="!modalLoadingTasks && modalAssignableTaskOptions.length === 0">
+                  <q-banner rounded dense class="bg-amber-1 text-amber-9 border-amber">
+                    <template #avatar>
+                      <q-icon name="info" color="amber-9" />
+                    </template>
+                    <div class="text-caption">
+                      No unassigned tasks found for this project filter. Select another project or switch to
+                      <strong>"Create New Task"</strong> to create a new task for this resource.
+                    </div>
+                  </q-banner>
+                </div>
+
+                <!-- Selected Task Summary & Workload Impact Preview -->
+                <div v-if="selectedAssignTask" class="task-summary-box q-pa-sm">
+                  <div class="row items-center justify-between q-mb-xs">
+                    <div class="text-caption text-weight-bold text-grey-8">Task Preview</div>
+                    <q-chip dense square size="sm" class="project-badge">
+                      <q-icon name="folder" size="10px" class="q-mr-xs" />
+                      {{ getProjectName(selectedAssignTask.project_id) }}
+                    </q-chip>
+                  </div>
+                  <div class="text-subtitle2 text-weight-bold text-dark q-mb-xs">
+                    {{ selectedAssignTask.title }}
+                  </div>
+                  <div
+                    v-if="selectedAssignTask.description"
+                    class="text-caption text-grey-7 q-mb-sm ellipsis-2-lines"
+                  >
+                    {{ selectedAssignTask.description }}
+                  </div>
+                  <div class="row items-center q-gutter-xs wrap q-mb-sm">
+                    <q-chip
+                      dense
+                      square
+                      size="xs"
+                      :color="getPriorityColor(selectedAssignTask.priority)"
+                      text-color="white"
+                    >
+                      {{ selectedAssignTask.priority }}
+                    </q-chip>
+                    <q-chip
+                      dense
+                      square
+                      size="xs"
+                      :color="getTaskStatusColor(selectedAssignTask.status)"
+                      text-color="white"
+                    >
+                      {{ selectedAssignTask.status }}
+                    </q-chip>
+                    <q-chip dense square size="xs" color="blue-1" text-color="blue-9">
+                      <q-icon name="schedule" size="10px" class="q-mr-xs" />
+                      {{ selectedAssignTask.expected_effort || 0 }} hrs
+                    </q-chip>
+                    <q-chip
+                      v-if="selectedAssignTask.deadline"
+                      dense
+                      square
+                      size="xs"
+                      color="purple-1"
+                      text-color="purple-9"
+                    >
+                      <q-icon name="event" size="10px" class="q-mr-xs" />
+                      Deadline: {{ String(selectedAssignTask.deadline).split('T')[0] }}
+                    </q-chip>
+                  </div>
+
+                  <div class="text-caption text-grey-7 q-mb-xs">
+                    <span class="text-weight-medium">Current Assignees: </span>
+                    <span>{{ getTaskAssigneeNames(selectedAssignTask) }}</span>
+                  </div>
+
+                  <!-- Projected Workload Bar -->
+                  <q-separator class="q-my-xs" />
+                  <div class="q-pt-xs">
+                    <div class="row items-center justify-between text-caption q-mb-xs">
+                      <span class="text-grey-7 text-weight-medium">Projected Workload</span>
+                      <span
+                        class="text-weight-bold"
+                        :class="projectedUtilization > 100 ? 'text-negative' : 'text-dark'"
+                      >
+                        {{ formatHours(projectedEffort) }} ({{ projectedUtilization }}%)
+                      </span>
+                    </div>
+                    <q-linear-progress
+                      rounded
+                      size="6px"
+                      :value="Math.min(100, projectedUtilization) / 100"
+                      :color="projectedUtilization > 100 ? 'negative' : projectedUtilization >= 75 ? 'warning' : 'positive'"
+                      track-color="grey-3"
+                    />
+                    <div
+                      v-if="projectedUtilization > 100"
+                      class="row items-center text-negative text-caption q-mt-xs text-weight-medium"
+                    >
+                      <q-icon name="warning" size="14px" class="q-mr-xs" />
+                      Assigning this task will overallocate {{ resourceName }}.
+                    </div>
+                  </div>
                 </div>
               </div>
-            </q-card-section>
 
-            <q-card-actions align="right" class="q-pa-md">
-              <q-btn v-close-popup flat no-caps label="Cancel" />
-              <q-btn
-                type="submit"
-                unelevated
-                no-caps
-                color="primary"
-                label="Assign Task"
-                :loading="submitting"
-              />
-            </q-card-actions>
-          </q-form>
+              <!-- Actions for Existing Task -->
+              <div class="row items-center justify-end q-gutter-sm q-mt-md">
+                <q-btn
+                  v-close-popup
+                  flat
+                  no-caps
+                  label="Cancel"
+                  color="grey-7"
+                  class="text-weight-medium"
+                />
+                <q-btn
+                  unelevated
+                  no-caps
+                  color="primary"
+                  label="Assign Task"
+                  icon="assignment_ind"
+                  :loading="submitting"
+                  :disable="!selectedAssignTaskId"
+                  @click="handleAssignExistingTask"
+                />
+              </div>
+            </q-tab-panel>
+
+            <!-- TAB 2: CREATE & ASSIGN NEW TASK -->
+            <q-tab-panel name="create" class="q-pa-md q-pt-sm">
+              <q-form @submit.prevent="handleCreateAndAssignTask">
+                <div class="q-gutter-y-md">
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-select
+                        v-model="assignForm.project_id"
+                        outlined
+                        dense
+                        label="Select Project *"
+                        :options="allProjects"
+                        option-value="project_id"
+                        option-label="name"
+                        emit-value
+                        map-options
+                        :rules="[(val) => !!val || 'Project is required']"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-input
+                        v-model="assignForm.title"
+                        outlined
+                        dense
+                        label="Task Title *"
+                        :rules="[(val) => !!val || 'Title is required']"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-input
+                        v-model="assignForm.description"
+                        outlined
+                        dense
+                        type="textarea"
+                        label="Description"
+                        autogrow
+                      />
+                    </div>
+                  </div>
+
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-6">
+                      <q-select
+                        v-model="assignForm.priority"
+                        outlined
+                        dense
+                        label="Priority"
+                        :options="['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']"
+                      />
+                    </div>
+                    <div class="col-6">
+                      <q-input
+                        v-model.number="assignForm.expected_effort"
+                        outlined
+                        dense
+                        type="number"
+                        label="Effort (Hours)"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-select
+                        v-model="assignForm.supervisor_id"
+                        outlined
+                        dense
+                        clearable
+                        emit-value
+                        map-options
+                        label="Supervisor / Reviewer (Optional)"
+                        :options="assignSupervisorOptions"
+                        :disable="!assignForm.project_id"
+                      >
+                        <template #prepend>
+                          <q-icon name="supervisor_account" size="18px" />
+                        </template>
+                        <template #hint>
+                          Supervisor receives +20% effort overhead and can log work (cannot be the
+                          assigned resource)
+                        </template>
+                      </q-select>
+                    </div>
+                  </div>
+
+                  <div class="row q-col-gutter-sm">
+                    <div class="col-12">
+                      <q-input
+                        v-model="assignForm.deadline"
+                        outlined
+                        dense
+                        mask="####-##-##"
+                        label="Target Deadline *"
+                        stack-label
+                        hint="Deliverable target completion date"
+                        :dark="$q.dark.isActive"
+                        :rules="[
+                          (val) => !!val || 'Deadline is required when assigning a task to a resource',
+                          (val) => {
+                            if (!val || !selectedAssignProject?.start_date) return true;
+                            const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
+                            return (
+                              !pStart ||
+                              val >= pStart ||
+                              `Deadline cannot be earlier than project start date (${pStart})`
+                            );
+                          },
+                          (val) => {
+                            if (!val || !selectedAssignProject?.deadline) return true;
+                            const pDeadline =
+                              String(selectedAssignProject.deadline).split('T')[0] || '';
+                            return (
+                              !pDeadline ||
+                              val <= pDeadline ||
+                              `Deadline cannot be later than project deadline (${pDeadline})`
+                            );
+                          },
+                        ]"
+                      >
+                        <template #append>
+                          <q-icon name="event" class="cursor-pointer text-primary">
+                            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                              <q-date
+                                v-model="assignForm.deadline"
+                                mask="YYYY-MM-DD"
+                                :dark="$q.dark.isActive"
+                              >
+                                <div class="row items-center justify-end">
+                                  <q-btn v-close-popup label="Close" color="primary" flat />
+                                </div>
+                              </q-date>
+                            </q-popup-proxy>
+                          </q-icon>
+                        </template>
+                      </q-input>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row items-center justify-end q-gutter-sm q-mt-md">
+                  <q-btn v-close-popup flat no-caps label="Cancel" />
+                  <q-btn
+                    type="submit"
+                    unelevated
+                    no-caps
+                    color="primary"
+                    label="Create & Assign Task"
+                    :loading="submitting"
+                  />
+                </div>
+              </q-form>
+            </q-tab-panel>
+          </q-tab-panels>
         </q-card>
       </q-dialog>
 
@@ -1284,6 +1521,7 @@ import AssignVerificationDialog from '@/components/tasks/AssignVerificationDialo
 import { isVerificationTask } from '@/utils/taskHelpers';
 import {
   createTaskApi,
+  assignTaskResourceApi,
   updateTaskApi,
   getProjectsApi,
   getResourcesApi,
@@ -1679,15 +1917,11 @@ const assignSupervisorOptions = computed(() => {
     }));
 });
 
-function openAssignTaskDialog() {
-  assignForm.project_id = allProjects.value[0]?.project_id ?? null;
-  assignForm.title = '';
-  assignForm.description = '';
-  assignForm.priority = 'MEDIUM';
-  assignForm.expected_effort = 8;
-  assignForm.supervisor_id = null;
-  showAssignDialog.value = true;
-}
+const assignModalTab = ref<'existing' | 'create'>('existing');
+const assignExistingProjectId = ref<number | 'ALL'>('ALL');
+const selectedAssignTaskId = ref<number | null>(null);
+const modalTasks = ref<Task[]>([]);
+const modalLoadingTasks = ref(false);
 
 const leavesList = ref<LeaveItem[]>([]);
 const showLeaveDialog = ref(false);
@@ -2207,7 +2441,149 @@ function goToProject(id: number) {
   void router.push(`/pm/projects/${id}`);
 }
 
-async function handleAssignTask() {
+const modalProjectOptions = computed(() => {
+  const opts: Array<{ label: string; value: number | 'ALL' }> = [
+    { label: 'All Projects', value: 'ALL' },
+  ];
+  for (const p of allProjects.value) {
+    opts.push({
+      label: p.name,
+      value: p.project_id,
+    });
+  }
+  return opts;
+});
+
+const modalAssignableTaskOptions = computed(() => {
+  if (!resourceId.value) return [];
+  const rId = resourceId.value;
+
+  return modalTasks.value
+    .filter((t) => {
+      const isAssigned = (t.assigned_resource_ids || []).map(Number).includes(rId);
+      if (isAssigned) return false;
+
+      if (t.supervisor_id && Number(t.supervisor_id) === rId) return false;
+
+      if (t.status === 'COMPLETED' || (t.status as string) === 'CANCELLED') return false;
+
+      return true;
+    })
+    .map((t) => {
+      const p = allProjects.value.find((proj) => proj.project_id === t.project_id);
+      const pName = p ? p.name : `Project #${t.project_id}`;
+      return {
+        label: `${t.title} (${pName})`,
+        value: t.task_id,
+        task: t,
+        projectName: pName,
+      };
+    });
+});
+
+async function loadModalTasks() {
+  modalLoadingTasks.value = true;
+  try {
+    const pid =
+      assignExistingProjectId.value === 'ALL'
+        ? undefined
+        : Number(assignExistingProjectId.value);
+    modalTasks.value = await getTasksApi(pid);
+  } catch (err) {
+    console.error('Failed to load modal tasks:', err);
+    modalTasks.value = [];
+  } finally {
+    modalLoadingTasks.value = false;
+  }
+}
+
+function onModalProjectChange() {
+  selectedAssignTaskId.value = null;
+  void loadModalTasks();
+}
+
+const selectedAssignTask = computed(() => {
+  if (!selectedAssignTaskId.value) return null;
+  return modalTasks.value.find((t) => t.task_id === selectedAssignTaskId.value) || null;
+});
+
+const projectedEffort = computed(() => {
+  const baseEffort = Number(selectedAssignTask.value?.expected_effort || 0);
+  return totalEffort.value + baseEffort;
+});
+
+const projectedUtilization = computed(() => {
+  const cap = Math.max(
+    1,
+    weeklyStandardCapacity.value || calculateResourceWeeklyCapacity(resourceInfo.value),
+  );
+  return Math.round((projectedEffort.value / cap) * 100);
+});
+
+function getTaskAssigneeNames(task: Task): string {
+  if (!task.assigned_resource_ids || task.assigned_resource_ids.length === 0) {
+    return 'None (Unassigned)';
+  }
+  return task.assigned_resource_ids
+    .map((id) => {
+      const r = resourceList.value.find((item) => item.user_id === id);
+      return r ? r.name : `Resource #${id}`;
+    })
+    .join(', ');
+}
+
+function openAssignTaskDialog() {
+  assignModalTab.value = 'existing';
+  selectedAssignTaskId.value = null;
+
+  if (resourceProjects.value.length > 0 && resourceProjects.value[0]?.project_id) {
+    assignExistingProjectId.value = resourceProjects.value[0].project_id;
+  } else {
+    assignExistingProjectId.value = 'ALL';
+  }
+
+  assignForm.project_id = allProjects.value[0]?.project_id ?? null;
+  assignForm.title = '';
+  assignForm.description = '';
+  assignForm.priority = 'MEDIUM';
+  assignForm.expected_effort = 8;
+  assignForm.supervisor_id = null;
+  assignForm.deadline = '';
+
+  showAssignDialog.value = true;
+  void loadModalTasks();
+}
+
+async function handleAssignExistingTask() {
+  if (!selectedAssignTaskId.value || !resourceId.value) {
+    $q.notify({
+      type: 'warning',
+      message: 'Please select a task to assign',
+    });
+    return;
+  }
+
+  submitting.value = true;
+  try {
+    await assignTaskResourceApi(selectedAssignTaskId.value, resourceId.value);
+    $q.notify({
+      type: 'positive',
+      message: `Task successfully assigned to ${resourceName.value}`,
+    });
+    showAssignDialog.value = false;
+    void loadData();
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to assign task';
+    $q.notify({
+      type: 'negative',
+      message: msg,
+    });
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function handleCreateAndAssignTask() {
   if (!assignForm.project_id || !assignForm.title.trim()) {
     return;
   }
@@ -2235,7 +2611,7 @@ async function handleAssignTask() {
 
     $q.notify({
       type: 'positive',
-      message: 'Task assigned to resource successfully',
+      message: 'Task created and assigned to resource successfully',
     });
 
     showAssignDialog.value = false;
@@ -2341,3 +2717,15 @@ async function handleCancelLeave(identifier: number | string) {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.task-summary-box {
+  background: var(--wo-bg-page, #fafbfc);
+  border: 1px solid var(--wo-border, #e9ebef);
+  border-radius: 8px;
+}
+
+.border-amber {
+  border: 1px solid #ffe082;
+}
+</style>
