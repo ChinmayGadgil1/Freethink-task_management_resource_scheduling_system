@@ -1,6 +1,6 @@
 <template>
-  <q-card flat bordered class="rounded-borders overflow-hidden">
-    <q-card-section class="q-pa-md">
+  <q-card flat bordered class="rounded-borders overflow-hidden column">
+    <q-card-section class="q-pa-md col column justify-between">
       <div class="row items-center justify-between no-wrap q-mb-md">
         <div style="min-width: 0" class="q-pr-sm">
           <div

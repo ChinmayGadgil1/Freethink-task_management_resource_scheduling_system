@@ -305,6 +305,81 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   }
 }
 
+@media (max-width: 600px) {
+  .stat-card-widget {
+    min-height: 66px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .stat-card-inner {
+    padding: 8px 8px;
+    box-sizing: border-box;
+  }
+
+  .stat-standard-layout {
+    gap: 6px;
+    flex-wrap: nowrap;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .stat-icon-wrapper {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    flex: 0 0 30px;
+    border-radius: 7px;
+
+    :deep(.q-icon) {
+      font-size: 16px !important;
+    }
+  }
+
+  .stat-content {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .stat-title {
+    font-size: 10px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-value {
+    font-size: 17px;
+    line-height: 1.1;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &.stat-value--sm {
+      font-size: 14px;
+    }
+
+    &.stat-value--xs {
+      font-size: 11.5px;
+    }
+  }
+
+  .stat-meta {
+    font-size: 9px;
+    margin-top: 1px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 /* Badge layout (used in Resource Dashboard pastel cards) */
 .has-badge-layout .stat-card-inner {
   justify-content: space-between;

@@ -1,7 +1,7 @@
 <template>
-  <q-card flat bordered class="rounded-borders overflow-hidden">
+  <q-card flat bordered class="rounded-borders overflow-hidden column">
     <q-card-section class="q-pa-md row items-center justify-between no-wrap">
-      <div style="min-width: 0" class="q-pr-sm">
+      <div style="min-width: 0" class="q-pr-sm col">
         <div
           class="text-subtitle1 text-weight-bold ellipsis"
           :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
@@ -25,53 +25,51 @@
 
     <q-separator />
 
-    <div v-if="!projects.length" class="q-pa-xl text-center text-grey-6">
+    <div v-if="!projects.length" class="q-pa-xl text-center text-grey-6 col column items-center justify-center">
       <q-icon name="folder_open" size="40px" color="grey-5" />
       <div class="text-body2 q-mt-sm">No active projects assigned.</div>
     </div>
 
-    <q-list v-else separator>
+    <q-list v-else separator class="col column justify-start">
       <q-item
         v-for="(row, idx) in projects"
         :key="row.project"
         clickable
         v-ripple
-        class="q-py-md q-px-md cursor-pointer"
+        class="q-py-md q-px-md cursor-pointer project-breakdown-item"
         @click="goToProjectTasks(row.project)"
       >
-        <div
-          class="row items-center justify-between full-width no-wrap gap-sm"
-          style="min-width: 0"
-        >
-          <!-- Project Info (Takes remaining space, ellipses safely) -->
-          <div class="row items-center no-wrap gap-sm col" style="min-width: 0">
-            <q-avatar
-              size="36px"
-              rounded
-              :color="getProjectTheme(idx).bg"
-              :text-color="getProjectTheme(idx).color"
-              :icon="getProjectIcon(idx)"
-              class="col-auto"
-            />
-            <div class="column col" style="min-width: 0">
-              <div
-                class="text-weight-bold text-dark ellipsis"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                :title="row.project"
-              >
-                {{ row.project }}
-              </div>
-              <div class="text-caption text-grey-6 ellipsis">
-                {{ row.tasks }} tasks · Due {{ row.deadline }}
-              </div>
-            </div>
-          </div>
+        <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
+          <q-avatar
+            size="32px"
+            rounded
+            :color="getProjectTheme(idx).bg"
+            :text-color="getProjectTheme(idx).color"
+            :icon="getProjectIcon(idx)"
+          />
+        </q-item-section>
 
-          <!-- Progress Bar & % (Desktop/Tablet only) -->
-          <div
-            class="row items-center no-wrap gap-xs col-auto gt-xs"
-            style="width: 120px; min-width: 0"
+        <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
+          <q-item-label
+            class="text-weight-bold ellipsis"
+            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+            :title="row.project"
+            style="font-size: 13px"
           >
+            {{ row.project }}
+          </q-item-label>
+          <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
+            {{ row.tasks }} tasks · Due {{ row.deadline }}
+          </q-item-label>
+        </q-item-section>
+
+        <!-- Progress Bar & % (Desktop/Tablet only) -->
+        <q-item-section
+          side
+          class="gt-xs"
+          style="width: 140px; min-width: 130px; padding-left: 12px; padding-right: 6px"
+        >
+          <div class="row items-center no-wrap gap-sm full-width">
             <div class="col">
               <q-linear-progress
                 :value="row.progress / 100"
@@ -89,21 +87,21 @@
               {{ row.progress }}%
             </span>
           </div>
+        </q-item-section>
 
-          <!-- Status Badge -->
-          <div class="col-auto">
-            <q-chip
-              dense
-              square
-              :color="getStatusChipColor(row.status).bg"
-              :text-color="getStatusChipColor(row.status).text"
-              class="text-caption text-weight-bold"
-              style="font-size: 11px"
-            >
-              {{ row.status }}
-            </q-chip>
-          </div>
-        </div>
+        <!-- Status Badge -->
+        <q-item-section side style="padding-left: 6px; flex-shrink: 0">
+          <q-chip
+            dense
+            square
+            :color="getStatusChipColor(row.status).bg"
+            :text-color="getStatusChipColor(row.status).text"
+            class="text-caption text-weight-bold"
+            style="font-size: 10.5px; margin: 0"
+          >
+            {{ row.status }}
+          </q-chip>
+        </q-item-section>
       </q-item>
     </q-list>
   </q-card>
@@ -185,3 +183,11 @@ function getProjectIcon(idx: number): string {
   return icons[idx % icons.length] ?? 'folder';
 }
 </script>
+
+<style scoped lang="scss">
+@media (max-width: 600px) {
+  .q-item {
+    padding: 10px 10px;
+  }
+}
+</style>

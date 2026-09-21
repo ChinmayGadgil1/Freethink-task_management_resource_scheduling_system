@@ -1,6 +1,6 @@
 <template>
-  <q-card flat bordered class="rounded-borders overflow-hidden">
-    <q-card-section class="q-pa-md">
+  <q-card flat bordered class="rounded-borders overflow-hidden column">
+    <q-card-section class="q-pa-md col column justify-between">
       <div class="row items-start justify-between">
         <div>
           <div
@@ -76,18 +76,18 @@
         </div>
       </div>
 
-      <div class="row q-col-gutter-xs q-col-gutter-sm-sm q-mt-md" style="min-width: 0">
+      <div class="row q-col-gutter-xs q-col-gutter-sm-sm q-mt-sm q-mt-md-md" style="min-width: 0; width: 100%">
         <div class="col-4" style="min-width: 0">
           <q-card
             flat
-            class="q-pa-xs text-center rounded-borders cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-purple-1 text-purple-9'"
+            class="stat-mini-pill text-center rounded-borders cursor-pointer"
+            :class="$q.dark.isActive ? 'bg-purple-dark text-purple-2' : 'bg-purple-1 text-purple-9'"
             @click="goToTaskDetails"
           >
-            <div class="text-caption text-weight-medium ellipsis" style="font-size: 10.5px">
+            <div class="text-caption text-weight-medium ellipsis stat-pill-label">
               Active
             </div>
-            <div class="text-h6 text-weight-bolder q-mt-xs" style="font-size: 16px">
+            <div class="text-h6 text-weight-bolder q-mt-xs stat-pill-val ellipsis">
               {{ assignedTasks }}
             </div>
           </q-card>
@@ -95,14 +95,14 @@
         <div class="col-4" style="min-width: 0">
           <q-card
             flat
-            class="q-pa-xs text-center rounded-borders cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-blue-10 text-blue-2' : 'bg-blue-1 text-blue-9'"
+            class="stat-mini-pill text-center rounded-borders cursor-pointer"
+            :class="$q.dark.isActive ? 'bg-blue-dark text-blue-2' : 'bg-blue-1 text-blue-9'"
             @click="goToProgress"
           >
-            <div class="text-caption text-weight-medium ellipsis" style="font-size: 10.5px">
+            <div class="text-caption text-weight-medium ellipsis stat-pill-label">
               Actual
             </div>
-            <div class="text-h6 text-weight-bolder q-mt-xs" style="font-size: 16px">
+            <div class="text-h6 text-weight-bolder q-mt-xs stat-pill-val ellipsis">
               {{ formatHours(actualHours) }}
             </div>
           </q-card>
@@ -110,14 +110,14 @@
         <div class="col-4" style="min-width: 0">
           <q-card
             flat
-            class="q-pa-xs text-center rounded-borders cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-teal-10 text-teal-2' : 'bg-teal-1 text-teal-9'"
+            class="stat-mini-pill text-center rounded-borders cursor-pointer"
+            :class="$q.dark.isActive ? 'bg-teal-dark text-teal-2' : 'bg-teal-1 text-teal-9'"
             @click="goToProgress"
           >
-            <div class="text-caption text-weight-medium ellipsis" style="font-size: 10.5px">
+            <div class="text-caption text-weight-medium ellipsis stat-pill-label">
               Remaining
             </div>
-            <div class="text-h6 text-weight-bolder q-mt-xs" style="font-size: 16px">
+            <div class="text-h6 text-weight-bolder q-mt-xs stat-pill-val ellipsis">
               {{ formatHours(remainingHours) }}
             </div>
           </q-card>
@@ -155,3 +155,51 @@ function goToProgress() {
   void router.push('/app/resource-dashboard/progress');
 }
 </script>
+
+<style scoped lang="scss">
+.stat-mini-pill {
+  padding: 8px 4px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.stat-pill-label {
+  font-size: 11px;
+  line-height: 1.15;
+
+  @media (max-width: 600px) {
+    font-size: 10px;
+  }
+}
+
+.stat-pill-val {
+  font-size: 16px;
+  line-height: 1.15;
+
+  @media (max-width: 600px) {
+    font-size: 13.5px;
+  }
+}
+
+.bg-purple-dark {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.bg-blue-dark {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.bg-teal-dark {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+</style>
