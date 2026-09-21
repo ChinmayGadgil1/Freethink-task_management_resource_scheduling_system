@@ -35,7 +35,7 @@ export default defineRouter((/* { store, ssrContext } */) => {
     history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE),
   });
 
-  Router.beforeEach((to, _from, next) => {
+  Router.beforeEach((to) => {
     let token: string | null = null;
     let userRole: string | null = null;
 
@@ -79,14 +79,14 @@ export default defineRouter((/* { store, ssrContext } */) => {
     const publicOnly = to.matched.some((record) => record.meta.publicOnly);
 
     if (requiresAuth && !token) {
-      return next({ path: '/login', query: { redirect: to.fullPath } });
+      return { path: '/login', query: { redirect: to.fullPath } };
     }
 
     if (publicOnly && token && to.path !== '/reset-password' && to.path !== '/forgot-password') {
       if (userRole === 'PROJECT_MANAGER') {
-        return next('/pm/projects');
+        return '/pm/projects';
       } else if (userRole === 'RESOURCE') {
-        return next('/app/resource-dashboard');
+        return '/app/resource-dashboard';
       }
     }
 
@@ -96,13 +96,13 @@ export default defineRouter((/* { store, ssrContext } */) => {
 
     if (requiresAuth && allowedRoles && userRole && !allowedRoles.includes(userRole)) {
       if (userRole === 'PROJECT_MANAGER') {
-        return next('/pm/projects');
+        return '/pm/projects';
       } else if (userRole === 'RESOURCE') {
-        return next('/app/resource-dashboard');
+        return '/app/resource-dashboard';
       }
     }
 
-    return next();
+    return true;
   });
 
   return Router;

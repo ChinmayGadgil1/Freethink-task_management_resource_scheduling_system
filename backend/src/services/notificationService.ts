@@ -455,7 +455,7 @@ export async function syncTaskRiskNotifications(userId: number, userRole: string
         const [leaves] = await pool.query<RowDataPacket[]>(
             `SELECT 
                 MIN(ul.leave_id) as leave_id,
-                ul.request_id,
+                MAX(ul.request_id) as request_id,
                 DATE_FORMAT(MIN(ul.leave_date), '%Y-%m-%d') as leave_date,
                 DATE_FORMAT(MAX(ul.leave_date), '%Y-%m-%d') as end_date,
                 SUM(ul.leave_hours) as leave_hours,
