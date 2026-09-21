@@ -3920,6 +3920,10 @@ defineExpose({
   border: none !important;
   padding: 0 !important;
   box-shadow: none !important;
+  white-space: normal !important;
+  pointer-events: none;
+  z-index: 9999 !important;
+  max-width: 440px !important;
 
   .gantt-tooltip-card {
     background: #ffffff;
@@ -3927,32 +3931,48 @@ defineExpose({
     border: 1px solid #e2e8f0;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     padding: 12px 14px;
-    min-width: 240px;
-    max-width: 340px;
+    min-width: 260px;
+    max-width: 400px;
+    width: max-content;
+    box-sizing: border-box;
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
     font-family: var(--font-primary, sans-serif);
 
     .tooltip-header {
       border-bottom: 1px solid #f1f5f9;
       padding-bottom: 8px;
       margin-bottom: 8px;
+      white-space: normal !important;
+      word-break: break-word;
+      overflow-wrap: break-word;
 
       .tooltip-title {
         font-weight: 700;
         color: #1e293b;
         font-size: 13px;
-        line-height: 1.3;
+        line-height: 1.35;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow-wrap: break-word;
       }
       .tooltip-project-tag {
         font-size: 11px;
         color: #64748b;
         margin-top: 2px;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow-wrap: break-word;
       }
     }
 
     .tooltip-body {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
+      white-space: normal !important;
 
       .tooltip-row {
         display: flex;
@@ -3960,24 +3980,31 @@ defineExpose({
         justify-content: space-between;
         font-size: 11.5px;
         gap: 8px;
+        white-space: normal !important;
+        word-break: break-word;
 
         .tooltip-k {
           color: #64748b;
           font-weight: 500;
           flex-shrink: 0;
+          white-space: nowrap;
         }
         .tooltip-v {
           color: #1e293b;
           font-weight: 600;
           text-align: right;
-          white-space: normal;
+          white-space: normal !important;
           word-break: break-word;
+          overflow-wrap: break-word;
+          flex: 1;
         }
 
         .tooltip-progress-box {
           display: flex;
           align-items: center;
           gap: 6px;
+          flex-shrink: 0;
+          white-space: nowrap;
 
           .tooltip-bar {
             width: 50px;
@@ -4003,11 +4030,14 @@ defineExpose({
         padding: 4px 8px;
         width: 100%;
         border: 1px solid #e2e8f0;
+        box-sizing: border-box;
+        white-space: normal !important;
 
         .tooltip-seg-item {
           padding: 1px 0;
-          white-space: normal;
+          white-space: normal !important;
           word-break: break-word;
+          overflow-wrap: break-word;
         }
       }
     }
