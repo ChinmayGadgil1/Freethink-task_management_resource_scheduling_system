@@ -2119,6 +2119,10 @@ async function handleUpdateTask() {
   padding: 20px 28px 36px;
   background: var(--wo-bg-page, #f8f9fa);
   min-height: 100vh;
+
+  @media (max-width: 600px) {
+    padding: 12px 12px 24px;
+  }
 }
 
 .view-toggle-btn {
@@ -2145,6 +2149,11 @@ async function handleUpdateTask() {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 .date-nav-block {

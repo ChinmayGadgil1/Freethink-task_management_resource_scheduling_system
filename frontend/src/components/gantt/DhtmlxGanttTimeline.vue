@@ -1,7 +1,7 @@
 <template>
   <q-card flat bordered class="dhtmlx-roadmap-card">
     <!-- 1. GANTT HEADER ROW -->
-    <div class="gantt-header-row row items-center justify-between no-wrap q-px-md q-py-sm">
+    <div class="gantt-header-row row items-center justify-between wrap q-px-md q-py-sm gap-sm">
       <!-- Left: Title, Icon & Dynamic Date Range -->
       <div class="header-left-block row items-center no-wrap">
         <div class="gantt-brand-icon q-mr-sm">
@@ -16,7 +16,7 @@
       </div>
 
       <!-- Right: Search, Scale Selectors, Tree Expand/Collapse, Today, Links Toggle -->
-      <div class="header-right-controls row items-center q-gutter-x-xs no-wrap">
+      <div class="header-right-controls row items-center q-gutter-x-xs wrap">
         <!-- Search Input -->
         <q-input
           v-model="internalSearchQuery"
@@ -1318,14 +1318,17 @@ function applyColumnsConfig() {
     },
   ];
 
+  const isMobile = window.innerWidth < 600;
+  const isTablet = window.innerWidth < 900;
+
   if (showExtraColumns.value) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (gantt.config as any).columns = [baseColumn, ...extraColumns];
-    gantt.config.grid_width = 540;
+    gantt.config.grid_width = isMobile ? 180 : isTablet ? 320 : 540;
   } else {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (gantt.config as any).columns = [baseColumn];
-    gantt.config.grid_width = 250;
+    gantt.config.grid_width = isMobile ? 150 : isTablet ? 200 : 250;
   }
 }
 
@@ -2884,6 +2887,28 @@ defineExpose({
     background: #ffffff;
     min-height: 58px;
 
+    /* Mobile: let the header wrap gracefully */
+    @media (max-width: 600px) {
+      padding: 10px 12px;
+      min-height: unset;
+      gap: 8px;
+
+      .header-left-block {
+        width: 100%;
+      }
+
+      .header-right-controls {
+        width: 100%;
+        gap: 4px;
+
+        .gantt-search-input {
+          flex: 1;
+          min-width: 0;
+          width: auto !important;
+        }
+      }
+    }
+
     .gantt-brand-icon {
       display: inline-flex;
       align-items: flex-end;
@@ -3100,6 +3125,12 @@ defineExpose({
     min-height: 480px;
     height: 600px;
     background: #ffffff;
+    overflow-x: auto;
+
+    @media (max-width: 600px) {
+      min-height: 320px;
+      height: 420px;
+    }
 
     .gantt-chart-viewport {
       width: 100%;
