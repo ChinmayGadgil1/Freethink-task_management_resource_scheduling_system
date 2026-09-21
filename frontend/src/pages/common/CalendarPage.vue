@@ -1,23 +1,37 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'" class="q-pa-lg">
+  <q-page
+    :class="[
+      $q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark',
+      $q.screen.lt.sm ? 'q-pa-xs q-pt-sm' : $q.screen.lt.md ? 'q-pa-md' : 'q-pa-lg',
+    ]"
+  >
     <div class="q-mx-auto" style="max-width: 1400px">
       <!-- 1. PAGE TITLE & SUBTITLE -->
-      <div class="q-mb-md">
+      <div class="q-mb-md" :class="$q.screen.lt.sm ? 'q-px-xs' : ''">
         <div
-          class="page-title text-h5 text-weight-bold"
-          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+          class="page-title text-weight-bold"
+          :class="[
+            $q.screen.lt.sm ? 'text-h6' : 'text-h5',
+            $q.dark.isActive ? 'text-white' : 'text-dark',
+          ]"
         >
           Company Calendar
         </div>
-        <div class="text-body2 q-mt-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+        <div
+          class="q-mt-xs"
+          :class="[
+            $q.screen.lt.sm ? 'text-caption' : 'text-body2',
+            $q.dark.isActive ? 'text-grey-4' : 'text-grey-6',
+          ]"
+        >
           Track official organization holidays, weekends, and team working schedule
         </div>
       </div>
 
       <!-- 2. TOOLBAR: METRICS (LEFT) & CONTROLS (RIGHT) -->
-      <div class="row items-center justify-between full-width q-mb-md wrap q-col-gutter-sm">
+      <div class="row items-center justify-between full-width q-mb-md wrap q-col-gutter-xs">
         <!-- Left: Summary Badges -->
-        <div class="row items-center q-gutter-sm">
+        <div class="row items-center q-gutter-xs q-gutter-sm-sm">
           <!-- Compact Summary Badge 1: Total Holidays -->
           <q-card
             flat
@@ -26,7 +40,7 @@
             class="row items-center q-px-sm q-py-xs rounded-borders q-gutter-xs"
           >
             <q-avatar
-              size="24px"
+              :size="$q.screen.lt.sm ? '20px' : '24px'"
               rounded
               :color="$q.dark.isActive ? 'blue-10' : 'blue-1'"
               :text-color="$q.dark.isActive ? 'blue-2' : 'primary'"
@@ -50,7 +64,7 @@
             class="row items-center q-px-sm q-py-xs rounded-borders q-gutter-xs"
           >
             <q-avatar
-              size="24px"
+              :size="$q.screen.lt.sm ? '20px' : '24px'"
               rounded
               :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
               :text-color="$q.dark.isActive ? 'purple-2' : 'purple'"
@@ -68,7 +82,7 @@
         </div>
 
         <!-- Right: Action Buttons Pushed to Right -->
-        <div class="row items-center q-gutter-sm wrap">
+        <div class="row items-center q-gutter-xs q-gutter-sm-sm wrap">
           <!-- View mode toggle: Month Grid vs List -->
           <q-btn-toggle
             v-model="viewMode"
@@ -79,10 +93,18 @@
             dense
             unelevated
             :options="[
-              { label: 'Calendar', value: 'grid', icon: 'grid_view' },
-              { label: 'List View', value: 'list', icon: 'format_list_bulleted' },
+              { label: $q.screen.lt.sm ? '' : 'Calendar', value: 'grid', icon: 'grid_view' },
+              {
+                label: $q.screen.lt.sm ? '' : 'List View',
+                value: 'list',
+                icon: 'format_list_bulleted',
+              },
             ]"
-          />
+          >
+            <template #default>
+              <q-tooltip>{{ viewMode === 'grid' ? 'Calendar View' : 'List View' }}</q-tooltip>
+            </template>
+          </q-btn-toggle>
 
           <!-- Import Holidays Button (PM Only) -->
           <q-btn
@@ -90,10 +112,11 @@
             color="primary"
             outline
             icon="upload_file"
-            label="Import Holidays"
+            :label="$q.screen.lt.sm ? 'Import' : 'Import Holidays'"
             unelevated
+            dense
             no-caps
-            class="text-weight-bold rounded-borders"
+            class="text-weight-bold rounded-borders q-px-sm"
             @click="openImportHolidayDialog()"
           />
 
@@ -102,10 +125,11 @@
             v-if="isProjectManager"
             color="primary"
             icon="add"
-            label="Add Holiday"
+            :label="$q.screen.lt.sm ? 'Add' : 'Add Holiday'"
             unelevated
+            dense
             no-caps
-            class="text-weight-bold rounded-borders"
+            class="text-weight-bold rounded-borders q-px-sm"
             @click="openAddHolidayDialog()"
           />
 
@@ -115,10 +139,11 @@
             color="negative"
             outline
             icon="delete_sweep"
-            label="Delete Multiple"
+            :label="$q.screen.lt.sm ? 'Delete' : 'Delete Multiple'"
             unelevated
+            dense
             no-caps
-            class="text-weight-bold rounded-borders"
+            class="text-weight-bold rounded-borders q-px-sm"
             @click="switchToListViewForBatchDelete()"
           />
 
@@ -146,8 +171,10 @@
         class="rounded-borders overflow-hidden"
       >
         <!-- Calendar Toolbar & Month Switcher -->
-        <!-- Calendar Toolbar & Month Switcher -->
-        <q-card-section class="row items-center justify-between q-pa-md wrap q-col-gutter-sm">
+        <q-card-section
+          :class="$q.screen.lt.sm ? 'q-pa-sm' : 'q-pa-md'"
+          class="row items-center justify-between wrap q-col-gutter-xs"
+        >
           <!-- Month Navigation -->
           <div class="row items-center q-gutter-xs">
             <q-btn flat dense round icon="chevron_left" @click="prevMonth">
@@ -155,8 +182,9 @@
             </q-btn>
 
             <div
-              class="text-subtitle1 text-weight-bold q-px-sm text-center"
-              style="min-width: 160px"
+              class="text-weight-bold q-px-xs text-center"
+              :class="$q.screen.lt.sm ? 'text-body1' : 'text-subtitle1'"
+              :style="{ minWidth: $q.screen.lt.sm ? '120px' : '160px' }"
             >
               {{ currentMonthName }}
               <span class="text-grey-6 text-weight-medium">{{ currentYear }}</span>
@@ -171,152 +199,210 @@
               dense
               no-caps
               label="Today"
-              class="q-px-sm q-ml-sm"
+              class="q-px-sm q-ml-xs"
               :color="$q.dark.isActive ? 'grey-4' : 'grey-8'"
               @click="goToToday"
             />
           </div>
 
           <!-- Visual Legend -->
-          <div class="row items-center q-gutter-md text-caption text-grey-6">
+          <div
+            class="row items-center q-gutter-xs q-gutter-sm-sm text-caption text-grey-6"
+            :class="$q.screen.lt.sm ? 'q-mt-xs' : ''"
+          >
             <div class="row items-center q-gutter-xs">
-              <q-badge rounded color="amber-8" style="width: 8px; height: 8px" />
-              <span>Holiday (No Work)</span>
+              <q-badge
+                rounded
+                color="amber-8"
+                style="width: 7px; height: 7px; min-height: 0; padding: 0"
+              />
+              <span :style="$q.screen.lt.sm ? 'font-size: 11px' : ''">{{
+                $q.screen.lt.sm ? 'Holiday' : 'Holiday (No Work)'
+              }}</span>
             </div>
             <div class="row items-center q-gutter-xs">
-              <q-badge rounded color="grey-6" style="width: 8px; height: 8px" />
-              <span>Non-Working Day (Off)</span>
+              <q-badge
+                rounded
+                color="grey-6"
+                style="width: 7px; height: 7px; min-height: 0; padding: 0"
+              />
+              <span :style="$q.screen.lt.sm ? 'font-size: 11px' : ''">{{
+                $q.screen.lt.sm ? 'Off Day' : 'Non-Working Day (Off)'
+              }}</span>
             </div>
             <div class="row items-center q-gutter-xs">
-              <q-badge rounded outline color="grey-7" style="width: 8px; height: 8px" />
-              <span>Working Day</span>
+              <q-badge
+                rounded
+                outline
+                color="grey-7"
+                style="width: 7px; height: 7px; min-height: 0; padding: 0"
+              />
+              <span :style="$q.screen.lt.sm ? 'font-size: 11px' : ''">{{
+                $q.screen.lt.sm ? 'Working' : 'Working Day'
+              }}</span>
             </div>
           </div>
         </q-card-section>
 
         <q-separator :dark="$q.dark.isActive" />
 
-        <!-- Quasar QCalendar Month Component -->
-        <q-calendar-month
-          ref="calendarRef"
-          v-model="selectedDate"
-          :dark="$q.dark.isActive"
-          :bordered="true"
-          :hoverable="true"
-          :focusable="true"
-          :day-min-height="115"
-          :weekdays="[0, 1, 2, 3, 4, 5, 6]"
-          class="q-calendar-custom full-width"
-        >
-          <template #day="{ scope: { timestamp } }">
-            <div
-              class="calendar-day-cell full-height column justify-between q-pa-sm cursor-pointer"
-              :class="[
-                getDayBgClass(timestamp),
-                {
-                  dimmed: timestamp.outside,
-                  'today-cell': timestamp.current,
-                },
-              ]"
-              @click="onDayClick(timestamp.date)"
-            >
-              <!-- Cell Top: Day Number & Add Action -->
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="row items-center q-gutter-xs">
-                  <q-avatar
-                    size="24px"
-                    font-size="12px"
-                    rounded
-                    :color="timestamp.current ? 'primary' : undefined"
-                    :text-color="
-                      timestamp.current
-                        ? 'white'
-                        : timestamp.outside
-                          ? $q.dark.isActive
-                            ? 'grey-7'
-                            : 'grey-5'
-                          : isDateKeyNonWorking(timestamp.date, timestamp.weekday)
+        <!-- Quasar QCalendar Month Component wrapped in scroll wrapper -->
+        <div class="calendar-scroll-wrapper">
+          <q-calendar-month
+            ref="calendarRef"
+            v-model="selectedDate"
+            :dark="$q.dark.isActive"
+            :bordered="true"
+            :hoverable="true"
+            :focusable="true"
+            :short-weekday-label="true"
+            :day-min-height="$q.screen.lt.sm ? 70 : 115"
+            :weekdays="[0, 1, 2, 3, 4, 5, 6]"
+            class="q-calendar-custom full-width"
+          >
+            <template #day="{ scope: { timestamp } }">
+              <div
+                class="calendar-day-cell full-height column justify-between cursor-pointer"
+                :class="[
+                  $q.screen.lt.sm ? 'q-pa-xs' : 'q-pa-sm',
+                  getDayBgClass(timestamp),
+                  {
+                    dimmed: timestamp.outside,
+                    'today-cell': timestamp.current,
+                  },
+                ]"
+                @click="onDayClick(timestamp.date, timestamp.weekday)"
+              >
+                <!-- Cell Top: Day Number & Add Action -->
+                <div class="row items-center justify-between no-wrap q-mb-xs">
+                  <div class="row items-center no-wrap" style="gap: 3px">
+                    <q-avatar
+                      :size="$q.screen.lt.sm ? '19px' : '24px'"
+                      :font-size="$q.screen.lt.sm ? '10px' : '12px'"
+                      rounded
+                      :color="timestamp.current ? 'primary' : undefined"
+                      :text-color="
+                        timestamp.current
+                          ? 'white'
+                          : timestamp.outside
                             ? $q.dark.isActive
-                              ? 'grey-5'
-                              : 'grey-6'
-                            : $q.dark.isActive
-                              ? 'grey-3'
-                              : 'grey-9'
-                    "
-                    class="text-weight-bold"
-                  >
-                    {{ timestamp.day }}
-                  </q-avatar>
+                              ? 'grey-7'
+                              : 'grey-5'
+                            : isDateKeyNonWorking(timestamp.date, timestamp.weekday)
+                              ? $q.dark.isActive
+                                ? 'grey-5'
+                                : 'grey-6'
+                              : $q.dark.isActive
+                                ? 'grey-3'
+                                : 'grey-9'
+                      "
+                      class="text-weight-bold"
+                    >
+                      {{ timestamp.day }}
+                    </q-avatar>
 
-                  <q-badge
+                    <q-badge
+                      v-if="
+                        isDateKeyNonWorking(timestamp.date, timestamp.weekday) && !timestamp.outside
+                      "
+                      :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                      :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                      class="text-weight-bold"
+                      :style="
+                        $q.screen.lt.sm
+                          ? 'font-size: 8px; padding: 1px 3px; line-height: 1;'
+                          : 'font-size: 9px; padding: 1px 4px;'
+                      "
+                    >
+                      OFF
+                    </q-badge>
+                  </div>
+
+                  <!-- Quick Add (+) on Hover for PMs on desktop -->
+                  <q-btn
                     v-if="
-                      isDateKeyNonWorking(timestamp.date, timestamp.weekday) && !timestamp.outside
+                      isProjectManager && !holidaysByDate.get(timestamp.date) && !$q.screen.lt.sm
                     "
-                    :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
-                    :text-color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                    class="text-weight-bold"
-                    style="font-size: 9px; padding: 1px 4px"
+                    flat
+                    round
+                    dense
+                    icon="add"
+                    size="xs"
+                    color="primary"
+                    class="quick-add-btn"
+                    @click.stop="openAddHolidayDialog(timestamp.date)"
                   >
-                    OFF
-                  </q-badge>
+                    <q-tooltip>Add holiday on {{ timestamp.date }}</q-tooltip>
+                  </q-btn>
                 </div>
 
-                <!-- Quick Add (+) on Hover for PMs -->
-                <q-btn
-                  v-if="isProjectManager && !holidaysByDate.get(timestamp.date)"
-                  flat
-                  round
-                  dense
-                  icon="add"
-                  size="xs"
-                  color="primary"
-                  class="quick-add-btn"
-                  @click.stop="openAddHolidayDialog(timestamp.date)"
-                >
-                  <q-tooltip>Add holiday on {{ timestamp.date }}</q-tooltip>
-                </q-btn>
-              </div>
-
-              <!-- Cell Center / Holiday Badge -->
-              <div class="col column justify-start" style="min-width: 0">
-                <q-card
-                  v-if="holidaysByDate.get(timestamp.date)"
-                  flat
-                  bordered
-                  :dark="$q.dark.isActive"
-                  class="holiday-badge-card full-width q-pa-xs rounded-borders"
-                  :class="isProjectManager ? 'cursor-pointer' : ''"
-                  @click.stop="onHolidayClick(holidaysByDate.get(timestamp.date)!)"
-                >
-                  <div class="row items-start justify-between no-wrap">
-                    <div class="row items-start no-wrap q-gutter-xs col">
+                <!-- Cell Center / Holiday Badge -->
+                <div class="col column justify-start" style="min-width: 0; width: 100%">
+                  <q-card
+                    v-if="holidaysByDate.get(timestamp.date)"
+                    flat
+                    bordered
+                    :dark="$q.dark.isActive"
+                    class="holiday-badge-card full-width rounded-borders cursor-pointer"
+                    :class="$q.screen.lt.sm ? 'q-px-xs q-py-xs' : 'q-pa-xs'"
+                    @click.stop="onHolidayClick(holidaysByDate.get(timestamp.date)!)"
+                  >
+                    <div class="row items-start no-wrap" style="width: 100%; min-width: 0">
                       <q-badge
                         rounded
                         color="amber-8"
-                        class="q-mt-xs flex-shrink-0"
-                        style="width: 6px; height: 6px; min-height: 0; padding: 0"
+                        class="flex-shrink-0 q-mt-xs"
+                        :style="
+                          $q.screen.lt.sm
+                            ? 'width: 5px; height: 5px; min-height: 0; padding: 0; margin-right: 4px;'
+                            : 'width: 6px; height: 6px; min-height: 0; padding: 0; margin-right: 5px;'
+                        "
                       />
                       <div
-                        class="text-caption text-weight-bold col"
-                        style="font-size: 11px; line-height: 1.25"
-                        :title="holidaysByDate.get(timestamp.date)!.description"
+                        class="text-caption text-weight-bold col holiday-desc-text"
+                        :style="
+                          $q.screen.lt.sm
+                            ? 'font-size: 9.5px; line-height: 1.2'
+                            : 'font-size: 11px; line-height: 1.25'
+                        "
                       >
                         {{ holidaysByDate.get(timestamp.date)!.description }}
                       </div>
+
+                      <q-icon
+                        v-if="isProjectManager && !$q.screen.lt.sm"
+                        name="edit"
+                        size="11px"
+                        class="q-ml-xs flex-shrink-0 q-mt-xs text-grey-6"
+                      />
                     </div>
 
-                    <q-icon
-                      v-if="isProjectManager"
-                      name="edit"
-                      size="12px"
-                      class="q-ml-xs q-mt-xs flex-shrink-0"
-                    />
-                  </div>
-                </q-card>
+                    <!-- Enhanced Hover Tooltip to clearly show holiday name and date -->
+                    <q-tooltip
+                      :delay="100"
+                      class="bg-grey-10 text-white shadow-4 q-pa-sm rounded-borders"
+                      anchor="top middle"
+                      self="bottom middle"
+                      :offset="[0, 6]"
+                      transition-show="scale"
+                      transition-hide="scale"
+                    >
+                      <div class="row items-center q-gutter-xs no-wrap">
+                        <q-icon name="celebration" color="amber-4" size="16px" />
+                        <span class="text-weight-bold" style="font-size: 12px">
+                          {{ holidaysByDate.get(timestamp.date)!.description }}
+                        </span>
+                      </div>
+                      <div class="text-caption text-amber-2 q-mt-xs" style="font-size: 10.5px">
+                        {{ formatPrettyDate(timestamp.date) }}
+                      </div>
+                    </q-tooltip>
+                  </q-card>
+                </div>
               </div>
-            </div>
-          </template>
-        </q-calendar-month>
+            </template>
+          </q-calendar-month>
+        </div>
       </q-card>
 
       <!-- 3. LIST / TABLE VIEW -->
@@ -325,7 +411,8 @@
         flat
         bordered
         :dark="$q.dark.isActive"
-        class="rounded-borders overflow-hidden q-pa-md"
+        class="rounded-borders overflow-hidden"
+        :class="$q.screen.lt.sm ? 'q-pa-sm' : 'q-pa-md'"
       >
         <q-table
           flat
@@ -341,23 +428,23 @@
         >
           <template v-if="isProjectManager && selectedHolidays.length > 0" #top>
             <div
-              class="row full-width items-center justify-between q-py-sm q-px-md rounded-borders"
+              class="row full-width items-center justify-between q-py-sm q-px-md rounded-borders wrap q-col-gutter-xs"
               :class="$q.dark.isActive ? 'bg-grey-9 text-red-3' : 'bg-red-1 text-negative'"
             >
               <div class="row items-center q-gutter-sm">
                 <q-chip color="negative" text-color="white" dense class="text-weight-bold">
                   {{ selectedHolidays.length }} selected
                 </q-chip>
-                <span class="text-caption text-weight-medium">
+                <span v-if="!$q.screen.lt.sm" class="text-caption text-weight-medium">
                   Holidays selected for bulk removal
                 </span>
               </div>
-              <div class="row items-center q-gutter-sm">
+              <div class="row items-center q-gutter-xs">
                 <q-btn
                   flat
                   dense
                   no-caps
-                  label="Clear Selection"
+                  label="Clear"
                   color="grey-7"
                   @click="selectedHolidays = []"
                 />
@@ -367,7 +454,7 @@
                   no-caps
                   icon="delete_sweep"
                   color="negative"
-                  :label="`Delete Selected (${selectedHolidays.length})`"
+                  :label="`Delete (${selectedHolidays.length})`"
                   class="q-px-sm text-weight-bold"
                   @click="openBatchDeleteDialog()"
                 />
@@ -445,7 +532,7 @@
               icon="event"
             />
             <div class="text-subtitle1 text-weight-bold q-ml-xs">
-              {{ holidayDialog.isEdit ? 'Edit Holiday' : 'Add Company Holiday' }}
+              {{ holidayDialog.isEdit ? 'Edit Holiday' : 'Add Holiday' }}
             </div>
           </div>
           <q-btn flat round dense icon="close" size="sm" color="grey-6" v-close-popup />
@@ -751,6 +838,119 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- 8. DAY DETAIL DIALOG (For Resource tap & Mobile view) -->
+    <q-dialog v-model="dayDetailDialog.show">
+      <q-card
+        :dark="$q.dark.isActive"
+        style="width: 380px; max-width: 92vw"
+        class="rounded-borders"
+      >
+        <q-card-section class="row items-center justify-between q-pb-xs">
+          <div class="row items-center q-gutter-xs">
+            <q-avatar
+              size="32px"
+              rounded
+              :color="dayDetailDialog.isToday ? 'primary' : $q.dark.isActive ? 'grey-8' : 'grey-2'"
+              :text-color="
+                dayDetailDialog.isToday ? 'white' : $q.dark.isActive ? 'grey-2' : 'grey-9'
+              "
+              icon="event"
+            />
+            <div class="q-ml-xs">
+              <div class="text-subtitle1 text-weight-bold">
+                {{ dayDetailDialog.formattedDate }}
+              </div>
+              <div class="text-caption text-grey-6">
+                {{ dayDetailDialog.dayOfWeek }}
+              </div>
+            </div>
+          </div>
+          <q-btn flat round dense icon="close" size="sm" color="grey-6" v-close-popup />
+        </q-card-section>
+
+        <q-separator :dark="$q.dark.isActive" />
+
+        <q-card-section class="q-py-md q-gutter-y-sm">
+          <!-- Status Badge -->
+          <div class="row items-center justify-between">
+            <span class="text-caption text-grey-6">Status</span>
+            <div>
+              <q-badge
+                v-if="dayDetailDialog.holiday"
+                color="amber-8"
+                class="text-weight-bold q-px-sm q-py-xs"
+              >
+                Holiday (No Work)
+              </q-badge>
+              <q-badge
+                v-else-if="dayDetailDialog.isOffDay"
+                color="grey-7"
+                class="text-weight-bold q-px-sm q-py-xs"
+              >
+                Non-Working Day (Off)
+              </q-badge>
+              <q-badge v-else color="positive" class="text-weight-bold q-px-sm q-py-xs">
+                Working Day
+              </q-badge>
+            </div>
+          </div>
+
+          <!-- Holiday Information if any -->
+          <div v-if="dayDetailDialog.holiday" class="q-mt-sm">
+            <div class="text-caption text-grey-6 q-mb-xs">Holiday Event</div>
+            <q-card
+              flat
+              bordered
+              :dark="$q.dark.isActive"
+              class="holiday-badge-card q-pa-sm rounded-borders"
+            >
+              <div class="text-body2 text-weight-bold">
+                {{ dayDetailDialog.holiday.description }}
+              </div>
+            </q-card>
+          </div>
+
+          <!-- Working capacity note -->
+          <div class="text-caption text-grey-6 q-mt-xs">
+            <template v-if="dayDetailDialog.holiday">
+              Organization-wide holiday. No work tasks are scheduled for this day.
+            </template>
+            <template v-else-if="dayDetailDialog.isOffDay">
+              Weekly off day according to team schedule.
+            </template>
+            <template v-else> Standard scheduled working day. </template>
+          </div>
+        </q-card-section>
+
+        <!-- PM Actions in Dialog if PM -->
+        <template v-if="isProjectManager">
+          <q-separator :dark="$q.dark.isActive" />
+          <q-card-actions align="right" class="q-pa-sm">
+            <q-btn
+              v-if="dayDetailDialog.holiday"
+              flat
+              dense
+              color="primary"
+              icon="edit"
+              label="Edit Holiday"
+              no-caps
+              @click="onEditFromDetailDialog"
+            />
+            <q-btn
+              v-else
+              flat
+              dense
+              color="primary"
+              icon="add"
+              label="Add Holiday"
+              no-caps
+              @click="onAddFromDetailDialog"
+            />
+          </q-card-actions>
+        </template>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -952,8 +1152,53 @@ function openEditHolidayDialog(holiday: HolidayItem) {
   };
 }
 
-function onDayClick(dateKey: string) {
-  if (!isProjectManager.value) return;
+const dayDetailDialog = ref({
+  show: false,
+  dateKey: '',
+  formattedDate: '',
+  dayOfWeek: '',
+  isToday: false,
+  holiday: null as HolidayItem | null,
+  isOffDay: false,
+});
+
+function openDayDetailDialog(dateKey: string, weekday?: number) {
+  const cleanStr = dateKey.includes('T') ? dateKey.split('T')[0]! : dateKey;
+  const d = new Date(`${cleanStr}T00:00:00`);
+  const holiday = holidaysByDate.value.get(cleanStr) || null;
+  const isOffDay = isDateKeyNonWorking(cleanStr, weekday);
+  const todayStr = formatDate(new Date());
+
+  dayDetailDialog.value = {
+    show: true,
+    dateKey: cleanStr,
+    formattedDate: formatPrettyDate(cleanStr),
+    dayOfWeek: d.toLocaleDateString('default', { weekday: 'long' }),
+    isToday: cleanStr === todayStr,
+    holiday,
+    isOffDay,
+  };
+}
+
+function onEditFromDetailDialog() {
+  if (dayDetailDialog.value.holiday) {
+    const h = dayDetailDialog.value.holiday;
+    dayDetailDialog.value.show = false;
+    openEditHolidayDialog(h);
+  }
+}
+
+function onAddFromDetailDialog() {
+  const dt = dayDetailDialog.value.dateKey;
+  dayDetailDialog.value.show = false;
+  openAddHolidayDialog(dt);
+}
+
+function onDayClick(dateKey: string, weekday?: number) {
+  if (!isProjectManager.value || $q.screen.lt.sm) {
+    openDayDetailDialog(dateKey, weekday);
+    return;
+  }
   const holiday = holidaysByDate.value.get(dateKey);
   if (holiday) {
     openEditHolidayDialog(holiday);
@@ -963,8 +1208,10 @@ function onDayClick(dateKey: string) {
 }
 
 function onHolidayClick(holiday: HolidayItem) {
-  if (isProjectManager.value) {
+  if (isProjectManager.value && !$q.screen.lt.sm) {
     openEditHolidayDialog(holiday);
+  } else {
+    openDayDetailDialog(holiday.holiday_date);
   }
 }
 
@@ -1434,6 +1681,31 @@ onMounted(() => {
   color: var(--cal-card-color);
   border: 1px solid var(--cal-card-border);
   border-left: 3px solid #f59e0b;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    filter: brightness(0.96);
+    border-color: #f59e0b;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.22);
+    transform: translateY(-1px);
+  }
+}
+
+.calendar-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.holiday-desc-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .calendar-day-cell {
@@ -1452,6 +1724,27 @@ onMounted(() => {
 
   &:hover .quick-add-btn {
     opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .q-calendar-custom {
+    :deep(.q-calendar-month__head) {
+      font-size: 11px;
+    }
+    :deep(.q-calendar-month__head--weekday) {
+      padding: 6px 0;
+    }
+  }
+
+  .calendar-day-cell {
+    min-height: 70px !important;
+    padding: 3px 2px !important;
+  }
+
+  .holiday-badge-card {
+    padding: 2px 3px !important;
+    border-left-width: 2px !important;
   }
 }
 
@@ -1474,6 +1767,11 @@ body.body--dark {
 
   .calendar-day-cell:hover {
     filter: brightness(1.15);
+  }
+
+  .holiday-badge-card:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
   }
 }
 </style>
