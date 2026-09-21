@@ -1,12 +1,12 @@
 <template>
   <q-page
     :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
-    class="q-pa-lg resource-dashboard-page"
+    class="q-pa-md q-pa-md-lg resource-dashboard-page"
   >
-    <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
+    <div class="q-mx-auto column q-gutter-y-lg full-width" style="max-width: 1400px; min-width: 0">
       <!-- 01. HEADER & ACTIONS ROW -->
-      <div class="row items-center justify-between wrap gap-md">
-        <div>
+      <div class="row items-center justify-between wrap q-col-gutter-md">
+        <div class="col-12 col-md-auto">
           <div class="page-title">Welcome back{{ userFirstName ? `, ${userFirstName}` : '' }}!</div>
           <div class="page-subtitle">
             Here's a real-time overview of your workload, progress, and scheduled tasks.
@@ -14,54 +14,56 @@
         </div>
 
         <!-- Quick action buttons -->
-        <div class="row items-center q-gutter-xs wrap">
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            icon="history_edu"
-            label="Daily Work Logs"
-            class="action-btn text-weight-bold"
-            @click="router.push('/app/resource-dashboard/work-logs')"
-          />
-          <q-btn
-            flat
-            no-caps
-            icon="assignment"
-            label="Tasks"
-            class="action-btn text-weight-medium"
-            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
-            @click="goToTaskDetails()"
-          />
-          <q-btn
-            flat
-            no-caps
-            icon="calendar_month"
-            label="Schedule"
-            class="action-btn text-weight-medium"
-            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            @click="goToSchedule()"
-          />
-          <q-btn
-            flat
-            no-caps
-            icon="trending_up"
-            label="Progress"
-            class="action-btn text-weight-medium gt-xs"
-            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            @click="goToProgress()"
-          />
-          <q-btn
-            flat
-            round
-            dense
-            icon="refresh"
-            class="q-ml-xs"
-            :loading="loading"
-            @click="loadDashboardData"
-          >
-            <q-tooltip>Refresh Dashboard</q-tooltip>
-          </q-btn>
+        <div class="actions-strip-wrapper col-12 col-md-auto">
+          <div class="actions-strip row items-center no-wrap q-gutter-xs">
+            <q-btn
+              unelevated
+              no-caps
+              color="primary"
+              icon="history_edu"
+              label="Daily Work Logs"
+              class="action-btn text-weight-bold"
+              @click="router.push('/app/resource-dashboard/work-logs')"
+            />
+            <q-btn
+              flat
+              no-caps
+              icon="assignment"
+              label="Tasks"
+              class="action-btn text-weight-medium"
+              :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
+              @click="goToTaskDetails()"
+            />
+            <q-btn
+              flat
+              no-caps
+              icon="calendar_month"
+              label="Schedule"
+              class="action-btn text-weight-medium"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+              @click="goToSchedule()"
+            />
+            <q-btn
+              flat
+              no-caps
+              icon="trending_up"
+              label="Progress"
+              class="action-btn text-weight-medium"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
+              @click="goToProgress()"
+            />
+            <q-btn
+              flat
+              round
+              dense
+              icon="refresh"
+              class="q-ml-xs"
+              :loading="loading"
+              @click="loadDashboardData"
+            >
+              <q-tooltip>Refresh Dashboard</q-tooltip>
+            </q-btn>
+          </div>
         </div>
       </div>
 
@@ -81,8 +83,8 @@
       <!-- MAIN DASHBOARD BODY -->
       <template v-else>
         <!-- 02. REUSABLE STAT CARDS (4 KPI METRICS) -->
-        <div class="row q-col-gutter-md">
-          <div class="col-12 col-sm-6 col-md-3">
+        <div class="row q-col-gutter-sm q-col-gutter-md-md">
+          <div class="col-6 col-md-3">
             <StatCard
               title="Total Tasks"
               :value="tasks.length"
@@ -94,7 +96,7 @@
             />
           </div>
 
-          <div class="col-12 col-sm-6 col-md-3">
+          <div class="col-6 col-md-3">
             <StatCard
               title="In Progress"
               :value="activeTasksCount"
@@ -110,7 +112,7 @@
             />
           </div>
 
-          <div class="col-12 col-sm-6 col-md-3">
+          <div class="col-6 col-md-3">
             <StatCard
               title="Supervised"
               :value="supervisedTasksCount"
@@ -122,7 +124,7 @@
             />
           </div>
 
-          <div class="col-12 col-sm-6 col-md-3">
+          <div class="col-6 col-md-3">
             <StatCard
               title="Delayed"
               :value="delayedTasksCount"
@@ -206,7 +208,7 @@
                         :icon="attentionMeta(t).icon"
                       />
                     </q-item-section>
-                    <q-item-section>
+                    <q-item-section style="min-width: 0">
                       <q-item-label
                         class="text-weight-bold ellipsis"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
@@ -278,7 +280,7 @@
                     class="q-py-sm cursor-pointer"
                     @click="goToTaskDetails(taskItem.task_id)"
                   >
-                    <q-item-section>
+                    <q-item-section style="min-width: 0">
                       <q-item-label
                         class="text-weight-bold ellipsis"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
@@ -358,7 +360,7 @@
                     class="q-py-sm cursor-pointer"
                     @click="goToTaskDetails(taskItem.task_id)"
                   >
-                    <q-item-section>
+                    <q-item-section style="min-width: 0">
                       <q-item-label
                         class="text-weight-bold ellipsis"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
@@ -734,9 +736,32 @@ function goToProgress() {
   margin-top: 2px;
 }
 
+.actions-strip-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.actions-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
 .action-btn {
   border-radius: 8px;
   padding: 6px 14px;
   font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 </style>

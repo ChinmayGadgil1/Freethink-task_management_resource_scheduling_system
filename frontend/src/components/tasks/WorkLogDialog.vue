@@ -122,10 +122,7 @@
               <span class="text-weight-bold">{{ currentActualEffort }}h</span>
               <span class="text-grey-5">·</span>
               <span class="text-grey-6">Total After:</span>
-              <span
-                class="text-weight-bold"
-                :class="isOverrun ? 'text-warning' : 'text-primary'"
-              >
+              <span class="text-weight-bold" :class="isOverrun ? 'text-warning' : 'text-primary'">
                 {{ totalEffortAfterLog }}h
               </span>
             </div>
@@ -140,7 +137,9 @@
                 :label="`Suggest ${suggestedProgress}%`"
                 @click="form.progress_logged = suggestedProgress"
               >
-                <q-tooltip>Set progress to {{ suggestedProgress }}% based on cumulative effort</q-tooltip>
+                <q-tooltip
+                  >Set progress to {{ suggestedProgress }}% based on cumulative effort</q-tooltip
+                >
               </q-btn>
             </div>
           </div>
@@ -154,7 +153,9 @@
           >
             <q-icon name="warning" size="16px" class="q-mr-xs text-warning" />
             <span>
-              Effort Overrun: Total effort ({{ totalEffortAfterLog }}h) exceeds budget ({{ expectedEffort }}h) by {{ overrunHours }}h while progress is {{ form.progress_logged }}%.
+              Effort Overrun: Total effort ({{ totalEffortAfterLog }}h) exceeds budget ({{
+                expectedEffort
+              }}h) by {{ overrunHours }}h while progress is {{ form.progress_logged }}%.
             </span>
           </div>
         </div>

@@ -1,12 +1,12 @@
 <template>
   <q-page
     :class="$q.dark.isActive ? 'bg-dark text-white' : 'bg-grey-1 text-dark'"
-    class="q-pa-lg pm-dashboard-page"
+    class="q-pa-md q-pa-md-lg pm-dashboard-page"
   >
-    <div class="q-mx-auto column q-gutter-y-lg" style="max-width: 1400px">
+    <div class="q-mx-auto column q-gutter-y-lg full-width" style="max-width: 1400px; min-width: 0">
       <!-- 01. HEADER & ACTIONS ROW -->
-      <div class="row items-center justify-between wrap gap-md">
-        <div>
+      <div class="row items-center justify-between wrap q-col-gutter-md">
+        <div class="col-12 col-md-auto">
           <div class="page-title">Welcome back, {{ currentPmName }}</div>
           <div class="page-subtitle">
             Executive workspace overview — projects, deadlines, workload, and deliverables.
@@ -14,53 +14,62 @@
         </div>
 
         <!-- Clean, unified action buttons -->
-        <div class="row items-center q-gutter-xs wrap">
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            icon="add"
-            label="New Project"
-            class="action-btn text-weight-bold"
-            @click="openNewProjectDialog"
-          />
-          <q-btn
-            flat
-            no-caps
-            color="primary"
-            icon="add_task"
-            label="Add Task"
-            class="action-btn text-weight-medium"
-            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
-            @click="openAddTaskDialog"
-          />
-          <q-btn
-            flat
-            no-caps
-            icon="person_add"
-            label="Allocate"
-            class="action-btn text-weight-medium"
-            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
-            @click="openAllocateResourceDialog"
-          />
-          <q-btn
-            flat
-            no-caps
-            icon="edit_calendar"
-            label="Log Progress"
-            class="action-btn text-weight-medium gt-xs"
-            :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
-            @click="openLogProgressDialog"
-          />
-          <q-btn flat round dense icon="download" class="q-ml-xs" @click="openGenerateReportDialog">
-            <q-tooltip>Generate Project Report</q-tooltip>
-          </q-btn>
+        <div class="actions-strip-wrapper col-12 col-md-auto">
+          <div class="actions-strip row items-center no-wrap q-gutter-xs">
+            <q-btn
+              unelevated
+              no-caps
+              color="primary"
+              icon="add"
+              label="New Project"
+              class="action-btn text-weight-bold"
+              @click="openNewProjectDialog"
+            />
+            <q-btn
+              flat
+              no-caps
+              color="primary"
+              icon="add_task"
+              label="Add Task"
+              class="action-btn text-weight-medium"
+              :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
+              @click="openAddTaskDialog"
+            />
+            <q-btn
+              flat
+              no-caps
+              icon="person_add"
+              label="Allocate"
+              class="action-btn text-weight-medium"
+              :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
+              @click="openAllocateResourceDialog"
+            />
+            <q-btn
+              flat
+              no-caps
+              icon="edit_calendar"
+              label="Log Progress"
+              class="action-btn text-weight-medium"
+              :class="$q.dark.isActive ? 'bg-dark-subtle' : 'bg-white'"
+              @click="openLogProgressDialog"
+            />
+            <q-btn
+              flat
+              round
+              dense
+              icon="download"
+              class="q-ml-xs"
+              @click="openGenerateReportDialog"
+            >
+              <q-tooltip>Generate Project Report</q-tooltip>
+            </q-btn>
+          </div>
         </div>
       </div>
 
       <!-- 02. KEY METRICS STRIP -->
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-sm-6 col-md-3">
+      <div class="row q-col-gutter-sm q-col-gutter-md-md">
+        <div class="col-6 col-sm-6 col-md-3">
           <q-card flat bordered class="kpi-card cursor-pointer" @click="goToProjects">
             <div class="row items-center justify-between">
               <span class="kpi-label">Active Projects</span>
@@ -77,7 +86,7 @@
           </q-card>
         </div>
 
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-6 col-sm-6 col-md-3">
           <q-card flat bordered class="kpi-card cursor-pointer" @click="goToTasks">
             <div class="row items-center justify-between">
               <span class="kpi-label">Active Deliverables</span>
@@ -96,7 +105,7 @@
           </q-card>
         </div>
 
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-6 col-sm-6 col-md-3">
           <q-card flat bordered class="kpi-card cursor-pointer" @click="goToTasks">
             <div class="row items-center justify-between">
               <span class="kpi-label">Completed Tasks</span>
@@ -115,7 +124,7 @@
           </q-card>
         </div>
 
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-6 col-sm-6 col-md-3">
           <q-card
             flat
             bordered
@@ -186,14 +195,14 @@
                     </div>
                   </q-item-section>
 
-                  <q-item-section>
+                  <q-item-section style="min-width: 0">
                     <div class="row items-center gap-xs">
-                      <span class="project-name text-weight-bold">{{ project.name }}</span>
+                      <span class="project-name text-weight-bold ellipsis">{{ project.name }}</span>
                       <q-badge
                         v-if="project.priority"
                         dense
                         :class="getPriorityBadgeClass(project.priority)"
-                        class="priority-badge"
+                        class="priority-badge col-auto"
                       >
                         {{ project.priority }}
                       </q-badge>
@@ -204,16 +213,19 @@
                   </q-item-section>
 
                   <q-item-section side class="project-progress-col">
-                    <div class="column items-end" style="min-width: 150px">
+                    <div
+                      class="column items-end"
+                      style="min-width: 100px; max-width: 140px; width: 100%"
+                    >
                       <div class="row items-center justify-between full-width q-mb-xs">
-                        <span class="text-caption text-muted">
+                        <span class="text-caption text-muted ellipsis" style="font-size: 10.5px">
                           {{
                             project.deadline
                               ? `Due ${formatDateShort(project.deadline)}`
                               : 'No deadline'
                           }}
                         </span>
-                        <span class="text-caption text-weight-bold"
+                        <span class="text-caption text-weight-bold q-ml-xs"
                           >{{ Math.round(Number(project.progress) || 0) }}%</span
                         >
                       </div>
@@ -407,14 +419,14 @@
                       class="task-focus-item q-py-sm q-px-md"
                       @click="task.project_id ? goToProject(task.project_id) : goToTasks()"
                     >
-                      <q-item-section>
+                      <q-item-section style="min-width: 0">
                         <div class="row items-center gap-xs">
                           <span class="text-body2 text-weight-bold ellipsis">{{ task.title }}</span>
                           <q-badge
                             dense
                             :color="isTaskOverdue(task) ? 'red-1' : 'amber-1'"
                             :text-color="isTaskOverdue(task) ? 'negative' : 'warning'"
-                            class="text-weight-bold"
+                            class="text-weight-bold col-auto"
                           >
                             {{ isTaskOverdue(task) ? 'Overdue' : task.priority }}
                           </q-badge>
@@ -424,7 +436,7 @@
                             task.project_name || `Project #${task.project_id}`
                           }}</span>
                           <span>•</span>
-                          <span>{{
+                          <span class="text-no-wrap">{{
                             task.deadline ? formatDateShort(task.deadline) : 'No due date'
                           }}</span>
                         </div>
@@ -451,14 +463,14 @@
                       class="task-focus-item q-py-sm q-px-md"
                       @click="task.project_id ? goToProject(task.project_id) : goToTasks()"
                     >
-                      <q-item-section>
+                      <q-item-section style="min-width: 0">
                         <div class="text-body2 text-weight-bold ellipsis">{{ task.title }}</div>
                         <div class="row items-center gap-xs text-muted text-caption q-mt-xs">
                           <span class="ellipsis">{{
                             task.project_name || `Project #${task.project_id}`
                           }}</span>
                           <span>•</span>
-                          <span>{{
+                          <span class="text-no-wrap">{{
                             task.deadline ? formatDateShort(task.deadline) : 'Ongoing'
                           }}</span>
                         </div>
@@ -484,7 +496,7 @@
                       class="task-focus-item q-py-sm q-px-md"
                       @click="task.project_id ? goToProject(task.project_id) : goToTasks()"
                     >
-                      <q-item-section>
+                      <q-item-section style="min-width: 0">
                         <div class="text-body2 text-weight-bold ellipsis">{{ task.title }}</div>
                         <div class="row items-center gap-xs text-muted text-caption q-mt-xs">
                           <span class="ellipsis">{{
@@ -542,11 +554,11 @@
                     </q-avatar>
                   </q-item-section>
 
-                  <q-item-section>
+                  <q-item-section style="min-width: 0">
                     <div class="row items-center justify-between">
                       <span class="text-body2 text-weight-bold ellipsis">{{ member.name }}</span>
                       <span
-                        class="text-caption text-weight-bold"
+                        class="text-caption text-weight-bold col-auto"
                         :class="getWorkloadTextColor(member.workload)"
                       >
                         {{ member.workload }}%
@@ -589,10 +601,7 @@
       <!-- MODALS & DIALOGS (100% PRESERVED FOR FULL FUNCTIONALITY) -->
       <!-- DIALOG 1: CREATE PROJECT -->
       <q-dialog v-model="showNewProjectModal">
-        <q-card
-          :dark="$q.dark.isActive"
-          style="width: 100%; max-width: 480px; border-radius: 12px"
-        >
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px">
           <q-card-section class="row items-center q-pb-sm">
             <div class="text-h6 text-weight-bold">Create New Project</div>
             <q-space />
@@ -711,10 +720,7 @@
 
       <!-- DIALOG 2: ADD TASK -->
       <q-dialog v-model="showAddTaskModal">
-        <q-card
-          :dark="$q.dark.isActive"
-          style="width: 100%; max-width: 500px; border-radius: 12px"
-        >
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 500px; border-radius: 12px">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Add New Task</div>
             <q-space />
@@ -880,10 +886,7 @@
 
       <!-- DIALOG 3: ALLOCATE RESOURCE -->
       <q-dialog v-model="showAllocateResourceModal">
-        <q-card
-          :dark="$q.dark.isActive"
-          style="width: 100%; max-width: 480px; border-radius: 12px"
-        >
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Allocate Resource</div>
             <q-space />
@@ -943,10 +946,7 @@
 
       <!-- DIALOG 4: LOG PROGRESS -->
       <q-dialog v-model="showLogProgressModal">
-        <q-card
-          :dark="$q.dark.isActive"
-          style="width: 100%; max-width: 480px; border-radius: 12px"
-        >
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Log Progress & Effort</div>
             <q-space />
@@ -980,7 +980,7 @@
                     :dark="$q.dark.isActive"
                     :rules="[
                       (val) => (val !== null && val > 0) || 'Hours must be greater than 0',
-                      (val) => (val <= 16) || 'A single work log cannot exceed 16 hours',
+                      (val) => val <= 16 || 'A single work log cannot exceed 16 hours',
                       (val) => Math.round(val * 10) % 5 === 0 || '0.5h increments required',
                     ]"
                   />
@@ -1044,10 +1044,7 @@
 
       <!-- DIALOG 5: GENERATE REPORT -->
       <q-dialog v-model="showGenerateReportModal">
-        <q-card
-          :dark="$q.dark.isActive"
-          style="width: 100%; max-width: 480px; border-radius: 12px"
-        >
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Generate Project Report</div>
             <q-space />
@@ -1721,11 +1718,34 @@ const positionedTimelineRows = computed(() => {
   color: var(--wo-text-muted, #64748b);
 }
 
+.actions-strip-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.actions-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+}
+
 .action-btn {
   border-radius: 8px;
   padding: 6px 14px;
   font-size: 13px;
   border: 1px solid var(--wo-border, #e5e7ec);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .bg-dark-subtle {
@@ -1734,12 +1754,14 @@ const positionedTimelineRows = computed(() => {
 
 /* KPI CARDS */
 .kpi-card {
-  padding: 18px 20px;
+  padding: 14px 16px;
   border-radius: 12px;
   background: var(--wo-bg-card, #ffffff);
   border: 1px solid var(--wo-border, #e5e7ec);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.02);
   transition: all 0.2s ease;
+  min-width: 0;
+  width: 100%;
 
   &:hover {
     border-color: var(--wo-primary, #8b6fd8);
@@ -1753,21 +1775,25 @@ const positionedTimelineRows = computed(() => {
 }
 
 .kpi-label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--wo-text-muted, #64748b);
+  white-space: normal;
+  word-break: break-word;
 }
 
 .kpi-value {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--wo-text-main, #172033);
 }
 
 .kpi-meta {
-  font-size: 11.5px;
-  margin-top: 6px;
+  font-size: 11px;
+  margin-top: 4px;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .kpi-icon-wrap {

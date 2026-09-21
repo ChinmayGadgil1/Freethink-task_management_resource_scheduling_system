@@ -403,7 +403,7 @@
 
     <!-- 5. REQUEST LEAVE MODAL DIALOG -->
     <q-dialog v-model="showLeaveDialog">
-      <q-card :dark="$q.dark.isActive" style="min-width: 400px; border-radius: 12px">
+      <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 460px; border-radius: 12px">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div
             class="text-h6 text-weight-bold"
@@ -592,7 +592,7 @@
 
     <!-- 6. REJECT LEAVE MODAL DIALOG -->
     <q-dialog v-model="showRejectModal">
-      <q-card :dark="$q.dark.isActive" style="min-width: 400px; border-radius: 12px">
+      <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 460px; border-radius: 12px">
         <q-card-section class="row items-center justify-between q-pb-none">
           <div class="text-h6 text-weight-bold text-negative">Reject Leave Request</div>
           <q-btn v-close-popup flat round dense icon="close" />

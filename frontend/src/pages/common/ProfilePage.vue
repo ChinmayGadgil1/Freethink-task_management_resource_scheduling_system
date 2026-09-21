@@ -261,7 +261,7 @@
     <!-- CHANGE PASSWORD MODAL DIALOG -->
     <q-dialog v-model="showPasswordDialog" persistent>
       <q-card
-        style="min-width: 400px; max-width: 460px"
+        style="width: 100%; max-width: 460px"
         :dark="$q.dark.isActive"
         class="rounded-borders q-pa-sm"
       >
@@ -372,7 +372,7 @@
     <!-- NON-WORKING DAYS / WORK SCHEDULE MODAL DIALOG -->
     <q-dialog v-model="workingDaysDialog" persistent>
       <q-card
-        style="min-width: 440px; max-width: 520px"
+        style="width: 100%; max-width: 520px"
         :dark="$q.dark.isActive"
         class="rounded-borders"
       >

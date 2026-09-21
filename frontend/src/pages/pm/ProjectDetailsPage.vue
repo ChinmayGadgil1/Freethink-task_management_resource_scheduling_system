@@ -1621,7 +1621,11 @@
 
       <!-- DIALOG: ASSIGN MEMBER / SUPERVISOR TO TASK -->
       <q-dialog v-model="showAssignTaskMemberDialog">
-        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 460px" class="rounded-borders">
+        <q-card
+          :dark="$q.dark.isActive"
+          style="width: 100%; max-width: 460px"
+          class="rounded-borders"
+        >
           <q-card-section class="row items-center justify-between">
             <div class="text-subtitle1 text-weight-bold">Assign Member / Supervisor to Task</div>
             <q-btn v-close-popup flat round dense icon="close" color="grey-7" />

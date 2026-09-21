@@ -82,25 +82,21 @@
       </div>
 
       <!-- Scope Filter Toggle -->
-      <div class="row items-center q-mb-md">
-        <q-btn-toggle
-          v-model="scopeFilter"
-          toggle-color="primary"
-          toggle-text-color="white"
-          :color="$q.dark.isActive ? 'grey-9' : 'white'"
-          :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
-          dense
-          unelevated
-          no-caps
-          :options="[
-            { label: 'All Tasks', value: 'all', icon: 'dashboard' },
-            { label: 'Assigned to Me', value: 'assigned', icon: 'assignment_ind' },
-            { label: 'Supervised by Me', value: 'supervised', icon: 'verified_user' },
-            { label: 'Verifications', value: 'verifications', icon: 'verified' },
-            { label: 'Upstream (Prerequisites)', value: 'upstream', icon: 'call_made' },
-            { label: 'Downstream (Dependents)', value: 'downstream', icon: 'call_received' },
-          ]"
-        />
+      <div class="row items-center q-mb-md scope-filter-container">
+        <div class="scope-filter-scroll-wrapper">
+          <q-btn-toggle
+            v-model="scopeFilter"
+            toggle-color="primary"
+            toggle-text-color="white"
+            :color="$q.dark.isActive ? 'grey-9' : 'white'"
+            :text-color="$q.dark.isActive ? 'grey-3' : 'grey-8'"
+            dense
+            unelevated
+            no-caps
+            class="scope-btn-toggle"
+            :options="scopeFilterOptions"
+          />
+        </div>
       </div>
 
       <!-- 2. STAT SUMMARY CARDS -->
@@ -3158,6 +3154,32 @@ const priorityOptions: Array<{ label: string; value: Task['priority'] | null }> 
 const scopeFilter = ref<
   'all' | 'assigned' | 'supervised' | 'upstream' | 'downstream' | 'verifications'
 >('all');
+
+const scopeFilterOptions = computed(() => [
+  { label: $q.screen.lt.sm ? 'All' : 'All Tasks', value: 'all', icon: 'dashboard' },
+  {
+    label: $q.screen.lt.sm ? 'Assigned' : 'Assigned to Me',
+    value: 'assigned',
+    icon: 'assignment_ind',
+  },
+  {
+    label: $q.screen.lt.sm ? 'Supervised' : 'Supervised by Me',
+    value: 'supervised',
+    icon: 'verified_user',
+  },
+  { label: 'Verifications', value: 'verifications', icon: 'verified' },
+  {
+    label: $q.screen.lt.sm ? 'Upstream' : 'Upstream (Prerequisites)',
+    value: 'upstream',
+    icon: 'call_made',
+  },
+  {
+    label: $q.screen.lt.sm ? 'Downstream' : 'Downstream (Dependents)',
+    value: 'downstream',
+    icon: 'call_received',
+  },
+]);
+
 const currentUserId = computed(() => getCurrentUserId());
 
 const showAssignVerificationDialog = ref(false);
@@ -4376,6 +4398,46 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.scope-filter-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.scope-filter-scroll-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 2px 2px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(140, 110, 220, 0.3);
+    border-radius: 4px;
+  }
+}
+
+.scope-btn-toggle {
+  border: 1px solid var(--wo-border, #e2e8f0);
+  border-radius: 8px;
+  flex-wrap: nowrap;
+
+  :deep(.q-btn) {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    white-space: nowrap;
+  }
+}
+
 .task-detail-tabs {
   background: var(--wo-bg-page, #fafbfc);
   border-bottom: 1px solid var(--wo-border, #e9ebef);

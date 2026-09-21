@@ -518,7 +518,7 @@
                         label="Add Work Log"
                         color="primary"
                         class="text-weight-bold q-px-md"
-                        :disable="item.is_blocked"
+                        :disable="Boolean(item.is_blocked)"
                         @click="openWorkLogDialog(item)"
                       >
                         <q-tooltip v-if="item.is_blocked" class="bg-negative"

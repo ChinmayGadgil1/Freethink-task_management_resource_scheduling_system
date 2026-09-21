@@ -39,7 +39,10 @@
         class="q-py-md q-px-md cursor-pointer"
         @click="goToProjectTasks(row.project)"
       >
-        <div class="row items-center justify-between full-width no-wrap q-gutter-x-md">
+        <div
+          class="row items-center justify-between full-width no-wrap gap-sm"
+          style="min-width: 0"
+        >
           <!-- Project Info (Takes remaining space, ellipses safely) -->
           <div class="row items-center no-wrap gap-sm col" style="min-width: 0">
             <q-avatar
@@ -59,13 +62,16 @@
                 {{ row.project }}
               </div>
               <div class="text-caption text-grey-6 ellipsis">
-                {{ row.tasks }} assigned tasks · Due {{ row.deadline }}
+                {{ row.tasks }} tasks · Due {{ row.deadline }}
               </div>
             </div>
           </div>
 
-          <!-- Progress Bar & % (Fixed width container so it never collides with title) -->
-          <div class="row items-center no-wrap gap-sm col-auto gt-xs" style="width: 150px">
+          <!-- Progress Bar & % (Desktop/Tablet only) -->
+          <div
+            class="row items-center no-wrap gap-xs col-auto gt-xs"
+            style="width: 120px; min-width: 0"
+          >
             <div class="col">
               <q-linear-progress
                 :value="row.progress / 100"
@@ -77,7 +83,7 @@
             </div>
             <span
               class="text-caption text-weight-bold col-auto"
-              style="min-width: 36px; text-align: right"
+              style="min-width: 32px; text-align: right"
               :class="$q.dark.isActive ? 'text-grey-3' : 'text-grey-8'"
             >
               {{ row.progress }}%
@@ -92,6 +98,7 @@
               :color="getStatusChipColor(row.status).bg"
               :text-color="getStatusChipColor(row.status).text"
               class="text-caption text-weight-bold"
+              style="font-size: 11px"
             >
               {{ row.status }}
             </q-chip>

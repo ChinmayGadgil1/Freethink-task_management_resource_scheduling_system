@@ -220,9 +220,8 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   line-height: 1.25;
   font-weight: 600;
   letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .stat-value {
@@ -233,8 +232,6 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   font-weight: 700;
   letter-spacing: -0.02em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 
   &.stat-value--sm {
     font-size: 17px;
@@ -251,10 +248,9 @@ const isNegative = computed(() => props.negative || props.subtitle.includes('↓
   color: var(--wo-text-muted, #667085);
   font-size: 10.5px;
   font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
 
   &.negative {
     color: #f04438 !important;

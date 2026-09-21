@@ -73,10 +73,7 @@
           </div>
 
           <!-- Effort Budget Status & Overrun Warning -->
-          <div
-            v-if="expectedEffort > 0"
-            class="col-12"
-          >
+          <div v-if="expectedEffort > 0" class="col-12">
             <div
               class="effort-info-box q-pa-sm rounded-borders"
               :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
@@ -97,7 +94,9 @@
                     {{ totalEffortAfterLog }}h
                   </span>
                 </div>
-                <div v-if="suggestedProgress !== null && suggestedProgress !== form.progress_logged">
+                <div
+                  v-if="suggestedProgress !== null && suggestedProgress !== form.progress_logged"
+                >
                   <q-btn
                     flat
                     dense
@@ -108,7 +107,10 @@
                     :label="`Suggest ${suggestedProgress}%`"
                     @click="form.progress_logged = suggestedProgress"
                   >
-                    <q-tooltip>Set progress to {{ suggestedProgress }}% based on cumulative effort</q-tooltip>
+                    <q-tooltip
+                      >Set progress to {{ suggestedProgress }}% based on cumulative
+                      effort</q-tooltip
+                    >
                   </q-btn>
                 </div>
               </div>
@@ -122,7 +124,9 @@
               >
                 <q-icon name="warning" size="16px" class="q-mr-xs text-warning" />
                 <span>
-                  Effort Overrun: Total effort ({{ totalEffortAfterLog }}h) exceeds budget ({{ expectedEffort }}h) by {{ overrunHours }}h while progress is {{ form.progress_logged }}%.
+                  Effort Overrun: Total effort ({{ totalEffortAfterLog }}h) exceeds budget ({{
+                    expectedEffort
+                  }}h) by {{ overrunHours }}h while progress is {{ form.progress_logged }}%.
                 </span>
               </div>
             </div>

@@ -76,38 +76,50 @@
         </div>
       </div>
 
-      <div class="row q-col-gutter-sm q-mt-md">
-        <div class="col-4">
+      <div class="row q-col-gutter-xs q-col-gutter-sm-sm q-mt-md" style="min-width: 0">
+        <div class="col-4" style="min-width: 0">
           <q-card
             flat
-            class="q-pa-sm text-center rounded-borders cursor-pointer"
+            class="q-pa-xs text-center rounded-borders cursor-pointer"
             :class="$q.dark.isActive ? 'bg-purple-10 text-purple-2' : 'bg-purple-1 text-purple-9'"
             @click="goToTaskDetails"
           >
-            <div class="text-caption text-weight-medium" style="font-size: 11px">Active Tasks</div>
-            <div class="text-h6 text-weight-bolder q-mt-xs">{{ assignedTasks }}</div>
+            <div class="text-caption text-weight-medium ellipsis" style="font-size: 10.5px">
+              Active
+            </div>
+            <div class="text-h6 text-weight-bolder q-mt-xs" style="font-size: 16px">
+              {{ assignedTasks }}
+            </div>
           </q-card>
         </div>
-        <div class="col-4">
+        <div class="col-4" style="min-width: 0">
           <q-card
             flat
-            class="q-pa-sm text-center rounded-borders cursor-pointer"
+            class="q-pa-xs text-center rounded-borders cursor-pointer"
             :class="$q.dark.isActive ? 'bg-blue-10 text-blue-2' : 'bg-blue-1 text-blue-9'"
             @click="goToProgress"
           >
-            <div class="text-caption text-weight-medium" style="font-size: 11px">Actual Effort</div>
-            <div class="text-h6 text-weight-bolder q-mt-xs">{{ formatHours(actualHours) }}</div>
+            <div class="text-caption text-weight-medium ellipsis" style="font-size: 10.5px">
+              Actual
+            </div>
+            <div class="text-h6 text-weight-bolder q-mt-xs" style="font-size: 16px">
+              {{ formatHours(actualHours) }}
+            </div>
           </q-card>
         </div>
-        <div class="col-4">
+        <div class="col-4" style="min-width: 0">
           <q-card
             flat
-            class="q-pa-sm text-center rounded-borders cursor-pointer"
+            class="q-pa-xs text-center rounded-borders cursor-pointer"
             :class="$q.dark.isActive ? 'bg-teal-10 text-teal-2' : 'bg-teal-1 text-teal-9'"
             @click="goToProgress"
           >
-            <div class="text-caption text-weight-medium" style="font-size: 11px">Remaining</div>
-            <div class="text-h6 text-weight-bolder q-mt-xs">{{ formatHours(remainingHours) }}</div>
+            <div class="text-caption text-weight-medium ellipsis" style="font-size: 10.5px">
+              Remaining
+            </div>
+            <div class="text-h6 text-weight-bolder q-mt-xs" style="font-size: 16px">
+              {{ formatHours(remainingHours) }}
+            </div>
           </q-card>
         </div>
       </div>
