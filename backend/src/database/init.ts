@@ -12,6 +12,7 @@ export async function initializeDatabase(options: { dropExisting?: boolean } = {
             "notifications",
             "password_reset_tokens",
             "support_tickets",
+            "daily_checkouts",
             "task_schedules",
             "task_sessions",
             "work_logs",

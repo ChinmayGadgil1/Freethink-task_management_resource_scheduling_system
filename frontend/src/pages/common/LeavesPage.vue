@@ -351,9 +351,9 @@
             <div class="row items-center justify-center q-gutter-xs no-wrap">
               <!-- PM Approve Button -->
               <template v-if="isProjectManager && props.row.status === 'PENDING'">
-                <!-- Can only approve if leave dates have not already passed -->
+                <!-- Can only approve if leave start date has not arrived yet -->
                 <q-btn
-                  v-if="canApproveLeave(props.row.end_date || props.row.leave_date)"
+                  v-if="canApproveLeave(props.row.start_date || props.row.leave_date)"
                   dense
                   flat
                   round
@@ -366,7 +366,7 @@
                 </q-btn>
                 <div v-else>
                   <q-btn dense flat round disable color="grey-5" icon="check">
-                    <q-tooltip>Cannot approve: Leave dates have already passed</q-tooltip>
+                    <q-tooltip>Cannot approve: Leave starts today or has already passed</q-tooltip>
                   </q-btn>
                 </div>
 
@@ -455,12 +455,8 @@
                     (val) => !!val || 'Start date is required',
                     (val) =>
                       !val ||
-                      (isProjectManager
-                        ? String(val) >= getTodayIso()
-                        : String(val) > getTodayIso()) ||
-                      (isProjectManager
-                        ? 'Start date cannot be in the past'
-                        : 'Leaves must be applied at least 1 day in advance (tomorrow or later)'),
+                      String(val) > getTodayIso() ||
+                      'Leaves must be applied at least 1 day in advance (tomorrow or later)',
                   ]"
                   @update:model-value="
                     (val) => {
@@ -500,13 +496,7 @@
                       val >= leaveForm.start_date ||
                       'End date must be on or after start date',
                     (val) =>
-                      !val ||
-                      (isProjectManager
-                        ? String(val) >= getTodayIso()
-                        : String(val) > getTodayIso()) ||
-                      (isProjectManager
-                        ? 'End date cannot be in the past'
-                        : 'End date must be tomorrow or later'),
+                      !val || String(val) > getTodayIso() || 'End date must be tomorrow or later',
                   ]"
                 >
                   <template #append>
@@ -800,20 +790,16 @@ function isDateFullyBooked(dateStr: string): boolean {
 function isStartDateAllowed(date: string): boolean {
   const dateStr = date.replaceAll('/', '-');
   const todayStr = getTodayIso();
-  // Resources cannot pick today or past dates (must apply at least 1 day in advance)
-  if (!isProjectManager.value && dateStr <= todayStr) return false;
-  // PMs cannot pick past dates
-  if (isProjectManager.value && dateStr < todayStr) return false;
+  // Cannot pick today or past dates (leaves must be applied at least 1 day in advance)
+  if (dateStr <= todayStr) return false;
   return !isDateFullyBooked(dateStr);
 }
 
 function isEndDateAllowed(date: string): boolean {
   const dateStr = date.replaceAll('/', '-');
   const todayStr = getTodayIso();
-  // Resources cannot pick today or past dates
-  if (!isProjectManager.value && dateStr <= todayStr) return false;
-  // PMs cannot pick past dates
-  if (isProjectManager.value && dateStr < todayStr) return false;
+  // Cannot pick today or past dates
+  if (dateStr <= todayStr) return false;
   if (leaveForm.start_date && dateStr < leaveForm.start_date) return false;
   return !isDateFullyBooked(dateStr);
 }
@@ -1000,12 +986,12 @@ function getStatusTextColor(status: LeaveStatus): string {
   }
 }
 
-// Rule check: Leave can only be approved before or during the leave period (not after it has ended)
-function canApproveLeave(endDateStr: string): boolean {
-  if (!endDateStr) return false;
+// Rule check: Leave can only be approved strictly before the leave period starts (todayStr < startDateStr)
+function canApproveLeave(startDateStr: string): boolean {
+  if (!startDateStr) return false;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return todayStr <= endDateStr;
+  return todayStr < startDateStr;
 }
 
 // Dropdown options for resources selection (guaranteed unique by user_id and disambiguated)

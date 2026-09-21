@@ -6,7 +6,7 @@ import { getProjectById, isProjectMember, getProjectIdsByMember, getProjectsByMa
 import { getResourceWorkload, checkSchedulingImpact } from "../services/schedulingService.js";
 // Work log and task session services for progress tracking and co-assignee updates
 import { createWorkLog, getWorkLogsByTask, getActiveSessionsForTask } from "../services/workLogService.js";
-import { recalculate as recalculateSchedule } from "../services/scheduler/SchedulingEngine.js";
+import { recalculate as recalculateSchedule, parseAndFormatDateOnly } from "../services/scheduler/SchedulingEngine.js";
 
 const createTaskSchema = z.object({
     project_id: z.number().int().positive(),
@@ -28,26 +28,21 @@ function validateTaskDeadlineAgainstProject(
         return null;
     }
 
-    const taskDeadline = taskDeadlineInput.includes("T")
-        ? taskDeadlineInput.split("T")[0]!
-        : taskDeadlineInput;
+    const taskDeadline = parseAndFormatDateOnly(taskDeadlineInput);
+    if (!taskDeadline) {
+        return null;
+    }
 
     if (project.start_date) {
-        const projStart = String(project.start_date).includes("T")
-            ? String(project.start_date).split("T")[0]!
-            : String(project.start_date);
-
-        if (taskDeadline < projStart) {
+        const projStart = parseAndFormatDateOnly(project.start_date);
+        if (projStart && taskDeadline < projStart) {
             return `Task deadline (${taskDeadline}) cannot be earlier than project start date (${projStart})`;
         }
     }
 
     if (project.deadline) {
-        const projDeadline = String(project.deadline).includes("T")
-            ? String(project.deadline).split("T")[0]!
-            : String(project.deadline);
-
-        if (taskDeadline > projDeadline) {
+        const projDeadline = parseAndFormatDateOnly(project.deadline);
+        if (projDeadline && taskDeadline > projDeadline) {
             return `Task deadline (${taskDeadline}) cannot be later than project deadline (${projDeadline})`;
         }
     }
@@ -636,7 +631,7 @@ export async function addWorkLog(req: AuthRequest<{ id: string }>, res: Response
         if (error instanceof z.ZodError) {
             return res.status(400).json({ message: error.issues[0]?.message || "Validation error", errors: error.issues });
         }
-        return res.status(500).json({ message: error.message || "Internal server error" });
+        return res.status(400).json({ message: error.message || "Failed to create work log" });
     }
 }
 
@@ -861,7 +856,7 @@ export async function startSessionController(req: AuthRequest<{ id: string }>, r
         const session = await startSession(taskId, req.user.user_id);
         return res.status(201).json({ message: "Session started", session });
     } catch (error: any) {
-        return res.status(500).json({ message: error.message || "Internal server error" });
+        return res.status(400).json({ message: error.message || "Failed to start session" });
     }
 }
 
