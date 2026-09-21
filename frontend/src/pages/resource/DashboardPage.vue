@@ -185,15 +185,12 @@
                     Overdue and critical deliverables
                   </div>
                 </div>
-                <q-chip
+                <q-badge
                   v-if="attentionTasks.length"
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'red-10' : 'red-1'"
-                  :text-color="$q.dark.isActive ? 'red-2' : 'negative'"
-                  :label="`${attentionTasks.length} Items`"
-                  class="text-caption text-weight-bold col-auto"
-                  style="margin: 0;"
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                  :text-color="$q.dark.isActive ? 'grey-3' : 'dark'"
+                  :label="`${attentionTasks.length} Tasks`"
+                  class="text-weight-bold q-px-sm q-py-xs col-auto"
                 />
               </q-card-section>
 
@@ -209,52 +206,54 @@
                 </div>
               </div>
 
-              <q-list v-else separator class="col column justify-start">
-                <q-item
-                  v-for="t in attentionTasks"
-                  :key="t.task_id"
-                  clickable
-                  v-ripple
-                  class="q-py-md q-px-md cursor-pointer"
-                  @click="goToTaskDetails(t.task_id)"
-                >
-                  <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
-                    <q-avatar
-                      size="32px"
-                      rounded
-                      :color="attentionColor(attentionMeta(t).color).bg"
-                      :text-color="attentionColor(attentionMeta(t).color).text"
-                      :icon="attentionMeta(t).icon"
-                    />
-                  </q-item-section>
-                  <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
-                    <q-item-label
-                      class="text-weight-bold ellipsis"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      :title="t.title"
-                      style="font-size: 13px"
-                    >
-                      {{ t.title }}
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
-                      {{ t.project_name || `Project #${t.project_id}` }}
-                      <span v-if="t.deadline"> · Due {{ formatDate(t.deadline) }}</span>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side style="padding-left: 6px; flex-shrink: 0">
-                    <q-chip
-                      dense
-                      square
-                      :color="attentionColor(attentionMeta(t).color).bg"
-                      :text-color="attentionColor(attentionMeta(t).color).text"
-                      class="text-caption text-weight-bold"
-                      style="font-size: 10.5px; margin: 0"
-                    >
-                      {{ attentionMeta(t).label }}
-                    </q-chip>
-                  </q-item-section>
-                </q-item>
-              </q-list>
+              <div v-else class="col attention-scroll-container">
+                <q-list separator class="justify-start">
+                  <q-item
+                    v-for="t in attentionTasks"
+                    :key="t.task_id"
+                    clickable
+                    v-ripple
+                    class="q-py-md q-px-md cursor-pointer"
+                    @click="goToTaskDetails(t.task_id)"
+                  >
+                    <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
+                      <q-avatar
+                        size="32px"
+                        rounded
+                        :color="attentionColor(attentionMeta(t).color).bg"
+                        :text-color="attentionColor(attentionMeta(t).color).text"
+                        :icon="attentionMeta(t).icon"
+                      />
+                    </q-item-section>
+                    <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
+                      <q-item-label
+                        class="text-weight-bold ellipsis"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :title="t.title"
+                        style="font-size: 13px"
+                      >
+                        {{ t.title }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
+                        {{ t.project_name || `Project #${t.project_id}` }}
+                        <span v-if="t.deadline"> · Due {{ formatDate(t.deadline) }}</span>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side style="padding-left: 6px; flex-shrink: 0">
+                      <q-chip
+                        dense
+                        square
+                        :color="attentionColor(attentionMeta(t).color).bg"
+                        :text-color="attentionColor(attentionMeta(t).color).text"
+                        class="text-caption text-weight-bold"
+                        style="font-size: 10.5px; margin: 0"
+                      >
+                        {{ attentionMeta(t).label }}
+                      </q-chip>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
             </q-card>
           </div>
 
@@ -291,74 +290,73 @@
                     Tasks initiated by you
                   </div>
                 </div>
-                <q-chip
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                  :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                  class="text-caption text-weight-bold col-auto"
-                  style="margin: 0;"
-                >
-                  {{ selfAssignedTasks.length }}
-                </q-chip>
+                <q-badge
+                  v-if="selfAssignedTasks.length"
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                  :text-color="$q.dark.isActive ? 'grey-3' : 'dark'"
+                  :label="`${selfAssignedTasks.length} ${selfAssignedTasks.length === 1 ? 'Task' : 'Tasks'}`"
+                  class="text-weight-bold q-px-sm q-py-xs col-auto"
+                />
               </q-card-section>
 
               <q-separator />
 
-              <q-list separator class="col column justify-start">
-                <q-item
-                  v-for="taskItem in selfAssignedTasks.slice(0, 4)"
-                  :key="taskItem.task_id"
-                  clickable
-                  v-ripple
-                  class="q-py-md q-px-md cursor-pointer"
-                  @click="goToTaskDetails(taskItem.task_id)"
-                >
-                  <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
-                    <q-avatar
-                      size="32px"
-                      rounded
-                      :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
-                      :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
-                      icon="assignment_ind"
-                    />
-                  </q-item-section>
-                  <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
-                    <q-item-label
-                      class="text-weight-bold ellipsis"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      :title="taskItem.title"
-                      style="font-size: 13px"
-                    >
-                      {{ taskItem.title }}
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
-                      {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side style="padding-left: 6px; flex-shrink: 0">
-                    <div class="column items-end gap-xs">
-                      <q-chip
-                        dense
-                        square
-                        :color="statusColor(taskItem.status)"
-                        :text-color="statusTextColor(taskItem.status)"
-                        class="text-caption text-weight-bold"
-                        style="font-size: 10.5px; margin: 0"
-                      >
-                        {{ taskItem.status.replace('_', ' ') }}
-                      </q-chip>
-                      <div
-                        class="text-caption text-weight-bold"
+              <div class="col attention-scroll-container">
+                <q-list separator class="justify-start">
+                  <q-item
+                    v-for="taskItem in selfAssignedTasks"
+                    :key="taskItem.task_id"
+                    clickable
+                    v-ripple
+                    class="q-py-md q-px-md cursor-pointer"
+                    @click="goToTaskDetails(taskItem.task_id)"
+                  >
+                    <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
+                      <q-avatar
+                        size="32px"
+                        rounded
+                        :color="$q.dark.isActive ? 'purple-10' : 'purple-1'"
+                        :text-color="$q.dark.isActive ? 'purple-2' : 'primary'"
+                        icon="assignment_ind"
+                      />
+                    </q-item-section>
+                    <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
+                      <q-item-label
+                        class="text-weight-bold ellipsis"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                        style="font-size: 11px"
+                        :title="taskItem.title"
+                        style="font-size: 13px"
                       >
-                        {{ Number(taskItem.progress) || 0 }}%
+                        {{ taskItem.title }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
+                        {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side style="padding-left: 6px; flex-shrink: 0">
+                      <div class="column items-end gap-xs">
+                        <q-chip
+                          dense
+                          square
+                          :color="statusColor(taskItem.status)"
+                          :text-color="statusTextColor(taskItem.status)"
+                          class="text-caption text-weight-bold"
+                          style="font-size: 10.5px; margin: 0"
+                        >
+                          {{ taskItem.status.replace('_', ' ') }}
+                        </q-chip>
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                          style="font-size: 11px"
+                        >
+                          {{ Number(taskItem.progress) || 0 }}%
+                        </div>
                       </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </q-list>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
             </q-card>
           </div>
 
@@ -385,77 +383,76 @@
                     Deliverables you oversee &amp; review
                   </div>
                 </div>
-                <q-chip
-                  dense
-                  square
-                  :color="$q.dark.isActive ? 'amber-10' : 'amber-1'"
-                  :text-color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
-                  class="text-caption text-weight-bold col-auto"
-                  style="margin: 0;"
-                >
-                  {{ supervisedTasks.length }}
-                </q-chip>
+                <q-badge
+                  v-if="supervisedTasks.length"
+                  :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
+                  :text-color="$q.dark.isActive ? 'grey-3' : 'dark'"
+                  :label="`${supervisedTasks.length} ${supervisedTasks.length === 1 ? 'Task' : 'Tasks'}`"
+                  class="text-weight-bold q-px-sm q-py-xs col-auto"
+                />
               </q-card-section>
 
               <q-separator />
 
-              <q-list separator class="col column justify-start">
-                <q-item
-                  v-for="taskItem in supervisedTasks.slice(0, 4)"
-                  :key="taskItem.task_id"
-                  clickable
-                  v-ripple
-                  class="q-py-md q-px-md cursor-pointer"
-                  @click="goToTaskDetails(taskItem.task_id)"
-                >
-                  <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
-                    <q-avatar
-                      size="32px"
-                      rounded
-                      :color="$q.dark.isActive ? 'amber-10' : 'amber-1'"
-                      :text-color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
-                      icon="verified_user"
-                    />
-                  </q-item-section>
-                  <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
-                    <q-item-label
-                      class="text-weight-bold ellipsis"
-                      :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      :title="taskItem.title"
-                      style="font-size: 13px"
-                    >
-                      {{ taskItem.title }}
-                    </q-item-label>
-                    <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
-                      {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
-                      <span v-if="taskItem.created_by_name">
-                        · Assigned by {{ taskItem.created_by_name }}</span
-                      >
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side style="padding-left: 6px; flex-shrink: 0">
-                    <div class="column items-end gap-xs">
-                      <q-chip
-                        dense
-                        square
-                        :color="statusColor(taskItem.status)"
-                        :text-color="statusTextColor(taskItem.status)"
-                        class="text-caption text-weight-bold"
-                        style="font-size: 10.5px; margin: 0"
-                      >
-                        {{ taskItem.status.replace('_', ' ') }}
-                      </q-chip>
-                      <div
-                        class="text-caption text-weight-bold"
+              <div class="col attention-scroll-container">
+                <q-list separator class="justify-start">
+                  <q-item
+                    v-for="taskItem in supervisedTasks"
+                    :key="taskItem.task_id"
+                    clickable
+                    v-ripple
+                    class="q-py-md q-px-md cursor-pointer"
+                    @click="goToTaskDetails(taskItem.task_id)"
+                  >
+                    <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
+                      <q-avatar
+                        size="32px"
+                        rounded
+                        :color="$q.dark.isActive ? 'amber-10' : 'amber-1'"
+                        :text-color="$q.dark.isActive ? 'amber-2' : 'amber-9'"
+                        icon="verified_user"
+                      />
+                    </q-item-section>
+                    <q-item-section style="min-width: 0; flex: 1 1 auto; overflow: hidden">
+                      <q-item-label
+                        class="text-weight-bold ellipsis"
                         :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                        style="font-size: 11px"
+                        :title="taskItem.title"
+                        style="font-size: 13px"
                       >
-                        {{ Number(taskItem.progress) || 0 }}%
+                        {{ taskItem.title }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-6 ellipsis" style="font-size: 11px; margin-top: 2px">
+                        {{ taskItem.project_name || `Project #${taskItem.project_id}` }}
+                        <span v-if="taskItem.created_by_name">
+                          · Assigned by {{ taskItem.created_by_name }}</span
+                        >
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side style="padding-left: 6px; flex-shrink: 0">
+                      <div class="column items-end gap-xs">
+                        <q-chip
+                          dense
+                          square
+                          :color="statusColor(taskItem.status)"
+                          :text-color="statusTextColor(taskItem.status)"
+                          class="text-caption text-weight-bold"
+                          style="font-size: 10.5px; margin: 0"
+                        >
+                          {{ taskItem.status.replace('_', ' ') }}
+                        </q-chip>
+                        <div
+                          class="text-caption text-weight-bold"
+                          :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                          style="font-size: 11px"
+                        >
+                          {{ Number(taskItem.progress) || 0 }}%
+                        </div>
                       </div>
-                    </div>
-                  </q-item-section>
-                </q-item>
-              </q-list>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
             </q-card>
           </div>
         </div>
@@ -862,5 +859,10 @@ function goToProgress() {
     padding: 5px 10px;
     font-size: 12px;
   }
+}
+
+.attention-scroll-container {
+  overflow-y: auto;
+  max-height: 250px;
 }
 </style>

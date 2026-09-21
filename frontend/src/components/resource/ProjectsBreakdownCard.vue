@@ -30,15 +30,16 @@
       <div class="text-body2 q-mt-sm">No active projects assigned.</div>
     </div>
 
-    <q-list v-else separator class="col column justify-start">
-      <q-item
-        v-for="(row, idx) in projects"
-        :key="row.project"
-        clickable
-        v-ripple
-        class="q-py-md q-px-md cursor-pointer project-breakdown-item"
-        @click="goToProjectTasks(row.project)"
-      >
+    <div v-else class="col projects-scroll-container">
+      <q-list separator class="justify-start">
+        <q-item
+          v-for="(row, idx) in projects"
+          :key="row.project"
+          clickable
+          v-ripple
+          class="q-py-md q-px-md cursor-pointer project-breakdown-item"
+          @click="goToProjectTasks(row.project)"
+        >
         <q-item-section avatar style="min-width: 32px; max-width: 34px; padding-right: 8px">
           <q-avatar
             size="32px"
@@ -103,7 +104,8 @@
           </q-chip>
         </q-item-section>
       </q-item>
-    </q-list>
+      </q-list>
+    </div>
   </q-card>
 </template>
 
@@ -185,6 +187,11 @@ function getProjectIcon(idx: number): string {
 </script>
 
 <style scoped lang="scss">
+.projects-scroll-container {
+  overflow-y: auto;
+  max-height: 250px;
+}
+
 @media (max-width: 600px) {
   .q-item {
     padding: 10px 10px;
