@@ -703,7 +703,9 @@
                     <template #option="{ itemProps, opt }">
                       <q-item v-bind="itemProps">
                         <q-item-section>
-                          <q-item-label class="text-weight-medium">{{ opt.task.title }}</q-item-label>
+                          <q-item-label class="text-weight-medium">{{
+                            opt.task.title
+                          }}</q-item-label>
                           <q-item-label caption class="row items-center q-gutter-x-xs q-mt-xs wrap">
                             <q-chip dense square size="xs" class="project-badge">
                               <q-icon name="folder" size="10px" class="q-mr-xs" />
@@ -727,7 +729,9 @@
                             >
                               {{ opt.task.status }}
                             </q-chip>
-                            <span class="text-caption text-grey-6">{{ opt.task.expected_effort || 0 }}h</span>
+                            <span class="text-caption text-grey-6"
+                              >{{ opt.task.expected_effort || 0 }}h</span
+                            >
                           </q-item-label>
                         </q-item-section>
                       </q-item>
@@ -749,7 +753,8 @@
                       <q-icon name="info" color="amber-9" />
                     </template>
                     <div class="text-caption">
-                      No unassigned tasks found for this project filter. Select another project or switch to
+                      No unassigned tasks found for this project filter. Select another project or
+                      switch to
                       <strong>"Create New Task"</strong> to create a new task for this resource.
                     </div>
                   </q-banner>
@@ -830,7 +835,13 @@
                       rounded
                       size="6px"
                       :value="Math.min(100, projectedUtilization) / 100"
-                      :color="projectedUtilization > 100 ? 'negative' : projectedUtilization >= 75 ? 'warning' : 'positive'"
+                      :color="
+                        projectedUtilization > 100
+                          ? 'negative'
+                          : projectedUtilization >= 75
+                            ? 'warning'
+                            : 'positive'
+                      "
                       track-color="grey-3"
                     />
                     <div
@@ -970,10 +981,12 @@
                         hint="Deliverable target completion date"
                         :dark="$q.dark.isActive"
                         :rules="[
-                          (val) => !!val || 'Deadline is required when assigning a task to a resource',
+                          (val) =>
+                            !!val || 'Deadline is required when assigning a task to a resource',
                           (val) => {
                             if (!val || !selectedAssignProject?.start_date) return true;
-                            const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
+                            const pStart =
+                              String(selectedAssignProject.start_date).split('T')[0] || '';
                             return (
                               !pStart ||
                               val >= pStart ||
@@ -2485,9 +2498,7 @@ async function loadModalTasks() {
   modalLoadingTasks.value = true;
   try {
     const pid =
-      assignExistingProjectId.value === 'ALL'
-        ? undefined
-        : Number(assignExistingProjectId.value);
+      assignExistingProjectId.value === 'ALL' ? undefined : Number(assignExistingProjectId.value);
     modalTasks.value = await getTasksApi(pid);
   } catch (err) {
     console.error('Failed to load modal tasks:', err);

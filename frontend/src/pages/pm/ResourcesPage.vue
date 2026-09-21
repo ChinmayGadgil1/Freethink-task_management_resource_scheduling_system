@@ -710,11 +710,10 @@
             >
               Assign Task to {{ getResourceName(selectedResourceId || 0) }}
             </div>
-            <div
-              v-if="selectedResourceAggregate"
-              class="text-caption text-grey-6"
-            >
-              Current: {{ formatHours(currentResourceEffort) }} / {{ currentResourceCapacity }}h ({{ currentResourceUtilization }}%) • {{ selectedResourceAggregate.tasks.length }} task(s)
+            <div v-if="selectedResourceAggregate" class="text-caption text-grey-6">
+              Current: {{ formatHours(currentResourceEffort) }} / {{ currentResourceCapacity }}h ({{
+                currentResourceUtilization
+              }}%) • {{ selectedResourceAggregate.tasks.length }} task(s)
             </div>
           </div>
           <q-btn v-close-popup flat round dense icon="close" color="grey-7" />
@@ -798,7 +797,9 @@
                           >
                             {{ formatTaskStatus(opt.task.status) }}
                           </q-chip>
-                          <span class="text-caption text-grey-6">{{ opt.task.expected_effort || 0 }}h</span>
+                          <span class="text-caption text-grey-6"
+                            >{{ opt.task.expected_effort || 0 }}h</span
+                          >
                         </q-item-label>
                       </q-item-section>
                     </q-item>
@@ -820,7 +821,8 @@
                     <q-icon name="info" color="amber-9" />
                   </template>
                   <div class="text-caption">
-                    No unassigned tasks found for this project filter. Select another project or switch to
+                    No unassigned tasks found for this project filter. Select another project or
+                    switch to
                     <strong>"Create New Task"</strong> to create a new task for this resource.
                   </div>
                 </q-banner>
@@ -892,7 +894,9 @@
                       class="text-weight-bold"
                       :class="projectedUtilization > 100 ? 'text-negative' : 'text-dark'"
                     >
-                      {{ formatHours(projectedEffort) }} / {{ currentResourceCapacity }}h ({{ projectedUtilization }}%)
+                      {{ formatHours(projectedEffort) }} / {{ currentResourceCapacity }}h ({{
+                        projectedUtilization
+                      }}%)
                     </span>
                   </div>
                   <q-linear-progress
@@ -907,7 +911,8 @@
                     class="row items-center text-negative text-caption q-mt-xs text-weight-medium"
                   >
                     <q-icon name="warning" size="14px" class="q-mr-xs" />
-                    Assigning this task will overallocate {{ getResourceName(selectedResourceId || 0) }}.
+                    Assigning this task will overallocate
+                    {{ getResourceName(selectedResourceId || 0) }}.
                   </div>
                 </div>
               </div>
@@ -1038,10 +1043,12 @@
                       hint="Deliverable target completion date"
                       :dark="$q.dark.isActive"
                       :rules="[
-                        (val) => !!val || 'Deadline is required when assigning a task to a resource',
+                        (val) =>
+                          !!val || 'Deadline is required when assigning a task to a resource',
                         (val) => {
                           if (!val || !selectedAssignProject?.start_date) return true;
-                          const pStart = String(selectedAssignProject.start_date).split('T')[0] || '';
+                          const pStart =
+                            String(selectedAssignProject.start_date).split('T')[0] || '';
                           return (
                             !pStart ||
                             val >= pStart ||
@@ -1050,7 +1057,8 @@
                         },
                         (val) => {
                           if (!val || !selectedAssignProject?.deadline) return true;
-                          const pDeadline = String(selectedAssignProject.deadline).split('T')[0] || '';
+                          const pDeadline =
+                            String(selectedAssignProject.deadline).split('T')[0] || '';
                           return (
                             !pDeadline ||
                             val <= pDeadline ||
@@ -2032,9 +2040,7 @@ async function loadModalTasks() {
   modalLoadingTasks.value = true;
   try {
     const pid =
-      assignExistingProjectId.value === 'ALL'
-        ? undefined
-        : Number(assignExistingProjectId.value);
+      assignExistingProjectId.value === 'ALL' ? undefined : Number(assignExistingProjectId.value);
     modalTasks.value = await getTasksApi(pid);
   } catch (err) {
     console.error('Failed to load modal tasks:', err);

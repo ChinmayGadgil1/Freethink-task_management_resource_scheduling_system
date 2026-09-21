@@ -623,7 +623,7 @@
     <q-dialog v-model="showAssignTaskMemberDialog">
       <q-card
         :dark="$q.dark.isActive"
-        style="width: 100%; max-width: 460px"
+        style="width: 520px; max-width: 95vw"
         class="rounded-borders"
       >
         <q-card-section class="row items-center justify-between">
@@ -648,21 +648,36 @@
             <q-select
               v-model="assignTaskMemberForm.user_ids"
               outlined
-              dense
               multiple
+              use-chips
+              stack-label
               clearable
               :dark="$q.dark.isActive"
-              :display-value="
-                assignTaskMemberForm.user_ids.length
-                  ? `${assignTaskMemberForm.user_ids.length} selected`
-                  : ''
-              "
               label="Assign Member(s)"
               :options="resourceMemberSelectOptions"
               emit-value
               map-options
               hint="Assign resources who will execute this deliverable"
-            />
+              class="assignee-select"
+            >
+              <template #selected-item="scope">
+                <q-chip
+                  removable
+                  dense
+                  square
+                  size="sm"
+                  color="purple-1"
+                  text-color="primary"
+                  class="q-my-xs q-mr-xs text-weight-medium member-chip"
+                  @remove="scope.removeAtIndex(scope.index)"
+                >
+                  <q-avatar size="16px" color="primary" text-color="white" class="q-mr-xs">
+                    {{ getMemberDisplayName(scope.opt).charAt(0).toUpperCase() }}
+                  </q-avatar>
+                  {{ getMemberDisplayName(scope.opt) }}
+                </q-chip>
+              </template>
+            </q-select>
 
             <q-select
               v-model="assignTaskMemberForm.supervisor_id"
@@ -1495,6 +1510,25 @@ const resourceNamesMap = computed<Record<number, string>>(() => {
 
 function getResourceName(id: number): string {
   return resourceNamesMap.value[id] || `Resource #${id}`;
+}
+
+function getMemberDisplayName(opt: unknown): string {
+  if (opt === null || opt === undefined) return '';
+  if (typeof opt === 'object' && 'label' in opt) {
+    const label = opt.label;
+    if (typeof label === 'string') {
+      return label.replace(' (Designated Supervisor)', '');
+    }
+    if (typeof label === 'number') {
+      return String(label);
+    }
+    return '';
+  }
+  const id = Number(opt);
+  if (!isNaN(id)) {
+    return getResourceName(id);
+  }
+  return typeof opt === 'string' ? opt : '';
 }
 
 const tableColumns: QTableColumn<Task>[] = [
@@ -2705,6 +2739,37 @@ body.body--dark {
   .day-column-cell.is-weekend-col,
   .day-column-cell.is-non-working-col {
     background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.assignee-select {
+  :deep(.q-field__control) {
+    min-height: 52px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  :deep(.q-field__native) {
+    padding-top: 8px;
+    padding-bottom: 4px;
+    row-gap: 6px;
+  }
+}
+
+.member-chip {
+  background: #f0ecfa !important;
+  color: var(--q-primary, #8b6fd8) !important;
+
+  :deep(.q-chip__icon--remove) {
+    color: var(--q-primary, #8b6fd8) !important;
+    opacity: 0.8;
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  body.body--dark & {
+    background: rgba(139, 111, 216, 0.18) !important;
+    color: #c4b5fd !important;
   }
 }
 </style>
