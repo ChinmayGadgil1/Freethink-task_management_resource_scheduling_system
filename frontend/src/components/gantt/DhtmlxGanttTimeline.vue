@@ -1637,8 +1637,21 @@ function configureGanttEngine() {
         }
       }
 
-      const segStartX = gantt.posFromDate(actualSegStart);
-      const segEndX = gantt.posFromDate(actualSegEnd);
+      let segStartX = taskStartX;
+      let segEndX = taskEndX;
+      try {
+        if (isValidDate(actualSegStart)) {
+          const px = gantt.posFromDate(actualSegStart);
+          if (!isNaN(px)) segStartX = px;
+        }
+        if (isValidDate(actualSegEnd)) {
+          const px = gantt.posFromDate(actualSegEnd);
+          if (!isNaN(px)) segEndX = px;
+        }
+      } catch {
+        segStartX = taskStartX;
+        segEndX = taskEndX;
+      }
       const rawSegWidth = Math.max(12, segEndX - segStartX);
       const segLeft = Math.max(0, segStartX - taskStartX);
       const segWidth = Math.min(rawSegWidth, Math.max(12, taskTotalWidth - segLeft));

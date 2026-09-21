@@ -17,15 +17,27 @@
             flat
             dense
             round
-            :icon="$q.screen.lt.md ? (leftDrawerOpen ? 'menu_open' : 'menu') : (isMini ? 'menu_open' : 'menu')"
+            :icon="
+              $q.screen.lt.md
+                ? leftDrawerOpen
+                  ? 'menu_open'
+                  : 'menu'
+                : isMini
+                  ? 'menu_open'
+                  : 'menu'
+            "
             aria-label="Toggle Sidebar"
             class="drawer-toggle-btn lt-md"
             @click="toggleMini"
           >
             <q-tooltip>{{
               $q.screen.lt.md
-                ? (leftDrawerOpen ? 'Close Menu' : 'Open Menu')
-                : (isMini ? 'Expand Sidebar' : 'Collapse Sidebar')
+                ? leftDrawerOpen
+                  ? 'Close Menu'
+                  : 'Open Menu'
+                : isMini
+                  ? 'Expand Sidebar'
+                  : 'Collapse Sidebar'
             }}</q-tooltip>
           </q-btn>
           <div class="header-workspace-tag gt-xs">
