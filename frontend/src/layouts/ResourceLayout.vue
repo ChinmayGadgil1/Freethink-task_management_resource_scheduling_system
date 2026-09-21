@@ -17,12 +17,16 @@
             flat
             dense
             round
-            :icon="isMini ? 'menu_open' : 'menu'"
+            :icon="$q.screen.lt.md ? (leftDrawerOpen ? 'menu_open' : 'menu') : (isMini ? 'menu_open' : 'menu')"
             aria-label="Toggle Sidebar"
             class="drawer-toggle-btn lt-md"
             @click="toggleMini"
           >
-            <q-tooltip>{{ isMini ? 'Expand Sidebar' : 'Collapse Sidebar' }}</q-tooltip>
+            <q-tooltip>{{
+              $q.screen.lt.md
+                ? (leftDrawerOpen ? 'Close Menu' : 'Open Menu')
+                : (isMini ? 'Expand Sidebar' : 'Collapse Sidebar')
+            }}</q-tooltip>
           </q-btn>
           <div class="header-workspace-tag gt-xs">
             <span class="tag-spark">✦</span>
@@ -153,7 +157,7 @@ const authStore = useAuthStore();
 const sessionStore = useSessionStore();
 const themeStore = useThemeStore();
 const paletteOpen = ref(false);
-const leftDrawerOpen = ref(true);
+const leftDrawerOpen = ref(!$q.screen.lt.md);
 const isMini = ref(false);
 
 const resourceNavItems: SidebarNavItem[] = [

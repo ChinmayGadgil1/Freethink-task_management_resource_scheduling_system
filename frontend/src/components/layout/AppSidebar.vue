@@ -1,17 +1,17 @@
 <template>
   <q-drawer
     :model-value="modelValue"
-    :mini="isMini"
+    :mini="!$q.screen.lt.md && isMini"
     :width="250"
     :mini-width="72"
-    show-if-above
+    :breakpoint="1024"
     side="left"
     bordered
     class="app-sidebar-drawer"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <!-- 1. SLIM LEFT ICON RAIL (ONLY in Mini Mode) -->
-    <div v-if="isMini" class="slim-icon-rail column items-center full-height">
+    <!-- 1. SLIM LEFT ICON RAIL (ONLY on desktop/tablet >= md when mini is active) -->
+    <div v-if="!$q.screen.lt.md && isMini" class="slim-icon-rail column items-center full-height">
       <!-- Top Section: Expand Toggle (Aligned with Top Toolbar at 64px) -->
       <div class="rail-header-row flex flex-center">
         <button
@@ -71,11 +71,11 @@
           </div>
         </div>
 
-        <!-- Shrink Button («) -->
+        <!-- Shrink / Collapse Button -->
         <button
           class="sidebar-shrink-btn flex flex-center"
-          title="Collapse Sidebar"
-          @click="$emit('update:isMini', true)"
+          :title="$q.screen.lt.md ? 'Collapse Sidebar' : 'Collapse Sidebar'"
+          @click="onCloseOrCollapse"
         >
           <q-icon name="keyboard_double_arrow_left" size="16px" />
         </button>
@@ -94,6 +94,7 @@
               :to="item.to"
               class="menu-nav-link"
               :class="{ 'menu-nav-link-active': isLinkActive(item.to) }"
+              @click="onNavClick"
             >
               <q-icon :name="item.icon" size="17px" class="q-mr-sm" :class="item.colorClass" />
               <span class="nav-text" :class="{ 'font-bold': isLinkActive(item.to) }">
@@ -113,6 +114,7 @@
               :to="computedHelpRoute"
               class="menu-nav-link"
               :class="{ 'menu-nav-link-active': isLinkActive(computedHelpRoute) }"
+              @click="onNavClick"
             >
               <q-icon name="help_outline" size="17px" class="q-mr-sm text-primary" />
               <span class="nav-text" :class="{ 'font-bold': isLinkActive(computedHelpRoute) }">
@@ -178,8 +180,26 @@ const computedHelpRoute = computed(() => {
   return '/pm/help';
 });
 
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
+
 function toggleMini() {
   emit('update:isMini', !props.isMini);
+}
+
+function onCloseOrCollapse() {
+  if ($q.screen.lt.md) {
+    emit('update:modelValue', false);
+  } else {
+    emit('update:isMini', true);
+  }
+}
+
+function onNavClick() {
+  if ($q.screen.lt.md) {
+    emit('update:modelValue', false);
+  }
 }
 
 function isLinkActive(path: string): boolean {
@@ -193,6 +213,9 @@ function isLinkActive(path: string): boolean {
 }
 
 function goToHome() {
+  if ($q.screen.lt.md) {
+    emit('update:modelValue', false);
+  }
   void router.push(props.homeRoute || '/');
 }
 </script>
@@ -204,11 +227,6 @@ function goToHome() {
 .app-sidebar-drawer {
   background: var(--wo-bg-card, #ffffff);
   border-right: 1px solid var(--wo-border, #edf0f5);
-  position: fixed !important;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  height: 100vh !important;
 }
 
 .sidebar-dual-container {
