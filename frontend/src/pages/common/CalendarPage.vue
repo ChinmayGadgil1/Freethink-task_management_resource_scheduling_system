@@ -24,7 +24,11 @@
             $q.dark.isActive ? 'text-grey-4' : 'text-grey-6',
           ]"
         >
-          Track official organization holidays, weekends, and team working schedule
+          {{
+            isProjectManager
+              ? 'Track official organization holidays and team schedule'
+              : 'Track official organization holidays, weekends, and team working schedule'
+          }}
         </div>
       </div>
 
@@ -245,7 +249,7 @@
                 $q.screen.lt.sm ? 'Holiday' : 'Holiday (No Work)'
               }}</span>
             </div>
-            <div class="row items-center q-gutter-xs">
+            <div v-if="!isProjectManager" class="row items-center q-gutter-xs">
               <q-badge
                 rounded
                 color="teal-7"
@@ -255,7 +259,7 @@
                 $q.screen.lt.sm ? 'On Leave' : 'Approved Leave (Off)'
               }}</span>
             </div>
-            <div class="row items-center q-gutter-xs">
+            <div v-if="!isProjectManager" class="row items-center q-gutter-xs">
               <q-badge
                 rounded
                 color="grey-6"
@@ -1047,6 +1051,7 @@
               </q-badge>
               <q-badge
                 v-else-if="
+                  !isProjectManager &&
                   dayDetailDialog.leaves &&
                   dayDetailDialog.leaves.filter((l) => l.status === 'APPROVED').length > 1
                 "
@@ -1057,6 +1062,7 @@
               </q-badge>
               <q-badge
                 v-else-if="
+                  !isProjectManager &&
                   dayDetailDialog.leaves &&
                   dayDetailDialog.leaves.some((l) => l.status === 'APPROVED')
                 "
@@ -1067,6 +1073,7 @@
               </q-badge>
               <q-badge
                 v-else-if="
+                  !isProjectManager &&
                   dayDetailDialog.leaves &&
                   dayDetailDialog.leaves.some((l) => l.status === 'PENDING')
                 "
@@ -1105,7 +1112,7 @@
 
           <!-- Leave Information if any -->
           <div
-            v-if="dayDetailDialog.leaves && dayDetailDialog.leaves.length > 0"
+            v-if="!isProjectManager && dayDetailDialog.leaves && dayDetailDialog.leaves.length > 0"
             class="q-mt-sm"
           >
             <div class="text-caption text-grey-6 q-mb-xs">
@@ -1160,6 +1167,7 @@
             </template>
             <template
               v-else-if="
+                !isProjectManager &&
                 dayDetailDialog.leaves &&
                 dayDetailDialog.leaves.some((l) => l.status === 'APPROVED')
               "
@@ -1168,6 +1176,7 @@
             </template>
             <template
               v-else-if="
+                !isProjectManager &&
                 dayDetailDialog.leaves &&
                 dayDetailDialog.leaves.some((l) => l.status === 'PENDING')
               "
@@ -1278,12 +1287,14 @@ const DAY_OF_WEEK_INDEX: Record<number, DayOfWeek> = {
 };
 
 function isDateNonWorking(d: Date): boolean {
+  if (isProjectManager.value) return false;
   const dayName = DAY_OF_WEEK_INDEX[d.getDay()];
   if (!dayName) return false;
   return userNonWorkingDays.value.includes(dayName);
 }
 
 function isDateKeyNonWorking(dateStr: string, weekday?: number): boolean {
+  if (isProjectManager.value) return false;
   if (weekday !== undefined) {
     const dayName = DAY_OF_WEEK_INDEX[weekday];
     if (dayName) return userNonWorkingDays.value.includes(dayName);
@@ -1379,11 +1390,13 @@ const leavesByDate = computed(() => {
 });
 
 function hasApprovedLeave(dateStr: string): boolean {
+  if (isProjectManager.value) return false;
   const leaves = leavesByDate.value.get(dateStr);
   return !!leaves && leaves.some((l) => l.status === 'APPROVED');
 }
 
 function hasPendingLeave(dateStr: string): boolean {
+  if (isProjectManager.value) return false;
   const leaves = leavesByDate.value.get(dateStr);
   return !!leaves && leaves.some((l) => l.status === 'PENDING');
 }
