@@ -100,10 +100,12 @@ export async function create(req: AuthRequest, res: Response) {
             }
         }
 
-        // Determine status based on assignment presence if not explicitly provided
-        let taskStatus = parsed.status;
-        if (!taskStatus) {
-            taskStatus = (resourceIds && resourceIds.length > 0) ? "SCHEDULED" : "UNASSIGNED";
+        // Tasks without assigned resources must always be UNASSIGNED
+        let taskStatus: string = "UNASSIGNED";
+        if (resourceIds && resourceIds.length > 0) {
+            taskStatus = (parsed.status && parsed.status !== "UNASSIGNED") ? parsed.status : "SCHEDULED";
+        } else {
+            taskStatus = "UNASSIGNED";
         }
 
         const task = await createTask(

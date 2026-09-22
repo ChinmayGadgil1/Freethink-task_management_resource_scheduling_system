@@ -25,12 +25,12 @@ export async function createTask(
     try {
         await connection.beginTransaction();
 
-        // Determine appropriate initial status if default/unspecified
+        // Determine appropriate initial status: tasks without assignees are always UNASSIGNED
         let initialStatus = status;
-        if (!initialStatus || initialStatus === "PENDING" as any || initialStatus === "UNASSIGNED" as any) {
-            initialStatus = (assignedResourceIds && assignedResourceIds.length > 0)
-                ? ("SCHEDULED" as TaskStatus)
-                : ("UNASSIGNED" as TaskStatus);
+        if (!assignedResourceIds || assignedResourceIds.length === 0) {
+            initialStatus = "UNASSIGNED" as TaskStatus;
+        } else if (!initialStatus || initialStatus === "PENDING" as any || initialStatus === "UNASSIGNED" as any) {
+            initialStatus = "SCHEDULED" as TaskStatus;
         }
 
         // Validate that assignee cannot be assigned as supervisor
@@ -448,8 +448,19 @@ export async function getTasksList(filters: {
         const taskVerifs = verificationMap.get(Number(t.task_id)) || [];
         const latestVerif = taskVerifs.length > 0 ? taskVerifs[0] : null;
 
+        const assignedResourceIds = t.assigned_resource_ids
+            ? String(t.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
+            : [];
+        let taskStatus = t.status;
+        if (assignedResourceIds.length === 0) {
+            if (taskStatus === 'SCHEDULED' || (taskStatus === 'COMPLETED' && (!t.progress || Number(t.progress) === 0))) {
+                taskStatus = 'UNASSIGNED';
+            }
+        }
+
         return {
             ...t,
+            status: taskStatus,
             created_by: t.created_by ? Number(t.created_by) : undefined,
             created_by_name: t.created_by_name || null,
             created_by_role: t.created_by_role || null,
@@ -462,9 +473,7 @@ export async function getTasksList(filters: {
             verified_task_status: t.verified_task_status || null,
             verification_task: latestVerif,
             verifications: taskVerifs,
-            assigned_resource_ids: t.assigned_resource_ids
-                ? String(t.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
-                : [],
+            assigned_resource_ids: assignedResourceIds,
             assigned_resources: assignmentMap.get(Number(t.task_id)) || [],
             assigned_resource_names: t.assigned_resource_names
                 ? String(t.assigned_resource_names).split(", ").filter(Boolean)
@@ -595,8 +604,19 @@ export async function getTaskById(taskId: number) {
     const predecessors = predIds.map((id: number) => depDetailsMap.get(id)).filter(Boolean);
     const successors = succIds.map((id: number) => depDetailsMap.get(id)).filter(Boolean);
 
+    const assignedIds = task.assigned_resource_ids
+        ? String(task.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
+        : [];
+    let taskStatus = task.status;
+    if (assignedIds.length === 0) {
+        if (taskStatus === 'SCHEDULED' || (taskStatus === 'COMPLETED' && (!task.progress || Number(task.progress) === 0))) {
+            taskStatus = 'UNASSIGNED';
+        }
+    }
+
     return {
         ...task,
+        status: taskStatus,
         created_by: task.created_by ? Number(task.created_by) : undefined,
         created_by_name: task.created_by_name || null,
         created_by_role: task.created_by_role || null,
@@ -609,9 +629,7 @@ export async function getTaskById(taskId: number) {
         verified_task_status: task.verified_task_status || null,
         verification_task: formattedVerifications.length > 0 ? formattedVerifications[0] : null,
         verifications: formattedVerifications,
-        assigned_resource_ids: task.assigned_resource_ids
-            ? String(task.assigned_resource_ids).split(",").map(Number).filter(id => !isNaN(id))
-            : [],
+        assigned_resource_ids: assignedIds,
         assigned_resources: assignedResources,
         assigned_resource_names: task.assigned_resource_names
             ? String(task.assigned_resource_names).split(", ").filter(Boolean)

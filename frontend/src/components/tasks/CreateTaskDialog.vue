@@ -250,7 +250,7 @@ function handleSubmit() {
     title: form.title.trim(),
     description: form.description.trim(),
     priority: form.priority,
-    status: props.initialStatus || 'UNASSIGNED',
+    status: 'UNASSIGNED',
     expected_effort: Number(form.expected_effort) || 8,
     deadline: '',
     supervisor_id: null,

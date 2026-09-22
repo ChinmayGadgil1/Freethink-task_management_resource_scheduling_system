@@ -200,10 +200,10 @@
                 dense
                 icon="add"
                 size="sm"
-                title="Add task in this column"
-                @click="quickCreateInColumn(col.id)"
+                title="Add Task"
+                @click="quickCreateInColumn()"
               >
-                <q-tooltip>Add {{ col.title }} Task</q-tooltip>
+                <q-tooltip>Add Task</q-tooltip>
               </q-btn>
             </q-card-section>
 
@@ -1303,8 +1303,8 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   },
 ];
 
-function quickCreateInColumn(columnStatus?: TaskStatus) {
-  createTaskInitialStatus.value = columnStatus;
+function quickCreateInColumn() {
+  createTaskInitialStatus.value = 'UNASSIGNED';
   showCreateDialog.value = true;
 }
 
@@ -1992,8 +1992,23 @@ const tasksByStatus = computed(() => {
   };
 
   for (const task of filteredTasks.value) {
-    if (task.status in map) {
-      map[task.status].push(task);
+    const hasAssignees =
+      Array.isArray(task.assigned_resource_ids)
+        ? task.assigned_resource_ids.length > 0
+        : Boolean(task.assigned_resource_ids && String(task.assigned_resource_ids).trim().length > 0);
+
+    let effectiveStatus: 'UNASSIGNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' = task.status;
+    if (!hasAssignees) {
+      if (
+        effectiveStatus === 'SCHEDULED' ||
+        (effectiveStatus === 'COMPLETED' && (!task.progress || task.progress === 0))
+      ) {
+        effectiveStatus = 'UNASSIGNED';
+      }
+    }
+
+    if (effectiveStatus in map) {
+      map[effectiveStatus].push(task);
     } else {
       map.UNASSIGNED.push(task);
     }
@@ -2310,12 +2325,13 @@ async function handleCreateTask(formData?: CreateTaskFormData) {
 
   submitting.value = true;
   try {
+    const hasAssignees = Boolean(data.assigned_resource_ids && data.assigned_resource_ids.length > 0);
     const newTask = await createTaskApi({
       project_id: data.project_id,
       title: data.title.trim(),
       description: data.description?.trim() || null,
       priority: data.priority,
-      status: data.status,
+      status: hasAssignees ? (data.status || 'SCHEDULED') : 'UNASSIGNED',
       expected_effort: Number(data.expected_effort) || 8,
       deadline: data.deadline || null,
       assigned_resource_ids: data.assigned_resource_ids,
