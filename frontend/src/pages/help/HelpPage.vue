@@ -510,20 +510,20 @@ const filteredFaqs = computed(() => {
   margin: 0 2px;
 
   &.status-scheduled {
-    background: #ede9fe;
-    color: #6b21a8;
+    background: #f1f5f9;
+    color: #475569;
   }
   &.status-inprogress {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #eff6ff;
+    color: #0284c7;
   }
   &.status-blocked {
-    background: #fee2e2;
-    color: #991b1b;
+    background: #fef2f2;
+    color: #dc2626;
   }
   &.status-completed {
-    background: #dcfce7;
-    color: #166534;
+    background: #ecfdf5;
+    color: #059669;
   }
 }
 

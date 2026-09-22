@@ -44,17 +44,18 @@
         :dark="$q.dark.isActive"
         class="notification-dropdown shadow-10 column no-wrap"
         style="
-          width: 490px;
+          width: 450px;
           max-width: calc(100vw - 20px);
+          height: 480px;
           max-height: calc(100vh - 90px);
-          border-radius: 16px;
+          border-radius: 14px;
           overflow: hidden;
         "
       >
         <!-- Header -->
         <div
-          class="q-pa-md row items-center justify-between border-bottom-subtle col-auto"
-          style="flex-shrink: 0"
+          class="q-py-sm q-px-md row items-center justify-between border-bottom-subtle col-auto"
+          style="min-height: 48px; flex-shrink: 0"
         >
           <div class="row items-center gap-xs">
             <span class="text-subtitle1 text-weight-bold">Notifications</span>
@@ -88,6 +89,8 @@
             v-model="filterTab"
             dense
             no-caps
+            outside-arrows
+            mobile-arrows
             class="text-grey-6 notification-tabs"
             active-color="primary"
             indicator-color="primary"
@@ -153,13 +156,13 @@
                 'unread-item': !item.is_read,
                 'bg-subtle-hover': true,
               }"
-              class="q-py-md q-px-md notification-item"
+              class="q-py-sm q-px-md notification-item"
               @click="handleNotificationClick(item)"
             >
               <!-- Icon Avatar -->
-              <q-item-section avatar top style="min-width: 36px" class="q-pr-xs">
+              <q-item-section avatar top style="min-width: 32px" class="q-pr-xs">
                 <q-avatar
-                  size="36px"
+                  size="32px"
                   :color="getTypeMeta(item.type).bgColor"
                   :text-color="getTypeMeta(item.type).textColor"
                   :icon="getTypeMeta(item.type).icon"
@@ -211,7 +214,7 @@
                 side
                 top
                 class="column items-end justify-center q-pl-xs"
-                style="min-width: 28px"
+                style="min-width: 24px"
               >
                 <div class="column items-center q-gutter-y-xs item-actions">
                   <q-btn
@@ -248,8 +251,8 @@
           <!-- Empty State -->
           <div
             v-else
-            class="column items-center justify-center text-center q-pa-xl text-grey-5"
-            style="min-height: 240px"
+            class="column items-center justify-center text-center q-pa-lg text-grey-5 full-height"
+            style="min-height: 240px; height: 100%"
           >
             <q-icon
               :name="filterTab === 'delays' ? 'check_circle' : 'notifications_none'"
@@ -448,8 +451,8 @@ function getTypeMeta(type: string): TypeMeta {
   if (type === 'LEAVE_APPROVED') {
     return {
       icon: 'event_available',
-      bgColor: 'green-1',
-      textColor: 'green-8',
+      bgColor: 'purple-1',
+      textColor: 'purple-8',
     };
   }
   if (type === 'LEAVE_REJECTED') {
@@ -462,8 +465,8 @@ function getTypeMeta(type: string): TypeMeta {
   if (type === 'LEAVE_REQUESTED') {
     return {
       icon: 'event_note',
-      bgColor: 'blue-1',
-      textColor: 'blue-8',
+      bgColor: 'purple-1',
+      textColor: 'purple-8',
     };
   }
   if (type === 'EFFORT_ALERT') {
@@ -476,8 +479,8 @@ function getTypeMeta(type: string): TypeMeta {
   // POSSIBLE_DELAY
   return {
     icon: 'warning',
-    bgColor: 'orange-1',
-    textColor: 'orange-9',
+    bgColor: 'amber-1',
+    textColor: 'amber-9',
   };
 }
 
@@ -514,16 +517,16 @@ function getBadgeColor(type: string, isDark: boolean): string {
     case 'TASK_ASSIGNED':
       return isDark ? 'blue-10' : 'blue-1';
     case 'EARLY_COMPLETION':
-    case 'LEAVE_APPROVED':
       return isDark ? 'green-10' : 'green-1';
     case 'EFFORT_ALERT':
     case 'LEAVE_REJECTED':
       return isDark ? 'red-10' : 'red-1';
     case 'LEAVE_REQUESTED':
-      return isDark ? 'blue-10' : 'blue-1';
+    case 'LEAVE_APPROVED':
+      return isDark ? 'purple-10' : 'purple-1';
     case 'POSSIBLE_DELAY':
     default:
-      return isDark ? 'orange-10' : 'orange-1';
+      return isDark ? 'amber-10' : 'amber-1';
   }
 }
 
@@ -535,16 +538,16 @@ function getBadgeTextColor(type: string, isDark: boolean): string {
     case 'TASK_ASSIGNED':
       return isDark ? 'blue-3' : 'blue-9';
     case 'EARLY_COMPLETION':
-    case 'LEAVE_APPROVED':
       return isDark ? 'green-3' : 'green-9';
     case 'EFFORT_ALERT':
     case 'LEAVE_REJECTED':
       return isDark ? 'red-3' : 'red-9';
     case 'LEAVE_REQUESTED':
-      return isDark ? 'blue-3' : 'blue-9';
+    case 'LEAVE_APPROVED':
+      return isDark ? 'purple-2' : 'purple-9';
     case 'POSSIBLE_DELAY':
     default:
-      return isDark ? 'orange-3' : 'orange-10';
+      return isDark ? 'amber-3' : 'amber-10';
   }
 }
 </script>
@@ -643,14 +646,14 @@ body.body--dark .bg-subtle-footer {
 .notification-tabs {
   :deep(.q-tab) {
     padding: 0 8px;
-    min-height: 38px;
-    font-size: 12px;
+    min-height: 36px;
+    font-size: 11.5px;
   }
 }
 
 .notification-scroll-container {
-  max-height: min(420px, calc(100vh - 230px));
-  min-height: 140px;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;

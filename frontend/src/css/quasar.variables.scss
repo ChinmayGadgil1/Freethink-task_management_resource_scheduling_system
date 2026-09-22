@@ -1,5 +1,5 @@
 // --------------------------------------------------
-// TaskFlow — WorkOrbit-inspired product palette
+// TaskFlow — Unified Semantic Color Scheme (CEO-Grade Design System)
 // --------------------------------------------------
 
 $typography-font-family:
@@ -10,36 +10,36 @@ $typography-font-family:
   Roboto,
   sans-serif;
 
-$primary: #8b6fd8;
-$secondary: #63c7c1;
-$accent: #f3a55b;
+// Core Semantic Colors
+$primary: #8b5cf6;       // 🟣 Royal Purple: Platform Brand / PM Actions
+$secondary: #0284c7;     // 🔵 Sky / Royal Blue: Active / Work Effort
+$accent: #d946ef;        // 🟪 Lavender / Magenta: Leaves & Absences
 
 $dark: #181d28;
 $dark-page: #0f1219;
 
-$positive: #65b98a;
-$negative: #e9868d;
-$info: #6c9bd2;
-$warning: #eab76b;
+$positive: #10b981;      // 🟢 Emerald Green: Success / Healthy / Free
+$negative: #ef4444;      // 🔴 Crimson Red: Critical / Overdue / Risk
+$info: #0284c7;          // 🔵 Sky / Royal Blue: Active / Work Effort
+$warning: #f59e0b;       // 🟡 Amber / Gold: Warning / High Load
 
-// Product palette
-$nav-dark: #1d2433;
-$active-purple: #8b6fd8;
+// Semantic Tokens
+$color-emerald: #10b981; // 🟢 Completed tasks, 100% free capacity, healthy buffer
+$color-blue: #0284c7;    // 🔵 Tasks IN_PROGRESS, active effort allocation
+$color-amber: #f59e0b;   // 🟡 High priority, workload 75%-99%, due today/tomorrow
+$color-crimson: #ef4444; // 🔴 Overdue, CRITICAL priority, overallocation >100%
+$color-purple: #8b5cf6;  // 🟣 Platform Brand, PM Actions, milestones
+$color-magenta: #d946ef; // 🟪 Leaves & Absences, time-off
+$color-orange: #f97316;  // 🟠 Public / Company Holidays, calendar closures
+$color-slate: #64748b;   // 🔘 SCHEDULED/NOT_STARTED tasks, weekend off-days
 
-$pastel-purple: #b9a6e8;
-$pastel-purple-bg: #f0ecfa;
-$project-blue: #7e8fd8;
-$project-teal: #63c7c1;
-$project-orange: #f3a55b;
-$project-green: #65b98a;
-$project-pink: #e986b1;
-
-$background: #f7f7fa;
+// Base Surface & Typography Tokens
+$background: #f8f9fa;
 $card-background: #ffffff;
 
 $text-primary: #1d2433;
-$text-secondary: #697386;
-$text-muted: #9aa3b2;
+$text-secondary: #64748b;
+$text-muted: #94a3b8;
 
 $border: #e6e8ed;
-$border-soft: #eef0f3;
+$border-soft: #f0f2f5;

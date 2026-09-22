@@ -237,17 +237,24 @@
                     >
                       {{ getProjectName(task.project_id) }}
                     </q-chip>
-                    <q-badge
+                    <q-chip
                       v-if="task.task_type === 'VERIFICATION' || task.priority === 'NONE'"
-                      color="indigo-7"
-                      text-color="white"
+                      dense
+                      square
+                      class="chip-soft-purple"
                       style="font-size: 10px"
                     >
                       Verification
-                    </q-badge>
-                    <q-badge v-else color="black" text-color="white" style="font-size: 10px">
+                    </q-chip>
+                    <q-chip
+                      v-else
+                      dense
+                      square
+                      :class="getPriorityClass(task.priority)"
+                      style="font-size: 10px"
+                    >
                       {{ task.priority }}
-                    </q-badge>
+                    </q-chip>
                   </div>
 
                   <!-- 3-Dot Action Menu -->
@@ -561,8 +568,7 @@
             <q-chip
               dense
               square
-              :color="$q.dark.isActive ? 'grey-9' : 'grey-2'"
-              :text-color="$q.dark.isActive ? 'white' : 'dark'"
+              :class="getTaskStatusClass(props.row.status)"
             >
               {{ formatStatus(props.row.status) }}
             </q-chip>
@@ -575,12 +581,16 @@
               v-if="props.row.task_type === 'VERIFICATION' || props.row.priority === 'NONE'"
               dense
               square
-              color="indigo-7"
-              text-color="white"
+              class="chip-soft-purple"
             >
               Verification
             </q-chip>
-            <q-chip v-else dense square color="black" text-color="white">
+            <q-chip
+              v-else
+              dense
+              square
+              :class="getPriorityClass(props.row.priority)"
+            >
               {{ props.row.priority }}
             </q-chip>
           </q-td>
@@ -1203,7 +1213,7 @@ import TaskDetailsDialog from '@/components/tasks/TaskDetailsDialog.vue';
 import AssignVerificationDialog from '@/components/tasks/AssignVerificationDialog.vue';
 import CreateTaskDialog, { type CreateTaskFormData } from '@/components/tasks/CreateTaskDialog.vue';
 import { formatDate, formatStatus, formatHours } from '@/utils/formatters';
-import { getStatusFromProgress } from '@/utils/taskHelpers';
+import { getStatusFromProgress, getTaskStatusClass, getPriorityClass } from '@/utils/taskHelpers';
 import {
   assignTaskResourceApi,
   addTaskDependencyApi,
@@ -1286,7 +1296,7 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   {
     id: 'SCHEDULED',
     title: 'Scheduled',
-    dotColor: '#8b6fd8',
+    dotColor: '#64748b',
     icon: 'calendar_month',
   },
   {
@@ -1298,7 +1308,7 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   {
     id: 'COMPLETED',
     title: 'Completed',
-    dotColor: '#059669',
+    dotColor: '#10b981',
     icon: 'check_circle',
   },
 ];

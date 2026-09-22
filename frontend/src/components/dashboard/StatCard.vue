@@ -134,25 +134,35 @@ const valueSizeClass = computed(() => {
 });
 
 const resolvedColor = computed(() => {
-  if (!props.color) return '#8b6fd8';
+  if (!props.color) return '#8b5cf6';
   const quasarColorMap: Record<string, string> = {
-    primary: '#8b6fd8',
-    secondary: '#26a69a',
-    positive: '#12b76a',
-    negative: '#f04438',
-    warning: '#f79009',
-    info: '#2e90fa',
-    dark: '#1d2433',
-    purple: '#8b6fd8',
-    green: '#12b76a',
-    orange: '#f79009',
-    blue: '#2e90fa',
-    red: '#f04438',
-    teal: '#0e9384',
+    primary: '#8b5cf6',
+    secondary: '#0284c7',
+    positive: '#10b981',
+    negative: '#ef4444',
+    warning: '#f59e0b',
+    info: '#0284c7',
+    dark: '#181d28',
+    purple: '#8b5cf6',
+    brand: '#8b5cf6',
+    green: '#10b981',
+    emerald: '#10b981',
+    blue: '#0284c7',
     sky: '#0284c7',
-    amber: '#d97706',
-    mint: '#059669',
-    rose: '#e11d48',
+    active: '#0284c7',
+    amber: '#f59e0b',
+    gold: '#f59e0b',
+    orange: '#f97316',
+    tangerine: '#f97316',
+    holiday: '#f97316',
+    red: '#ef4444',
+    crimson: '#ef4444',
+    magenta: '#d946ef',
+    lavender: '#d946ef',
+    leave: '#d946ef',
+    grey: '#64748b',
+    slate: '#64748b',
+    pending: '#64748b',
   };
   return quasarColorMap[props.color] || props.color;
 });

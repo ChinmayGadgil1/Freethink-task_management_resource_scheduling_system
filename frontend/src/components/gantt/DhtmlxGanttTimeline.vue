@@ -3797,35 +3797,35 @@ defineExpose({
       margin-left: auto;
     }
 
-    /* 1. Crimson Red (Critical Priority) */
+    /* 1. Crimson Red (Critical Priority / Risk) */
     &.bar-p-critical {
       background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%) !important;
       border: 1px solid #b91c1c !important;
       box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35) !important;
     }
 
-    /* 2. Vibrant Orange (High Priority) */
+    /* 2. Amber / Gold (High Priority / High Load) */
     &.bar-p-high {
-      background: linear-gradient(90deg, #ea580c 0%, #f97316 100%) !important;
-      border: 1px solid #c2410c !important;
-      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35) !important;
+      background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%) !important;
+      border: 1px solid #b45309 !important;
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35) !important;
     }
 
-    /* 3. Royal Blue (Medium Priority) */
+    /* 3. Sky / Royal Blue (Medium Priority / Active Effort) */
     &.bar-p-medium {
-      background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%) !important;
-      border: 1px solid #1d4ed8 !important;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+      background: linear-gradient(90deg, #0284c7 0%, #2563eb 100%) !important;
+      border: 1px solid #0369a1 !important;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
     }
 
-    /* 4. Slate Grey (Low Priority) */
+    /* 4. Slate Grey (Low Priority / Pending / Scheduled) */
     &.bar-p-low {
       background: linear-gradient(90deg, #64748b 0%, #94a3b8 100%) !important;
       border: 1px solid #475569 !important;
       box-shadow: 0 2px 8px rgba(100, 116, 139, 0.35) !important;
     }
 
-    /* 5. Emerald Green (Completed Status) */
+    /* 5. Emerald Green (Completed Status / Success) */
     &.bar-s-completed {
       background: linear-gradient(90deg, #059669 0%, #10b981 100%) !important;
       border: 1px solid #047857 !important;
@@ -3833,14 +3833,14 @@ defineExpose({
     }
   }
 
-  /* Dependency Link Lines */
+  /* Dependency Link Lines (Royal Purple) */
   .gantt_line_wrapper div {
-    background-color: #6366f1 !important;
+    background-color: #8b5cf6 !important;
     height: 2px !important;
   }
 
   .gantt_link_arrow {
-    border-left-color: #6366f1 !important;
+    border-left-color: #8b5cf6 !important;
   }
 
   .gantt_link_point {

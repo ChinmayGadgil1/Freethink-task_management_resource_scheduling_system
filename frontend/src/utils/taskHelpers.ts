@@ -20,24 +20,31 @@ export function isTaskOverdue(
 export const isOverdue = isTaskOverdue;
 
 /**
- * Standard CSS status chip class mapping.
+ * Standard CSS status chip class mapping (Universal Color Matrix).
+ * - COMPLETED   -> Emerald Green (Success / Healthy)
+ * - IN_PROGRESS -> Sky/Royal Blue (Active / Work Effort)
+ * - SCHEDULED   -> Slate Grey (Pending / Non-Working)
  */
 export function getTaskStatusClass(status: string | null | undefined): string {
   if (status === 'COMPLETED') return 'chip-soft-green';
   if (status === 'IN_PROGRESS') return 'chip-soft-blue';
-  if (status === 'SCHEDULED') return 'chip-soft-purple';
+  if (status === 'SCHEDULED' || status === 'NOT_STARTED') return 'chip-soft-slate';
   return 'chip-soft-grey';
 }
 
 /**
- * Standard CSS priority chip class mapping.
+ * Standard CSS priority chip class mapping (Universal Color Matrix).
+ * - CRITICAL -> Crimson Red
+ * - HIGH     -> Amber / Gold
+ * - MEDIUM   -> Sky / Royal Blue
+ * - LOW/NONE -> Slate Grey
  */
 export function getPriorityClass(priority: string | null | undefined): string {
   const p = (priority || '').toUpperCase();
   if (p === 'CRITICAL') return 'chip-soft-red';
-  if (p === 'HIGH') return 'chip-soft-orange';
+  if (p === 'HIGH') return 'chip-soft-amber';
   if (p === 'MEDIUM') return 'chip-soft-blue';
-  if (p === 'NONE') return 'chip-soft-teal';
+  if (p === 'LOW' || p === 'NONE') return 'chip-soft-slate';
   return 'chip-soft-grey';
 }
 

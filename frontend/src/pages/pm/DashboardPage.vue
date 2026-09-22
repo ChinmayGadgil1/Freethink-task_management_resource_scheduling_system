@@ -2010,13 +2010,13 @@ const positionedTimelineRows = computed(() => {
 
   &.status-unassigned,
   &.status-scheduled {
-    background: #8b6fd8;
+    background: #64748b;
   }
   &.status-in_progress {
-    background: #2e90fa;
+    background: #0284c7;
   }
   &.status-completed {
-    background: #12b76a;
+    background: #10b981;
   }
 }
 

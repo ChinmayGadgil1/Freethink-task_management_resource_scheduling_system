@@ -2061,14 +2061,14 @@ onUnmounted(() => {
   --cal-day-bg: #ffffff;
   --cal-weekend-bg: #f8fafc;
   --cal-today-bg: #eff6ff;
-  --cal-holiday-bg: #fffbeb;
-  --cal-leave-bg: #f0fdf4;
-  --cal-card-bg: #fff8e6;
-  --cal-card-color: #b45309;
-  --cal-card-border: #fde68a;
-  --cal-leave-card-bg: #ecfdf5;
-  --cal-leave-card-color: #065f46;
-  --cal-leave-card-border: #a7f3d0;
+  --cal-holiday-bg: #fff7ed;
+  --cal-leave-bg: #fdf4ff;
+  --cal-card-bg: #fff7ed;
+  --cal-card-color: #ea580c;
+  --cal-card-border: #fed7aa;
+  --cal-leave-card-bg: #fdf4ff;
+  --cal-leave-card-color: #c026d3;
+  --cal-leave-card-border: #f5d0fe;
 
   :deep(.q-calendar-month__head) {
     font-weight: 700;
@@ -2240,15 +2240,15 @@ body.body--dark {
     --cal-head-bg: #181d28;
     --cal-day-bg: #11151f;
     --cal-weekend-bg: #161c28;
-    --cal-today-bg: rgba(59, 130, 246, 0.14);
-    --cal-holiday-bg: rgba(245, 158, 11, 0.1);
-    --cal-leave-bg: rgba(16, 185, 129, 0.08);
-    --cal-card-bg: rgba(245, 158, 11, 0.16);
-    --cal-card-color: #fbbf24;
-    --cal-card-border: rgba(245, 158, 11, 0.35);
-    --cal-leave-card-bg: rgba(16, 185, 129, 0.15);
-    --cal-leave-card-color: #34d399;
-    --cal-leave-card-border: rgba(16, 185, 129, 0.35);
+    --cal-today-bg: rgba(2, 132, 199, 0.14);
+    --cal-holiday-bg: rgba(249, 115, 22, 0.12);
+    --cal-leave-bg: rgba(217, 70, 239, 0.1);
+    --cal-card-bg: rgba(249, 115, 22, 0.18);
+    --cal-card-color: #fb923c;
+    --cal-card-border: rgba(249, 115, 22, 0.35);
+    --cal-leave-card-bg: rgba(217, 70, 239, 0.18);
+    --cal-leave-card-color: #f472b6;
+    --cal-leave-card-border: rgba(217, 70, 239, 0.35);
 
     :deep(.q-calendar-month__head) {
       color: #94a3b8;

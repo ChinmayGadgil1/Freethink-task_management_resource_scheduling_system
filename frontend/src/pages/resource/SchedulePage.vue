@@ -1506,10 +1506,10 @@ onMounted(() => {
       background: #ef4444;
     }
     &.prio-dot-high {
-      background: #f97316;
+      background: #f59e0b;
     }
     &.prio-dot-medium {
-      background: #2563eb;
+      background: #0284c7;
     }
     &.prio-dot-low {
       background: #64748b;
@@ -1719,38 +1719,43 @@ onMounted(() => {
   color: #13ae76;
 }
 
+.status-completed {
+  background: #ecfdf5;
+  color: #059669;
+}
+
 .status-in-progress {
-  background: rgba(46, 144, 250, 0.12);
-  color: #2e90fa;
+  background: #eff6ff;
+  color: #0284c7;
 }
 
 .status-scheduled {
-  background: rgba(139, 111, 216, 0.12);
-  color: #8b6fd8;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .status-unassigned {
-  background: #f1f3f7;
+  background: #f1f5f9;
   color: #64748b;
 }
 
 .prio-critical {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .prio-high {
-  background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  background: #fffbeb;
+  color: #d97706;
 }
 
 .prio-medium {
-  background: rgba(37, 99, 235, 0.12);
-  color: #2563eb;
+  background: #eff6ff;
+  color: #0284c7;
 }
 
 .prio-low {
-  background: rgba(100, 116, 139, 0.12);
+  background: #f1f5f9;
   color: #64748b;
 }
 

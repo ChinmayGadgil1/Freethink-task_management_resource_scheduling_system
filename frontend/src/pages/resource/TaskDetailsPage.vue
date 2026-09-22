@@ -2988,28 +2988,28 @@ function priorityBgColor(priority: string | null | undefined): string {
   const p = (priority || '').toUpperCase();
   if ($q.dark.isActive) {
     if (p === 'CRITICAL') return 'red-10';
-    if (p === 'HIGH') return 'orange-10';
-    if (p === 'MEDIUM') return 'purple-10';
-    return 'blue-10';
+    if (p === 'HIGH') return 'amber-10';
+    if (p === 'MEDIUM') return 'blue-10';
+    return 'grey-9';
   }
   if (p === 'CRITICAL') return 'red-1';
-  if (p === 'HIGH') return 'orange-1';
-  if (p === 'MEDIUM') return 'purple-1';
-  return 'blue-1';
+  if (p === 'HIGH') return 'amber-1';
+  if (p === 'MEDIUM') return 'blue-1';
+  return 'grey-2';
 }
 
 function priorityTextColor(priority: string | null | undefined): string {
   const p = (priority || '').toUpperCase();
   if ($q.dark.isActive) {
     if (p === 'CRITICAL') return 'red-2';
-    if (p === 'HIGH') return 'orange-2';
-    if (p === 'MEDIUM') return 'purple-2';
-    return 'blue-2';
+    if (p === 'HIGH') return 'amber-2';
+    if (p === 'MEDIUM') return 'blue-2';
+    return 'grey-4';
   }
   if (p === 'CRITICAL') return 'red-9';
-  if (p === 'HIGH') return 'orange-9';
-  if (p === 'MEDIUM') return 'purple-9';
-  return 'blue-9';
+  if (p === 'HIGH') return 'amber-9';
+  if (p === 'MEDIUM') return 'blue-9';
+  return 'grey-8';
 }
 
 function statusBgColor(status: string | null | undefined): string {
@@ -3017,11 +3017,11 @@ function statusBgColor(status: string | null | undefined): string {
   if ($q.dark.isActive) {
     if (s === 'COMPLETED') return 'green-10';
     if (s === 'IN_PROGRESS') return 'blue-10';
-    return 'purple-10';
+    return 'grey-9';
   }
   if (s === 'COMPLETED') return 'green-1';
   if (s === 'IN_PROGRESS') return 'blue-1';
-  return 'purple-1';
+  return 'grey-2';
 }
 
 function statusTextColor(status: string | null | undefined): string {
@@ -3029,22 +3029,22 @@ function statusTextColor(status: string | null | undefined): string {
   if ($q.dark.isActive) {
     if (s === 'COMPLETED') return 'green-2';
     if (s === 'IN_PROGRESS') return 'blue-2';
-    return 'purple-2';
+    return 'grey-4';
   }
   if (s === 'COMPLETED') return 'green-9';
   if (s === 'IN_PROGRESS') return 'blue-9';
-  return 'purple-9';
+  return 'grey-8';
 }
 
 const KANBAN_COLUMNS = computed(() => [
   {
     id: 'SCHEDULED',
     title: 'Scheduled',
-    headerBg: $q.dark.isActive ? '#1e1b2e' : '#fbf9ff',
-    borderColor: $q.dark.isActive ? '#2e2845' : '#ede9fe',
-    dotColor: '#8b6fd8',
-    badgeBg: $q.dark.isActive ? 'rgba(139, 111, 216, 0.3)' : 'rgba(139, 111, 216, 0.15)',
-    badgeColor: $q.dark.isActive ? '#b89bf8' : '#8b6fd8',
+    headerBg: $q.dark.isActive ? '#181f2a' : '#f8fafc',
+    borderColor: $q.dark.isActive ? '#283344' : '#e2e8f0',
+    dotColor: '#64748b',
+    badgeBg: $q.dark.isActive ? 'rgba(100, 116, 139, 0.3)' : 'rgba(100, 116, 139, 0.15)',
+    badgeColor: $q.dark.isActive ? '#94a3b8' : '#64748b',
     icon: 'schedule',
   },
   {
@@ -3052,9 +3052,9 @@ const KANBAN_COLUMNS = computed(() => [
     title: 'In Progress',
     headerBg: $q.dark.isActive ? '#182232' : '#f0f7ff',
     borderColor: $q.dark.isActive ? '#1e3048' : '#dbeafe',
-    dotColor: '#2e90fa',
-    badgeBg: $q.dark.isActive ? 'rgba(46, 144, 250, 0.3)' : 'rgba(46, 144, 250, 0.15)',
-    badgeColor: $q.dark.isActive ? '#60a5fa' : '#2e90fa',
+    dotColor: '#0284c7',
+    badgeBg: $q.dark.isActive ? 'rgba(2, 132, 199, 0.3)' : 'rgba(2, 132, 199, 0.15)',
+    badgeColor: $q.dark.isActive ? '#38bdf8' : '#0284c7',
     icon: 'autorenew',
   },
   {
@@ -3062,9 +3062,9 @@ const KANBAN_COLUMNS = computed(() => [
     title: 'Completed',
     headerBg: $q.dark.isActive ? '#14271e' : '#f0fdf4',
     borderColor: $q.dark.isActive ? '#1c3d2c' : '#dcfce7',
-    dotColor: '#13ae76',
-    badgeBg: $q.dark.isActive ? 'rgba(19, 174, 118, 0.3)' : 'rgba(19, 174, 118, 0.15)',
-    badgeColor: $q.dark.isActive ? '#4ade80' : '#13ae76',
+    dotColor: '#10b981',
+    badgeBg: $q.dark.isActive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.15)',
+    badgeColor: $q.dark.isActive ? '#34d399' : '#10b981',
     icon: 'check_circle',
   },
 ]);

@@ -973,30 +973,30 @@ const tableColumns = computed<QTableColumn<LeaveItem>[]>(() => {
   return cols;
 });
 
-// Helper functions for status styling
+// Helper functions for status styling (Universal Color Matrix)
 function getStatusColor(status: LeaveStatus): string {
   switch (status) {
     case 'APPROVED':
-      return 'positive';
+      return 'purple-2';
     case 'PENDING':
       return 'amber-2';
     case 'REJECTED':
-      return 'negative';
+      return 'red-2';
     default:
-      return 'grey';
+      return 'grey-3';
   }
 }
 
 function getStatusTextColor(status: LeaveStatus): string {
   switch (status) {
     case 'APPROVED':
-      return 'white';
+      return 'purple-9';
     case 'PENDING':
-      return 'brown-10';
+      return 'amber-9';
     case 'REJECTED':
-      return 'white';
+      return 'red-9';
     default:
-      return 'white';
+      return 'grey-8';
   }
 }
 
