@@ -72,10 +72,34 @@
             />
             <div class="column">
               <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1"
-                >This Month</span
+                >Holidays This Month</span
               >
               <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{
                 currentMonthHolidaysCount
+              }}</span>
+            </div>
+          </q-card>
+
+          <!-- Compact Summary Badge 3: Approved Leaves This Month -->
+          <q-card
+            flat
+            bordered
+            :dark="$q.dark.isActive"
+            class="row items-center q-px-sm q-py-xs rounded-borders q-gutter-xs"
+          >
+            <q-avatar
+              :size="$q.screen.lt.sm ? '20px' : '24px'"
+              rounded
+              :color="$q.dark.isActive ? 'teal-10' : 'teal-1'"
+              :text-color="$q.dark.isActive ? 'teal-2' : 'teal-8'"
+              icon="event_busy"
+            />
+            <div class="column">
+              <span class="text-caption text-grey-6" style="font-size: 10px; line-height: 1"
+                >Leaves This Month</span
+              >
+              <span class="text-weight-bold" style="font-size: 13px; line-height: 1.2">{{
+                currentMonthLeavesCount
               }}</span>
             </div>
           </q-card>
@@ -223,6 +247,16 @@
             <div class="row items-center q-gutter-xs">
               <q-badge
                 rounded
+                color="teal-7"
+                style="width: 7px; height: 7px; min-height: 0; padding: 0"
+              />
+              <span :style="$q.screen.lt.sm ? 'font-size: 11px' : ''">{{
+                $q.screen.lt.sm ? 'On Leave' : 'Approved Leave (Off)'
+              }}</span>
+            </div>
+            <div class="row items-center q-gutter-xs">
+              <q-badge
+                rounded
                 color="grey-6"
                 style="width: 7px; height: 7px; min-height: 0; padding: 0"
               />
@@ -301,8 +335,39 @@
                       {{ timestamp.day }}
                     </q-avatar>
 
+                    <!-- Approved Leave Day Badge -->
                     <q-badge
-                      v-if="
+                      v-if="hasApprovedLeave(timestamp.date) && !timestamp.outside"
+                      color="teal-7"
+                      text-color="white"
+                      class="text-weight-bold"
+                      :style="
+                        $q.screen.lt.sm
+                          ? 'font-size: 8px; padding: 1px 3px; line-height: 1;'
+                          : 'font-size: 9px; padding: 1px 4px;'
+                      "
+                    >
+                      {{ getLeaveBadgeLabel(timestamp.date) }}
+                    </q-badge>
+
+                    <!-- Pending Leave Day Badge -->
+                    <q-badge
+                      v-else-if="hasPendingLeave(timestamp.date) && !timestamp.outside"
+                      color="amber-9"
+                      text-color="white"
+                      class="text-weight-bold"
+                      :style="
+                        $q.screen.lt.sm
+                          ? 'font-size: 8px; padding: 1px 3px; line-height: 1;'
+                          : 'font-size: 9px; padding: 1px 4px;'
+                      "
+                    >
+                      {{ getLeaveBadgeLabel(timestamp.date) }}
+                    </q-badge>
+
+                    <!-- OFF Day Badge for Weekend/Non-working -->
+                    <q-badge
+                      v-else-if="
                         isDateKeyNonWorking(timestamp.date, timestamp.weekday) && !timestamp.outside
                       "
                       :color="$q.dark.isActive ? 'grey-9' : 'grey-3'"
@@ -336,8 +401,9 @@
                   </q-btn>
                 </div>
 
-                <!-- Cell Center / Holiday Badge -->
-                <div class="col column justify-start" style="min-width: 0; width: 100%">
+                <!-- Cell Center / Holiday & Leave Badges -->
+                <div class="col column justify-start q-gutter-y-xs" style="min-width: 0; width: 100%">
+                  <!-- Holiday Card -->
                   <q-card
                     v-if="holidaysByDate.get(timestamp.date)"
                     flat
@@ -394,10 +460,105 @@
                         </span>
                       </div>
                       <div class="text-caption text-amber-2 q-mt-xs" style="font-size: 10.5px">
-                        {{ formatPrettyDate(timestamp.date) }}
+                        {{ formatPrettyDate(timestamp.date) }} &bull; Public Holiday
                       </div>
                     </q-tooltip>
                   </q-card>
+
+                  <!-- Leave Cards (Handles single and multiple leaves) -->
+                  <template v-if="leavesByDate.get(timestamp.date)">
+                    <q-card
+                      v-for="leave in getVisibleLeaves(timestamp.date)"
+                      :key="leave.leaveId"
+                      flat
+                      bordered
+                      :dark="$q.dark.isActive"
+                      class="leave-badge-card full-width rounded-borders cursor-pointer"
+                      :class="[
+                        $q.screen.lt.sm ? 'q-px-xs q-py-xs' : 'q-pa-xs',
+                        leave.status === 'APPROVED' ? 'leave-card-approved' : 'leave-card-pending',
+                      ]"
+                      @click.stop="onDayClick(timestamp.date, timestamp.weekday)"
+                    >
+                      <div class="row items-start no-wrap" style="width: 100%; min-width: 0">
+                        <q-badge
+                          rounded
+                          :color="leave.status === 'APPROVED' ? 'teal-7' : 'amber-8'"
+                          class="flex-shrink-0 q-mt-xs"
+                          :style="
+                            $q.screen.lt.sm
+                              ? 'width: 5px; height: 5px; min-height: 0; padding: 0; margin-right: 4px;'
+                              : 'width: 6px; height: 6px; min-height: 0; padding: 0; margin-right: 5px;'
+                          "
+                        />
+                        <div
+                          class="text-caption text-weight-bold col holiday-desc-text"
+                          :style="
+                            $q.screen.lt.sm
+                              ? 'font-size: 9.5px; line-height: 1.2'
+                              : 'font-size: 11px; line-height: 1.25'
+                          "
+                        >
+                          <span v-if="isProjectManager && leave.userName">{{ leave.userName }}: </span>
+                          <span>{{ formatLeaveLabel(leave) }}</span>
+                        </div>
+                      </div>
+
+                      <!-- Tooltip for leave -->
+                      <q-tooltip
+                        :delay="100"
+                        class="bg-grey-10 text-white shadow-4 q-pa-sm rounded-borders"
+                        anchor="top middle"
+                        self="bottom middle"
+                        :offset="[0, 6]"
+                        transition-show="scale"
+                        transition-hide="scale"
+                      >
+                        <div class="row items-center q-gutter-xs no-wrap">
+                          <q-icon
+                            name="event_busy"
+                            :color="leave.status === 'APPROVED' ? 'teal-4' : 'amber-4'"
+                            size="16px"
+                          />
+                          <span class="text-weight-bold" style="font-size: 12px">
+                            {{ leave.status === 'APPROVED' ? 'Approved Leave (Off)' : 'Leave (Pending Approval)' }}
+                          </span>
+                        </div>
+                        <div v-if="leave.userName" class="text-caption text-grey-3" style="font-size: 11px">
+                          Resource: {{ leave.userName }}
+                        </div>
+                        <div class="text-caption text-teal-2 q-mt-xs" style="font-size: 10.5px">
+                          {{ formatPrettyDate(timestamp.date) }} &bull; {{ leave.leaveHours }}h ({{
+                            leave.leaveType.replace('_', ' ')
+                          }})
+                        </div>
+                        <div
+                          v-if="leave.approverName && leave.status === 'APPROVED'"
+                          class="text-caption text-grey-4"
+                          style="font-size: 10px"
+                        >
+                          Approved by {{ leave.approverName }}
+                        </div>
+                      </q-tooltip>
+                    </q-card>
+
+                    <!-- More Items Pill if multiple leaves exceed display cap -->
+                    <div
+                      v-if="getRemainingLeavesCount(timestamp.date) > 0"
+                      class="more-items-pill row items-center justify-center cursor-pointer"
+                      @click.stop="onDayClick(timestamp.date, timestamp.weekday)"
+                    >
+                      <span
+                        class="text-caption text-weight-bold"
+                        :style="$q.screen.lt.sm ? 'font-size: 8.5px;' : 'font-size: 10px;'"
+                      >
+                        +{{ getRemainingLeavesCount(timestamp.date) }} more
+                      </span>
+                      <q-tooltip>
+                        Click to view all {{ (leavesByDate.get(timestamp.date)?.length || 0) + (holidaysByDate.get(timestamp.date) ? 1 : 0) }} events on {{ formatPrettyDate(timestamp.date) }}
+                      </q-tooltip>
+                    </div>
+                  </template>
                 </div>
               </div>
             </template>
@@ -843,7 +1004,7 @@
     <q-dialog v-model="dayDetailDialog.show">
       <q-card
         :dark="$q.dark.isActive"
-        style="width: 380px; max-width: 92vw"
+        style="width: 420px; max-width: 92vw"
         class="rounded-borders"
       >
         <q-card-section class="row items-center justify-between q-pb-xs">
@@ -884,6 +1045,36 @@
                 Holiday (No Work)
               </q-badge>
               <q-badge
+                v-else-if="
+                  dayDetailDialog.leaves &&
+                  dayDetailDialog.leaves.filter((l) => l.status === 'APPROVED').length > 1
+                "
+                color="teal-7"
+                class="text-weight-bold q-px-sm q-py-xs"
+              >
+                {{ dayDetailDialog.leaves.filter((l) => l.status === 'APPROVED').length }} Resources on Leave (Off)
+              </q-badge>
+              <q-badge
+                v-else-if="
+                  dayDetailDialog.leaves &&
+                  dayDetailDialog.leaves.some((l) => l.status === 'APPROVED')
+                "
+                color="teal-7"
+                class="text-weight-bold q-px-sm q-py-xs"
+              >
+                On Leave (Approved - Off)
+              </q-badge>
+              <q-badge
+                v-else-if="
+                  dayDetailDialog.leaves &&
+                  dayDetailDialog.leaves.some((l) => l.status === 'PENDING')
+                "
+                color="amber-9"
+                class="text-weight-bold q-px-sm q-py-xs"
+              >
+                {{ dayDetailDialog.leaves.filter((l) => l.status === 'PENDING').length > 1 ? `${dayDetailDialog.leaves.filter((l) => l.status === 'PENDING').length} Leaves Pending Approval` : 'Leave (Pending Approval)' }}
+              </q-badge>
+              <q-badge
                 v-else-if="dayDetailDialog.isOffDay"
                 color="grey-7"
                 class="text-weight-bold q-px-sm q-py-xs"
@@ -911,10 +1102,76 @@
             </q-card>
           </div>
 
+          <!-- Leave Information if any -->
+          <div
+            v-if="dayDetailDialog.leaves && dayDetailDialog.leaves.length > 0"
+            class="q-mt-sm"
+          >
+            <div class="text-caption text-grey-6 q-mb-xs">
+              {{ dayDetailDialog.leaves.length > 1 ? `Scheduled Leaves (${dayDetailDialog.leaves.length})` : 'Scheduled Leave' }}
+            </div>
+            <div class="column q-gutter-y-xs scroll" style="max-height: 280px">
+              <q-card
+                v-for="l in dayDetailDialog.leaves"
+                :key="l.leaveId"
+                flat
+                bordered
+                :dark="$q.dark.isActive"
+                class="leave-badge-card q-pa-sm rounded-borders"
+                :class="l.status === 'APPROVED' ? 'leave-card-approved' : 'leave-card-pending'"
+              >
+                <div class="row items-center justify-between">
+                  <div class="row items-center q-gutter-xs">
+                    <q-icon
+                      name="event_busy"
+                      :color="l.status === 'APPROVED' ? 'teal-7' : 'amber-8'"
+                      size="16px"
+                    />
+                    <span class="text-weight-bold text-body2">
+                      {{ l.leaveType.replace('_', ' ') }} ({{ l.leaveHours }} hrs)
+                    </span>
+                  </div>
+                  <q-badge
+                    :color="l.status === 'APPROVED' ? 'teal-7' : 'amber-8'"
+                    text-color="white"
+                    class="text-weight-bold"
+                  >
+                    {{ l.status }}
+                  </q-badge>
+                </div>
+                <div v-if="l.userName" class="text-caption text-grey-7 q-mt-xs">
+                  Resource: <span class="text-weight-medium">{{ l.userName }}</span>
+                </div>
+                <div
+                  v-if="l.approverName && l.status === 'APPROVED'"
+                  class="text-caption text-teal-8 q-mt-xs"
+                >
+                  <q-icon name="check_circle" size="12px" /> Approved by {{ l.approverName }}
+                </div>
+              </q-card>
+            </div>
+          </div>
+
           <!-- Working capacity note -->
           <div class="text-caption text-grey-6 q-mt-xs">
             <template v-if="dayDetailDialog.holiday">
               Organization-wide holiday. No work tasks are scheduled for this day.
+            </template>
+            <template
+              v-else-if="
+                dayDetailDialog.leaves &&
+                dayDetailDialog.leaves.some((l) => l.status === 'APPROVED')
+              "
+            >
+              Approved scheduled leave day. Resource capacity is set to 0 for scheduled hours.
+            </template>
+            <template
+              v-else-if="
+                dayDetailDialog.leaves &&
+                dayDetailDialog.leaves.some((l) => l.status === 'PENDING')
+              "
+            >
+              Leave request is pending manager review and approval.
             </template>
             <template v-else-if="dayDetailDialog.isOffDay">
               Weekly off day according to team schedule.
@@ -955,7 +1212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { QCalendarMonth } from '@quasar/quasar-ui-qcalendar';
 import '@quasar/quasar-ui-qcalendar/dist/QCalendarMonth.min.css';
@@ -969,8 +1226,11 @@ import {
   updateHolidayApi,
   deleteHolidayApi,
   getResourceWorkScheduleApi,
+  getLeavesApi,
   type HolidayItem,
   type DayOfWeek,
+  type LeaveItem,
+  type LeaveStatus,
 } from '@/services/api';
 
 const $q = useQuasar();
@@ -981,8 +1241,21 @@ const isProjectManager = computed(() => authStore.user?.role === 'PROJECT_MANAGE
 const loading = ref(false);
 const viewMode = ref<'grid' | 'list'>('grid');
 const holidays = ref<HolidayItem[]>([]);
+const leavesList = ref<LeaveItem[]>([]);
 const selectedHolidays = ref<HolidayItem[]>([]);
 const userNonWorkingDays = ref<DayOfWeek[]>(['SATURDAY', 'SUNDAY']);
+
+export interface CalendarLeaveEntry {
+  leaveId: number;
+  date: string;
+  leaveType: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF';
+  leaveHours: number;
+  status: LeaveStatus;
+  userName?: string | undefined;
+  approverName?: string | null | undefined;
+  rejectionReason?: string | null | undefined;
+  requestId?: string | null | undefined;
+}
 
 interface QCalendarMonthInstance {
   prev: () => void;
@@ -1043,11 +1316,129 @@ const holidaysByDate = computed(() => {
   return map;
 });
 
+// Map of leaves by date key (YYYY-MM-DD)
+const leavesByDate = computed(() => {
+  const map = new Map<string, CalendarLeaveEntry[]>();
+
+  for (const item of leavesList.value) {
+    if (item.status === 'REJECTED') continue;
+
+    const appendEntry = (
+      dateStr: string,
+      leaveType: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF',
+      hours: number,
+      status: LeaveStatus,
+    ) => {
+      const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0]! : dateStr;
+      if (!cleanDate) return;
+      const entry: CalendarLeaveEntry = {
+        leaveId: item.leave_id,
+        date: cleanDate,
+        leaveType,
+        leaveHours: hours,
+        status,
+        userName: item.user_name,
+        approverName: item.approver_name,
+        rejectionReason: item.rejection_reason,
+        requestId: item.request_id,
+      };
+      const existing = map.get(cleanDate) || [];
+      existing.push(entry);
+      map.set(cleanDate, existing);
+    };
+
+    if (item.days_breakdown && item.days_breakdown.length > 0) {
+      for (const day of item.days_breakdown) {
+        if (day.status === 'REJECTED') continue;
+        appendEntry(day.leave_date, day.leave_type, day.leave_hours, day.status || item.status);
+      }
+    } else if (item.start_date && item.end_date && item.start_date !== item.end_date) {
+      const start = new Date(`${item.start_date.split('T')[0]}T00:00:00`);
+      const end = new Date(`${item.end_date.split('T')[0]}T00:00:00`);
+      const curr = new Date(start);
+      while (curr <= end) {
+        const dStr = formatDate(curr);
+        appendEntry(dStr, item.leave_type || 'FULL_DAY', item.leave_hours || 8, item.status);
+        curr.setDate(curr.getDate() + 1);
+      }
+    } else {
+      const dateStr = item.leave_date || item.start_date || '';
+      if (dateStr) {
+        appendEntry(dateStr, item.leave_type || 'FULL_DAY', item.leave_hours || 8, item.status);
+      }
+    }
+  }
+
+  return map;
+});
+
+function hasApprovedLeave(dateStr: string): boolean {
+  const leaves = leavesByDate.value.get(dateStr);
+  return !!leaves && leaves.some((l) => l.status === 'APPROVED');
+}
+
+function hasPendingLeave(dateStr: string): boolean {
+  const leaves = leavesByDate.value.get(dateStr);
+  return !!leaves && leaves.some((l) => l.status === 'PENDING');
+}
+
+function getLeaveBadgeLabel(dateStr: string): string {
+  const leaves = leavesByDate.value.get(dateStr) || [];
+  const approved = leaves.filter((l) => l.status === 'APPROVED');
+  if (approved.length > 0) {
+    if (isProjectManager.value && approved.length > 1) {
+      return `${approved.length} ON LEAVE`;
+    }
+    return 'ON LEAVE';
+  }
+  const pending = leaves.filter((l) => l.status === 'PENDING');
+  if (pending.length > 0) {
+    if (isProjectManager.value && pending.length > 1) {
+      return `${pending.length} PENDING`;
+    }
+    return 'LEAVE PENDING';
+  }
+  return '';
+}
+
+function getVisibleLeaves(dateStr: string): CalendarLeaveEntry[] {
+  const leaves = leavesByDate.value.get(dateStr) || [];
+  const hasHoliday = holidaysByDate.value.has(dateStr);
+  const maxLeavesToShow = hasHoliday ? 1 : 2;
+  return leaves.slice(0, maxLeavesToShow);
+}
+
+function getRemainingLeavesCount(dateStr: string): number {
+  const leaves = leavesByDate.value.get(dateStr) || [];
+  const hasHoliday = holidaysByDate.value.has(dateStr);
+  const maxLeavesToShow = hasHoliday ? 1 : 2;
+  return Math.max(0, leaves.length - maxLeavesToShow);
+}
+
+function formatLeaveLabel(leave: CalendarLeaveEntry): string {
+  if (leave.leaveType === 'FIRST_HALF') return '1st Half Leave';
+  if (leave.leaveType === 'SECOND_HALF') return '2nd Half Leave';
+  return 'Leave (Off)';
+}
+
 // Count of holidays in the currently selected month
 const currentMonthHolidaysCount = computed(() => {
   const monthStr = String(currentMonth.value + 1).padStart(2, '0');
   const prefix = `${currentYear.value}-${monthStr}`;
   return holidays.value.filter((h) => h.holiday_date.startsWith(prefix)).length;
+});
+
+// Count of approved leaves in the currently selected month
+const currentMonthLeavesCount = computed(() => {
+  const monthStr = String(currentMonth.value + 1).padStart(2, '0');
+  const prefix = `${currentYear.value}-${monthStr}`;
+  let count = 0;
+  for (const [date, entries] of leavesByDate.value.entries()) {
+    if (date.startsWith(prefix) && entries.some((e) => e.status === 'APPROVED')) {
+      count++;
+    }
+  }
+  return count;
 });
 
 function formatDate(d: Date): string {
@@ -1100,20 +1491,31 @@ function goToToday() {
   }
 }
 
-async function loadHolidays() {
+async function loadCalendarData() {
   loading.value = true;
   try {
-    holidays.value = await getHolidaysApi();
+    const [hData, lData] = await Promise.all([
+      getHolidaysApi(),
+      getLeavesApi().catch((err) => {
+        console.warn('Leaves fetch error/empty in calendar:', err);
+        return [] as LeaveItem[];
+      }),
+    ]);
+    holidays.value = hData;
+    leavesList.value = lData;
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'Failed to load holidays.',
+      message: error instanceof Error ? error.message : 'Failed to load calendar data.',
       position: 'top',
     });
   } finally {
     loading.value = false;
   }
 }
+
+// Keep alias for compatibility
+const loadHolidays = loadCalendarData;
 
 const holidayDialog = ref({
   show: false,
@@ -1159,6 +1561,7 @@ const dayDetailDialog = ref({
   dayOfWeek: '',
   isToday: false,
   holiday: null as HolidayItem | null,
+  leaves: [] as CalendarLeaveEntry[],
   isOffDay: false,
 });
 
@@ -1166,6 +1569,7 @@ function openDayDetailDialog(dateKey: string, weekday?: number) {
   const cleanStr = dateKey.includes('T') ? dateKey.split('T')[0]! : dateKey;
   const d = new Date(`${cleanStr}T00:00:00`);
   const holiday = holidaysByDate.value.get(cleanStr) || null;
+  const leaves = leavesByDate.value.get(cleanStr) || [];
   const isOffDay = isDateKeyNonWorking(cleanStr, weekday);
   const todayStr = formatDate(new Date());
 
@@ -1176,6 +1580,7 @@ function openDayDetailDialog(dateKey: string, weekday?: number) {
     dayOfWeek: d.toLocaleDateString('default', { weekday: 'long' }),
     isToday: cleanStr === todayStr,
     holiday,
+    leaves,
     isOffDay,
   };
 }
@@ -1247,7 +1652,7 @@ async function saveHoliday() {
     }
 
     holidayDialog.value.show = false;
-    await loadHolidays();
+    await loadCalendarData();
     window.dispatchEvent(new CustomEvent('holidays-updated'));
   } catch (error: unknown) {
     $q.notify({
@@ -1296,7 +1701,7 @@ async function executeDeleteHoliday() {
       position: 'top',
     });
     deleteDialog.value.show = false;
-    await loadHolidays();
+    await loadCalendarData();
     window.dispatchEvent(new CustomEvent('holidays-updated'));
   } catch (error: unknown) {
     $q.notify({
@@ -1345,7 +1750,7 @@ async function executeBatchDelete() {
     });
     batchDeleteDialog.value.show = false;
     selectedHolidays.value = [];
-    await loadHolidays();
+    await loadCalendarData();
     window.dispatchEvent(new CustomEvent('holidays-updated'));
   } catch (error: unknown) {
     $q.notify({
@@ -1541,7 +1946,7 @@ async function executeImportHolidays() {
     }
 
     importDialog.value.show = false;
-    await loadHolidays();
+    await loadCalendarData();
     window.dispatchEvent(new CustomEvent('holidays-updated'));
   } catch (error: unknown) {
     $q.notify({
@@ -1600,13 +2005,25 @@ async function loadUserData() {
 function getDayBgClass(timestamp: { date: string; weekday: number; current?: boolean }) {
   if (timestamp.current) return 'is-today-day';
   if (holidaysByDate.value.has(timestamp.date)) return 'has-holiday-day';
+  if (hasApprovedLeave(timestamp.date)) return 'has-leave-day';
   if (isDateKeyNonWorking(timestamp.date, timestamp.weekday)) return 'is-weekend-day';
   return 'is-default-day';
 }
 
+function handleCalendarRefresh() {
+  void loadCalendarData();
+}
+
 onMounted(() => {
-  void loadHolidays();
+  void loadCalendarData();
   void loadUserData();
+  window.addEventListener('holidays-updated', handleCalendarRefresh);
+  window.addEventListener('leaves-updated', handleCalendarRefresh);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('holidays-updated', handleCalendarRefresh);
+  window.removeEventListener('leaves-updated', handleCalendarRefresh);
 });
 </script>
 
@@ -1619,9 +2036,13 @@ onMounted(() => {
   --cal-weekend-bg: #f8fafc;
   --cal-today-bg: #eff6ff;
   --cal-holiday-bg: #fffbeb;
+  --cal-leave-bg: #f0fdf4;
   --cal-card-bg: #fff8e6;
   --cal-card-color: #b45309;
   --cal-card-border: #fde68a;
+  --cal-leave-card-bg: #ecfdf5;
+  --cal-leave-card-color: #065f46;
+  --cal-leave-card-border: #a7f3d0;
 
   :deep(.q-calendar-month__head) {
     font-weight: 700;
@@ -1670,6 +2091,9 @@ onMounted(() => {
 .has-holiday-day {
   background: var(--cal-holiday-bg);
 }
+.has-leave-day {
+  background: var(--cal-leave-bg);
+}
 .is-today-day {
   background: var(--cal-today-bg);
   outline: 2px solid var(--q-primary);
@@ -1688,6 +2112,37 @@ onMounted(() => {
     border-color: #f59e0b;
     box-shadow: 0 2px 6px rgba(245, 158, 11, 0.22);
     transform: translateY(-1px);
+  }
+}
+
+.leave-badge-card {
+  transition: all 0.15s ease-in-out;
+
+  &.leave-card-approved {
+    background: var(--cal-leave-card-bg);
+    color: var(--cal-leave-card-color);
+    border: 1px solid var(--cal-leave-card-border);
+    border-left: 3px solid #10b981;
+
+    &:hover {
+      filter: brightness(0.96);
+      border-color: #10b981;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.22);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.leave-card-pending {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px dashed #fcd34d;
+    border-left: 3px solid #f59e0b;
+
+    &:hover {
+      filter: brightness(0.96);
+      border-color: #f59e0b;
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -1746,6 +2201,11 @@ onMounted(() => {
     padding: 2px 3px !important;
     border-left-width: 2px !important;
   }
+
+  .leave-badge-card {
+    padding: 2px 3px !important;
+    border-left-width: 2px !important;
+  }
 }
 
 body.body--dark {
@@ -1756,9 +2216,13 @@ body.body--dark {
     --cal-weekend-bg: #161c28;
     --cal-today-bg: rgba(59, 130, 246, 0.14);
     --cal-holiday-bg: rgba(245, 158, 11, 0.1);
+    --cal-leave-bg: rgba(16, 185, 129, 0.08);
     --cal-card-bg: rgba(245, 158, 11, 0.16);
     --cal-card-color: #fbbf24;
     --cal-card-border: rgba(245, 158, 11, 0.35);
+    --cal-leave-card-bg: rgba(16, 185, 129, 0.15);
+    --cal-leave-card-color: #34d399;
+    --cal-leave-card-border: rgba(16, 185, 129, 0.35);
 
     :deep(.q-calendar-month__head) {
       color: #94a3b8;
@@ -1772,6 +2236,36 @@ body.body--dark {
   .holiday-badge-card:hover {
     filter: brightness(1.2);
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+  }
+
+  .leave-badge-card.leave-card-approved:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  }
+
+  .more-items-pill {
+    background: #1e293b;
+    color: #94a3b8;
+
+    &:hover {
+      background: #334155;
+      color: #f1f5f9;
+    }
+  }
+}
+
+.more-items-pill {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #94a3b8;
   }
 }
 </style>

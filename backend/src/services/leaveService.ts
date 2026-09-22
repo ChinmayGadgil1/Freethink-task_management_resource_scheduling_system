@@ -775,7 +775,19 @@ export async function getLeaves(filters: {
         params.push(filters.status);
     }
 
-    // Removed manager_id filter so PMs can see all leaves system-wide.
+    if (filters.manager_id !== undefined) {
+        conditions.push(`(
+            ul.user_id = ?
+            OR ul.approver_id = ?
+            OR ul.user_id IN (
+                SELECT DISTINCT pm.user_id
+                FROM project_members pm
+                INNER JOIN projects p ON pm.project_id = p.project_id
+                WHERE p.project_manager_id = ?
+            )
+        )`);
+        params.push(filters.manager_id, filters.manager_id, filters.manager_id);
+    }
 
     if (conditions.length > 0) {
         query += ` WHERE ` + conditions.join(" AND ");
