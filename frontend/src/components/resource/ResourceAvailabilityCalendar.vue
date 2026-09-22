@@ -216,16 +216,16 @@
           :key="day.date"
           class="day-card column justify-between"
           :class="[
-            getStatusMeta(day.status).borderClass,
+            getStatusMeta(day.status).cardClass,
             isToday(day.date) ? 'today-highlight' : '',
           ]"
         >
           <!-- Top Row: Date & Status Badge -->
           <div>
-            <div class="row items-center justify-between q-mb-xs">
+            <div class="row items-center justify-between no-wrap q-mb-xs">
               <div class="column">
-                <div class="row items-center gap-xs">
-                  <span class="day-date text-weight-bolder">{{ formatShortDate(day.date) }}</span>
+                <div class="row items-center gap-xs no-wrap">
+                  <span class="day-date text-weight-bold">{{ formatShortDate(day.date) }}</span>
                   <q-badge
                     v-if="isToday(day.date)"
                     color="primary"
@@ -237,51 +237,58 @@
               </div>
 
               <!-- Status Badge -->
-              <q-chip
-                dense
-                square
-                :color="getStatusMeta(day.status).badgeColor"
-                text-color="white"
-                class="status-chip text-weight-bold"
-                :icon="getStatusMeta(day.status).icon"
-              >
+              <span class="status-pill" :class="getStatusMeta(day.status).pillClass">
+                <q-icon :name="getStatusMeta(day.status).icon" size="12px" class="q-mr-xs" />
                 {{ getStatusMeta(day.status).label }}
-              </q-chip>
+              </span>
             </div>
 
-            <!-- Visual Capacity Bar -->
-            <div class="capacity-bar-container q-my-sm">
-              <div
-                class="row items-center justify-between text-caption q-mb-xs"
-                style="font-size: 11px"
+            <!-- State Banners / Working Info -->
+            <div v-if="day.status === 'NON_WORKING_DAY'" class="day-state-banner state-nwd">
+              <span class="text-caption text-grey-6">Weekend / Off Day</span>
+            </div>
+
+            <div v-else-if="day.status === 'HOLIDAY'" class="day-state-banner state-holiday">
+              <span class="text-caption text-amber-9 text-weight-medium">Company Holiday</span>
+            </div>
+
+            <div v-else-if="day.status === 'ON_LEAVE'" class="day-state-banner state-leave">
+              <span class="text-caption text-purple-9 text-weight-medium"
+                >Approved Leave ({{ formatHours(day.leave_hours) }}h)</span
               >
-                <span class="text-grey-7"
-                  >Daily Base: <strong>{{ formatHours(day.daily_working_hours) }}h</strong></span
-                >
+            </div>
+
+            <div v-else class="day-working-info q-my-xs">
+              <div class="row items-center justify-between text-caption q-mb-xs">
+                <span class="text-grey-7" style="font-size: 11px">
+                  Base: <strong>{{ formatHours(day.daily_working_hours) }}h</strong>
+                </span>
                 <span
                   :class="
-                    day.available_hours > 0 ? 'text-positive text-weight-bold' : 'text-grey-6'
+                    day.available_hours > 0
+                      ? 'text-positive text-weight-bold'
+                      : 'text-grey-7 text-weight-medium'
                   "
+                  style="font-size: 11px"
                 >
                   {{ formatHours(day.available_hours) }}h Free
                 </span>
               </div>
+
+              <!-- Sleek Progress Track -->
               <div class="capacity-progress-track">
-                <!-- Allocated Segment -->
                 <div
                   v-if="day.allocated_hours > 0"
                   class="progress-seg seg-allocated"
                   :style="{ width: `${getBarPct(day.allocated_hours, day.daily_working_hours)}%` }"
                   :title="`Allocated: ${formatHours(day.allocated_hours)}h`"
                 />
-                <!-- Leave Segment -->
                 <div
                   v-if="day.leave_hours > 0"
                   class="progress-seg seg-leave"
                   :style="{ width: `${getBarPct(day.leave_hours, day.daily_working_hours)}%` }"
                   :title="`Leave: ${formatHours(day.leave_hours)}h`"
                 />
-                <!-- Available Headroom Segment -->
                 <div
                   v-if="day.available_hours > 0"
                   class="progress-seg seg-available"
@@ -292,17 +299,36 @@
             </div>
           </div>
 
-          <!-- Bottom Breakdown Chips -->
-          <div class="row q-gutter-xs wrap items-center q-mt-xs">
-            <span class="breakdown-tag tag-avail">
-              Avail: <strong>{{ formatHours(day.available_hours) }}h</strong>
-            </span>
-            <span v-if="day.allocated_hours > 0" class="breakdown-tag tag-alloc">
-              Booked: <strong>{{ formatHours(day.allocated_hours) }}h</strong>
-            </span>
-            <span v-if="day.leave_hours > 0" class="breakdown-tag tag-leave">
-              Leave: <strong>{{ formatHours(day.leave_hours) }}h</strong>
-            </span>
+          <!-- Bottom Footer Details -->
+          <div class="day-footer q-mt-xs">
+            <div
+              v-if="
+                day.status !== 'NON_WORKING_DAY' &&
+                day.status !== 'HOLIDAY' &&
+                (day.allocated_hours > 0 || day.leave_hours > 0)
+              "
+              class="row q-gutter-xs wrap items-center"
+            >
+              <span v-if="day.allocated_hours > 0" class="breakdown-tag tag-alloc">
+                Booked: <strong>{{ formatHours(day.allocated_hours) }}h</strong>
+              </span>
+              <span v-if="day.leave_hours > 0" class="breakdown-tag tag-leave">
+                Leave: <strong>{{ formatHours(day.leave_hours) }}h</strong>
+              </span>
+              <span v-if="day.available_hours > 0" class="breakdown-tag tag-avail">
+                Free: <strong>{{ formatHours(day.available_hours) }}h</strong>
+              </span>
+            </div>
+            <div
+              v-else-if="day.status === 'AVAILABLE'"
+              class="text-caption text-positive text-weight-medium"
+              style="font-size: 11px"
+            >
+              100% Free Headroom
+            </div>
+            <div v-else class="text-caption text-grey-5" style="font-size: 11px">
+              No tasks scheduled
+            </div>
           </div>
         </div>
       </div>
@@ -329,17 +355,11 @@
           </template>
 
           <template #body-cell-status="props">
-            <q-td :props="props">
-              <q-chip
-                dense
-                square
-                :color="getStatusMeta(props.row.status).badgeColor"
-                text-color="white"
-                class="status-chip text-weight-bold"
-                :icon="getStatusMeta(props.row.status).icon"
-              >
+            <q-td :props="props" class="text-center">
+              <span class="status-pill" :class="getStatusMeta(props.row.status).pillClass">
+                <q-icon :name="getStatusMeta(props.row.status).icon" size="12px" class="q-mr-xs" />
                 {{ getStatusMeta(props.row.status).label }}
-              </q-chip>
+              </span>
             </q-td>
           </template>
 
@@ -526,56 +546,64 @@ function getStatusMeta(status: AvailabilityStatus) {
         label: 'Available',
         badgeColor: 'positive',
         icon: 'check_circle',
-        borderClass: 'border-status-avail',
+        pillClass: 'pill-available',
+        cardClass: 'card-available',
       };
     case 'PARTIALLY_AVAILABLE':
       return {
         label: 'Partially Available',
         badgeColor: 'cyan-8',
         icon: 'timelapse',
-        borderClass: 'border-status-partial-avail',
+        pillClass: 'pill-partial',
+        cardClass: 'card-partial',
       };
     case 'FULLY_BOOKED':
       return {
         label: 'Fully Booked',
-        badgeColor: 'amber-9',
+        badgeColor: 'blue-8',
         icon: 'event_busy',
-        borderClass: 'border-status-booked',
+        pillClass: 'pill-booked',
+        cardClass: 'card-booked',
       };
     case 'ON_LEAVE':
       return {
         label: 'On Leave',
         badgeColor: 'purple-8',
         icon: 'beach_access',
-        borderClass: 'border-status-leave',
+        pillClass: 'pill-leave',
+        cardClass: 'card-leave',
       };
     case 'PARTIAL_LEAVE':
       return {
         label: 'Partial Leave',
         badgeColor: 'indigo-7',
         icon: 'event_repeat',
-        borderClass: 'border-status-partial-leave',
+        pillClass: 'pill-partial-leave',
+        cardClass: 'card-partial-leave',
       };
     case 'HOLIDAY':
       return {
         label: 'Holiday',
-        badgeColor: 'deep-orange-8',
+        badgeColor: 'amber-9',
         icon: 'celebration',
-        borderClass: 'border-status-holiday',
+        pillClass: 'pill-holiday',
+        cardClass: 'card-holiday',
       };
     case 'NON_WORKING_DAY':
       return {
         label: 'Off Day',
         badgeColor: 'grey-7',
         icon: 'nightlight_round',
-        borderClass: 'border-status-nwd',
+        pillClass: 'pill-nwd',
+        cardClass: 'card-nwd',
       };
     default:
       return {
         label: status,
         badgeColor: 'grey-6',
         icon: 'help_outline',
-        borderClass: 'border-status-default',
+        pillClass: 'pill-default',
+        cardClass: 'card-default',
       };
   }
 }
@@ -664,7 +692,7 @@ onMounted(() => {
 
 .availability-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 12px;
 }
 
@@ -672,66 +700,130 @@ onMounted(() => {
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--wo-bg-card, #ffffff);
-  border: 1px solid var(--wo-border, #eaecf0);
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
-  min-height: 140px;
-  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  min-height: 120px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    border-color: #cbd5e1;
   }
 
   &.today-highlight {
-    border-color: var(--wo-primary, #8b6fd8) !important;
-    background: rgba(139, 111, 216, 0.02);
+    border-color: #7c3aed !important;
+    background: linear-gradient(
+      180deg,
+      rgba(124, 58, 237, 0.03) 0%,
+      rgba(255, 255, 255, 0.9) 100%
+    );
+    box-shadow:
+      0 0 0 1px #7c3aed,
+      0 4px 12px rgba(124, 58, 237, 0.08);
   }
 
-  &.border-status-avail {
-    border-left: 4px solid #10b981;
+  &.card-nwd {
+    background: #f8fafc;
+    border-color: #f1f5f9;
+    opacity: 0.85;
   }
-  &.border-status-partial-avail {
-    border-left: 4px solid #06b6d4;
+
+  &.card-holiday {
+    background: #fffbeb;
+    border-color: #fef3c7;
   }
-  &.border-status-booked {
-    border-left: 4px solid #f59e0b;
-  }
-  &.border-status-leave {
-    border-left: 4px solid #8b5cf6;
-  }
-  &.border-status-partial-leave {
-    border-left: 4px solid #6366f1;
-  }
-  &.border-status-holiday {
-    border-left: 4px solid #f97316;
-  }
-  &.border-status-nwd {
-    border-left: 4px solid #94a3b8;
-    background: var(--wo-bg-subtle, #f9fafb);
+
+  &.card-leave {
+    background: #faf5ff;
+    border-color: #f3e8ff;
   }
 }
 
 .day-date {
   font-size: 14px;
-  color: var(--wo-text-main, #1e293b);
+  color: #1e293b;
 }
 
 .today-badge {
   font-size: 9px;
   font-weight: 800;
   padding: 1px 4px;
+  border-radius: 4px;
 }
 
-.status-chip {
-  font-size: 10px;
-  padding: 0 6px;
-  height: 20px;
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  line-height: 1.4;
+
+  &.pill-available {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+  &.pill-partial {
+    background: #ecfeff;
+    color: #155e75;
+    border: 1px solid #a5f3fc;
+  }
+  &.pill-booked {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+  }
+  &.pill-leave {
+    background: #faf5ff;
+    color: #6b21a8;
+    border: 1px solid #e9d5ff;
+  }
+  &.pill-partial-leave {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+  }
+  &.pill-holiday {
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+  }
+  &.pill-nwd {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+  &.pill-default {
+    background: #f8fafc;
+    color: #64748b;
+  }
+}
+
+.day-state-banner {
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+
+  &.state-nwd {
+    background: rgba(148, 163, 184, 0.12);
+  }
+  &.state-holiday {
+    background: rgba(245, 158, 11, 0.12);
+  }
+  &.state-leave {
+    background: rgba(147, 51, 234, 0.1);
+  }
 }
 
 .capacity-progress-track {
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
-  background: var(--wo-border-subtle, #f0f2f5);
+  background: #f1f5f9;
   display: flex;
   overflow: hidden;
 }
@@ -743,7 +835,7 @@ onMounted(() => {
     background: #3b82f6;
   }
   &.seg-leave {
-    background: #8b5cf6;
+    background: #a855f7;
   }
   &.seg-available {
     background: #10b981;
@@ -752,21 +844,21 @@ onMounted(() => {
 
 .breakdown-tag {
   font-size: 10px;
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: 4px;
   font-weight: 500;
 
   &.tag-avail {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
+    background: #ecfdf5;
+    color: #065f46;
   }
   &.tag-alloc {
-    background: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
+    background: #eff6ff;
+    color: #1e40af;
   }
   &.tag-leave {
-    background: rgba(139, 92, 246, 0.1);
-    color: #7c3aed;
+    background: #faf5ff;
+    color: #6b21a8;
   }
 }
 </style>

@@ -147,7 +147,6 @@
           <!-- Projects Breakdown -->
           <div class="col-12 col-lg-7 d-flex">
             <ProjectsBreakdownCard
-              v-if="projectSummary.length"
               :projects="projectSummary"
               class="full-width full-height column"
             />

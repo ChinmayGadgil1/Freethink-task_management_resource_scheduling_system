@@ -240,33 +240,69 @@
 
           <!-- TAB 2: PROJECTS -->
           <q-tab-panel name="projects" class="q-pa-md">
-            <div class="text-h6 text-weight-bold q-mb-md">Project Memberships</div>
-
-            <div v-if="resourceProjects.length === 0" class="text-grey-6 text-center q-pa-lg">
-              Not currently assigned to any projects.
+            <div class="row items-center justify-between q-mb-md">
+              <div class="text-h6 text-weight-bold">Project Memberships</div>
+              <q-chip dense color="deep-purple-1" text-color="primary" class="text-weight-bold">
+                {{ resourceProjects.length }} Total Projects
+              </q-chip>
             </div>
 
-            <div v-else class="row q-col-gutter-md">
-              <div v-for="proj in resourceProjects" :key="proj.project_id" class="col-12 col-sm-6">
+            <div v-if="resourceProjects.length === 0" class="text-grey-6 text-center q-pa-xl">
+              <q-icon name="folder_off" size="48px" class="q-mb-sm text-grey-4" />
+              <div class="text-subtitle1">Not currently assigned to any projects.</div>
+            </div>
+
+            <div v-else class="row q-col-gutter-md items-stretch">
+              <div
+                v-for="proj in resourceProjects"
+                :key="proj.project_id"
+                class="col-12 col-sm-6 d-flex"
+              >
                 <q-card
                   flat
                   bordered
-                  class="bg-grey-2 cursor-pointer"
+                  class="project-membership-card full-width column justify-between cursor-pointer"
                   @click="goToProject(proj.project_id)"
                 >
-                  <q-card-section>
-                    <div class="row items-center justify-between q-mb-xs">
-                      <div class="text-subtitle1 text-weight-bold">{{ proj.name }}</div>
-                      <q-chip dense color="primary" text-color="white">{{ proj.status }}</q-chip>
-                    </div>
-                    <div class="text-caption text-grey-7 q-mb-sm">
-                      {{ proj.description || 'No description' }}
-                    </div>
-                    <div class="row justify-between text-caption text-grey-8">
-                      <span
-                        >Progress: <strong>{{ proj.progress }}%</strong></span
+                  <q-card-section class="q-pb-xs column" style="flex: 1">
+                    <div class="row items-center justify-between q-mb-xs no-wrap">
+                      <div
+                        class="text-subtitle1 text-weight-bold text-dark ellipsis"
+                        :title="proj.name"
+                        style="max-width: 70%"
                       >
-                      <span>Deadline: {{ proj.deadline || 'TBD' }}</span>
+                        {{ proj.name }}
+                      </div>
+                      <q-chip
+                        dense
+                        square
+                        :color="getProjectStatusColor(proj.status)"
+                        text-color="white"
+                        class="text-caption text-weight-bold q-ma-none"
+                      >
+                        {{ proj.status }}
+                      </q-chip>
+                    </div>
+
+                    <div class="project-desc-clamp text-caption text-grey-7 q-my-xs">
+                      {{ proj.description || 'No project description provided.' }}
+                    </div>
+                  </q-card-section>
+
+                  <q-card-section class="q-pt-xs">
+                    <div class="row justify-between items-center text-caption text-grey-8 q-mb-xs">
+                      <span
+                        >Progress:
+                        <strong class="text-primary text-weight-bold"
+                          >{{ proj.progress || 0 }}%</strong
+                        ></span
+                      >
+                      <span class="text-grey-7"
+                        >Deadline:
+                        <span class="text-weight-medium text-dark">{{
+                          proj.deadline ? String(proj.deadline).split('T')[0] : 'TBD'
+                        }}</span></span
+                      >
                     </div>
                     <q-linear-progress
                       rounded
@@ -274,7 +310,6 @@
                       :value="(Number(proj.progress) || 0) / 100"
                       color="primary"
                       track-color="grey-3"
-                      class="q-mt-xs"
                     />
                   </q-card-section>
                 </q-card>
@@ -2439,6 +2474,14 @@ function getTaskStatusColor(status: string): string {
   return 'grey-7';
 }
 
+function getProjectStatusColor(status: string): string {
+  if (status === 'COMPLETED') return 'positive';
+  if (status === 'IN_PROGRESS') return 'primary';
+  if (status === 'ON_HOLD') return 'warning';
+  if (status === 'CANCELLED') return 'negative';
+  return 'indigo-7';
+}
+
 function getPriorityColor(priority: string): string {
   if (priority === 'CRITICAL') return 'negative';
   if (priority === 'HIGH') return 'warning';
@@ -2738,5 +2781,29 @@ async function handleCancelLeave(identifier: number | string) {
 
 .border-amber {
   border: 1px solid #ffe082;
+}
+
+.project-membership-card {
+  background: var(--wo-bg-card, #ffffff);
+  border: 1px solid var(--wo-border, #e2e8f0);
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    border-color: var(--wo-primary, #7c3aed);
+  }
+}
+
+.project-desc-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 38px;
+  line-height: 1.4;
 }
 </style>
