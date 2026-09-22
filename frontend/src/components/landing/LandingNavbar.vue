@@ -44,7 +44,7 @@
           :color="themeStore.isDark ? 'amber-5' : 'grey-8'"
           aria-label="Toggle dark mode"
           class="theme-toggle-btn"
-          @click="themeStore.toggleDarkMode"
+          @click="themeStore.toggleDarkMode()"
         >
           <q-tooltip>{{
             themeStore.isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'
@@ -71,7 +71,7 @@
           :icon="themeStore.isDark ? 'light_mode' : 'dark_mode'"
           :color="themeStore.isDark ? 'amber-5' : 'grey-8'"
           aria-label="Toggle dark mode"
-          @click="themeStore.toggleDarkMode"
+          @click="themeStore.toggleDarkMode()"
         />
         <q-btn
           flat

@@ -21,10 +21,12 @@ export const useThemeStore = defineStore('theme', {
   },
 
   persist: {
-    storage: localStorage,
+    storage: sessionStorage,
   },
 });
 
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useThemeStore, import.meta.hot));
 }
+
+
