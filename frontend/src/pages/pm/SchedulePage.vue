@@ -400,6 +400,7 @@
         :availability="pmAvailabilityList"
         :global-leaves="globalLeavesList"
         :is-resource-view="assigneeFilter !== 'ALL' || pmAvailabilityList.length > 0"
+        :focus-date="currentAnchorDate"
         title="Gantt Timeline Roadmap"
         @task-click="openTaskDetailsDialog"
       />

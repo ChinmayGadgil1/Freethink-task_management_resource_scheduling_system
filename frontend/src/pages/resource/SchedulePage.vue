@@ -385,6 +385,7 @@
         :holidays="holidays"
         :availability="Array.from(availabilityMap.values())"
         :is-resource-view="true"
+        :focus-date="currentAnchorDate"
         title="Gantt Timeline Roadmap"
         @task-click="(task) => goToTask(task.task_id)"
       />

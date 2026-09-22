@@ -282,6 +282,7 @@ export interface GanttTimelineProps {
   title?: string;
   initialScale?: 'hour' | 'day' | 'week' | 'month';
   groupByProject?: boolean;
+  focusDate?: Date | string | null;
 }
 
 export interface TaskWorkSegment {
@@ -309,9 +310,14 @@ export interface DhtmlxGanttTaskItem {
   open?: boolean;
   priority?: string;
   status?: string;
-  project_name?: string;
   project_id?: number;
-  assignee_name?: string;
+  project_name?: string;
+  color?: string;
+  textColor?: string;
+  progressColor?: string;
+  is_milestone?: boolean;
+  assignee_id?: number | null;
+  assignee_name?: string | null;
   supervisor_id?: number | null;
   supervisor_name?: string | null;
   is_supervised?: boolean;
@@ -349,6 +355,7 @@ const props = withDefaults(defineProps<GanttTimelineProps>(), {
   title: 'Gantt Timeline Roadmap',
   initialScale: 'week',
   groupByProject: true,
+  focusDate: null,
 });
 
 const emit = defineEmits<{
@@ -2251,34 +2258,40 @@ function getWeekNumber(d: Date): number {
 // Framing & Date Bounds Computation
 // ----------------------------------------------------
 function applyScaleAwareFraming(visibleTasks: Task[]) {
-  if (!visibleTasks.length) {
-    const now = new Date();
-    gantt.config.start_date = new Date(now.getFullYear(), now.getMonth(), 1);
-    gantt.config.end_date = new Date(now.getFullYear(), now.getMonth() + 2, 1);
-    return;
-  }
-
   let minTime = Infinity;
   let maxTime = -Infinity;
 
-  visibleTasks.forEach((t) => {
-    const { earliestStart, latestEnd } = getTaskWorkSegments(t);
-    let startMs = earliestStart.getTime();
-    let endMs = latestEnd.getTime();
+  if (visibleTasks.length) {
+    visibleTasks.forEach((t) => {
+      const { earliestStart, latestEnd } = getTaskWorkSegments(t);
+      let startMs = earliestStart.getTime();
+      let endMs = latestEnd.getTime();
 
-    const plannedStartParsed = parseIsoToDate(t.planned_start);
-    if (plannedStartParsed && isValidDate(plannedStartParsed)) {
-      startMs = isNaN(startMs) ? plannedStartParsed.getTime() : Math.min(startMs, plannedStartParsed.getTime());
+      const plannedStartParsed = parseIsoToDate(t.planned_start);
+      if (plannedStartParsed && isValidDate(plannedStartParsed)) {
+        startMs = isNaN(startMs) ? plannedStartParsed.getTime() : Math.min(startMs, plannedStartParsed.getTime());
+      }
+
+      const plannedEndParsed = parseIsoToDate(t.planned_end);
+      if (plannedEndParsed && isValidDate(plannedEndParsed)) {
+        endMs = isNaN(endMs) ? plannedEndParsed.getTime() : Math.max(endMs, plannedEndParsed.getTime());
+      }
+
+      if (!isNaN(startMs) && startMs < minTime) minTime = startMs;
+      if (!isNaN(endMs) && endMs > maxTime) maxTime = endMs;
+    });
+  }
+
+  if (props.focusDate) {
+    const fDate = typeof props.focusDate === 'string' ? parseIsoToDate(props.focusDate) : props.focusDate;
+    if (fDate && isValidDate(fDate)) {
+      const fTime = fDate.getTime();
+      if (!isNaN(fTime)) {
+        if (minTime === Infinity || fTime < minTime) minTime = fTime;
+        if (maxTime === -Infinity || fTime > maxTime) maxTime = fTime;
+      }
     }
-
-    const plannedEndParsed = parseIsoToDate(t.planned_end);
-    if (plannedEndParsed && isValidDate(plannedEndParsed)) {
-      endMs = isNaN(endMs) ? plannedEndParsed.getTime() : Math.max(endMs, plannedEndParsed.getTime());
-    }
-
-    if (!isNaN(startMs) && startMs < minTime) minTime = startMs;
-    if (!isNaN(endMs) && endMs > maxTime) maxTime = endMs;
-  });
+  }
 
   if (minTime === Infinity || maxTime === -Infinity) {
     const now = new Date();
@@ -2725,7 +2738,9 @@ function refreshGantt() {
   updateCustomMarkers();
   gantt.render();
 
-  if (scrollState && (scrollState.x > 0 || scrollState.y > 0)) {
+  if (props.focusDate) {
+    scrollToDate(props.focusDate);
+  } else if (scrollState && (scrollState.x > 0 || scrollState.y > 0)) {
     try {
       gantt.scrollTo(scrollState.x, scrollState.y);
     } catch {
@@ -2780,6 +2795,19 @@ function scrollToToday() {
   try {
     gantt.showDate(new Date());
     updateDateRangeHeader();
+  } catch {
+    // Ignore
+  }
+}
+
+function scrollToDate(target: Date | string | null | undefined) {
+  if (!target || !ganttContainer.value) return;
+  try {
+    const d = typeof target === 'string' ? parseIsoToDate(target) : target;
+    if (d && isValidDate(d) && !isNaN(d.getTime())) {
+      gantt.showDate(d);
+      updateDateRangeHeader();
+    }
   } catch {
     // Ignore
   }
@@ -2890,6 +2918,25 @@ watch(
   { deep: true },
 );
 
+watch(
+  () => props.focusDate,
+  (newDate) => {
+    if (newDate && ganttContainer.value) {
+      const d = typeof newDate === 'string' ? parseIsoToDate(newDate) : newDate;
+      if (d && isValidDate(d)) {
+        const dTime = d.getTime();
+        const startMs = gantt.config.start_date ? new Date(gantt.config.start_date).getTime() : 0;
+        const endMs = gantt.config.end_date ? new Date(gantt.config.end_date).getTime() : 0;
+        if (dTime < startMs || dTime > endMs) {
+          refreshGantt();
+        } else {
+          scrollToDate(d);
+        }
+      }
+    }
+  },
+);
+
 watch(isDark, () => {
   if (ganttContainer.value) {
     gantt.render();
@@ -2899,6 +2946,7 @@ watch(isDark, () => {
 defineExpose({
   refreshGantt,
   scrollToToday,
+  scrollToDate,
   setScale,
   expandAll,
   collapseAll,
