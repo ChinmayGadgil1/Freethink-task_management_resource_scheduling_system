@@ -623,7 +623,7 @@
     <q-dialog v-model="showAssignTaskMemberDialog">
       <q-card
         :dark="$q.dark.isActive"
-        style="width: 520px; max-width: 95vw"
+        style="width: 520px; max-width: 95vw; overflow-x: hidden"
         class="rounded-borders"
       >
         <q-card-section class="row items-center justify-between">
@@ -632,25 +632,41 @@
         </q-card-section>
 
         <q-form @submit.prevent="handleAssignTaskMember">
-          <q-card-section class="column q-gutter-md">
+          <q-card-section class="column q-gutter-y-md">
             <q-select
               v-model="assignTaskMemberForm.task_id"
               outlined
               dense
               :dark="$q.dark.isActive"
-              label="Select Task"
+              label="Select Task *"
               :options="taskSelectOptions"
               emit-value
               map-options
+              options-dense
               :rules="[(val) => !!val || 'Task is required']"
-            />
+            >
+              <template #selected-item="scope">
+                <span class="ellipsis" style="max-width: 420px" :title="scope.opt?.label || ''">
+                  {{ scope.opt?.label || '' }}
+                </span>
+              </template>
+              <template #option="{ itemProps, opt }">
+                <q-item v-bind="itemProps" dense>
+                  <q-item-section style="min-width: 0">
+                    <q-item-label class="ellipsis text-weight-medium" :title="opt.label">
+                      {{ opt.label }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
 
             <q-select
               v-model="assignTaskMemberForm.user_ids"
               outlined
+              dense
               multiple
               use-chips
-              stack-label
               clearable
               :dark="$q.dark.isActive"
               label="Assign Member(s)"
@@ -2744,14 +2760,14 @@ body.body--dark {
 
 .assignee-select {
   :deep(.q-field__control) {
-    min-height: 52px;
-    padding-top: 4px;
-    padding-bottom: 4px;
+    min-height: 40px;
+    padding-top: 2px;
+    padding-bottom: 2px;
   }
   :deep(.q-field__native) {
-    padding-top: 8px;
-    padding-bottom: 4px;
-    row-gap: 6px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    row-gap: 4px;
   }
 }
 

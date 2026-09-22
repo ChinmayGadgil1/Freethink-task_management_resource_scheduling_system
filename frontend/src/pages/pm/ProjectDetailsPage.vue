@@ -1458,11 +1458,11 @@
 
       <!-- DIALOG: MANAGE TASK DEPENDENCIES -->
       <q-dialog v-model="showDependencyDialog">
-        <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw; border-radius: 12px">
+        <q-card :dark="$q.dark.isActive" style="width: 520px; max-width: 95vw; border-radius: 12px; overflow-x: hidden">
           <q-card-section class="row items-center justify-between q-pb-none">
-            <div>
+            <div style="min-width: 0; flex: 1" class="q-mr-sm">
               <div class="text-caption text-weight-bold text-primary">TASK DEPENDENCIES</div>
-              <div class="text-h6 text-weight-bold">
+              <div class="text-h6 text-weight-bold ellipsis" style="word-break: break-word">
                 Manage Predecessors for "{{ selectedDependencyTaskName }}"
               </div>
             </div>
@@ -1487,8 +1487,8 @@
                 icon="account_tree"
                 @remove="confirmRemoveDependency(pred)"
               >
-                {{ pred.title }} (#{{ pred.task_id }})
-                <q-tooltip>Remove this dependency</q-tooltip>
+                <span class="ellipsis" style="max-width: 320px">{{ pred.title }} (#{{ pred.task_id }})</span>
+                <q-tooltip>{{ pred.title }} (#{{ pred.task_id }}) - Remove this dependency</q-tooltip>
               </q-chip>
             </div>
             <div v-else class="text-caption text-grey-6 q-mb-md">
@@ -1527,7 +1527,7 @@
                     />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label :class="{ 'text-grey-6': opt.disable }">
+                    <q-item-label :class="{ 'text-grey-6': opt.disable }" class="ellipsis" style="max-width: 360px">
                       {{ opt.label }}
                     </q-item-label>
                     <q-item-label
@@ -1576,7 +1576,7 @@
 
       <!-- DIALOG: ADD RESOURCE TO PROJECT -->
       <q-dialog v-model="showAddMemberDialog">
-        <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw; border-radius: 12px">
+        <q-card :dark="$q.dark.isActive" style="width: 480px; max-width: 95vw; border-radius: 12px; overflow-x: hidden">
           <q-card-section class="row items-center justify-between">
             <div>
               <div class="text-caption text-weight-bold text-primary">PROJECT TEAM</div>
@@ -1623,7 +1623,7 @@
       <q-dialog v-model="showAssignTaskMemberDialog">
         <q-card
           :dark="$q.dark.isActive"
-          style="width: 520px; max-width: 95vw"
+          style="width: 520px; max-width: 95vw; overflow-x: hidden"
           class="rounded-borders"
         >
           <q-card-section class="row items-center justify-between">

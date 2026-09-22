@@ -702,7 +702,7 @@
 
     <!-- ASSIGN TASK DIALOG -->
     <q-dialog v-model="showAssignDialog">
-      <q-card class="dialog-card" :dark="$q.dark.isActive" style="width: 500px; max-width: 95vw">
+      <q-card class="dialog-card" :dark="$q.dark.isActive" style="width: 500px; max-width: 95vw; overflow-x: hidden">
         <q-card-section class="row items-center justify-between q-pb-xs">
           <div>
             <div
@@ -773,14 +773,19 @@
                   <template #prepend>
                     <q-icon name="task_alt" size="18px" />
                   </template>
+                  <template #selected-item="scope">
+                    <span class="ellipsis" style="max-width: 420px" :title="scope.opt?.label || ''">
+                      {{ scope.opt?.label || '' }}
+                    </span>
+                  </template>
                   <template #option="{ itemProps, opt }">
                     <q-item v-bind="itemProps">
-                      <q-item-section>
-                        <q-item-label class="text-weight-medium">{{ opt.task.title }}</q-item-label>
+                      <q-item-section style="min-width: 0">
+                        <q-item-label class="text-weight-medium ellipsis" :title="opt.task.title">{{ opt.task.title }}</q-item-label>
                         <q-item-label caption class="row items-center q-gutter-x-xs q-mt-xs wrap">
                           <q-chip dense square size="xs" class="project-badge">
                             <q-icon name="folder" size="10px" class="q-mr-xs" />
-                            {{ opt.projectName }}
+                            <span class="ellipsis" style="max-width: 130px">{{ opt.projectName }}</span>
                           </q-chip>
                           <q-chip
                             dense
@@ -838,12 +843,13 @@
                     {{ getProjectName(selectedAssignTask.project_id) }}
                   </q-chip>
                 </div>
-                <div class="text-subtitle2 text-weight-bold text-dark q-mb-xs">
+                <div class="text-subtitle2 text-weight-bold text-dark q-mb-xs" style="word-break: break-word; overflow-wrap: break-word; line-height: 1.35">
                   {{ selectedAssignTask.title }}
                 </div>
                 <div
                   v-if="selectedAssignTask.description"
                   class="text-caption text-grey-7 q-mb-sm ellipsis-2-lines"
+                  style="word-break: break-word; overflow-wrap: break-word"
                 >
                   {{ selectedAssignTask.description }}
                 </div>

@@ -886,7 +886,7 @@
 
       <!-- DIALOG 3: ALLOCATE RESOURCE -->
       <q-dialog v-model="showAllocateResourceModal">
-        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px">
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px; overflow-x: hidden">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Allocate Resource</div>
             <q-space />
@@ -927,7 +927,18 @@
                 map-options
                 clearable
                 :dark="$q.dark.isActive"
-              />
+              >
+                <template #selected-item="scope">
+                  <span class="ellipsis" style="max-width: 380px">{{ scope.opt.label || scope.opt }}</span>
+                </template>
+                <template #option="scope">
+                  <q-item v-bind="scope.itemProps" dense>
+                    <q-item-section>
+                      <q-item-label class="ellipsis" style="max-width: 380px">{{ scope.opt.label }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
 
               <div class="row justify-end q-mt-md q-gutter-sm">
                 <q-btn flat label="Cancel" v-close-popup />
@@ -946,7 +957,7 @@
 
       <!-- DIALOG 4: LOG PROGRESS -->
       <q-dialog v-model="showLogProgressModal">
-        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px">
+        <q-card :dark="$q.dark.isActive" style="width: 100%; max-width: 480px; border-radius: 12px; overflow-x: hidden">
           <q-card-section class="row items-center q-pb-none">
             <div class="text-h6 text-weight-bold">Log Progress & Effort</div>
             <q-space />
@@ -965,7 +976,18 @@
                 map-options
                 :dark="$q.dark.isActive"
                 :rules="[(val) => !!val || 'Task is required']"
-              />
+              >
+                <template #selected-item="scope">
+                  <span class="ellipsis" style="max-width: 380px">{{ scope.opt.label || scope.opt }}</span>
+                </template>
+                <template #option="scope">
+                  <q-item v-bind="scope.itemProps" dense>
+                    <q-item-section>
+                      <q-item-label class="ellipsis" style="max-width: 380px">{{ scope.opt.label }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
               <div class="row q-col-gutter-sm">
                 <div class="col-6">
                   <q-input
