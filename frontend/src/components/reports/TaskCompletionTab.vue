@@ -89,8 +89,24 @@
           />
         </div>
 
-        <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-          Showing {{ filteredRows.length }} completed tasks
+        <div class="row items-center gap-sm">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            Showing {{ filteredRows.length }} completed tasks
+          </div>
+          <q-btn
+            outline
+            dense
+            rounded
+            color="primary"
+            icon="download"
+            label="Export CSV"
+            no-caps
+            class="q-px-sm"
+            :disable="filteredRows.length === 0"
+            @click="exportCsv"
+          >
+            <q-tooltip>Export filtered completed tasks to CSV</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -355,7 +371,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { QTableProps } from 'quasar';
+import { useQuasar, type QTableProps } from 'quasar';
 import type { Project, Task, ResourceUser } from '@/services/api';
 import PrintReportLayout, {
   type ReportFilterMeta,
@@ -366,6 +382,9 @@ import {
   computeTaskCompletionReport,
   type TaskCompletionReportRow,
 } from '@/components/reports/reportCalculations';
+import { exportToCsv } from '@/utils/csvExport';
+
+const $q = useQuasar();
 
 const props = defineProps<{
   tasks: Task[];
@@ -433,6 +452,55 @@ function resetFilters() {
   selectedResourceId.value = 'ALL';
   startDateFilter.value = '';
   endDateFilter.value = '';
+}
+
+function exportCsv() {
+  const today = new Date().toISOString().split('T')[0];
+  const headers = [
+    'Task ID',
+    'Task Title',
+    'Project ID',
+    'Project Name',
+    'Assigned Resources',
+    'Status',
+    'Completion Date',
+    'Deadline',
+    'Days Late',
+    'Expected Effort (h)',
+    'Actual Effort (h)',
+    'Effort Variance (h)',
+    'Punctuality',
+    'Turnaround (Days)',
+  ];
+
+  const rows = filteredRows.value.map((r) => [
+    r.taskId,
+    r.title,
+    r.projectId,
+    r.projectName,
+    r.assignedResources,
+    r.status,
+    r.completionDate,
+    r.deadline,
+    r.daysLate,
+    r.expectedEffort,
+    r.actualEffort,
+    r.effortVariance,
+    r.onTimeStatus,
+    r.turnaroundDays !== null ? r.turnaroundDays : '',
+  ]);
+
+  exportToCsv({
+    filename: `task_completion_report_${today}.csv`,
+    headers,
+    rows,
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${filteredRows.value.length} completed task records to CSV`,
+    icon: 'file_download_done',
+  });
 }
 
 const selectedProjectName = computed(() => {

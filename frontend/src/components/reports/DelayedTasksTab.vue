@@ -56,8 +56,24 @@
           />
         </div>
 
-        <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-          Showing {{ filteredRows.length }} delayed / at-risk tasks
+        <div class="row items-center gap-sm">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            Showing {{ filteredRows.length }} delayed / at-risk tasks
+          </div>
+          <q-btn
+            outline
+            dense
+            rounded
+            color="primary"
+            icon="download"
+            label="Export CSV"
+            no-caps
+            class="q-px-sm"
+            :disable="filteredRows.length === 0"
+            @click="exportCsv"
+          >
+            <q-tooltip>Export filtered delayed tasks to CSV</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -324,7 +340,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { QTableProps } from 'quasar';
+import { useQuasar, type QTableProps } from 'quasar';
 import type { Project, Task, ResourceUser } from '@/services/api';
 import PrintReportLayout, {
   type ReportFilterMeta,
@@ -335,6 +351,9 @@ import {
   computeDelayedTasksReport,
   type DelayedTaskReportRow,
 } from '@/components/reports/reportCalculations';
+import { exportToCsv } from '@/utils/csvExport';
+
+const $q = useQuasar();
 
 const props = defineProps<{
   tasks: Task[];
@@ -444,6 +463,51 @@ function resetFilters() {
   selectedProjectId.value = 'ALL';
   selectedResourceId.value = 'ALL';
   selectedDelayType.value = 'ALL';
+}
+
+function exportCsv() {
+  const today = new Date().toISOString().split('T')[0];
+  const headers = [
+    'Task ID',
+    'Task Title',
+    'Project ID',
+    'Project Name',
+    'Assignees',
+    'Deadline',
+    'Planned End',
+    'Days Overdue',
+    'Expected Effort (h)',
+    'Actual Effort (h)',
+    'Effort Overrun (h)',
+    'Delay & Risk Reasons',
+  ];
+
+  const rows = filteredRows.value.map((r) => [
+    r.taskId,
+    r.title,
+    r.projectId,
+    r.projectName,
+    r.assignees,
+    r.deadline,
+    r.plannedEnd,
+    r.daysOverdue,
+    r.expectedEffort,
+    r.actualEffort,
+    r.effortOverrun,
+    r.delayTypes.join('; '),
+  ]);
+
+  exportToCsv({
+    filename: `delayed_tasks_report_${today}.csv`,
+    headers,
+    rows,
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${filteredRows.value.length} delayed task records to CSV`,
+    icon: 'file_download_done',
+  });
 }
 
 const printFilters = computed<ReportFilterMeta[]>(() => [

@@ -56,8 +56,24 @@
           />
         </div>
 
-        <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-          Showing {{ filteredRows.length }} team members
+        <div class="row items-center gap-sm">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            Showing {{ filteredRows.length }} team members
+          </div>
+          <q-btn
+            outline
+            dense
+            rounded
+            color="primary"
+            icon="download"
+            label="Export CSV"
+            no-caps
+            class="q-px-sm"
+            :disable="filteredRows.length === 0"
+            @click="exportCsv"
+          >
+            <q-tooltip>Export filtered resource workloads to CSV</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -252,7 +268,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { QTableProps } from 'quasar';
+import { useQuasar, type QTableProps } from 'quasar';
 import type { ResourceUser, ResourceWorkload, Task, Project } from '@/services/api';
 import PrintReportLayout, {
   type ReportFilterMeta,
@@ -263,6 +279,9 @@ import {
   computeResourceWorkloadReport,
   type ResourceWorkloadReportRow,
 } from '@/components/reports/reportCalculations';
+import { exportToCsv } from '@/utils/csvExport';
+
+const $q = useQuasar();
 
 const props = defineProps<{
   resources: ResourceUser[];
@@ -375,6 +394,47 @@ function resetFilters() {
   selectedResourceId.value = 'ALL';
   selectedProjectId.value = 'ALL';
   selectedBand.value = 'ALL';
+}
+
+function exportCsv() {
+  const today = new Date().toISOString().split('T')[0];
+  const headers = [
+    'Resource ID',
+    'Resource Name',
+    'Role',
+    'Assigned Active Tasks',
+    'Scheduled Effort (h)',
+    'Logged Hours (h)',
+    'Weekly Capacity (h)',
+    'Available Headroom (h)',
+    'Utilization (%)',
+    'Status Band',
+  ];
+
+  const rows = filteredRows.value.map((r) => [
+    r.resourceId,
+    r.name,
+    r.role,
+    r.assignedTasksCount,
+    r.scheduledEffort,
+    r.loggedHours,
+    r.weeklyCapacity,
+    r.availableHeadroom,
+    r.workloadPercent,
+    r.status,
+  ]);
+
+  exportToCsv({
+    filename: `resource_workload_report_${today}.csv`,
+    headers,
+    rows,
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${filteredRows.value.length} resource workload records to CSV`,
+    icon: 'file_download_done',
+  });
 }
 
 const selectedResourceName = computed(() => {

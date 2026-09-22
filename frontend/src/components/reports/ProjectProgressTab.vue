@@ -43,8 +43,24 @@
           />
         </div>
 
-        <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-          Showing {{ filteredRows.length }} of {{ reportData.rows.length }} projects
+        <div class="row items-center gap-sm">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            Showing {{ filteredRows.length }} of {{ reportData.rows.length }} projects
+          </div>
+          <q-btn
+            outline
+            dense
+            rounded
+            color="primary"
+            icon="download"
+            label="Export CSV"
+            no-caps
+            class="q-px-sm"
+            :disable="filteredRows.length === 0"
+            @click="exportCsv"
+          >
+            <q-tooltip>Export filtered projects to CSV</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -240,7 +256,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { QTableProps } from 'quasar';
+import { useQuasar, type QTableProps } from 'quasar';
 import type { Project, Task } from '@/services/api';
 import PrintReportLayout, {
   type ReportFilterMeta,
@@ -251,6 +267,9 @@ import {
   computeProjectProgressReport,
   type ProjectProgressReportRow,
 } from '@/components/reports/reportCalculations';
+import { exportToCsv } from '@/utils/csvExport';
+
+const $q = useQuasar();
 
 function formatProjectStatus(status?: string | null): string {
   if (!status) return '';
@@ -307,6 +326,59 @@ const filteredRows = computed<ProjectProgressReportRow[]>(() => {
 function resetFilters() {
   selectedProjectId.value = 'ALL';
   selectedStatus.value = 'ALL';
+}
+
+function exportCsv() {
+  const today = new Date().toISOString().split('T')[0];
+  const headers = [
+    'Project ID',
+    'Project Name',
+    'Status',
+    'Priority',
+    'Start Date',
+    'Deadline',
+    'Progress (%)',
+    'Total Tasks',
+    'Completed Tasks',
+    'In Progress Tasks',
+    'Scheduled Tasks',
+    'Unassigned Tasks',
+    'Expected Effort (h)',
+    'Actual Effort (h)',
+    'Effort Variance (h)',
+    'Schedule Health',
+  ];
+
+  const rows = filteredRows.value.map((r) => [
+    r.projectId,
+    r.name,
+    formatProjectStatus(r.status),
+    r.priority,
+    r.startDate,
+    r.deadline,
+    r.progress,
+    r.totalTasks,
+    r.completedTasks,
+    r.inProgressTasks,
+    r.scheduledTasks,
+    r.unassignedTasks,
+    r.expectedEffort,
+    r.actualEffort,
+    r.effortVariance,
+    r.health,
+  ]);
+
+  exportToCsv({
+    filename: `project_progress_report_${today}.csv`,
+    headers,
+    rows,
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${filteredRows.value.length} project records to CSV`,
+    icon: 'file_download_done',
+  });
 }
 
 const selectedProjectName = computed(() => {

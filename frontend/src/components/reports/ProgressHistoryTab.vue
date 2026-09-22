@@ -109,8 +109,24 @@
           />
         </div>
 
-        <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-          Showing {{ filteredLogs.length }} progress submission(s)
+        <div class="row items-center gap-sm">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            Showing {{ filteredLogs.length }} progress submission(s)
+          </div>
+          <q-btn
+            outline
+            dense
+            rounded
+            color="primary"
+            icon="download"
+            label="Export CSV"
+            no-caps
+            class="q-px-sm"
+            :disable="filteredLogs.length === 0"
+            @click="exportCsv"
+          >
+            <q-tooltip>Export filtered progress submission history to CSV</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -266,13 +282,16 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { QTableColumn } from 'quasar';
+import { useQuasar, type QTableColumn } from 'quasar';
 import type { ProgressFeedLog, Project, ResourceUser } from '@/services/api';
 import PrintReportLayout, {
   type ReportFilterMeta,
   type SummaryMetricMeta,
 } from './PrintReportLayout.vue';
 import { extractDateOnly } from './reportCalculations';
+import { exportToCsv } from '@/utils/csvExport';
+
+const $q = useQuasar();
 
 const props = defineProps<{
   feedLogs: ProgressFeedLog[];
@@ -321,6 +340,49 @@ function resetFilters() {
   selectedAuthor.value = null;
   startDateFilter.value = '';
   endDateFilter.value = '';
+}
+
+function exportCsv() {
+  const today = new Date().toISOString().split('T')[0];
+  const headers = [
+    'Log ID',
+    'Date',
+    'Time',
+    'Author',
+    'Task Title',
+    'Project',
+    'Status',
+    'Progress Logged (%)',
+    'Hours Logged (h)',
+    'Notes',
+    'Blockers',
+  ];
+
+  const rows = filteredLogs.value.map((l: ProgressFeedLog) => [
+    l.log_id,
+    formatDate(l.log_date || l.created_at),
+    formatTime(l.created_at),
+    l.author_name || '—',
+    l.task_title || `Task #${l.task_id}`,
+    l.project_name || '—',
+    l.status || '—',
+    l.progress_logged ?? 0,
+    l.hours_logged ?? 0,
+    l.notes || '',
+    l.blockers || '',
+  ]);
+
+  exportToCsv({
+    filename: `progress_history_report_${today}.csv`,
+    headers,
+    rows,
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${filteredLogs.value.length} progress submission records to CSV`,
+    icon: 'file_download_done',
+  });
 }
 
 function formatDate(dateStr?: string): string {

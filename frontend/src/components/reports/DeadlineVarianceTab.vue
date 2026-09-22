@@ -56,8 +56,24 @@
           />
         </div>
 
-        <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
-          Showing {{ filteredRows.length }} tasks with deadline variance
+        <div class="row items-center gap-sm">
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            Showing {{ filteredRows.length }} tasks with deadline variance
+          </div>
+          <q-btn
+            outline
+            dense
+            rounded
+            color="primary"
+            icon="download"
+            label="Export CSV"
+            no-caps
+            class="q-px-sm"
+            :disable="filteredRows.length === 0"
+            @click="exportCsv"
+          >
+            <q-tooltip>Export filtered deadline variance records to CSV</q-tooltip>
+          </q-btn>
         </div>
       </div>
 
@@ -308,7 +324,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { QTableColumn } from 'quasar';
+import { useQuasar, type QTableColumn } from 'quasar';
 import type { Task, Project, ResourceUser } from '@/services/api';
 import PrintReportLayout, {
   type ReportFilterMeta,
@@ -319,6 +335,9 @@ import {
   computeDeadlineVarianceReport,
   type DeadlineVarianceReportRow,
 } from './reportCalculations';
+import { exportToCsv } from '@/utils/csvExport';
+
+const $q = useQuasar();
 
 const props = defineProps<{
   tasks: Task[];
@@ -368,6 +387,47 @@ function formatStatus(status?: string | null): string {
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
+}
+
+function exportCsv() {
+  const today = new Date().toISOString().split('T')[0];
+  const headers = [
+    'Task ID',
+    'Task Title',
+    'Project ID',
+    'Project Name',
+    'Deadline',
+    'Planned End',
+    'Actual End',
+    'Status',
+    'Variance (Days)',
+    'Category',
+  ];
+
+  const rows = filteredRows.value.map((r: DeadlineVarianceReportRow) => [
+    r.taskId,
+    r.title,
+    r.projectId,
+    r.projectName,
+    r.deadline,
+    r.plannedEnd,
+    r.actualEnd,
+    formatStatus(r.status),
+    r.varianceDays,
+    r.category,
+  ]);
+
+  exportToCsv({
+    filename: `deadline_variance_report_${today}.csv`,
+    headers,
+    rows,
+  });
+
+  $q.notify({
+    type: 'positive',
+    message: `Exported ${filteredRows.value.length} deadline variance records to CSV`,
+    icon: 'file_download_done',
+  });
 }
 
 const reportData = computed(() => {
