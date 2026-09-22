@@ -324,7 +324,7 @@
 
             <!-- Cards Pagination Toolbar -->
             <div
-              v-if="filteredResources.length > cardPagination.rowsPerPage"
+              v-if="filteredResources.length > 0"
               class="row items-center justify-between q-mt-sm q-px-xs wrap gap-sm"
             >
               <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
@@ -340,7 +340,7 @@
               <div class="row items-center q-gutter-sm">
                 <q-select
                   v-model="cardPagination.rowsPerPage"
-                  :options="[8, 12, 16, 24]"
+                  :options="[4, 6, 8, 12, 24]"
                   dense
                   outlined
                   options-dense
@@ -349,6 +349,7 @@
                   label="Per page"
                 />
                 <q-pagination
+                  v-if="cardTotalPages > 1"
                   v-model="cardPagination.page"
                   :max="cardTotalPages"
                   :max-pages="5"
@@ -1915,11 +1916,11 @@ const filteredResources = computed(() => {
 
 const cardPagination = ref({
   page: 1,
-  rowsPerPage: 12,
+  rowsPerPage: 6,
 });
 
 const cardTotalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredResources.value.length / (cardPagination.value.rowsPerPage || 12))),
+  Math.max(1, Math.ceil(filteredResources.value.length / (cardPagination.value.rowsPerPage || 6))),
 );
 
 const paginatedResources = computed(() => {
@@ -1927,7 +1928,7 @@ const paginatedResources = computed(() => {
   return filteredResources.value.slice(start, start + cardPagination.value.rowsPerPage);
 });
 
-watch([searchQuery, projectFilter, statusFilter], () => {
+watch([searchQuery, projectFilter, statusFilter, () => cardPagination.value.rowsPerPage], () => {
   cardPagination.value.page = 1;
 });
 

@@ -696,24 +696,44 @@
               </div>
             </div>
 
-            <!-- Cards Footer Info & Scroll Indicator -->
-            <div class="row items-center justify-between q-mt-sm q-px-xs text-caption text-grey-6">
-              <div class="row items-center q-gutter-xs">
-                <span
-                  >Showing <strong>{{ filteredProjects.length }}</strong> active project{{
-                    filteredProjects.length === 1 ? '' : 's'
-                  }}</span
-                >
-                <span v-if="filteredProjects.length > 6" class="text-primary text-weight-medium">
-                  • 6 visible at once (scroll vertically for more)
-                </span>
+            <!-- Cards Pagination Toolbar -->
+            <div
+              v-if="filteredProjects.length > 0"
+              class="row items-center justify-between q-mt-md q-px-xs wrap gap-sm"
+            >
+              <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'">
+                Showing {{ (cardPagination.page - 1) * cardPagination.rowsPerPage + 1 }} -
+                {{
+                  Math.min(
+                    cardPagination.page * cardPagination.rowsPerPage,
+                    filteredProjects.length,
+                  )
+                }}
+                of {{ filteredProjects.length }} project{{ filteredProjects.length === 1 ? '' : 's' }}
               </div>
-              <div
-                v-if="filteredProjects.length > 6"
-                class="row items-center q-gutter-xs text-grey-6"
-              >
-                <q-icon name="swap_vert" size="16px" color="primary" />
-                <span>Scrollable list</span>
+              <div class="row items-center q-gutter-sm">
+                <q-select
+                  v-model="cardPagination.rowsPerPage"
+                  :options="[4, 6, 8, 12, 24]"
+                  dense
+                  outlined
+                  options-dense
+                  :dark="$q.dark.isActive"
+                  style="width: 105px"
+                  label="Per page"
+                />
+                <q-pagination
+                  v-if="cardTotalPages > 1"
+                  v-model="cardPagination.page"
+                  :max="cardTotalPages"
+                  :max-pages="5"
+                  direction-links
+                  boundary-links
+                  color="primary"
+                  dense
+                  size="sm"
+                  :dark="$q.dark.isActive"
+                />
               </div>
             </div>
           </div>
@@ -1715,14 +1735,41 @@ const filteredProjects = computed(() => {
   });
 });
 
-watch([searchQuery, statusFilter, healthFilter, startDateFilter, endDateFilter, groupBy], () => {
-  pagination.value.page = 1;
+const cardPagination = ref({
+  page: 1,
+  rowsPerPage: 6,
 });
 
+const cardTotalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredProjects.value.length / (cardPagination.value.rowsPerPage || 6))),
+);
+
+const paginatedProjects = computed(() => {
+  const start = (cardPagination.value.page - 1) * cardPagination.value.rowsPerPage;
+  return filteredProjects.value.slice(start, start + cardPagination.value.rowsPerPage);
+});
+
+watch(
+  [
+    searchQuery,
+    statusFilter,
+    healthFilter,
+    startDateFilter,
+    endDateFilter,
+    groupBy,
+    () => cardPagination.value.rowsPerPage,
+  ],
+  () => {
+    cardPagination.value.page = 1;
+    pagination.value.page = 1;
+  },
+);
+
 const groupedProjectCards = computed(() => {
+  const projs = paginatedProjects.value;
   if (groupBy.value === 'Status') {
     const map = new Map<string, Project[]>();
-    for (const p of filteredProjects.value) {
+    for (const p of projs) {
       const s = formatStatus(p.status);
       if (!map.has(s)) map.set(s, []);
       map.get(s)!.push(p);
@@ -1732,7 +1779,7 @@ const groupedProjectCards = computed(() => {
 
   if (groupBy.value === 'Health') {
     const map = new Map<string, Project[]>();
-    for (const p of filteredProjects.value) {
+    for (const p of projs) {
       const h = getHealthLabel(p);
       if (!map.has(h)) map.set(h, []);
       map.get(h)!.push(p);
@@ -1740,7 +1787,7 @@ const groupedProjectCards = computed(() => {
     return Array.from(map.entries()).map(([label, projs]) => ({ label, projects: projs }));
   }
 
-  return [{ label: '', projects: filteredProjects.value }];
+  return [{ label: '', projects: projs }];
 });
 
 const activeWorkspaceProjects = computed(() =>
