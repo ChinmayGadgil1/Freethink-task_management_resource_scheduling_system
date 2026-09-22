@@ -80,8 +80,9 @@
             </div>
           </q-card>
 
-          <!-- Compact Summary Badge 3: Approved Leaves This Month -->
+          <!-- Compact Summary Badge 3: Approved Leaves This Month (Resource View Only) -->
           <q-card
+            v-if="!isProjectManager"
             flat
             bordered
             :dark="$q.dark.isActive"
@@ -1320,6 +1321,11 @@ const holidaysByDate = computed(() => {
 const leavesByDate = computed(() => {
   const map = new Map<string, CalendarLeaveEntry[]>();
 
+  // If user is Project Manager, do not display resource leaves on PM calendar
+  if (isProjectManager.value) {
+    return map;
+  }
+
   for (const item of leavesList.value) {
     if (item.status === 'REJECTED') continue;
 
@@ -1430,6 +1436,7 @@ const currentMonthHolidaysCount = computed(() => {
 
 // Count of approved leaves in the currently selected month
 const currentMonthLeavesCount = computed(() => {
+  if (isProjectManager.value) return 0;
   const monthStr = String(currentMonth.value + 1).padStart(2, '0');
   const prefix = `${currentYear.value}-${monthStr}`;
   let count = 0;
@@ -1494,15 +1501,21 @@ function goToToday() {
 async function loadCalendarData() {
   loading.value = true;
   try {
-    const [hData, lData] = await Promise.all([
-      getHolidaysApi(),
-      getLeavesApi().catch((err) => {
-        console.warn('Leaves fetch error/empty in calendar:', err);
-        return [] as LeaveItem[];
-      }),
-    ]);
-    holidays.value = hData;
-    leavesList.value = lData;
+    if (isProjectManager.value) {
+      const hData = await getHolidaysApi();
+      holidays.value = hData;
+      leavesList.value = [];
+    } else {
+      const [hData, lData] = await Promise.all([
+        getHolidaysApi(),
+        getLeavesApi().catch((err) => {
+          console.warn('Leaves fetch error/empty in calendar:', err);
+          return [] as LeaveItem[];
+        }),
+      ]);
+      holidays.value = hData;
+      leavesList.value = lData;
+    }
   } catch (error: unknown) {
     $q.notify({
       type: 'negative',
