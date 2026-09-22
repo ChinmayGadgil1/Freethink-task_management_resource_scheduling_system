@@ -36,7 +36,7 @@
           dense
           type="number"
           min="0"
-          step="0.5"
+          step="0.1"
           :disable="!isSelf"
           placeholder="e.g. 8"
         />

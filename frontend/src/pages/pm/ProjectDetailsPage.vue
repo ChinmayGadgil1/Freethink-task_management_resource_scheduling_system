@@ -1436,7 +1436,7 @@
                 dense
                 type="number"
                 min="0"
-                step="0.5"
+                step="0.1"
                 :dark="$q.dark.isActive"
                 class="q-mt-xs"
               />

@@ -75,9 +75,9 @@
           <q-input
             v-model.number="form.hours_logged"
             type="number"
-            min="0.5"
+            min="0"
             max="16"
-            step="0.5"
+            step="0.1"
             placeholder="e.g. 1.0, 1.5, 2.0"
             outlined
             dense
@@ -335,9 +335,6 @@ const hoursValidationError = computed(() => {
   }
   if (h > 16) {
     return 'A single work log cannot exceed 16 hours';
-  }
-  if (Math.round(h * 10) % 5 !== 0) {
-    return 'Hours must be in 0.5-hr increments (e.g. 0.5, 1, 1.5, 2)';
   }
   return null;
 });

@@ -576,8 +576,8 @@ function resolveTaskDateHalf(
   if (!task || !dateStr) return 'full';
 
   // 1. Check explicit planned/actual start/end times
-  const pStart = parseIsoToDate(task.actual_start || task.planned_start);
-  const pEnd = parseIsoToDate(task.actual_end || task.planned_end);
+  const pStart = parseIsoToDate(task.planned_start);
+  const pEnd = parseIsoToDate(task.planned_end);
 
   if (isSingleDay) {
     if (pStart && formatDateIso(pStart) === dateStr) {
@@ -646,8 +646,8 @@ function resolveTaskDateHalf(
     );
     if (tasksOnDate.length > 1) {
       const sorted = [...tasksOnDate].sort((a, b) => {
-        const startA = a.actual_start || a.planned_start || '';
-        const startB = b.actual_start || b.planned_start || '';
+        const startA = a.planned_start || '';
+        const startB = b.planned_start || '';
         if (startA && startB && startA !== startB) return startA.localeCompare(startB);
         return Number(a.task_id) - Number(b.task_id);
       });
@@ -710,8 +710,8 @@ function computeTaskGanttDates(
   let effectiveStart = new Date(tStart.getTime());
   let effectiveEnd: Date;
 
-  const plannedStartParsed = parseIsoToDate(t.actual_start || t.planned_start);
-  const plannedEndParsed = parseIsoToDate(t.actual_end || t.planned_end);
+  const plannedStartParsed = parseIsoToDate(t.planned_start);
+  const plannedEndParsed = parseIsoToDate(t.planned_end);
 
   if (plannedStartParsed && isValidDate(plannedStartParsed)) {
     effectiveStart = plannedStartParsed;
@@ -1068,7 +1068,7 @@ function getTaskWorkSegments(task: Task): {
   }
 
   // Fallback: No schedule allocations yet (e.g. unassigned or pending recalculation)
-  const rawStart = task.planned_start || task.actual_start || task.start_date;
+  const rawStart = task.planned_start || task.start_date;
   const rawEnd = task.planned_end || task.deadline || task.actual_end;
   const startDate = (rawStart ? parseIsoToDate(rawStart) : null) ?? today;
   startDate.setHours(0, 0, 0, 0);
@@ -1525,10 +1525,17 @@ function configureGanttEngine() {
       );
     }
 
+    const isValidDate = (d: unknown) => d instanceof Date && !isNaN(d.getTime());
+    const safePosFromDate = (d: unknown) => {
+      if (!isValidDate(d)) return 0;
+      const px = gantt.posFromDate(d as Date);
+      return isNaN(px) ? 0 : px;
+    };
+
     const taskStartD = parseIsoToDate(task.start_date) || start;
     const taskEndD = parseIsoToDate(task.end_date) || _end;
-    const taskStartX = gantt.posFromDate(taskStartD);
-    const taskEndX = gantt.posFromDate(taskEndD);
+    const taskStartX = safePosFromDate(taskStartD);
+    const taskEndX = safePosFromDate(taskEndD);
     const taskTotalWidth = Math.max(1, taskEndX - taskStartX);
 
     const pClass = `bar-p-${(task.priority || 'medium').toLowerCase()}`;
@@ -1551,7 +1558,7 @@ function configureGanttEngine() {
         }
 
         if (idx === 0) {
-          const pStart = parseIsoToDate(task.actual_start || task.planned_start) || taskStartD;
+          const pStart = parseIsoToDate(task.planned_start) || taskStartD;
           if (
             pStart &&
             formatDateIso(pStart) === seg.startStr &&
@@ -1563,7 +1570,7 @@ function configureGanttEngine() {
           }
         }
         if (idx === segments.length - 1) {
-          const pEnd = parseIsoToDate(task.actual_end || task.planned_end) || taskEndD;
+          const pEnd = parseIsoToDate(task.planned_end) || taskEndD;
           if (
             pEnd &&
             (formatDateIso(pEnd) === seg.endStr ||
@@ -1637,8 +1644,8 @@ function configureGanttEngine() {
         }
       }
 
-      const segStartX = gantt.posFromDate(actualSegStart);
-      const segEndX = gantt.posFromDate(actualSegEnd);
+      const segStartX = safePosFromDate(actualSegStart);
+      const segEndX = safePosFromDate(actualSegEnd);
       const rawSegWidth = Math.max(12, segEndX - segStartX);
       const segLeft = Math.max(0, segStartX - taskStartX);
       const segWidth = Math.min(rawSegWidth, Math.max(12, taskTotalWidth - segLeft));
@@ -1717,8 +1724,8 @@ function configureGanttEngine() {
   // Tooltip Template with Segments Breakdown
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (gantt.templates as any).tooltip_text = (start: Date, end: Date, task: DhtmlxGanttTaskItem) => {
-    const rawStart = parseIsoToDate(task.actual_start || task.planned_start) || start;
-    const rawEnd = parseIsoToDate(task.actual_end || task.planned_end) || end;
+    const rawStart = parseIsoToDate(task.planned_start) || start;
+    const rawEnd = parseIsoToDate(task.planned_end) || end;
 
     const text = escapeHtml(task.text || '');
     const projName = escapeHtml(task.project_name || 'TaskFlow Project');
@@ -2256,8 +2263,19 @@ function applyScaleAwareFraming(visibleTasks: Task[]) {
 
   visibleTasks.forEach((t) => {
     const { earliestStart, latestEnd } = getTaskWorkSegments(t);
-    const startMs = earliestStart.getTime();
-    const endMs = latestEnd.getTime();
+    let startMs = earliestStart.getTime();
+    let endMs = latestEnd.getTime();
+
+    const plannedStartParsed = parseIsoToDate(t.planned_start);
+    if (plannedStartParsed && isValidDate(plannedStartParsed)) {
+      startMs = isNaN(startMs) ? plannedStartParsed.getTime() : Math.min(startMs, plannedStartParsed.getTime());
+    }
+
+    const plannedEndParsed = parseIsoToDate(t.planned_end);
+    if (plannedEndParsed && isValidDate(plannedEndParsed)) {
+      endMs = isNaN(endMs) ? plannedEndParsed.getTime() : Math.max(endMs, plannedEndParsed.getTime());
+    }
+
     if (!isNaN(startMs) && startMs < minTime) minTime = startMs;
     if (!isNaN(endMs) && endMs > maxTime) maxTime = endMs;
   });

@@ -2657,7 +2657,8 @@
                   label="Expected Effort (hours) *"
                   type="number"
                   min="0"
-                  step="0.5"
+                  max="16"
+                  step="0.1"
                   outlined
                   dense
                 >

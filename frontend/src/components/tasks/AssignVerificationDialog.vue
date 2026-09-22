@@ -84,8 +84,8 @@
             outlined
             dense
             type="number"
-            min="0.5"
-            step="0.5"
+            min="0.1"
+            step="0.1"
             placeholder="e.g. 2.0"
             :rules="[(val) => Number(val) > 0 || 'Effort must be positive']"
           />
