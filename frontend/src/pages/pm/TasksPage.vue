@@ -193,18 +193,6 @@
                   {{ tasksByStatus[col.id]?.length || 0 }}
                 </q-badge>
               </div>
-
-              <q-btn
-                flat
-                round
-                dense
-                icon="add"
-                size="sm"
-                title="Add Task"
-                @click="quickCreateInColumn()"
-              >
-                <q-tooltip>Add Task</q-tooltip>
-              </q-btn>
             </q-card-section>
 
             <q-separator :dark="$q.dark.isActive" class="kanban-column-separator" />
