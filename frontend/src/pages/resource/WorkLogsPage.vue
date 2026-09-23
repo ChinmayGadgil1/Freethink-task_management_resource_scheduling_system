@@ -85,7 +85,7 @@
         </q-tabs>
 
         <!-- Quick Log Work Button -->
-        <div class="row items-center gap-xs">
+        <!-- <div class="row items-center gap-xs">
           <q-btn
             v-if="availableTasksForLogging.length > 0"
             unelevated
@@ -96,7 +96,7 @@
             class="text-weight-bold"
             @click="openTaskSelectionOrFirst"
           />
-        </div>
+        </div> -->
       </div>
 
       <!-- ==================== TAB 1: DAILY ALLOCATIONS ==================== -->
@@ -1186,15 +1186,15 @@ const availableTasksForLogging = computed(() => {
   return allocations.value.filter((t) => t.status !== 'COMPLETED' && !t.is_blocked);
 });
 
-function openTaskSelectionOrFirst() {
-  if (availableTasksForLogging.value.length === 1) {
-    openWorkLogDialog(availableTasksForLogging.value[0]!);
-  } else if (availableTasksForLogging.value.length > 1) {
-    showTaskSelectorDialog.value = true;
-  } else if (allocations.value.length > 0) {
-    openWorkLogDialog(allocations.value[0]!);
-  }
-}
+// function openTaskSelectionOrFirst() {
+//   if (availableTasksForLogging.value.length === 1) {
+//     openWorkLogDialog(availableTasksForLogging.value[0]!);
+//   } else if (availableTasksForLogging.value.length > 1) {
+//     showTaskSelectorDialog.value = true;
+//   } else if (allocations.value.length > 0) {
+//     openWorkLogDialog(allocations.value[0]!);
+//   }
+// }
 
 function selectTaskAndLog(task: DailyAllocationTask) {
   showTaskSelectorDialog.value = false;

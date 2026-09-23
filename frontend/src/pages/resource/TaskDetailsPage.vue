@@ -1364,7 +1364,7 @@
                     v-if="!isCurrentTaskSessionActive && task.status !== 'COMPLETED'"
                     class="row q-mb-xs"
                   >
-                    <div class="col-12">
+                    <!-- <div class="col-12">
                       <q-btn
                         outline
                         no-caps
@@ -1380,11 +1380,11 @@
                           {{ predecessorBlockTooltip }}
                         </q-tooltip>
                       </q-btn>
-                    </div>
+                    </div> -->
                   </div>
 
                   <!-- Primary Work Log Action -->
-                  <div class="row q-col-gutter-sm">
+                  <!-- <div class="row q-col-gutter-sm">
                     <div class="col-12">
                       <q-btn
                         unelevated
@@ -1402,7 +1402,7 @@
                         </q-tooltip>
                       </q-btn>
                     </div>
-                  </div>
+                  </div> -->
 
                   <!-- Secondary Action Row (Only for self-assigned tasks) -->
                   <div v-if="isSelfAssigned(task)" class="row">
@@ -3921,32 +3921,32 @@ const stopSessionForm = reactive({
   blockers: '',
 });
 
-async function handleStartSession(tId: number) {
-  if (sessionStore.hasActiveSession && sessionStore.activeTaskId !== tId) {
-    Notify.create({
-      type: 'warning',
-      message: `You already have an active work session on Task #${sessionStore.activeTaskId}. Please stop your current session before starting a new one.`,
-      position: 'top-right',
-    });
-    return;
-  }
+// async function handleStartSession(tId: number) {
+//   if (sessionStore.hasActiveSession && sessionStore.activeTaskId !== tId) {
+//     Notify.create({
+//       type: 'warning',
+//       message: `You already have an active work session on Task #${sessionStore.activeTaskId}. Please stop your current session before starting a new one.`,
+//       position: 'top-right',
+//     });
+//     return;
+//   }
 
-  try {
-    await sessionStore.startSession(tId);
-    Notify.create({
-      type: 'positive',
-      message: 'Session started successfully.',
-      position: 'top-right',
-    });
-    await loadTasks();
-  } catch (err) {
-    Notify.create({
-      type: 'negative',
-      message: err instanceof Error ? err.message : 'Failed to start session.',
-      position: 'top-right',
-    });
-  }
-}
+//   try {
+//     await sessionStore.startSession(tId);
+//     Notify.create({
+//       type: 'positive',
+//       message: 'Session started successfully.',
+//       position: 'top-right',
+//     });
+//     await loadTasks();
+//   } catch (err) {
+//     Notify.create({
+//       type: 'negative',
+//       message: err instanceof Error ? err.message : 'Failed to start session.',
+//       position: 'top-right',
+//     });
+//   }
+// }
 
 function promptStopSession() {
   if (!sessionStore.hasActiveSession) return;
