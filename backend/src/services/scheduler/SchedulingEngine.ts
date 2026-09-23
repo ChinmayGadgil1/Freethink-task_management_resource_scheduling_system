@@ -501,7 +501,15 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
         if (predStatus === 'COMPLETED') {
             const rawEnd = row.pred_actual_end || row.pred_planned_end;
             if (rawEnd) {
-                const predEndDate = new Date(rawEnd);
+                let predEndDate = new Date(rawEnd);
+                if (row.pred_actual_end && row.pred_planned_end) {
+                    const pEnd = new Date(row.pred_planned_end);
+                    const aEnd = new Date(row.pred_actual_end);
+                    if (!isNaN(pEnd.getTime()) && !isNaN(aEnd.getTime())) {
+                        predEndDate = new Date(Math.max(pEnd.getTime(), aEnd.getTime()));
+                    }
+                }
+                
                 if (!isNaN(predEndDate.getTime())) {
                     const existing = completedPredMinStart.get(taskId);
                     if (!existing || predEndDate > existing) {
@@ -1137,7 +1145,17 @@ export async function recalculate(projectId: number, isCascaded = false): Promis
                 );
                 isScheduleAtRisk = risks.is_schedule_at_risk;
                 isDeadlineAtRisk = risks.is_deadline_at_risk;
-                taskFinalEnd = new Date(taskEarliestStart);
+
+                let maxEnd = new Date(taskEarliestStart);
+                if (currentPlannedEnd) {
+                    const pEnd = new Date(currentPlannedEnd.replace(' ', 'T'));
+                    if (pEnd > maxEnd) maxEnd = pEnd;
+                }
+                if (task.status === "COMPLETED" && task.actual_end) {
+                    const aEnd = new Date(task.actual_end.replace(' ', 'T'));
+                    if (aEnd > maxEnd) maxEnd = aEnd;
+                }
+                taskFinalEnd = maxEnd;
             }
             
             taskUpdates.set(task.task_id, {
