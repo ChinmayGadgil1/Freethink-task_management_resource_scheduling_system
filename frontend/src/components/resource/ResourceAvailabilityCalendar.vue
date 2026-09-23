@@ -118,9 +118,9 @@
     <div v-if="showSummaryCards && availabilityData" class="row q-col-gutter-sm q-mb-md">
       <!-- Card 1: Total Available Hours -->
       <div class="col-6 col-sm-3">
-        <q-card flat bordered class="metric-mini-card bg-avail-soft">
+        <q-card flat bordered class="metric-mini-card">
           <q-card-section class="q-pa-sm">
-            <div class="text-caption text-grey-7">Available Capacity</div>
+            <div class="text-caption text-grey-6">Available Capacity</div>
             <div class="text-h6 text-weight-bold text-positive">
               {{ formatHours(availabilityData.total_available_hours) }}h
             </div>
@@ -133,9 +133,9 @@
 
       <!-- Card 2: Total Allocated Hours -->
       <div class="col-6 col-sm-3">
-        <q-card flat bordered class="metric-mini-card bg-alloc-soft">
+        <q-card flat bordered class="metric-mini-card">
           <q-card-section class="q-pa-sm">
-            <div class="text-caption text-grey-7">Allocated Effort</div>
+            <div class="text-caption text-grey-6">Allocated Effort</div>
             <div class="text-h6 text-weight-bold text-primary">
               {{ formatHours(availabilityData.total_allocated_hours) }}h
             </div>
@@ -148,10 +148,10 @@
 
       <!-- Card 3: Total Leave Hours -->
       <div class="col-6 col-sm-3">
-        <q-card flat bordered class="metric-mini-card bg-leave-soft">
+        <q-card flat bordered class="metric-mini-card">
           <q-card-section class="q-pa-sm">
-            <div class="text-caption text-grey-7">Total Leave Hours</div>
-            <div class="text-h6 text-weight-bold text-purple-8">
+            <div class="text-caption text-grey-6">Total Leave Hours</div>
+            <div class="text-h6 text-weight-bold text-purple">
               {{ formatHours(totalLeaveHours) }}h
             </div>
             <div class="text-caption text-grey-6" style="font-size: 11px">
@@ -163,10 +163,10 @@
 
       <!-- Card 4: Daily Standard Hours & Non-Working Days -->
       <div class="col-6 col-sm-3">
-        <q-card flat bordered class="metric-mini-card bg-grey-soft">
+        <q-card flat bordered class="metric-mini-card">
           <q-card-section class="q-pa-sm">
-            <div class="text-caption text-grey-7">Daily Standard Base</div>
-            <div class="text-h6 text-weight-bold text-grey-9">
+            <div class="text-caption text-grey-6">Daily Standard Base</div>
+            <div class="text-h6 text-weight-bold">
               {{ formatHours(availabilityData.daily_working_hours) }}h / day
             </div>
             <div class="text-caption text-grey-6 ellipsis" style="font-size: 11px">
@@ -211,21 +211,22 @@
     <template v-else>
       <!-- LAYOUT OPTION A: GRID / CARDS VIEW -->
       <div v-if="viewLayout === 'grid'" class="availability-grid">
-        <div
+        <q-card
           v-for="day in availabilityData.days"
           :key="day.date"
+          flat
+          bordered
           class="day-card column justify-between"
-          :class="[
-            getStatusMeta(day.status).cardClass,
-            isToday(day.date) ? 'today-highlight' : '',
-          ]"
+          :class="{ 'today-card': isToday(day.date) }"
         >
           <!-- Top Row: Date & Status Badge -->
           <div>
             <div class="row items-center justify-between no-wrap q-mb-xs">
               <div class="column">
                 <div class="row items-center gap-xs no-wrap">
-                  <span class="day-date text-weight-bold">{{ formatShortDate(day.date) }}</span>
+                  <span class="text-weight-bold" style="font-size: 14px">
+                    {{ formatShortDate(day.date) }}
+                  </span>
                   <q-badge
                     v-if="isToday(day.date)"
                     color="primary"
@@ -233,41 +234,44 @@
                     class="today-badge"
                   />
                 </div>
-                <span class="day-weekday text-caption text-grey-6">{{ day.weekday }}</span>
+                <span class="text-caption text-grey-6">{{ day.weekday }}</span>
               </div>
 
               <!-- Status Badge -->
-              <span class="status-pill" :class="getStatusMeta(day.status).pillClass">
+              <span class="status-pill" :class="`status-${getStatusMeta(day.status).color}`">
                 <q-icon :name="getStatusMeta(day.status).icon" size="12px" class="q-mr-xs" />
                 {{ getStatusMeta(day.status).label }}
               </span>
             </div>
 
             <!-- State Banners / Working Info -->
-            <div v-if="day.status === 'NON_WORKING_DAY'" class="day-state-banner state-nwd">
+            <div v-if="day.status === 'NON_WORKING_DAY'" class="day-state-banner">
               <span class="text-caption text-grey-6">Weekend / Off Day</span>
             </div>
 
-            <div v-else-if="day.status === 'HOLIDAY'" class="day-state-banner state-holiday">
-              <span class="text-caption text-amber-9 text-weight-medium">Company Holiday</span>
+            <div v-else-if="day.status === 'HOLIDAY'" class="day-state-banner">
+              <span class="text-caption text-warning text-weight-medium">Company Holiday</span>
             </div>
 
-            <div v-else-if="day.status === 'ON_LEAVE'" class="day-state-banner state-leave">
-              <span class="text-caption text-purple-9 text-weight-medium"
-                >Approved Leave ({{ formatHours(day.leave_hours) }}h)</span
-              >
+            <div v-else-if="day.status === 'ON_LEAVE'" class="day-state-banner">
+              <span class="text-caption text-purple text-weight-medium">
+                Approved Leave ({{ formatHours(day.leave_hours) }}h)
+              </span>
             </div>
 
             <div v-else class="day-working-info q-my-xs">
               <div class="row items-center justify-between text-caption q-mb-xs">
-                <span class="text-grey-7" style="font-size: 11px">
-                  Base: <strong>{{ formatHours(day.daily_working_hours) }}h</strong>
+                <span class="text-grey-6" style="font-size: 11px">
+                  Base:
+                  <strong :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                    {{ formatHours(day.daily_working_hours) }}h
+                  </strong>
                 </span>
                 <span
                   :class="
                     day.available_hours > 0
                       ? 'text-positive text-weight-bold'
-                      : 'text-grey-7 text-weight-medium'
+                      : 'text-grey-6 text-weight-medium'
                   "
                   style="font-size: 11px"
                 >
@@ -326,15 +330,15 @@
             >
               100% Free Headroom
             </div>
-            <div v-else class="text-caption text-grey-5" style="font-size: 11px">
+            <div v-else class="text-caption text-grey-6" style="font-size: 11px">
               No tasks scheduled
             </div>
           </div>
-        </div>
+        </q-card>
       </div>
 
       <!-- LAYOUT OPTION B: TABLE VIEW -->
-      <q-card v-else flat bordered class="table-card overflow-hidden">
+      <q-card v-else flat bordered class="overflow-hidden">
         <q-table
           flat
           dense
@@ -356,7 +360,7 @@
 
           <template #body-cell-status="props">
             <q-td :props="props" class="text-center">
-              <span class="status-pill" :class="getStatusMeta(props.row.status).pillClass">
+              <span class="status-pill" :class="`status-${getStatusMeta(props.row.status).color}`">
                 <q-icon :name="getStatusMeta(props.row.status).icon" size="12px" class="q-mr-xs" />
                 {{ getStatusMeta(props.row.status).label }}
               </span>
@@ -544,66 +548,50 @@ function getStatusMeta(status: AvailabilityStatus) {
     case 'AVAILABLE':
       return {
         label: 'Available',
-        badgeColor: 'positive',
+        color: 'positive',
         icon: 'check_circle',
-        pillClass: 'pill-available',
-        cardClass: 'card-available',
       };
     case 'PARTIALLY_AVAILABLE':
       return {
         label: 'Partially Available',
-        badgeColor: 'cyan-8',
+        color: 'info',
         icon: 'timelapse',
-        pillClass: 'pill-partial',
-        cardClass: 'card-partial',
       };
     case 'FULLY_BOOKED':
       return {
         label: 'Fully Booked',
-        badgeColor: 'blue-8',
+        color: 'primary',
         icon: 'event_busy',
-        pillClass: 'pill-booked',
-        cardClass: 'card-booked',
       };
     case 'ON_LEAVE':
       return {
         label: 'On Leave',
-        badgeColor: 'purple-8',
+        color: 'purple',
         icon: 'beach_access',
-        pillClass: 'pill-leave',
-        cardClass: 'card-leave',
       };
     case 'PARTIAL_LEAVE':
       return {
         label: 'Partial Leave',
-        badgeColor: 'indigo-7',
+        color: 'deep-purple',
         icon: 'event_repeat',
-        pillClass: 'pill-partial-leave',
-        cardClass: 'card-partial-leave',
       };
     case 'HOLIDAY':
       return {
         label: 'Holiday',
-        badgeColor: 'amber-9',
+        color: 'warning',
         icon: 'celebration',
-        pillClass: 'pill-holiday',
-        cardClass: 'card-holiday',
       };
     case 'NON_WORKING_DAY':
       return {
         label: 'Off Day',
-        badgeColor: 'grey-7',
+        color: 'grey-7',
         icon: 'nightlight_round',
-        pillClass: 'pill-nwd',
-        cardClass: 'card-nwd',
       };
     default:
       return {
         label: status,
-        badgeColor: 'grey-6',
+        color: 'grey',
         icon: 'help_outline',
-        pillClass: 'pill-default',
-        cardClass: 'card-default',
       };
   }
 }
@@ -666,28 +654,7 @@ onMounted(() => {
 }
 
 .metric-mini-card {
-  border-radius: 10px;
-  transition: transform 0.15s ease;
-
-  &.bg-avail-soft {
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-
-  &.bg-alloc-soft {
-    background: rgba(139, 111, 216, 0.08);
-    border: 1px solid rgba(139, 111, 216, 0.2);
-  }
-
-  &.bg-leave-soft {
-    background: rgba(147, 51, 234, 0.08);
-    border: 1px solid rgba(147, 51, 234, 0.2);
-  }
-
-  &.bg-grey-soft {
-    background: rgba(100, 116, 139, 0.06);
-    border: 1px solid rgba(100, 116, 139, 0.15);
-  }
+  border-radius: 8px;
 }
 
 .availability-grid {
@@ -698,56 +665,23 @@ onMounted(() => {
 
 .day-card {
   padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--wo-bg-card, #ffffff);
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
   min-height: 120px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-    border-color: #cbd5e1;
   }
 
-  &.today-highlight {
-    border-color: #7c3aed !important;
-    background: linear-gradient(
-      180deg,
-      rgba(124, 58, 237, 0.03) 0%,
-      rgba(255, 255, 255, 0.9) 100%
-    );
-    box-shadow:
-      0 0 0 1px #7c3aed,
-      0 4px 12px rgba(124, 58, 237, 0.08);
+  &.today-card {
+    border-color: var(--wo-primary, #8b5cf6) !important;
+    border-width: 1.5px;
   }
-
-  &.card-nwd {
-    background: #f8fafc;
-    border-color: #f1f5f9;
-    opacity: 0.85;
-  }
-
-  &.card-holiday {
-    background: #fffbeb;
-    border-color: #fef3c7;
-  }
-
-  &.card-leave {
-    background: #faf5ff;
-    border-color: #f3e8ff;
-  }
-}
-
-.day-date {
-  font-size: 14px;
-  color: #1e293b;
 }
 
 .today-badge {
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 1px 4px;
   border-radius: 4px;
 }
@@ -758,46 +692,32 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 9999px;
-  line-height: 1.4;
+  border-radius: 12px;
 
-  &.pill-available {
-    background: #ecfdf5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
+  &.status-positive {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
   }
-  &.pill-partial {
-    background: #ecfeff;
-    color: #155e75;
-    border: 1px solid #a5f3fc;
+  &.status-info {
+    background: rgba(6, 182, 212, 0.12);
+    color: #06b6d4;
   }
-  &.pill-booked {
-    background: #eff6ff;
-    color: #1e40af;
-    border: 1px solid #bfdbfe;
+  &.status-primary {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
   }
-  &.pill-leave {
-    background: #faf5ff;
-    color: #6b21a8;
-    border: 1px solid #e9d5ff;
+  &.status-purple,
+  &.status-deep-purple {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
   }
-  &.pill-partial-leave {
-    background: #eef2ff;
-    color: #3730a3;
-    border: 1px solid #c7d2fe;
+  &.status-warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
   }
-  &.pill-holiday {
-    background: #fff7ed;
-    color: #9a3412;
-    border: 1px solid #fed7aa;
-  }
-  &.pill-nwd {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #e2e8f0;
-  }
-  &.pill-default {
-    background: #f8fafc;
+  &.status-grey-7,
+  &.status-grey {
+    background: rgba(100, 116, 139, 0.12);
     color: #64748b;
   }
 }
@@ -805,25 +725,14 @@ onMounted(() => {
 .day-state-banner {
   padding: 6px 10px;
   border-radius: 6px;
-  display: flex;
-  align-items: center;
-  margin: 6px 0;
-
-  &.state-nwd {
-    background: rgba(148, 163, 184, 0.12);
-  }
-  &.state-holiday {
-    background: rgba(245, 158, 11, 0.12);
-  }
-  &.state-leave {
-    background: rgba(147, 51, 234, 0.1);
-  }
+  background: rgba(100, 116, 139, 0.08);
+  margin: 8px 0;
 }
 
 .capacity-progress-track {
-  height: 5px;
+  height: 6px;
   border-radius: 3px;
-  background: #f1f5f9;
+  background: rgba(100, 116, 139, 0.15);
   display: flex;
   overflow: hidden;
 }
@@ -849,16 +758,16 @@ onMounted(() => {
   font-weight: 500;
 
   &.tag-avail {
-    background: #ecfdf5;
-    color: #065f46;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
   }
   &.tag-alloc {
-    background: #eff6ff;
-    color: #1e40af;
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
   }
   &.tag-leave {
-    background: #faf5ff;
-    color: #6b21a8;
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
   }
 }
 </style>
